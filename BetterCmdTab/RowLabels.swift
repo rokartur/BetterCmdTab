@@ -2,6 +2,7 @@ import Foundation
 
 enum RowLabels {
     static let reserved: Set<Character> = ["w", "m", "h", "q"]
+    static let suffixAlphabet: [Character] = Array("abcdefgijklnoprstuvxyz")
 
     struct Input {
         let appName: String
@@ -37,7 +38,34 @@ enum RowLabels {
                 labels[i] = String(first)
             }
         }
+
+        disambiguateDuplicates(&labels)
         return labels
+    }
+
+    private static func disambiguateDuplicates(_ labels: inout [String]) {
+        var groups: [String: [Int]] = [:]
+        for (i, l) in labels.enumerated() where !l.isEmpty {
+            groups[l, default: []].append(i)
+        }
+        for (base, indices) in groups where indices.count > 1 {
+            let groupSet = Set(indices)
+            var used = Set<String>()
+            for (j, l) in labels.enumerated() {
+                if groupSet.contains(j) { continue }
+                if !l.isEmpty { used.insert(l) }
+            }
+            for idx in indices {
+                for suffix in suffixAlphabet {
+                    let candidate = base + String(suffix)
+                    if !used.contains(candidate) {
+                        labels[idx] = candidate
+                        used.insert(candidate)
+                        break
+                    }
+                }
+            }
+        }
     }
 
     private static func firstAvailableLetter(_ raw: String) -> Character? {

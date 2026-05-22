@@ -24,6 +24,9 @@ final class SwitcherController: SwitcherViewDelegate {
     private var currentMetrics: SwitcherMetrics = .baseline
     private var letterBuffer: String = ""
     private var letterBufferTimer: Timer?
+    private var windowsOnlyMode: Bool = false
+    private var windowsOnlyPid: pid_t? = nil
+    private var windowsOnlyPrimedDelta: Int = 0
 
     let revealDelay: TimeInterval = 0.100
 
@@ -96,6 +99,10 @@ final class SwitcherController: SwitcherViewDelegate {
             advance(by: 1, wrap: true)
         case .prevApp:
             advance(by: -1, wrap: true)
+        case .nextWindow:
+            advanceWindowsOnly(by: 1)
+        case .prevWindow:
+            advanceWindowsOnly(by: -1)
         case .nextRow:
             advance(by: 1, wrap: false)
         case .prevRow:
@@ -198,6 +205,27 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    private func advanceWindowsOnly(by delta: Int) {
+        switch phase {
+        case .idle:
+            mru.syncFrontmost()
+            let selfPid = getpid()
+            guard let front = NSWorkspace.shared.frontmostApplication,
+                  front.processIdentifier != selfPid else { return }
+            windowsOnlyMode = true
+            windowsOnlyPid = front.processIdentifier
+            windowsOnlyPrimedDelta = delta
+            primedApps = [front]
+            primedIndex = 0
+            NSLog("[BetterCmdTab] advanceWindowsOnly idle: front=\(front.localizedName ?? "?")[\(front.processIdentifier)] delta=\(delta)")
+            schedulePrimedReveal()
+        case .primed:
+            windowsOnlyPrimedDelta += delta
+        case .visible:
+            advanceLinearVisible(by: delta, wrap: true)
+        }
+    }
+
     private func advance(by delta: Int, wrap: Bool) {
         switch phase {
         case .idle:
@@ -259,6 +287,12 @@ final class SwitcherController: SwitcherViewDelegate {
     private func reveal() {
         guard phase == .primed else { return }
         mru.syncFrontmost()
+
+        if windowsOnlyMode, let pid = windowsOnlyPid {
+            revealWindowsOnly(pid: pid)
+            return
+        }
+
         let snapshotApps = primedApps
         let targetIdx = primedIndex
         let targetPid = snapshotApps.indices.contains(targetIdx)
@@ -302,6 +336,45 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    private func revealWindowsOnly(pid: pid_t) {
+        var filtered = cache.rows(orderedBy: mru.order).filter { $0.pid == pid }
+        if filtered.isEmpty {
+            filtered = AppCatalog.snapshot(orderedBy: mru.order).filter { $0.pid == pid }
+        }
+        let hasWindow = filtered.contains { $0.window != nil }
+        if !hasWindow {
+            cancel()
+            return
+        }
+        rows = filtered
+        labels = RowLabels.labels(for: rows)
+        let count = rows.count
+        let delta = windowsOnlyPrimedDelta
+        index = count > 0 ? ((delta % count) + count) % count : 0
+
+        currentMetrics = SwitcherMetrics.forScreen(SwitcherPanel.preferredScreen())
+        view.configure(rows: rows, labels: labels, selectedIndex: index, metrics: currentMetrics, highlightPrefix: letterBuffer)
+        panel.present()
+        phase = .visible
+
+        let mruOrder = mru.order
+        DispatchQueue.global(qos: .userInteractive).async { [weak self] in
+            let fresh = AppCatalog.snapshot(orderedBy: mruOrder).filter { $0.pid == pid }
+            DispatchQueue.main.async {
+                self?.applyWindowsOnlySnapshot(fresh)
+            }
+        }
+    }
+
+    private func applyWindowsOnlySnapshot(_ fresh: [SwitcherRow]) {
+        guard phase == .visible, windowsOnlyMode else { return }
+        if fresh.isEmpty { cancel(); return }
+        rows = fresh
+        labels = RowLabels.labels(for: rows)
+        index = min(index, rows.count - 1)
+        applyPrefixReorder()
+    }
+
     private func applyFullSnapshot(_ fresh: [SwitcherRow], anchorPid: pid_t?) {
         guard phase == .visible else { return }
         if fresh.isEmpty { cancel(); return }
@@ -342,6 +415,9 @@ final class SwitcherController: SwitcherViewDelegate {
         panel.dismiss()
         primedApps = []
         rows = []
+        windowsOnlyMode = false
+        windowsOnlyPid = nil
+        windowsOnlyPrimedDelta = 0
         resetLetterBuffer()
         pendingActivation?()
     }
@@ -353,6 +429,9 @@ final class SwitcherController: SwitcherViewDelegate {
         panel.dismiss()
         primedApps = []
         rows = []
+        windowsOnlyMode = false
+        windowsOnlyPid = nil
+        windowsOnlyPrimedDelta = 0
         resetLetterBuffer()
     }
 

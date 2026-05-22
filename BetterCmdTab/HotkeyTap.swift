@@ -5,6 +5,8 @@ final class HotkeyTap {
     enum Event {
         case nextApp
         case prevApp
+        case nextWindow
+        case prevWindow
         case nextRow
         case prevRow
         case releaseCmd
@@ -100,8 +102,13 @@ final class HotkeyTap {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
 
         if type == .keyDown {
-            if cmdHeld && (keyCode == Self.tabKey || keyCode == Self.backtickKey) {
+            if cmdHeld && keyCode == Self.tabKey {
                 let dir: Event = shiftHeld ? .prevApp : .nextApp
+                deliver(dir)
+                return nil
+            }
+            if cmdHeld && keyCode == Self.backtickKey {
+                let dir: Event = shiftHeld ? .prevWindow : .nextWindow
                 deliver(dir)
                 return nil
             }
