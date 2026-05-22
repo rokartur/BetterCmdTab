@@ -45,6 +45,15 @@ final class AppCatalogCache {
     }
 
     func rows(orderedBy mru: [pid_t]) -> [SwitcherRow] {
+        // Sweep terminated apps that the didTerminate workspace observer
+        // hasn't reached yet (race: user hits Cmd+Q on a switcher row → row
+        // stays visible with empty icon until the observer fires). Filtering
+        // by isTerminated here closes the gap.
+        for (pid, entry) in entries where entry.app.isTerminated {
+            entries.removeValue(forKey: pid)
+            IconCache.evict(pid)
+        }
+
         var ordered: [AppCacheEntry] = []
         ordered.reserveCapacity(entries.count)
         var seen = Set<pid_t>()
