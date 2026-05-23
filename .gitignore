@@ -2,3 +2,4 @@ default.profraw
 buildServer.json
 xcuserdata/
 build/
+.DS_Store
