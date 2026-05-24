@@ -11,4 +11,5 @@ enum Log {
     static let hotkey = Logger(subsystem: subsystem, category: "hotkey")
     static let activator = Logger(subsystem: subsystem, category: "activator")
     static let priv = Logger(subsystem: subsystem, category: "private-api")
+    static let launch = Logger(subsystem: subsystem, category: "launch-at-login")
 }

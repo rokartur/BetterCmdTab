@@ -63,14 +63,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let menu = NSMenu()
 
-        let checkUpdatesItem = NSMenuItem(
-            title: "Check for Updates…",
-            action: #selector(checkForUpdates),
-            keyEquivalent: ""
-        )
-        checkUpdatesItem.target = self
-        menu.addItem(checkUpdatesItem)
-
         let settingsItem = NSMenuItem(
             title: "Settings…",
             action: #selector(openSettings),
@@ -88,40 +80,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
     }
 
-    @objc private func checkForUpdates() {
-        Task { @MainActor in
-            await GitHubUpdater.shared.checkForUpdates(force: true)
-
-            // On manual check, surface up-to-date / error states the user
-            // would otherwise miss (auto-check silently returns to .idle).
-            switch GitHubUpdater.shared.state {
-            case .upToDate:
-                let alert = NSAlert()
-                alert.messageText = "You're up to date!"
-                alert.informativeText = "BetterCmdTab \(AppInfo.appVersion) is the latest version available."
-                alert.alertStyle = .informational
-                alert.addButton(withTitle: "OK")
-                alert.runModal()
-                GitHubUpdater.shared.resetToIdle()
-            case .error(let message):
-                let alert = NSAlert()
-                alert.messageText = "Update check failed"
-                alert.informativeText = message
-                alert.alertStyle = .warning
-                alert.addButton(withTitle: "OK")
-                alert.runModal()
-                GitHubUpdater.shared.resetToIdle()
-            default:
-                break
-            }
-        }
-    }
-
     @objc private func openSettings() {
         SettingsWindowPresenter.shared.show()
     }
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
     }
 }
