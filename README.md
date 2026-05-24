@@ -1,14 +1,33 @@
-<img width="128" height="128" alt="AppIcon-macOS-Dark-256x256@1x" src="https://github.com/user-attachments/assets/3e4bbb67-ef7d-4619-8068-1458d8460331" />
+<div align="center">
+
+<img src="https://github.com/user-attachments/assets/3e4bbb67-ef7d-4619-8068-1458d8460331" width="160" height="160" alt="BetterCmdTab" />
 
 # BetterCmdTab
 
-A fast, native Cmd+Tab replacement for macOS. Open source, free, no telemetry.
+**The Cmd+Tab macOS deserves.**
 
-Built in Swift / AppKit. Designed for macOS 13–26+ with first-class Liquid Glass support on macOS 26.
+Fast · Native · Liquid Glass · Zero telemetry · Free forever
 
-<img width="1800" height="1169" alt="66F4EF3E-F3C3-4B07-A97A-80D27BCBB886" src="https://github.com/user-attachments/assets/f8315d7a-b4cb-4c39-9be4-1abde57629e8" />
+<p>
+  <a href="https://github.com/rokartur/BetterCmdTab/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/rokartur/BetterCmdTab?include_prereleases&style=for-the-badge&label=download&color=white&logo=apple&logoColor=white"></a>
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-13.0+-000?style=for-the-badge&logo=apple&logoColor=white&color=white">
+  <a href="https://github.com/rokartur/BetterCmdTab/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/rokartur/BetterCmdTab/total?style=for-the-badge&color=white"></a>
+</p>
 
----
+<sub>
+  <a href="#install">Install</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#shortcuts">Shortcuts</a> ·
+  <a href="#build-from-source">Build</a> ·
+  <a href="#contributing">Contribute</a>
+</sub>
+
+<br />
+<br />
+
+<img src="https://github.com/user-attachments/assets/f8315d7a-b4cb-4c39-9be4-1abde57629e8" width="100%" alt="BetterCmdTab switcher on macOS 26 with Liquid Glass" />
+
+</div>
 
 ## Why
 
@@ -17,7 +36,7 @@ macOS's built-in Cmd+Tab switches apps, not windows. Third-party alternatives ei
 ## Features
 
 - **Two layouts** — classic vertical list, or a grid of app icons with spatial arrow-key navigation.
-- **Window-level switching** — `Cmd+\`` cycles the windows of the frontmost app. Works on every app, including non-AppKit apps (Ghostty, Alacritty, Wezterm).
+- **Window-level switching** — `` Cmd+ ` `` cycles the windows of the frontmost app. Works on every app.
 - **Letter-prefix jump** — start typing the first letters of an app name to reorder the list and jump to the match.
 - **Quick actions on the highlighted row** — quit, close window, minimize, hide, all without leaving the switcher.
 - **Liquid Glass backdrop on macOS 26**, NSVisualEffectView fallback below.
@@ -83,19 +102,7 @@ BetterCmdTab does not collect, transmit, or store any data. There is no telemetr
 
 ## Contributing
 
-Issues and pull requests welcome. The codebase is small enough to read in an afternoon — the entry points are:
-
-- `BetterCmdTab/Input/HotkeyTap.swift` — global event tap and key handling
-- `BetterCmdTab/Switcher/SwitcherController.swift` — switcher state machine
-- `BetterCmdTab/Switcher/SwitcherView.swift` — list and grid layout
-- `BetterCmdTab/Catalog/AppCatalog.swift` — AX window enumeration
-- `BetterCmdTab/Windows/Activator.swift` — bring-to-front, raise, focus
-
-Run the test suite with:
-
-```bash
-xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' test
-```
+Issues and pull requests welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for project layout, build / test instructions, and PR guidelines.
 
 ## License
 
