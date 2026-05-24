@@ -1,8 +1,12 @@
+<img width="128" height="128" alt="AppIcon-macOS-Dark-256x256@1x" src="https://github.com/user-attachments/assets/3e4bbb67-ef7d-4619-8068-1458d8460331" />
+
 # BetterCmdTab
 
 A fast, native Cmd+Tab replacement for macOS. Open source, free, no telemetry.
 
 Built in Swift / AppKit. Designed for macOS 13–26+ with first-class Liquid Glass support on macOS 26.
+
+<img width="1800" height="1169" alt="66F4EF3E-F3C3-4B07-A97A-80D27BCBB886" src="https://github.com/user-attachments/assets/f8315d7a-b4cb-4c39-9be4-1abde57629e8" />
 
 ---
 
