@@ -11,6 +11,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private let hotkey = HotkeyTap()
     private let mru = MRUTracker()
+    private let windowMRU = WindowMRUTracker()
     private let cache = AppCatalogCache()
     private let panel = SwitcherPanel()
     private let view: SwitcherView
@@ -92,6 +93,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
     func start() {
         mru.start()
+        windowMRU.start()
         cache.start(mru: mru)
         let installed = hotkey.install()
         if !installed {
@@ -274,6 +276,10 @@ final class SwitcherController: SwitcherViewDelegate {
             let selfPid = getpid()
             guard let front = NSWorkspace.shared.frontmostApplication,
                   front.processIdentifier != selfPid else { return }
+            // Promote the truly-current window of the front app to MRU[0]
+            // before we freeze the snapshot. Catches manual clicks the user
+            // made between Cmd+` chords that our own activations did not see.
+            windowMRU.syncFrontWindow(pid: front.processIdentifier)
             windowsOnlyMode = true
             windowsOnlyPid = front.processIdentifier
             windowsOnlyPrimedDelta = delta
@@ -499,6 +505,7 @@ final class SwitcherController: SwitcherViewDelegate {
             cancel()
             return
         }
+        filtered = windowMRU.sortRows(filtered, forPid: pid)
         rows = filtered
         labels = RowLabels.labels(for: rows)
         let count = rows.count
@@ -521,7 +528,8 @@ final class SwitcherController: SwitcherViewDelegate {
     private func applyWindowsOnlySnapshot(_ fresh: [SwitcherRow]) {
         guard phase == .visible, windowsOnlyMode else { return }
         if fresh.isEmpty { cancel(); return }
-        rows = fresh
+        let sorted = windowsOnlyPid.map { windowMRU.sortRows(fresh, forPid: $0) } ?? fresh
+        rows = sorted
         labels = RowLabels.labels(for: rows)
         index = min(index, rows.count - 1)
         applyPrefixReorder()
@@ -552,6 +560,30 @@ final class SwitcherController: SwitcherViewDelegate {
         applyPrefixReorder()
     }
 
+    /// Select the window-switch target for a fast Cmd+` chord that commits
+    /// while still in the primed phase (release of Cmd before the panel
+    /// reveals). Mirrors the linear advance the visible phase would have
+    /// produced: sort the front app's windows by MRU, then pick `delta`
+    /// positions away from the current front window with wrap.
+    private func pickWindowsOnlyTarget(pid: pid_t, delta: Int) -> SwitcherRow? {
+        var candidates = cache.rows(orderedBy: mru.order).filter { $0.pid == pid && $0.window != nil }
+        if candidates.isEmpty {
+            candidates = AppCatalog.snapshot(orderedBy: mru.order).filter { $0.pid == pid && $0.window != nil }
+        }
+        guard !candidates.isEmpty else { return nil }
+        candidates = windowMRU.sortRows(candidates, forPid: pid)
+        let count = candidates.count
+        let target = ((delta % count) + count) % count
+        return candidates[target]
+    }
+
+    private func bumpWindowMRUIfPossible(for row: SwitcherRow) {
+        guard let win = row.window else { return }
+        let wid = PrivateAPI.cgWindowId(of: win)
+        guard wid != 0 else { return }
+        windowMRU.bump(pid: row.pid, wid: wid)
+    }
+
     private func commit() {
         revealTimer?.invalidate()
         revealTimer = nil
@@ -563,10 +595,16 @@ final class SwitcherController: SwitcherViewDelegate {
             if rows.indices.contains(index) {
                 let row = rows[index]
                 mru.bump(row.pid)
+                bumpWindowMRUIfPossible(for: row)
                 pendingActivation = { Activator.activate(row) }
             }
         case .primed:
-            if primedApps.indices.contains(primedIndex) {
+            if windowsOnlyMode, let pid = windowsOnlyPid,
+               let row = pickWindowsOnlyTarget(pid: pid, delta: windowsOnlyPrimedDelta) {
+                mru.bump(row.pid)
+                bumpWindowMRUIfPossible(for: row)
+                pendingActivation = { Activator.activate(row) }
+            } else if primedApps.indices.contains(primedIndex) {
                 let app = primedApps[primedIndex]
                 mru.bump(app.processIdentifier)
                 pendingActivation = { Activator.activateApp(app) }
