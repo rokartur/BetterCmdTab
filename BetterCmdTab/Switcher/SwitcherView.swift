@@ -290,12 +290,23 @@ final class SwitcherView: NSView {
         return layout
     }
 
+    /// Resolves the screen the switcher should size itself for. `window?.screen`
+    /// reflects where the panel was actually placed (set by `SwitcherPanel.present`),
+    /// so layout bounds and presentation position stay on the same display when
+    /// the panel is shown under the cursor on an external monitor. `NSScreen.main`
+    /// would otherwise leak the keyboard-focus monitor into layout math, picking
+    /// the wrong DPI / visible area when those don't match.
+    private func layoutScreenFrame() -> NSRect {
+        let screen = window?.screen ?? SwitcherPanel.preferredScreen()
+        return screen.visibleFrame
+    }
+
     private func computeListLayout() -> ListLayout {
         let rowH = metrics.rowHeight
         let baseRowW = metrics.rowWidth
         let outerPadding = metrics.outerPadding
         let count = max(rows.count, 1)
-        let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let screen = layoutScreenFrame()
         let maxListHeight = screen.height * maxScreenHeightFraction - outerPadding * 2
         let maxListWidth = screen.width * maxScreenWidthFraction - outerPadding * 2
 
@@ -358,7 +369,7 @@ final class SwitcherView: NSView {
         let outerPadding = metrics.outerPadding
         let count = max(rows.count, 1)
 
-        let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let screen = layoutScreenFrame()
         let maxListWidth = screen.width * maxScreenWidthFraction - outerPadding * 2
 
         // Each tile occupies (tile + gap), final tile has no trailing gap.

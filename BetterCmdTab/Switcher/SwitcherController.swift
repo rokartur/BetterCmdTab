@@ -51,6 +51,27 @@ final class SwitcherController: SwitcherViewDelegate {
                 self.panel.makeKeyAndOrderFront(nil)
             }
         }
+        // Display config changed — monitor (re)connected, resolution / HiDPI
+        // scaling / DDC mode swap. If the switcher is showing, recompute metrics
+        // for the new active screen and reposition; otherwise the next reveal
+        // picks up correct values automatically since `reveal()` rebuilds
+        // metrics from `SwitcherPanel.preferredScreen()` each time.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.handleScreenParametersChange()
+            }
+        }
+    }
+
+    private func handleScreenParametersChange() {
+        guard phase == .visible, !rows.isEmpty else { return }
+        currentMetrics = SwitcherMetrics.forScreen(SwitcherPanel.preferredScreen(), layoutMode: Preferences.shared.switcherLayoutMode)
+        view.configure(rows: rows, labels: labels, selectedIndex: index, metrics: currentMetrics, highlightPrefix: letterBuffer)
+        panel.present()
     }
 
     func start() {
