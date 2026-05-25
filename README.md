@@ -8,6 +8,8 @@
 
 Fast · Native · Liquid Glass · Zero telemetry · Free forever
 
+[![image](https://img.shields.io/badge/Download_Latest_Release-F5F5F4?style=for-the-badge&logo=apple&logoColor=black)](https://github.com/rokartur/BetterCmdTab/releases/latest)
+
 <p>
   <a href="https://github.com/rokartur/BetterCmdTab/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/rokartur/BetterCmdTab?include_prereleases&style=for-the-badge&label=download&color=white&logo=apple&logoColor=white"></a>
   <img alt="macOS" src="https://img.shields.io/badge/macOS-13.0+-000?style=for-the-badge&logo=apple&logoColor=white&color=white">
