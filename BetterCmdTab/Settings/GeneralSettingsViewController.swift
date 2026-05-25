@@ -6,153 +6,60 @@ final class GeneralSettingsViewController: NSViewController {
 
     private let launchSwitch = NSSwitch()
     private let hideMenuBarSwitch = NSSwitch()
+    private let hapticSwitch = NSSwitch()
+    private let soundSwitch = NSSwitch()
+    private let betaSwitch = NSSwitch()
+
     private let accessibilityRow = SettingsRowView(
         title: "Accessibility access",
-        description: "Required to intercept the switcher shortcut and read your open windows."
+        description: "Needed to capture the shortcut and read your open windows."
     )
     private let permissionIcon = NSImageView()
     private let permissionButton = NSButton(title: "", target: nil, action: nil)
 
-    private let betaSwitch = NSSwitch()
-    private let hapticSwitch = NSSwitch()
-    private let soundSwitch = NSSwitch()
-    private let swipeSwitch = NSSwitch()
-    private let badgesSwitch = NSSwitch()
     private let appRecorder = KeyboardShortcuts.RecorderCocoa(for: .switchApps)
     private let windowRecorder = KeyboardShortcuts.RecorderCocoa(for: .switchWindows)
-
-    private let minimizedSwitch = NSSwitch()
-    private let hiddenSwitch = NSSwitch()
-    private let windowlessSwitch = NSSwitch()
-    private let fuzzySwitch = NSSwitch()
-    private let launcherSwitch = NSSwitch()
-    private let recentlyClosedSwitch = NSSwitch()
-    private let recentlyClosedLimitPopup = NSPopUpButton(frame: .zero, pullsDown: false)
-    private let recentlyClosedLimits: [Int] = [3, 5, 10, 15, 20]
-    private let searchModePopup = NSPopUpButton(frame: .zero, pullsDown: false)
-    private let searchDismissModes: [SearchDismissMode] = SearchDismissMode.allCases
-    private let excludedButton = NSButton(title: "Manage apps", target: nil, action: nil)
-    private let pinnedButton = NSButton(title: "Manage apps", target: nil, action: nil)
-    private let excludedRow = SettingsRowView(
-        title: "Excluded apps",
-        description: "Hidden from the switcher entirely."
-    )
-    private let pinnedRow = SettingsRowView(
-        title: "Pinned apps",
-        description: "Forced to the front of the switcher, before recents."
-    )
-    private var appsSheet: AppsPickerSheetWindowController?
 
     private var cancellables = Set<AnyCancellable>()
     private var axTimer: Timer?
 
     override func loadView() {
-        // Behavior section
-        let behavior = SettingsSectionView(header: "Behavior")
+        // Startup section
+        let startup = SettingsSectionView(header: "Startup")
         let launchRow = SettingsRowView(title: "Launch at login", accessory: launchSwitch)
         launchSwitch.controlSize = .small
         launchSwitch.target = self
         launchSwitch.action = #selector(toggleLaunchAtLogin(_:))
-        behavior.addContent(launchRow)
+        startup.addContent(launchRow)
 
         configureSwitch(hideMenuBarSwitch, action: #selector(toggleHideMenuBarIcon(_:)))
-        behavior.addContent(SettingsRowView(
+        startup.addContent(SettingsRowView(
             title: "Hide menu bar icon",
-            subtitle: "Removes the ⌘ icon from the menu bar. Launch BetterCmdTab again (e.g. from Spotlight) to reopen this window.",
+            subtitle: "Hides the ⌘ icon. Relaunch the app (e.g. from Spotlight) to reopen this window.",
             accessory: hideMenuBarSwitch
         ))
 
+        // Shortcuts section — native KeyboardShortcuts recorders. The trigger must
+        // include a hold modifier (Command/Option/Control); Shift is reserved for
+        // reverse-direction stepping and is rejected by the recorder.
+        let shortcuts = SettingsSectionView(header: "Shortcuts")
+        shortcuts.addContent(SettingsRowView(title: "Switch apps", accessory: appRecorder))
+        shortcuts.addContent(SettingsRowView(title: "Switch windows", accessory: windowRecorder))
+
+        // Feedback section — confirmation cues on commit.
+        let feedback = SettingsSectionView(header: "Feedback")
         configureSwitch(hapticSwitch, action: #selector(toggleHaptic(_:)))
-        behavior.addContent(SettingsRowView(
+        feedback.addContent(SettingsRowView(
             title: "Haptic feedback on switch",
-            subtitle: "A subtle tap when you commit a selection. Force Touch trackpads only.",
+            subtitle: "A tap when you pick an app. Force Touch trackpads only.",
             accessory: hapticSwitch
         ))
         configureSwitch(soundSwitch, action: #selector(toggleSound(_:)))
-        behavior.addContent(SettingsRowView(
+        feedback.addContent(SettingsRowView(
             title: "Sound on switch",
-            subtitle: "Play a soft click when you commit a selection.",
+            subtitle: "A soft click when you pick an app.",
             accessory: soundSwitch
         ))
-
-        // Shortcut section — native KeyboardShortcuts recorders. The trigger must
-        // include a hold modifier (Command/Option/Control); Shift is reserved for
-        // reverse-direction stepping and is rejected by the recorder.
-        let shortcut = SettingsSectionView(header: "Shortcut")
-        shortcut.addContent(SettingsRowView(title: "Switch apps", accessory: appRecorder))
-        shortcut.addContent(SettingsRowView(title: "Switch windows", accessory: windowRecorder))
-
-        // Switcher contents section — what kinds of windows/apps appear.
-        let contents = SettingsSectionView(header: "Switcher Contents")
-        configureSwitch(minimizedSwitch, action: #selector(toggleMinimized(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Show minimized windows",
-            accessory: minimizedSwitch
-        ))
-        configureSwitch(hiddenSwitch, action: #selector(toggleHidden(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Show hidden apps",
-            accessory: hiddenSwitch
-        ))
-        configureSwitch(windowlessSwitch, action: #selector(toggleWindowless(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Show apps without windows",
-            subtitle: "Running apps that have no open windows.",
-            accessory: windowlessSwitch
-        ))
-        configureSwitch(fuzzySwitch, action: #selector(toggleFuzzy(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Type-to-filter search",
-            subtitle: "Press / while the switcher is open to filter by app name or window title.",
-            accessory: fuzzySwitch
-        ))
-        configureSwitch(launcherSwitch, action: #selector(toggleLauncher(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Launch apps from search",
-            subtitle: "While searching, also list matching apps that aren't running yet so you can launch them.",
-            accessory: launcherSwitch
-        ))
-        configureSwitch(recentlyClosedSwitch, action: #selector(toggleRecentlyClosed(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Show recently closed apps",
-            subtitle: "List apps and windows you recently closed at the end of the switcher (and when searching) so you can reopen them.",
-            accessory: recentlyClosedSwitch
-        ))
-
-        recentlyClosedLimitPopup.controlSize = .small
-        recentlyClosedLimitPopup.translatesAutoresizingMaskIntoConstraints = false
-        recentlyClosedLimitPopup.setContentHuggingPriority(.required, for: .horizontal)
-        recentlyClosedLimitPopup.removeAllItems()
-        recentlyClosedLimitPopup.addItems(withTitles: recentlyClosedLimits.map(String.init))
-        recentlyClosedLimitPopup.target = self
-        recentlyClosedLimitPopup.action = #selector(recentlyClosedLimitChanged)
-        contents.addContent(SettingsRowView(
-            title: "Recently closed to show",
-            subtitle: "Maximum number of recently closed items listed in search.",
-            accessory: recentlyClosedLimitPopup
-        ))
-
-        searchModePopup.controlSize = .small
-        searchModePopup.translatesAutoresizingMaskIntoConstraints = false
-        searchModePopup.setContentHuggingPriority(.required, for: .horizontal)
-        searchModePopup.removeAllItems()
-        searchModePopup.addItems(withTitles: searchDismissModes.map(\.displayName))
-        searchModePopup.target = self
-        searchModePopup.action = #selector(searchModeChanged)
-        contents.addContent(SettingsRowView(
-            title: "When searching",
-            subtitle: "“Hold ⌘” keeps the current behavior; “Stay open” lets you release ⌘ after / and pick with Return or the mouse.",
-            accessory: searchModePopup
-        ))
-
-        // App lists section — exclusion and pinning, each via a picker sheet.
-        let appLists = SettingsSectionView(header: "Apps")
-        configureManageButton(excludedButton, action: #selector(manageExcluded))
-        excludedRow.setAccessory(excludedButton)
-        appLists.addContent(excludedRow)
-        configureManageButton(pinnedButton, action: #selector(managePinned))
-        pinnedRow.setAccessory(pinnedButton)
-        appLists.addContent(pinnedRow)
 
         // Permissions section
         let permissions = SettingsSectionView(header: "Permissions")
@@ -180,8 +87,8 @@ final class GeneralSettingsViewController: NSViewController {
         accessibilityRow.setAccessory(permissionAccessory)
         permissions.addContent(accessibilityRow)
 
-        // Update Channel section
-        let updates = SettingsSectionView(header: "Update Channel")
+        // Updates section
+        let updates = SettingsSectionView(header: "Updates")
         let betaRow = SettingsRowView(
             title: "Include beta releases",
             description: "Beta builds may be unstable.",
@@ -192,35 +99,13 @@ final class GeneralSettingsViewController: NSViewController {
         betaSwitch.action = #selector(toggleBeta(_:))
         updates.addContent(betaRow)
 
-        // Experimental section — off by default, clearly flagged as unstable.
-        let experimental = SettingsSectionView(header: "Experimental")
-        configureSwitch(swipeSwitch, action: #selector(toggleSwipe(_:)))
-        experimental.addContent(SettingsRowView(
-            title: "Open with trackpad swipe",
-            subtitle: "Three-finger horizontal swipe opens the switcher. May conflict with Mission Control / page navigation; release ⌘ won't commit — pick with Return, click, or Esc.",
-            accessory: swipeSwitch
-        ))
-        configureSwitch(badgesSwitch, action: #selector(toggleBadges(_:)))
-        experimental.addContent(SettingsRowView(
-            title: "Show unread badges",
-            subtitle: "Reads app badge counts from the Dock. Fragile and language-dependent; may not match every app.",
-            accessory: badgesSwitch
-        ))
-
-        view = SettingsLayout.makeScrollingTab(sections: [behavior, shortcut, contents, appLists, permissions, experimental, updates])
+        view = SettingsLayout.makeScrollingTab(sections: [startup, shortcuts, feedback, permissions, updates])
     }
 
     private func configureSwitch(_ toggle: NSSwitch, action: Selector) {
         toggle.controlSize = .small
         toggle.target = self
         toggle.action = action
-    }
-
-    private func configureManageButton(_ button: NSButton, action: Selector) {
-        button.bezelStyle = .rounded
-        button.controlSize = .small
-        button.target = self
-        button.action = action
     }
 
     override func viewWillAppear() {
@@ -231,35 +116,9 @@ final class GeneralSettingsViewController: NSViewController {
         refreshAccessibilityStatus()
 
         let prefs = Preferences.shared
-        minimizedSwitch.state = prefs.showMinimizedWindows ? .on : .off
-        hiddenSwitch.state = prefs.showHiddenApps ? .on : .off
-        windowlessSwitch.state = prefs.showWindowlessApps ? .on : .off
-        fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
-        launcherSwitch.state = prefs.searchIncludesLaunchableApps ? .on : .off
-        recentlyClosedSwitch.state = prefs.showRecentlyClosed ? .on : .off
-        selectRecentlyClosedLimit(prefs.recentlyClosedLimit)
-        recentlyClosedLimitPopup.isEnabled = prefs.showRecentlyClosed
         hideMenuBarSwitch.state = prefs.hideMenuBarIcon ? .on : .off
         hapticSwitch.state = prefs.hapticOnCommit ? .on : .off
         soundSwitch.state = prefs.soundOnCommit ? .on : .off
-        swipeSwitch.state = prefs.experimentalSwipeTrigger ? .on : .off
-        badgesSwitch.state = prefs.experimentalUnreadBadges ? .on : .off
-        selectSearchMode(prefs.searchDismissMode)
-        updateAppListCounts()
-
-        prefs.$searchDismissMode
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.selectSearchMode($0) }
-            .store(in: &cancellables)
-
-        prefs.$excludedBundleIDs
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.excludedRow.rowDescription = Self.countDescription($0.count, suffix: "hidden from the switcher entirely.") }
-            .store(in: &cancellables)
-        prefs.$pinnedBundleIDs
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.pinnedRow.rowDescription = Self.countDescription($0.count, suffix: "forced to the front of the switcher.") }
-            .store(in: &cancellables)
 
         let updater = GitHubUpdater.shared
         betaSwitch.state = updater.includePreReleases ? .on : .off
@@ -300,47 +159,6 @@ final class GeneralSettingsViewController: NSViewController {
         GitHubUpdater.shared.includePreReleases = (sender.state == .on)
     }
 
-    @objc private func toggleMinimized(_ sender: NSSwitch) {
-        Preferences.shared.showMinimizedWindows = (sender.state == .on)
-    }
-
-    @objc private func toggleHidden(_ sender: NSSwitch) {
-        Preferences.shared.showHiddenApps = (sender.state == .on)
-    }
-
-    @objc private func toggleWindowless(_ sender: NSSwitch) {
-        Preferences.shared.showWindowlessApps = (sender.state == .on)
-    }
-
-    @objc private func toggleFuzzy(_ sender: NSSwitch) {
-        Preferences.shared.fuzzySearchEnabled = (sender.state == .on)
-    }
-
-    @objc private func toggleLauncher(_ sender: NSSwitch) {
-        Preferences.shared.searchIncludesLaunchableApps = (sender.state == .on)
-    }
-
-    @objc private func toggleRecentlyClosed(_ sender: NSSwitch) {
-        let on = (sender.state == .on)
-        Preferences.shared.showRecentlyClosed = on
-        recentlyClosedLimitPopup.isEnabled = on
-    }
-
-    @objc private func recentlyClosedLimitChanged() {
-        let idx = recentlyClosedLimitPopup.indexOfSelectedItem
-        guard recentlyClosedLimits.indices.contains(idx) else { return }
-        Preferences.shared.recentlyClosedLimit = recentlyClosedLimits[idx]
-    }
-
-    private func selectRecentlyClosedLimit(_ value: Int) {
-        // Snap to the closest offered value if a stored limit isn't in the list.
-        if let exact = recentlyClosedLimits.firstIndex(of: value) {
-            recentlyClosedLimitPopup.selectItem(at: exact)
-        } else if let nearest = recentlyClosedLimits.enumerated().min(by: { abs($0.element - value) < abs($1.element - value) }) {
-            recentlyClosedLimitPopup.selectItem(at: nearest.offset)
-        }
-    }
-
     @objc private func toggleHideMenuBarIcon(_ sender: NSSwitch) {
         Preferences.shared.hideMenuBarIcon = (sender.state == .on)
     }
@@ -351,80 +169,6 @@ final class GeneralSettingsViewController: NSViewController {
 
     @objc private func toggleSound(_ sender: NSSwitch) {
         Preferences.shared.soundOnCommit = (sender.state == .on)
-    }
-
-    @objc private func toggleSwipe(_ sender: NSSwitch) {
-        Preferences.shared.experimentalSwipeTrigger = (sender.state == .on)
-    }
-
-    @objc private func toggleBadges(_ sender: NSSwitch) {
-        Preferences.shared.experimentalUnreadBadges = (sender.state == .on)
-    }
-
-    @objc private func searchModeChanged() {
-        let idx = searchModePopup.indexOfSelectedItem
-        guard searchDismissModes.indices.contains(idx) else { return }
-        Preferences.shared.searchDismissMode = searchDismissModes[idx]
-    }
-
-    private func selectSearchMode(_ mode: SearchDismissMode) {
-        if let i = searchDismissModes.firstIndex(of: mode) { searchModePopup.selectItem(at: i) }
-    }
-
-    @objc private func manageExcluded() {
-        presentAppsSheet(
-            title: "Excluded Apps",
-            prompt: "Selected apps are hidden from the switcher entirely.",
-            selected: Preferences.shared.excludedBundleIDs
-        ) { selection in
-            Preferences.shared.excludedBundleIDs = selection
-        }
-    }
-
-    @objc private func managePinned() {
-        presentAppsSheet(
-            title: "Pinned Apps",
-            prompt: "Selected apps are forced to the front of the switcher, before recents.",
-            selected: Set(Preferences.shared.pinnedBundleIDs)
-        ) { selection in
-            // Preserve existing pin order; append newly-checked apps at the end.
-            let current = Preferences.shared.pinnedBundleIDs
-            var order = current.filter { selection.contains($0) }
-            for bid in selection where !order.contains(bid) { order.append(bid) }
-            Preferences.shared.pinnedBundleIDs = order
-        }
-    }
-
-    private func presentAppsSheet(
-        title: String,
-        prompt: String,
-        selected: Set<String>,
-        onDone: @escaping (Set<String>) -> Void
-    ) {
-        guard let window = view.window, appsSheet == nil else { return }
-        let controller = AppsPickerSheetWindowController(
-            title: title,
-            prompt: prompt,
-            selectedBundleIDs: selected,
-            onDone: onDone
-        )
-        controller.onDidDismiss = { [weak self] in
-            self?.appsSheet = nil
-            self?.updateAppListCounts()
-        }
-        appsSheet = controller
-        controller.present(asSheetFor: window)
-    }
-
-    private func updateAppListCounts() {
-        let prefs = Preferences.shared
-        excludedRow.rowDescription = Self.countDescription(prefs.excludedBundleIDs.count, suffix: "hidden from the switcher entirely.")
-        pinnedRow.rowDescription = Self.countDescription(prefs.pinnedBundleIDs.count, suffix: "forced to the front of the switcher.")
-    }
-
-    private static func countDescription(_ count: Int, suffix: String) -> String {
-        let prefix = count == 0 ? "None" : "\(count) app\(count == 1 ? "" : "s")"
-        return "\(prefix) — \(suffix)"
     }
 
     @objc private func openSystemSettings() {

@@ -41,7 +41,7 @@ final class AppearanceSettingsViewController: NSViewController {
         }
         section.addContent(SettingsRowView(
             title: "Accent color",
-            subtitle: "Used for the selection highlight and type-to-jump letters.",
+            subtitle: "Color of the selection highlight and jump letters.",
             accessory: accentPopup
         ))
 
@@ -68,7 +68,7 @@ final class AppearanceSettingsViewController: NSViewController {
         ])
         section.addContent(SettingsRowView(
             title: "Quick-switch delay",
-            subtitle: "Tap and release to switch instantly; hold longer to open the switcher.",
+            subtitle: "Tap to switch instantly; hold longer to open the switcher.",
             accessory: sliderStack
         ))
 

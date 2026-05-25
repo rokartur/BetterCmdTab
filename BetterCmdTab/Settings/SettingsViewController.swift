@@ -3,22 +3,28 @@ import AppKit
 @MainActor
 enum SettingsTab: Int, CaseIterable {
     case general
+    case switcher
     case appearance
+    case experimental
     case about
 
     var title: String {
         switch self {
-        case .general:    return "General"
-        case .appearance: return "Appearance"
-        case .about:      return "About"
+        case .general:      return "General"
+        case .switcher:     return "Switcher"
+        case .appearance:   return "Appearance"
+        case .experimental: return "Experimental"
+        case .about:        return "About"
         }
     }
 
     var symbol: String {
         switch self {
-        case .general:    return "gearshape.fill"
-        case .appearance: return "slider.horizontal.3"
-        case .about:      return "info.circle.fill"
+        case .general:      return "gearshape.fill"
+        case .switcher:     return "rectangle.stack.fill"
+        case .appearance:   return "slider.horizontal.3"
+        case .experimental: return "flask.fill"
+        case .about:        return "info.circle.fill"
         }
     }
 
@@ -41,6 +47,15 @@ enum SettingsTab: Int, CaseIterable {
                 symbolWeight: .semibold,
                 symbolPointSize: 14
             )
+        case .switcher:
+            // Orange → red gradient — warm and distinct from the gear, teal, and violet.
+            return IconPalette(
+                start: NSColor(calibratedRed: 255.0/255, green: 159.0/255, blue: 10.0/255, alpha: 1),
+                end: NSColor(calibratedRed: 230.0/255, green: 70.0/255, blue: 40.0/255, alpha: 1),
+                symbolColor: .white,
+                symbolWeight: .semibold,
+                symbolPointSize: 12
+            )
         case .appearance:
             // Teal → blue gradient — distinct from the neutral gear and violet info.
             return IconPalette(
@@ -49,6 +64,15 @@ enum SettingsTab: Int, CaseIterable {
                 symbolColor: .white,
                 symbolWeight: .semibold,
                 symbolPointSize: 12
+            )
+        case .experimental:
+            // Pink → magenta gradient — signals these features are unstable/in-progress.
+            return IconPalette(
+                start: NSColor(calibratedRed: 255.0/255, green: 95.0/255, blue: 150.0/255, alpha: 1),
+                end: NSColor(calibratedRed: 200.0/255, green: 40.0/255, blue: 120.0/255, alpha: 1),
+                symbolColor: .white,
+                symbolWeight: .semibold,
+                symbolPointSize: 11
             )
         case .about:
             // Indigo → violet gradient with a white "i" — distinctive next to

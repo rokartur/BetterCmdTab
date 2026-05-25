@@ -231,7 +231,6 @@ final class SettingsRowView: NSView {
         subtitleLabel.textColor = .secondaryLabelColor
         subtitleLabel.lineBreakMode = .byWordWrapping
         subtitleLabel.maximumNumberOfLines = 0
-        subtitleLabel.preferredMaxLayoutWidth = 350
         subtitleLabel.isHidden = !hasSubtitle
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         subtitleLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -246,10 +245,15 @@ final class SettingsRowView: NSView {
         textColumn.addArrangedSubview(subtitleLabel)
         textColumn.setHuggingPriority(.defaultLow, for: .horizontal)
         textColumn.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        // Wrap the subtitle to the column's real width instead of relying on a
+        // fixed `preferredMaxLayoutWidth` — matches SettingsLabeledBlockView and
+        // lets descriptions use the full row width up to the accessory.
+        subtitleLabel.widthAnchor.constraint(equalTo: textColumn.widthAnchor).isActive = true
 
         hStack = NSStackView()
         hStack.orientation = .horizontal
         hStack.alignment = .top
+        hStack.distribution = .fill
         hStack.spacing = 8
         hStack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -273,7 +277,11 @@ final class SettingsRowView: NSView {
 
         let spacer = NSView()
         spacer.translatesAutoresizingMaskIntoConstraints = false
-        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        // Hug harder than the text column so the spacer stays collapsed and the
+        // text column absorbs the row's slack instead. Otherwise the two split
+        // the extra width evenly, pinning the text column (and therefore the
+        // subtitle's `preferredMaxLayoutWidth`) to ~350pt and wrapping early.
+        spacer.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         spacer.setContentCompressionResistancePriority(.fittingSizeCompression, for: .horizontal)
         hStack.addArrangedSubview(spacer)
 
@@ -334,22 +342,6 @@ final class SettingsRowView: NSView {
             accessoryView = nil
         }
         applyAccessory(view)
-    }
-
-    override func layout() {
-        super.layout()
-        let availableWidth = max(0, textColumn.frame.width)
-        guard availableWidth > 1, subtitleLabel.preferredMaxLayoutWidth != availableWidth else { return }
-        // Setting `preferredMaxLayoutWidth` invalidates the label's intrinsic
-        // size, which dirties window constraints. Doing that synchronously
-        // inside the layout pass throws on macOS 26
-        // (`-[NSWindow _postWindowNeedsUpdateConstraints]`), so defer it out of
-        // the current display cycle. The guard makes it self-stabilizing — the
-        // deferred set only re-fires while the width genuinely differs.
-        DispatchQueue.main.async { [weak self] in
-            guard let self, self.subtitleLabel.preferredMaxLayoutWidth != availableWidth else { return }
-            self.subtitleLabel.preferredMaxLayoutWidth = availableWidth
-        }
     }
 }
 
