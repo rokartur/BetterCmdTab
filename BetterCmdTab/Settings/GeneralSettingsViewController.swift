@@ -43,8 +43,16 @@ final class GeneralSettingsViewController: NSViewController {
         // include a hold modifier (Command/Option/Control); Shift is reserved for
         // reverse-direction stepping and is rejected by the recorder.
         let shortcuts = SettingsSectionView(header: "Shortcuts")
-        shortcuts.addContent(SettingsRowView(title: "Switch apps", accessory: appRecorder))
-        shortcuts.addContent(SettingsRowView(title: "Switch windows", accessory: windowRecorder))
+        shortcuts.addContent(SettingsRowView(
+            title: "Switch apps",
+            subtitle: "Hold the modifier and tap to cycle through your open apps.",
+            accessory: appRecorder
+        ))
+        shortcuts.addContent(SettingsRowView(
+            title: "Switch windows",
+            subtitle: "Cycle between the windows of the active app.",
+            accessory: windowRecorder
+        ))
 
         // Feedback section — confirmation cues on commit.
         let feedback = SettingsSectionView(header: "Feedback")
