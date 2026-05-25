@@ -3,24 +3,21 @@ import AppKit
 @MainActor
 protocol SwitcherItemViewProtocol: NSView {
     var isSelected: Bool { get set }
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics)
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor)
 }
 
 @MainActor
 final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     private let selectionBackdrop = NSView()
     private let imageView = NSImageView()
-    private let letterBadge = NSView()
     private let letterLabel = NSTextField(labelWithString: "")
+    private let badgePill = NSView()
+    private let badgeLabel = NSTextField(labelWithString: "")
     private let nameLabel = NSTextField(labelWithString: "")
     private let titleLabel = NSTextField(labelWithString: "")
-    private let statusStack = NSStackView()
-    private let hiddenIcon = NSImageView()
-    private let minimizedIcon = NSImageView()
-    private let noWindowIcon = NSImageView()
-    private let fullscreenIcon = NSImageView()
 
     private var metrics: SwitcherMetrics = .baseline
+    private var accent: NSColor = .controlAccentColor
 
     var isSelected: Bool = false {
         didSet {
@@ -44,21 +41,40 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         imageView.imageFrameStyle = .none
         addSubview(imageView)
 
-        letterBadge.wantsLayer = true
-        letterBadge.layer?.cornerCurve = .continuous
-        letterBadge.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.55).cgColor
-        addSubview(letterBadge)
-
+        // Jump letter lives in a strip above the icon (never over it), as plain
+        // text — no heavy pill — so the tile reads cleanly.
         letterLabel.alignment = .center
         letterLabel.lineBreakMode = .byClipping
         letterLabel.maximumNumberOfLines = 1
         letterLabel.usesSingleLineMode = true
-        letterLabel.textColor = .white
         letterLabel.drawsBackground = false
         letterLabel.isBezeled = false
         letterLabel.isEditable = false
         letterLabel.isSelectable = false
-        letterBadge.addSubview(letterLabel)
+        addSubview(letterLabel)
+
+        badgePill.wantsLayer = true
+        badgePill.layer?.cornerCurve = .continuous
+        badgePill.layer?.backgroundColor = NSColor.systemRed.cgColor
+        // Subtle shadow lifts the badge off the icon like a native Dock badge.
+        badgePill.layer?.shadowColor = NSColor.black.cgColor
+        badgePill.layer?.shadowOpacity = 0.3
+        badgePill.layer?.shadowRadius = 1.5
+        badgePill.layer?.shadowOffset = CGSize(width: 0, height: -0.5)
+        badgePill.layer?.masksToBounds = false
+        badgePill.isHidden = true
+        addSubview(badgePill)
+
+        badgeLabel.alignment = .center
+        badgeLabel.lineBreakMode = .byClipping
+        badgeLabel.maximumNumberOfLines = 1
+        badgeLabel.usesSingleLineMode = true
+        badgeLabel.textColor = .white
+        badgeLabel.drawsBackground = false
+        badgeLabel.isBezeled = false
+        badgeLabel.isEditable = false
+        badgeLabel.isSelectable = false
+        badgePill.addSubview(badgeLabel)
 
         nameLabel.alignment = .center
         nameLabel.lineBreakMode = .byTruncatingTail
@@ -80,34 +96,10 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         titleLabel.isBezeled = false
         titleLabel.isEditable = false
         titleLabel.isSelectable = false
+        titleLabel.cell?.usesSingleLineMode = true
         addSubview(titleLabel)
 
-        statusStack.orientation = .horizontal
-        statusStack.spacing = 2
-        statusStack.alignment = .centerY
-        statusStack.distribution = .fill
-        addSubview(statusStack)
-
-        for iv in [hiddenIcon, minimizedIcon, noWindowIcon, fullscreenIcon] {
-            iv.imageScaling = .scaleProportionallyUpOrDown
-            iv.imageAlignment = .alignCenter
-            iv.imageFrameStyle = .none
-            iv.isHidden = true
-            iv.wantsLayer = true
-            iv.translatesAutoresizingMaskIntoConstraints = false
-            statusStack.addArrangedSubview(iv)
-            NSLayoutConstraint.activate([
-                iv.widthAnchor.constraint(equalToConstant: SwitcherMetrics.baseTileStatusIconSize),
-                iv.heightAnchor.constraint(equalToConstant: SwitcherMetrics.baseTileStatusIconSize),
-            ])
-        }
-        updateStatusIconTint()
         updateSelectionAppearance()
-        hiddenIcon.image = NSImage(systemSymbolName: "eye.slash.fill", accessibilityDescription: "Hidden app")
-        minimizedIcon.image = NSImage(systemSymbolName: "minus.rectangle.fill", accessibilityDescription: "Minimized window")
-        noWindowIcon.image = NSImage(systemSymbolName: "square.dashed", accessibilityDescription: "No active window")
-        fullscreenIcon.image = NSImage(systemSymbolName: "arrow.up.left.and.arrow.down.right", accessibilityDescription: "Fullscreen window")
-
         applyMetrics(metrics)
     }
 
@@ -115,16 +107,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
-        updateStatusIconTint()
         updateSelectionAppearance()
-    }
-
-    private func updateStatusIconTint() {
-        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let color: NSColor = isDark ? .white : .black
-        for iv in [hiddenIcon, minimizedIcon, noWindowIcon, fullscreenIcon] {
-            iv.contentTintColor = color
-        }
     }
 
     private func updateSelectionAppearance() {
@@ -145,54 +128,123 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     private var currentLabel: String = ""
     private var currentPrefixLength: Int = 0
 
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics) {
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor) {
         if metrics != self.metrics {
             applyMetrics(metrics)
         }
+        self.accent = accent
         currentLabel = label
         currentPrefixLength = prefixLength
         renderLetter()
-        nameLabel.stringValue = row.appName
-        let secondary: String
-        if row.isPlaceholder || row.window == nil {
-            secondary = ""
+
+        // System permission/dialog rows (e.g. the Accessibility alert) show
+        // just the window title with the System Settings icon — no status
+        // glyphs — since their host process name/icon are meaningless.
+        let isDialog = row.isSystemDialog
+
+        nameLabel.stringValue = isDialog
+            ? (row.windowTitle.isEmpty ? row.appName : row.windowTitle)
+            : row.appName
+
+        // Status glyphs ride with the secondary text instead of crowding the
+        // icon. Audio is orthogonal, so it shows alongside the window-state
+        // glyph (e.g. a windowless app playing sound gets both speaker + no-
+        // window). Launch/reopen rows return their single cue, never a stacked
+        // no-window glyph.
+        let indicators = isDialog ? [] : Self.indicators(for: row)
+        let secondary = isDialog ? "" : Self.secondaryText(for: row)
+        if indicators.isEmpty, secondary.isEmpty {
+            titleLabel.attributedStringValue = NSAttributedString(string: "")
+            titleLabel.isHidden = true
         } else {
-            secondary = row.windowTitle
+            titleLabel.attributedStringValue = makeTitle(indicators: indicators, text: secondary)
+            titleLabel.isHidden = false
         }
-        titleLabel.stringValue = secondary
-        titleLabel.isHidden = secondary.isEmpty
-        imageView.image = IconCache.icon(for: row)
 
-        let showHidden = !row.isPlaceholder && row.app.isHidden
-        let showMinimized = !row.isPlaceholder && row.isMinimized && !showHidden
-        let showNoWindow = !row.isPlaceholder && row.window == nil && !showHidden
-        let showFullscreen = !row.isPlaceholder && row.isFullscreen && !showHidden && !showMinimized && !showNoWindow
-        hiddenIcon.isHidden = !showHidden
-        minimizedIcon.isHidden = !showMinimized
-        noWindowIcon.isHidden = !showNoWindow
-        fullscreenIcon.isHidden = !showFullscreen
-        let anyStatus = showHidden || showMinimized || showNoWindow || showFullscreen
-        statusStack.isHidden = !anyStatus
+        imageView.image = isDialog ? SystemSettingsIcon.image : IconCache.icon(for: row)
 
-        letterBadge.isHidden = label.isEmpty
+        // Dock badge (experimental). Empty map when the feature is off.
+        let badge = (row.isPlaceholder || isDialog) ? nil : DockBadgeReader.shared.badge(forBundleID: row.bundleIdentifier)
+        if let badge {
+            badgeLabel.stringValue = badge
+            badgePill.isHidden = false
+        } else {
+            badgePill.isHidden = true
+        }
 
         isSelected = selected
         applySelection()
         needsLayout = true
     }
 
+    /// Status glyphs for a row, in display order. Running rows get an optional
+    /// audio glyph (orthogonal) followed by at most one window-state glyph.
+    /// Launch/reopen rows return their single cue, so they never stack a
+    /// redundant no-window glyph on top.
+    private static func indicators(for row: SwitcherRow) -> [SwitcherIndicator] {
+        if row.isLaunchable { return [.launch] }
+        if row.isRecentlyClosed { return [.reopen] }
+        if row.isPlaceholder { return [] }
+        var result: [SwitcherIndicator] = []
+        if let pid = row.pid, AudioActivityMonitor.shared.isPlaying(pid) { result.append(.audio) }
+        if row.isHidden { result.append(.hidden) }
+        else if row.isMinimized { result.append(.minimized) }
+        else if row.window == nil && !row.suppressNoWindowGlyph { result.append(.noWindow) }
+        else if row.isFullscreen { result.append(.fullscreen) }
+        return result
+    }
+
+    private static func secondaryText(for row: SwitcherRow) -> String {
+        if row.isLaunchable { return "Launch" }
+        if row.isRecentlyClosed { return row.windowTitle.isEmpty ? "Reopen" : row.windowTitle }
+        if row.isPlaceholder || row.window == nil { return "" }
+        return row.windowTitle
+    }
+
+    /// Builds the secondary line: leading status glyphs (each tinted to its
+    /// semantic color) followed by the text, centered as one group.
+    private func makeTitle(indicators: [SwitcherIndicator], text: String) -> NSAttributedString {
+        let font = NSFont.systemFont(ofSize: metrics.tileTitleFontSize, weight: .regular)
+        let para = NSMutableParagraphStyle()
+        para.alignment = .center
+        para.lineBreakMode = .byTruncatingTail
+
+        let result = NSMutableAttributedString()
+        for (i, indicator) in indicators.enumerated() {
+            if i > 0 { result.append(NSAttributedString(string: "\u{2009}")) } // thin space between glyphs
+            let color = indicator.tint(onAccentFill: false, accent: accent)
+            let cfg = NSImage.SymbolConfiguration(pointSize: font.pointSize, weight: .semibold)
+                .applying(.init(paletteColors: [color]))
+            if let image = indicator.makeImage()?.withSymbolConfiguration(cfg) {
+                let attachment = NSTextAttachment()
+                attachment.image = image
+                attachment.bounds = CGRect(
+                    x: 0,
+                    y: (font.capHeight - image.size.height) / 2,
+                    width: image.size.width,
+                    height: image.size.height
+                )
+                result.append(NSAttributedString(attachment: attachment))
+            }
+        }
+        if !text.isEmpty {
+            if !indicators.isEmpty { result.append(NSAttributedString(string: " ")) }
+            result.append(NSAttributedString(string: text))
+        }
+        result.addAttributes(
+            [.font: font, .foregroundColor: NSColor.secondaryLabelColor, .paragraphStyle: para],
+            range: NSRange(location: 0, length: result.length)
+        )
+        return result
+    }
+
     private func applyMetrics(_ metrics: SwitcherMetrics) {
         self.metrics = metrics
         letterLabel.font = NSFont.monospacedSystemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
+        badgeLabel.font = NSFont.systemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
         nameLabel.font = NSFont.systemFont(ofSize: metrics.tileNameFontSize, weight: .medium)
         titleLabel.font = NSFont.systemFont(ofSize: metrics.tileTitleFontSize, weight: .regular)
-        letterBadge.layer?.cornerRadius = metrics.tileLetterBadgeSize / 2
         selectionBackdrop.layer?.cornerRadius = metrics.tileSelectionCornerRadius
-
-        let symbolCfg = NSImage.SymbolConfiguration(pointSize: metrics.tileStatusIconSize - 2, weight: .semibold)
-        for iv in [hiddenIcon, minimizedIcon, noWindowIcon, fullscreenIcon] {
-            iv.symbolConfiguration = symbolCfg
-        }
         needsLayout = true
     }
 
@@ -209,49 +261,34 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     private func renderLetter() {
         let labelStr = currentLabel.uppercased()
         guard !labelStr.isEmpty else {
-            letterLabel.stringValue = ""
-            letterLabel.frame = .zero
+            letterLabel.attributedStringValue = NSAttributedString(string: "")
             return
         }
         let highlightLen = min(currentPrefixLength, labelStr.count)
-        let base = NSFont.monospacedSystemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
+        let font = NSFont.monospacedSystemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
         let para = NSMutableParagraphStyle()
         para.alignment = .center
         let attr = NSMutableAttributedString(string: labelStr, attributes: [
-            .font: base,
-            .foregroundColor: NSColor.white,
+            .font: font,
+            .foregroundColor: NSColor.labelColor,
             .paragraphStyle: para,
         ])
         if highlightLen > 0 {
-            let range = NSRange(location: 0, length: highlightLen)
-            attr.addAttribute(.foregroundColor, value: NSColor.controlAccentColor, range: range)
+            attr.addAttribute(.foregroundColor, value: accent, range: NSRange(location: 0, length: highlightLen))
         }
         letterLabel.attributedStringValue = attr
-        letterLabel.sizeToFit()
-        centerLetterLabel()
-    }
-
-    private func centerLetterLabel() {
-        let badgeW = letterBadge.bounds.width
-        let badgeH = letterBadge.bounds.height
-        guard badgeW > 0, badgeH > 0 else { return }
-        let w = ceil(letterLabel.frame.width)
-        let h = ceil(letterLabel.frame.height)
-        letterLabel.frame = NSRect(
-            x: round((badgeW - w) / 2),
-            y: round((badgeH - h) / 2),
-            width: w,
-            height: h
-        )
+        needsLayout = true
     }
 
     override func layout() {
         super.layout()
         let m = metrics
         let w = bounds.width
+        let letterArea = m.tileLetterArea
         let tile = m.tileSize
-        let iconArea = NSRect(x: (w - tile) / 2, y: bounds.height - tile, width: tile, height: tile)
 
+        // Top→bottom: letter strip, icon, text labels.
+        let iconArea = NSRect(x: (w - tile) / 2, y: bounds.height - letterArea - tile, width: tile, height: tile)
         selectionBackdrop.frame = iconArea.insetBy(dx: m.tileSelectionInset, dy: m.tileSelectionInset)
 
         let iconRect = NSRect(
@@ -262,48 +299,43 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         )
         imageView.frame = iconRect
 
-        // Capsule badge: height stays at tileLetterBadgeSize so single-letter
-        // hints keep the original circular look; width grows to fit longer
-        // labels (CBA, CBB, …) with side padding so the text never overflows
-        // its background. cornerRadius = height/2 makes both shapes pill out.
-        let badgeH = m.tileLetterBadgeSize
-        let labelW = ceil(letterLabel.frame.width)
-        let sidePadding = badgeH * 0.35
-        let badgeW = max(badgeH, labelW + sidePadding * 2)
-        letterBadge.frame = NSRect(
-            x: iconArea.minX + 2,
-            y: iconArea.maxY - badgeH - 2,
-            width: badgeW,
-            height: badgeH
+        // Letter centered in the top strip, above the icon.
+        letterLabel.sizeToFit()
+        let lw = ceil(letterLabel.frame.width)
+        let lh = ceil(letterLabel.frame.height)
+        letterLabel.frame = NSRect(
+            x: round((w - lw) / 2),
+            y: round(bounds.height - letterArea / 2 - lh / 2),
+            width: lw,
+            height: lh
         )
-        centerLetterLabel()
 
-        if !statusStack.isHidden {
-            let visibleCount = statusStack.arrangedSubviews.filter { !$0.isHidden }.count
-            let stackW = CGFloat(visibleCount) * m.tileStatusIconSize + CGFloat(max(0, visibleCount - 1)) * 2
-            statusStack.frame = NSRect(
-                x: iconArea.maxX - stackW - 4,
-                y: iconArea.minY + 4,
-                width: stackW,
-                height: m.tileStatusIconSize
+        // Dock badge: hug the icon's top-right corner with a hair of outward
+        // float, like a native badge. The icon is inset within the tile so this
+        // never clips.
+        if !badgePill.isHidden {
+            // Circle for 1–2 digits; widens into a fixed-height pill for 3+,
+            // matching native Dock badges. Font is full-size (not shrunk).
+            let height = m.tileLetterBadgeSize
+            let font = NSFont.systemFont(ofSize: round(m.tileLetterFontSize * 0.9), weight: .regular)
+            badgeLabel.font = font
+            let size = BadgeText.size(for: badgeLabel.stringValue, font: font, height: height)
+            let overflow = round(height * 0.1)
+            badgePill.frame = NSRect(
+                x: iconRect.maxX + overflow - size.width,
+                y: iconRect.maxY + overflow - height,
+                width: size.width,
+                height: height
             )
+            badgePill.layer?.cornerRadius = height / 2
+            badgeLabel.frame = BadgeText.centeredTextFrame(width: size.width, height: height, font: font)
         }
 
+        // Name + title in the bottom label area.
         let labelAreaH = m.tileLabelArea
         let nameH = ceil(nameLabel.font?.pointSize ?? m.tileNameFontSize) + 4
         let titleH = ceil(titleLabel.font?.pointSize ?? m.tileTitleFontSize) + 2
-        let labelY: CGFloat = 0
-        nameLabel.frame = NSRect(
-            x: 0,
-            y: labelY + labelAreaH - nameH,
-            width: w,
-            height: nameH
-        )
-        titleLabel.frame = NSRect(
-            x: 0,
-            y: labelY + labelAreaH - nameH - titleH,
-            width: w,
-            height: titleH
-        )
+        nameLabel.frame = NSRect(x: 0, y: labelAreaH - nameH, width: w, height: nameH)
+        titleLabel.frame = NSRect(x: 0, y: labelAreaH - nameH - titleH, width: w, height: titleH)
     }
 }

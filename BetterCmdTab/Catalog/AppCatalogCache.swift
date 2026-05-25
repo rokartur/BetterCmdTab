@@ -113,11 +113,16 @@ final class AppCatalogCache {
     }
 
     private static func statusPriority(_ row: SwitcherRow) -> Int {
-        // Windowless regular apps (running but with no open windows) go after
-        // everything else — they're least immediately actionable. Placeholders
-        // keep priority 0 so they don't get demoted while the cache warms up.
-        if row.window == nil, !row.isPlaceholder { return 3 }
-        if row.app.isHidden { return 2 }
+        // Windowless and hidden regular apps share one "inactive" bucket after
+        // everything else — they're least immediately actionable. They're
+        // pooled together because an app closing its last window can flip
+        // between "no window" and "hidden window" across consecutive AX
+        // refreshes (Electron apps hide rather than truly go windowless); one
+        // bucket keeps that flip from reordering the app. Placeholders keep
+        // priority 0 so they don't get demoted while the cache warms up.
+        // (Mirror AppCatalog.statusPriority.)
+        if row.window == nil, !row.isPlaceholder { return 2 }
+        if row.isHidden { return 2 }
         if row.isMinimized { return 1 }
         return 0
     }

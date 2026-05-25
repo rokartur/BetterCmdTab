@@ -7,12 +7,13 @@ enum IconCache {
     private static var order: [pid_t] = []
 
     static func icon(for row: SwitcherRow) -> NSImage? {
-        let pid = row.pid
+        // Launchable rows have no pid to key on — fetch their icon directly.
+        guard let pid = row.pid else { return row.icon }
         if let cached = cache[pid] {
             touch(pid)
             return cached
         }
-        guard let image = row.app.icon else { return nil }
+        guard let image = row.app?.icon else { return row.icon }
         cache[pid] = image
         order.append(pid)
         evictIfNeeded()

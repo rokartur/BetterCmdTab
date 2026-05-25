@@ -39,7 +39,7 @@ enum CatalogFilter {
     static func filteredRows(_ rows: [SwitcherRow], _ cfg: Config) -> [SwitcherRow] {
         if cfg.isIdentity { return rows }
         let filtered = rows.filter {
-            includes(bundleID: $0.bundleIdentifier, isPlaceholder: $0.isPlaceholder, isMinimized: $0.isMinimized, appHidden: $0.app.isHidden, hasWindow: $0.window != nil, cfg)
+            includes(bundleID: $0.bundleIdentifier, isPlaceholder: $0.isPlaceholder, isMinimized: $0.isMinimized, appHidden: $0.isHidden, hasWindow: $0.window != nil, cfg)
         }
         guard !cfg.pinned.isEmpty else { return filtered }
         return stablePartition(filtered) { row in

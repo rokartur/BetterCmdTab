@@ -70,6 +70,7 @@ final class SwitcherView: NSView {
 
     private var highlightPrefix: String = ""
     private var searchActive: Bool = false
+    private var accent: NSColor = .controlAccentColor
 
     func configure(rows: [SwitcherRow], labels: [String], selectedIndex: Int, metrics: SwitcherMetrics, highlightPrefix: String = "", searchActive: Bool = false, searchQuery: String = "") {
         CATransaction.begin()
@@ -78,6 +79,7 @@ final class SwitcherView: NSView {
         self.labels = labels
         self.highlightPrefix = highlightPrefix
         self.searchActive = searchActive
+        self.accent = Preferences.shared.accentChoice.resolved
         self.selectedIndex = selectedIndex
         searchBar.update(query: searchQuery)
         searchBar.isHidden = !searchActive
@@ -256,7 +258,8 @@ final class SwitcherView: NSView {
                 label: label,
                 prefixLength: highlightLen,
                 selected: i == selectedIndex,
-                metrics: metrics
+                metrics: metrics,
+                accent: accent
             )
             itemViews[i].isHidden = false
         }
@@ -408,6 +411,7 @@ final class SwitcherView: NSView {
         let tile = metrics.tileSize
         let gap = metrics.tileGap
         let labelArea = metrics.tileLabelArea
+        let letterArea = metrics.tileLetterArea
         let outerPadding = metrics.outerPadding
         let count = max(rows.count, 1)
 
@@ -422,7 +426,8 @@ final class SwitcherView: NSView {
         let cols = userCap > 0 ? min(count, tilesPerRow, userCap) : min(count, tilesPerRow)
         let rowsCount = max(1, Int(ceil(Double(count) / Double(cols))))
 
-        let itemH = tile + labelArea
+        // Tile stacks: letter strip (top) + icon + text labels (bottom).
+        let itemH = letterArea + tile + labelArea
         let listWidth = CGFloat(cols) * tile + CGFloat(max(0, cols - 1)) * gap
         let listHeight = CGFloat(rowsCount) * itemH + CGFloat(max(0, rowsCount - 1)) * gap
 

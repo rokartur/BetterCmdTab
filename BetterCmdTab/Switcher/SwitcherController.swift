@@ -11,6 +11,7 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private let hotkey = HotkeyTap()
+    private let swipeTrigger = SwipeTrigger()
     private let mru = MRUTracker()
     private let windowMRU = WindowMRUTracker()
     private let cache = AppCatalogCache()
@@ -117,6 +118,32 @@ final class SwitcherController: SwitcherViewDelegate {
                 self.handleAppTerminated(pid: pid)
             }
         }
+        // Re-render the visible panel when an app hides or unhides. An app that
+        // hides itself when its last window closes (Electron apps) would
+        // otherwise keep showing the just-closed "no window" state until the
+        // next reveal — `SwitcherRow.isHidden` is read live, so re-rendering the
+        // current rows is enough to flip the status glyph the instant it hides.
+        for name in [NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(
+                forName: name,
+                object: nil,
+                queue: .main
+            ) { [weak self] note in
+                let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+                Task { @MainActor [weak self] in
+                    guard let self, let pid else { return }
+                    self.handleAppHiddenChanged(pid: pid)
+                }
+            }
+        }
+    }
+
+    private func handleAppHiddenChanged(pid: pid_t) {
+        guard phase == .visible, baseRows.contains(where: { $0.pid == pid }) else { return }
+        // No re-sort needed: windowless and hidden share a status bucket (see
+        // `statusPriority`), so the row keeps its place — only the live glyph
+        // changes. `refreshDisplay` re-renders from the current `baseRows`.
+        refreshDisplay()
     }
 
     private func handleAppTerminated(pid: pid_t) {
@@ -142,6 +169,7 @@ final class SwitcherController: SwitcherViewDelegate {
         mru.start()
         windowMRU.start()
         cache.start(mru: mru)
+        RecentlyClosedStore.shared.start()
         let installed = hotkey.install()
         if !installed {
             Log.switcher.error("CGEventTap installation failed — Accessibility not trusted?")
@@ -179,8 +207,43 @@ final class SwitcherController: SwitcherViewDelegate {
             self?.hotkey.setRecording(active)
         }
         .store(in: &cancellables)
+        // Experimental swipe trigger: wire the callback and enable/disable it
+        // live from the preference.
+        swipeTrigger.onSwipe = { [weak self] delta in
+            self?.triggerFromGesture(delta: delta)
+        }
+        swipeTrigger.setEnabled(Preferences.shared.experimentalSwipeTrigger)
+        Preferences.shared.$experimentalSwipeTrigger
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in self?.swipeTrigger.setEnabled(enabled) }
+            .store(in: &cancellables)
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.prewarmPanel()
+        }
+    }
+
+    /// Experimental: open or advance the switcher from a trackpad swipe — no
+    /// held modifier. The panel is opened in sticky mode (`stickyOpen`), so a
+    /// stray modifier release won't commit; the user commits with Return or a
+    /// click, or dismisses with Esc, exactly like stay-open search.
+    private func triggerFromGesture(delta: Int) {
+        switch phase {
+        case .visible:
+            advanceLinearVisible(by: delta, wrap: true)
+        case .primed:
+            advance(by: delta, wrap: true)
+        case .idle:
+            mru.syncFrontmost()
+            cache.scheduleFullRefresh()
+            primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
+            guard !primedApps.isEmpty else { return }
+            primedIndex = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : primedApps.count - 1)
+            phase = .primed
+            reveal()
+            // After reveal lands the panel in `.visible`, detach from any
+            // modifier so releasing one never commits a gesture-opened switcher.
+            stickyOpen = true
         }
     }
 
@@ -290,7 +353,20 @@ final class SwitcherController: SwitcherViewDelegate {
         case .hideApp:
             performOnVisibleTarget { Activator.hideApp($0) }
         case .quitApp:
-            performOnVisibleTarget { Activator.quitApp($0) }
+            performOnVisibleTarget { row in
+                // Record an app-level entry (no document) so a quit app can be
+                // relaunched from recently-closed search. Regular apps only —
+                // system dialog hosts shouldn't be reopenable.
+                if row.app?.activationPolicy == .regular, let bundleID = row.bundleIdentifier {
+                    RecentlyClosedStore.shared.record(
+                        bundleID: bundleID,
+                        appName: row.appName,
+                        title: "",
+                        documentPath: nil
+                    )
+                }
+                Activator.quitApp(row)
+            }
         case .letterInput(let ch):
             handleLetter(ch)
         }
@@ -532,6 +608,12 @@ final class SwitcherController: SwitcherViewDelegate {
     private func reveal() {
         guard phase == .primed else { return }
         mru.syncFrontmost()
+        AudioActivityMonitor.shared.refresh()
+        if Preferences.shared.experimentalUnreadBadges {
+            DockBadgeReader.shared.refresh()
+        } else {
+            DockBadgeReader.shared.clear()
+        }
 
         if windowsOnlyMode, let pid = windowsOnlyPid {
             revealWindowsOnly(pid: pid)
@@ -677,10 +759,10 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func bumpWindowMRUIfPossible(for row: SwitcherRow) {
-        guard let win = row.window else { return }
+        guard let win = row.window, let pid = row.pid else { return }
         let wid = PrivateAPI.cgWindowId(of: win)
         guard wid != 0 else { return }
-        windowMRU.bump(pid: row.pid, wid: wid)
+        windowMRU.bump(pid: pid, wid: wid)
     }
 
     private func commit() {
@@ -693,14 +775,14 @@ final class SwitcherController: SwitcherViewDelegate {
         case .visible:
             if rows.indices.contains(index) {
                 let row = rows[index]
-                mru.bump(row.pid)
+                if let pid = row.pid { mru.bump(pid) }
                 bumpWindowMRUIfPossible(for: row)
                 pendingActivation = { Activator.activate(row) }
             }
         case .primed:
             if windowsOnlyMode, let pid = windowsOnlyPid,
                let row = pickWindowsOnlyTarget(pid: pid, delta: windowsOnlyPrimedDelta) {
-                mru.bump(row.pid)
+                if let p = row.pid { mru.bump(p) }
                 bumpWindowMRUIfPossible(for: row)
                 pendingActivation = { Activator.activate(row) }
             } else if primedApps.indices.contains(primedIndex) {
@@ -726,6 +808,7 @@ final class SwitcherController: SwitcherViewDelegate {
         closedTombstones.removeAll()
         resetLetterBuffer()
         resetSearch()
+        if pendingActivation != nil { CommitFeedback.play() }
         pendingActivation?()
     }
 
@@ -750,6 +833,10 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func performOnVisibleTarget(_ action: (SwitcherRow) -> Void) {
         guard phase == .visible, rows.indices.contains(index) else { return }
+        // System permission/consent windows can't be acted on from the switcher
+        // (close/quit/minimize/hide) — the user must enter them and click
+        // Deny / Open Settings themselves.
+        guard !rows[index].isSystemDialog else { return }
         action(rows[index])
         scheduleVisibleRefresh(after: 0.25)
     }
@@ -757,6 +844,15 @@ final class SwitcherController: SwitcherViewDelegate {
     private func performCloseAction() {
         guard phase == .visible, rows.indices.contains(index) else { return }
         let row = rows[index]
+        // Permission/consent windows aren't closable from the switcher.
+        guard !row.isSystemDialog else { return }
+        // Close only applies to a real window of a running app — launchable
+        // search rows have nothing to close.
+        guard let closedApp = row.app, let closedPid = row.pid else { return }
+
+        // Closing a single window is intentionally NOT recorded for "recently
+        // closed": that history is app-level only (an app being quit), captured
+        // on termination / ⌘Q — not per window.
 
         if row.isFullscreen {
             Activator.closeWindow(row)
@@ -767,8 +863,6 @@ final class SwitcherController: SwitcherViewDelegate {
         recordClosedTombstone(for: row)
         Activator.closeWindow(row)
 
-        let closedApp = row.app
-        let closedPid = row.pid
         // Remove the exact closed window from the canonical set. Match the AX
         // element identity first (CFEqual) so an app with several same-titled
         // (or untitled) windows drops the right row; fall back to the
@@ -777,25 +871,38 @@ final class SwitcherController: SwitcherViewDelegate {
         if let win = row.window {
             removeIdx = baseRows.firstIndex { $0.window.map { CFEqual($0, win) } ?? false }
         } else {
-            removeIdx = baseRows.firstIndex { keyMatches($0, (row.pid, row.windowTitle, false)) }
+            removeIdx = baseRows.firstIndex { keyMatches($0, (closedPid, row.windowTitle, false)) }
         }
         if let bi = removeIdx {
             baseRows.remove(at: bi)
         }
 
         // If this was the only window for a regular app, demote the app to a
-        // windowless row at the end of the list right now. Otherwise the app
-        // visibly vanishes for ~250ms (until the cache refresh + tombstone
-        // filter substitute one) — closing the window shouldn't make the app
-        // flicker out of the switcher.
+        // windowless row right now. Otherwise the app visibly vanishes for
+        // ~250ms (until the cache refresh + tombstone filter substitute one) —
+        // closing the window shouldn't make the app flicker out of the switcher.
+        //
+        // Insert it at the slot the 250ms cache refresh will ultimately put it
+        // in — among the trailing windowless rows, ordered by MRU recency — not
+        // at the very end. Appending at the end made a recently-used app jump
+        // twice: down to the bottom now, then back up to its MRU slot when the
+        // refresh landed.
         if closedApp.activationPolicy == .regular,
            !baseRows.contains(where: { $0.pid == closedPid }) {
-            baseRows.append(SwitcherRow(
-                app: closedApp,
-                window: nil,
-                windowTitle: "",
-                isMinimized: false
-            ))
+            baseRows.insert(
+                SwitcherRow(
+                    app: closedApp,
+                    window: nil,
+                    windowTitle: "",
+                    isMinimized: false,
+                    // Don't claim "no window" yet — the app may be about to hide
+                    // itself (Electron apps do). `handleAppHiddenChanged` flips
+                    // the row to the hidden glyph the moment it does; otherwise
+                    // the next refresh resolves it to a real no-window row.
+                    suppressNoWindowGlyph: true
+                ),
+                at: inactiveInsertionIndex(forPid: closedPid, in: baseRows)
+            )
         }
 
         if baseRows.isEmpty {
@@ -844,11 +951,31 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    /// Index in `rows` at which a freshly-windowless regular app should be
+    /// inserted so it matches the catalog's final ordering: after every
+    /// windowed/minimized row, and within the trailing "inactive" group
+    /// (windowless + hidden, see `statusPriority`) ordered by MRU recency.
+    /// Mirrors `AppCatalog`/`AppCatalogCache`'s sort so the row lands where the
+    /// next cache refresh will keep it — whether the app settles as windowless
+    /// or hidden, both share the bucket — so there's no second jump.
+    private func inactiveInsertionIndex(forPid pid: pid_t, in rows: [SwitcherRow]) -> Int {
+        let order = mru.order
+        let myRank = order.firstIndex(of: pid) ?? Int.max
+        for (i, row) in rows.enumerated()
+        where ((row.window == nil && !row.isPlaceholder) || row.isHidden) {
+            let rank = row.pid.flatMap { order.firstIndex(of: $0) } ?? Int.max
+            // First inactive row less recently used than us — sit before it.
+            if rank > myRank { return i }
+        }
+        return rows.count
+    }
+
     private func recordClosedTombstone(for row: SwitcherRow) {
+        guard let pid = row.pid else { return }
         let wid = row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
         // Record even when wid == 0 — title fallback still catches it.
         closedTombstones.append(ClosedWindowSignature(
-            pid: row.pid,
+            pid: pid,
             cgWindowId: wid,
             title: row.windowTitle,
             recordedAt: Date()
@@ -883,28 +1010,35 @@ final class SwitcherController: SwitcherViewDelegate {
         var keptPids = Set<pid_t>()
         // Track each pid whose every row got tombstoned. If a regular app ends
         // up fully hidden (close-last-window race: cache still lists the dying
-        // AX window because the destroy hasn't propagated), substitute a
-        // windowless row appended at the end — matches the windowless-apps-go-
-        // last sort order applied elsewhere and avoids the row jumping
-        // mid-list once the cache catches up. `discovery` keeps multiple
-        // substitutions in original snapshot order.
+        // AX window because the destroy hasn't propagated — or, for apps that
+        // hide rather than destroy their last window, the *same* window reappears
+        // hidden with the same CGWindowID and keeps matching the tombstone), we
+        // substitute a windowless row so the app doesn't vanish. `discovery`
+        // keeps multiple substitutions in original snapshot order.
         var firstHiddenByPid: [pid_t: (app: NSRunningApplication, discovery: Int)] = [:]
         var discoveryCounter = 0
         for row in snapshot {
             let rowWid = row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
-            var hidden = false
+            var suppressed = false
             for (i, sig) in closedTombstones.enumerated() {
                 if signatureMatches(sig, row: row, rowWid: rowWid) {
+                    // A "closed" window that reappears while its app is now
+                    // hidden was hidden by the app, not destroyed (Electron apps
+                    // hide on last-window close). Stop suppressing it: keep the
+                    // real row so its window title survives and it shows as a
+                    // hidden window, and let the tombstone clear (don't mark it
+                    // matched) — the close has resolved into a hide.
+                    if row.isHidden { break }
                     matchedSigIndices.insert(i)
-                    hidden = true
+                    suppressed = true
                     break
                 }
             }
-            if !hidden {
+            if !suppressed {
                 result.append(row)
-                keptPids.insert(row.pid)
-            } else if firstHiddenByPid[row.pid] == nil {
-                firstHiddenByPid[row.pid] = (app: row.app, discovery: discoveryCounter)
+                if let p = row.pid { keptPids.insert(p) }
+            } else if let p = row.pid, let a = row.app, firstHiddenByPid[p] == nil {
+                firstHiddenByPid[p] = (app: a, discovery: discoveryCounter)
                 discoveryCounter += 1
             }
         }
@@ -913,12 +1047,19 @@ final class SwitcherController: SwitcherViewDelegate {
             .map { $0.value }
             .sorted { $0.discovery < $1.discovery }
         for placeholder in placeholders {
-            result.append(SwitcherRow(
+            // Insert at the app's MRU slot in the inactive group, not at the
+            // end. Appending made an app whose closed window reappears hidden
+            // (same CGWindowID, so the tombstone keeps matching it) jump to the
+            // bottom on the post-close refresh even though it should hold the
+            // spot the immediate demotion already gave it.
+            let row = SwitcherRow(
                 app: placeholder.app,
                 window: nil,
                 windowTitle: "",
                 isMinimized: false
-            ))
+            )
+            let idx = inactiveInsertionIndex(forPid: placeholder.app.processIdentifier, in: result)
+            result.insert(row, at: idx)
         }
         // Drop tombstones whose windows the cache no longer reports — the
         // close has fully propagated, so no further protection needed.
@@ -928,13 +1069,34 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func selectionKey() -> (pid_t, String, Bool)? {
-        rows.indices.contains(index)
-            ? (rows[index].pid, rows[index].windowTitle, rows[index].window != nil)
-            : nil
+        guard rows.indices.contains(index), let pid = rows[index].pid else { return nil }
+        return (pid, rows[index].windowTitle, rows[index].window != nil)
     }
 
     private func keyMatches(_ row: SwitcherRow, _ key: (pid_t, String, Bool)) -> Bool {
         row.pid == key.0 && row.windowTitle == key.1 && (row.window != nil) == key.2
+    }
+
+    /// Recently closed windows/apps to surface for reopening. `forSearchQuery`
+    /// non-nil filters by fuzzy match; nil yields the newest entries. Returns
+    /// nothing when the feature is off or in window-only mode. App-only entries
+    /// (no document) already represented in `alreadyShown` are skipped to avoid
+    /// a redundant duplicate row.
+    private func recentlyClosedRows(forSearchQuery query: String?, alreadyShown: Set<String>) -> [SwitcherRow] {
+        guard Preferences.shared.showRecentlyClosed, !windowsOnlyMode else { return [] }
+        let limit = Preferences.shared.recentlyClosedLimit
+        let entries: [RecentEntry]
+        if let query, !query.isEmpty {
+            entries = RecentlyClosedStore.shared.matches(query: query, limit: limit)
+        } else {
+            entries = RecentlyClosedStore.shared.recent(limit: limit)
+        }
+        var result: [SwitcherRow] = []
+        for entry in entries {
+            if entry.documentPath == nil, alreadyShown.contains(entry.bundleID) { continue }
+            result.append(SwitcherRow(recentlyClosed: entry))
+        }
+        return result
     }
 
     /// Single funnel that derives the displayed `rows`/`labels` from the
@@ -955,19 +1117,52 @@ final class SwitcherController: SwitcherViewDelegate {
                 newRows.append(baseRows[i])
                 newLabels.append(baseLabels[i])
             }
+            // Launcher: append matching apps that aren't running yet so the user
+            // can launch them from the same search. Labels are inert in search
+            // mode (the view hides them), so empty strings keep the arrays
+            // aligned without affecting display.
+            if Preferences.shared.searchIncludesLaunchableApps {
+                let runningBundleIDs = Set(baseRows.compactMap { $0.bundleIdentifier })
+                let launchable = InstalledAppsIndex.shared.matches(
+                    query: searchQuery,
+                    excludingRunning: runningBundleIDs,
+                    limit: 8
+                )
+                for app in launchable {
+                    newRows.append(SwitcherRow(launchable: app))
+                    newLabels.append("")
+                }
+            }
+            for row in recentlyClosedRows(forSearchQuery: searchQuery, alreadyShown: Set(newRows.compactMap { $0.bundleIdentifier })) {
+                newRows.append(row)
+                newLabels.append("")
+            }
             rows = newRows
             labels = newLabels
-        } else if !letterBuffer.isEmpty {
-            let prefix = letterBuffer
-            var orderIdx: [Int] = []
-            orderIdx.reserveCapacity(baseRows.count)
-            for i in baseRows.indices where baseLabels[i].hasPrefix(prefix) { orderIdx.append(i) }
-            for i in baseRows.indices where !baseLabels[i].hasPrefix(prefix) { orderIdx.append(i) }
-            rows = orderIdx.map { baseRows[$0] }
-            labels = orderIdx.map { baseLabels[$0] }
         } else {
-            rows = baseRows
-            labels = baseLabels
+            // Non-search: the displayed set is the running rows plus recently
+            // closed entries. Labels are computed over the whole set so closed
+            // apps get their own type-to-jump letter, exactly like running rows.
+            var combined = baseRows
+            combined.append(contentsOf: recentlyClosedRows(
+                forSearchQuery: nil,
+                alreadyShown: Set(baseRows.compactMap { $0.bundleIdentifier })
+            ))
+            // Reuse `baseLabels` when nothing was appended to keep labels stable.
+            let combinedLabels = combined.count == baseRows.count ? baseLabels : RowLabels.labels(for: combined)
+
+            if !letterBuffer.isEmpty {
+                let prefix = letterBuffer
+                var orderIdx: [Int] = []
+                orderIdx.reserveCapacity(combined.count)
+                for i in combined.indices where combinedLabels[i].hasPrefix(prefix) { orderIdx.append(i) }
+                for i in combined.indices where !combinedLabels[i].hasPrefix(prefix) { orderIdx.append(i) }
+                rows = orderIdx.map { combined[$0] }
+                labels = orderIdx.map { combinedLabels[$0] }
+            } else {
+                rows = combined
+                labels = combinedLabels
+            }
         }
 
         if resetSelectionToTop {
@@ -1008,6 +1203,9 @@ final class SwitcherController: SwitcherViewDelegate {
         searchActive = true
         searchQuery = ""
         hotkey.setSearchMode(true)
+        if Preferences.shared.searchIncludesLaunchableApps {
+            InstalledAppsIndex.shared.ensureFresh()
+        }
         refreshDisplay()
     }
 

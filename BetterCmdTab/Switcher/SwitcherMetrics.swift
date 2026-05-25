@@ -23,6 +23,7 @@ struct SwitcherMetrics: Equatable {
     let tileIconSize: CGFloat
     let tileGap: CGFloat
     let tileLabelArea: CGFloat
+    let tileLetterArea: CGFloat
     let tileNameFontSize: CGFloat
     let tileTitleFontSize: CGFloat
     let tileLetterFontSize: CGFloat
@@ -52,6 +53,9 @@ struct SwitcherMetrics: Equatable {
     static let baseTileIconSize: CGFloat = 64
     static let baseTileGap: CGFloat = 10
     static let baseTileLabelArea: CGFloat = 34
+    /// Top strip above each tile's icon that holds the type-to-jump letter, so
+    /// the letter never overlaps the icon.
+    static let baseTileLetterArea: CGFloat = 16
     static let baseTileNameFontSize: CGFloat = 11
     static let baseTileTitleFontSize: CGFloat = 10
     static let baseTileLetterFontSize: CGFloat = 11
@@ -107,6 +111,7 @@ struct SwitcherMetrics: Equatable {
             tileIconSize: round(baseTileIconSize * scale),
             tileGap: round(baseTileGap * scale),
             tileLabelArea: round(baseTileLabelArea * scale),
+            tileLetterArea: round(baseTileLetterArea * scale),
             tileNameFontSize: baseTileNameFontSize * scale,
             tileTitleFontSize: baseTileTitleFontSize * scale,
             tileLetterFontSize: baseTileLetterFontSize * scale,

@@ -61,4 +61,28 @@ struct SwitcherRowTests {
         )
         #expect(row.appName == (hostApp.localizedName ?? ""))
     }
+
+    @Test("launchable row carries installed-app fields and has no pid")
+    func launchableFields() {
+        let installed = InstalledApp(
+            name: "Widget Studio",
+            bundleID: "com.example.widgetstudio",
+            url: URL(fileURLWithPath: "/Applications/Widget Studio.app")
+        )
+        let row = SwitcherRow(launchable: installed)
+        #expect(row.isLaunchable)
+        #expect(row.app == nil)
+        #expect(row.pid == nil)
+        #expect(row.appName == "Widget Studio")
+        #expect(row.bundleIdentifier == "com.example.widgetstudio")
+        #expect(row.displayTitle == "Widget Studio")
+        #expect(!row.isHidden)
+    }
+
+    @Test("running row reports itself as not launchable")
+    func runningNotLaunchable() {
+        let row = SwitcherRow(app: hostApp, window: nil, windowTitle: "", isMinimized: false)
+        #expect(!row.isLaunchable)
+        #expect(row.app != nil)
+    }
 }

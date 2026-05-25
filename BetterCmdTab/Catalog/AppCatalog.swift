@@ -114,10 +114,16 @@ enum AppCatalog {
 
     private static func statusPriority(_ row: SwitcherRow) -> Int {
         // Mirror AppCatalogCache.statusPriority so cold-path snapshots and
-        // cached snapshots agree on row ordering. Windowless regular apps go
-        // last; placeholders stay normal so they don't get demoted pre-warm.
-        if row.window == nil, !row.isPlaceholder { return 3 }
-        if row.app.isHidden { return 2 }
+        // cached snapshots agree on row ordering. Windowless and hidden regular
+        // apps share one "inactive" bucket: an app that closes its last window
+        // can flip between the two across consecutive AX refreshes (Electron
+        // apps in particular hide themselves rather than truly going windowless,
+        // so the switcher sees zero windows one moment and a hidden window the
+        // next) — keeping them in the same bucket stops that flip from
+        // reordering the app. Placeholders stay normal so they don't get
+        // demoted pre-warm.
+        if row.window == nil, !row.isPlaceholder { return 2 }
+        if row.isHidden { return 2 }
         if row.isMinimized { return 1 }
         return 0
     }

@@ -29,15 +29,49 @@ enum Activator {
     }
 
     static func activate(_ row: SwitcherRow) {
-        let app = row.app
-        let pid = row.pid
+        switch row.subject {
+        case .launchable(let installed):
+            launch(installed)
+        case .running(let app):
+            activateRunning(app: app, window: row.window, isFullscreen: row.isFullscreen)
+        case .recentlyClosed(let entry):
+            reopen(entry)
+        }
+    }
+
+    /// Launch a not-yet-running app discovered by `InstalledAppsIndex`.
+    private static func launch(_ installed: InstalledApp) {
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+        config.createsNewApplicationInstance = false
+        NSWorkspace.shared.openApplication(at: installed.url, configuration: config) { _, _ in }
+    }
+
+    /// Reopen a recently closed (i.e. quit) app: relaunch it, or just activate
+    /// it if it's somehow already running again. Recently-closed entries are
+    /// app-level only, so there's no per-document/window restore here.
+    private static func reopen(_ entry: RecentEntry) {
+        if let running = NSRunningApplication
+            .runningApplications(withBundleIdentifier: entry.bundleID).first {
+            activateProcess(running)
+            return
+        }
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: entry.bundleID) {
+            let config = NSWorkspace.OpenConfiguration()
+            config.activates = true
+            NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
+        }
+    }
+
+    private static func activateRunning(app: NSRunningApplication, window: AXUIElement?, isFullscreen: Bool) {
+        let pid = app.processIdentifier
 
         if app.isHidden {
             app.unhide()
         }
 
-        guard let window = row.window else {
-            if row.isFullscreen {
+        guard let window else {
+            if isFullscreen {
                 bringToFront(app)
             } else {
                 openFreshWindow(for: app)
@@ -123,8 +157,7 @@ enum Activator {
     }
 
     static func closeWindow(_ row: SwitcherRow) {
-        guard let window = row.window else { return }
-        let pid = row.pid
+        guard let window = row.window, let pid = row.pid else { return }
         let isFullscreen = row.isFullscreen
 
         // Acting on our own window (the Settings window now appears in the
@@ -157,17 +190,27 @@ enum Activator {
                 return
             }
 
-            await pressCloseButton(window: window, attempts: 3)
+            await pressCloseButton(window: window, pid: pid, attempts: 3)
         }
     }
 
-    private static func pressCloseButton(window: AXUIElement, attempts: Int) async {
+    private static func pressCloseButton(window: AXUIElement, pid: pid_t, attempts: Int) async {
         for i in 0..<attempts {
             if performCloseButtonPress(window: window) { return }
             if i < attempts - 1 {
                 try? await Task.sleep(nanoseconds: 150_000_000)
             }
         }
+        // Fallback for windows that don't expose an AX close button (System
+        // Settings panes, the Accessibility permission window, some dialogs):
+        // focus the window, then post ⌘W to the owning app.
+        AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+        let wid = PrivateAPI.cgWindowId(of: window)
+        if wid != 0 {
+            PrivateAPI.raiseWindow(pid: pid, wid: wid)
+        }
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        postKeyShortcut(pid: pid, keyCode: 13, axModifiers: 0) // ⌘W
     }
 
     /// Single synchronous attempt to press a window's AX close button. Returns
@@ -186,9 +229,8 @@ enum Activator {
     }
 
     static func minimizeWindow(_ row: SwitcherRow) {
-        guard let window = row.window else { return }
+        guard let window = row.window, let app = row.app else { return }
         let wasMinimized = row.isMinimized
-        let app = row.app
 
         let apply = {
             if wasMinimized {
@@ -208,7 +250,7 @@ enum Activator {
         // Mutating AX state on our own window must happen on the main thread
         // (same window-management constraint as closeWindow). Other apps stay
         // off-main so a slow cross-process AX call never blocks ours.
-        if row.pid == getpid() {
+        if app.processIdentifier == getpid() {
             DispatchQueue.main.async(execute: apply)
         } else {
             DispatchQueue.global(qos: .userInitiated).async(execute: apply)
@@ -233,22 +275,24 @@ enum Activator {
     }
 
     static func hideApp(_ row: SwitcherRow) {
-        if row.app.isHidden {
-            row.app.unhide()
+        guard let app = row.app else { return }
+        if app.isHidden {
+            app.unhide()
             if #available(macOS 14.0, *) {
-                _ = row.app.activate(from: NSRunningApplication.current, options: [])
+                _ = app.activate(from: NSRunningApplication.current, options: [])
             } else {
-                row.app.activate(options: [.activateIgnoringOtherApps])
+                app.activate(options: [.activateIgnoringOtherApps])
             }
         } else {
-            row.app.hide()
+            app.hide()
         }
     }
 
     static func quitApp(_ row: SwitcherRow) {
-        if row.app.bundleIdentifier == finderBundleID {
+        guard let app = row.app else { return }
+        if app.bundleIdentifier == finderBundleID {
             return
         }
-        row.app.terminate()
+        app.terminate()
     }
 }
