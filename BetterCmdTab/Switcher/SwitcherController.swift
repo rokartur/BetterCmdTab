@@ -26,8 +26,15 @@ final class SwitcherController: SwitcherViewDelegate {
     /// *displayed* derivation (fuzzy-filtered or letter-prefix-reordered);
     /// `baseRows`/`baseLabels` are the unfiltered source so the search query
     /// can widen again on backspace. Kept in sync by every refresh path.
-    private var baseRows: [SwitcherRow] = []
+    private var baseRows: [SwitcherRow] = [] {
+        didSet { baseFoldedValid = false }
+    }
     private var baseLabels: [String] = []
+    /// Diacritic-folded (app name, window title) per `baseRows` entry, rebuilt
+    /// lazily when `baseRows` changes so fuzzy search folds each row once per
+    /// row-set change rather than re-folding every row on every keystroke.
+    private var baseFolded: [(app: String, title: String)] = []
+    private var baseFoldedValid = false
     private var rows: [SwitcherRow] = []
     private var labels: [String] = []
     private var index: Int = 0
@@ -1206,6 +1213,15 @@ final class SwitcherController: SwitcherViewDelegate {
         return result
     }
 
+    /// Rebuild the folded-string cache for the current `baseRows` if it went
+    /// stale. Called at the top of the search-filter path so each row's name and
+    /// title are folded once per row-set change, not once per keystroke.
+    private func ensureBaseFolded() {
+        guard !baseFoldedValid else { return }
+        baseFolded = baseRows.map { (FuzzyMatch.fold($0.appName), FuzzyMatch.fold($0.windowTitle)) }
+        baseFoldedValid = true
+    }
+
     /// Single funnel that derives the displayed `rows`/`labels` from the
     /// canonical `baseRows`, honoring the active mode: fuzzy-search filter,
     /// letter-prefix reorder, or plain pass-through. Selection is restored by
@@ -1216,11 +1232,13 @@ final class SwitcherController: SwitcherViewDelegate {
         let key = resetSelectionToTop ? nil : selectionKey()
 
         if searchActive, !searchQuery.isEmpty {
+            ensureBaseFolded()
+            let foldedQuery = FuzzyMatch.fold(searchQuery)
             var newRows: [SwitcherRow] = []
             var newLabels: [String] = []
             newRows.reserveCapacity(baseRows.count)
             for i in baseRows.indices
-            where FuzzyMatch.matches(query: searchQuery, appName: baseRows[i].appName, windowTitle: baseRows[i].windowTitle) {
+            where FuzzyMatch.matchesFolded(foldedQuery: foldedQuery, foldedAppName: baseFolded[i].app, foldedWindowTitle: baseFolded[i].title) {
                 newRows.append(baseRows[i])
                 newLabels.append(baseLabels[i])
             }
