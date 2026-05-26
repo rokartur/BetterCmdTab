@@ -14,6 +14,12 @@ import CoreGraphics
 final class WindowMRUTracker {
     private var order: [pid_t: [CGWindowID]] = [:]
     private var termObserver: NSObjectProtocol?
+    /// Hard ceiling on remembered windows per app. `bump` only ever prepends, so
+    /// without a cap a long-running app that opens and closes many windows would
+    /// accumulate dead CGWindowIDs for its whole lifetime. `sortRows` prunes ids
+    /// against the live window set; this bound covers apps the user never invokes
+    /// Cmd+` on (where only `bump` runs).
+    private let perAppCap = 64
 
     func start() {
         let nc = NSWorkspace.shared.notificationCenter
@@ -41,6 +47,7 @@ final class WindowMRUTracker {
         var list = order[pid] ?? []
         list.removeAll { $0 == wid }
         list.insert(wid, at: 0)
+        if list.count > perAppCap { list.removeLast(list.count - perAppCap) }
         order[pid] = list
     }
 
@@ -65,13 +72,29 @@ final class WindowMRUTracker {
     /// position. Caller passes rows already filtered to a single pid.
     func sortRows(_ rows: [SwitcherRow], forPid pid: pid_t) -> [SwitcherRow] {
         guard let mruList = order[pid], !mruList.isEmpty, rows.count > 1 else { return rows }
-        var rank: [CGWindowID: Int] = [:]
-        rank.reserveCapacity(mruList.count)
-        for (i, wid) in mruList.enumerated() { rank[wid] = i }
 
-        let indexed = rows.enumerated().map { (offset, row) -> (rank: Int, original: Int, row: SwitcherRow) in
-            guard let win = row.window else { return (Int.max, offset, row) }
-            let wid = PrivateAPI.cgWindowId(of: win)
+        // Resolve each row's CGWindowID once; reused for both the dead-id prune
+        // and the rank lookup below.
+        let rowWids = rows.enumerated().map { offset, row -> (wid: CGWindowID, offset: Int, row: SwitcherRow) in
+            let wid = row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
+            return (wid, offset, row)
+        }
+
+        // Drop ids whose windows have since closed. The list only ever grew
+        // (bump prepends, nothing removed dead ids), so realign it to the live
+        // window set on every use — this is the primary bound on per-pid growth.
+        let liveWids = Set(rowWids.compactMap { $0.wid != 0 ? $0.wid : nil })
+        let prunedList = mruList.filter { liveWids.contains($0) }
+        if prunedList.count != mruList.count {
+            order[pid] = prunedList.isEmpty ? nil : prunedList
+        }
+        guard !prunedList.isEmpty else { return rows }
+
+        var rank: [CGWindowID: Int] = [:]
+        rank.reserveCapacity(prunedList.count)
+        for (i, wid) in prunedList.enumerated() { rank[wid] = i }
+
+        let indexed = rowWids.map { wid, offset, row -> (rank: Int, original: Int, row: SwitcherRow) in
             let r = (wid != 0 ? rank[wid] : nil) ?? Int.max
             return (r, offset, row)
         }
