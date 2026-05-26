@@ -832,6 +832,21 @@ final class SwitcherController: SwitcherViewDelegate {
         return candidates[target]
     }
 
+    /// The row the visible switcher would activate for `app`: its frontmost
+    /// catalogued window. The catalog gives an app either one windowless row or
+    /// one row per window (windowed rows sort first), so the first windowed row
+    /// for the pid is the frontmost — matching reveal()'s `firstIndex(by: pid)`
+    /// pick. Reads the warm cache first, then falls back to a fresh AX snapshot
+    /// when cold — the same two-tier lookup as `pickWindowsOnlyTarget`. Returns
+    /// nil for a windowless app so the caller can fall back to `activateApp`.
+    private func primedAppTargetRow(for app: NSRunningApplication) -> SwitcherRow? {
+        let pid = app.processIdentifier
+        if let row = cache.rows(orderedBy: mru.order).first(where: { $0.pid == pid && $0.window != nil }) {
+            return row
+        }
+        return AppCatalog.snapshot(orderedBy: mru.order).first(where: { $0.pid == pid && $0.window != nil })
+    }
+
     private func bumpWindowMRUIfPossible(for row: SwitcherRow) {
         guard let win = row.window, let pid = row.pid else { return }
         let wid = PrivateAPI.cgWindowId(of: win)
@@ -863,7 +878,19 @@ final class SwitcherController: SwitcherViewDelegate {
             } else if primedApps.indices.contains(primedIndex) {
                 let app = primedApps[primedIndex]
                 mru.bump(app.processIdentifier)
-                pendingActivation = { Activator.activateApp(app) }
+                // Activate through the app's frontmost catalogued window — the
+                // same row the visible switcher would have committed — so a
+                // fast ⌘⇥ tap jumps Spaces / exits full screen exactly like
+                // releasing ⌘ over the panel. `activateApp` carries no window
+                // and no `instantSpace`, so it can't switch Spaces; that's why
+                // rapid ⌘⇥ between Spaces (or Space↔window) used to land on the
+                // wrong Space. Fall back to it only for windowless apps.
+                if let row = primedAppTargetRow(for: app) {
+                    bumpWindowMRUIfPossible(for: row)
+                    pendingActivation = { Activator.activate(row, instantSpace: instantSpace) }
+                } else {
+                    pendingActivation = { Activator.activateApp(app) }
+                }
             }
         case .idle:
             break
