@@ -40,16 +40,6 @@
                ReferencedContainer = "container:BetterCmdTab.xcodeproj">
             </BuildableReference>
          </TestableReference>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7559A76D2FC06FD6004D97B7"
-               BuildableName = "BetterCmdTabUITests.xctest"
-               BlueprintName = "BetterCmdTabUITests"
-               ReferencedContainer = "container:BetterCmdTab.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

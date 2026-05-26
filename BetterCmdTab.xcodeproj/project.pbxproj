@@ -14,19 +14,11 @@
 			remoteGlobalIDString = 7559A7562FC06FD5004D97B7;
 			remoteInfo = BetterCmdTab;
 		};
-		7559A76F2FC06FD6004D97B7 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 7559A74F2FC06FD5004D97B7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 7559A7562FC06FD5004D97B7;
-			remoteInfo = BetterCmdTab;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		7559A7572FC06FD5004D97B7 /* BetterCmdTab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BetterCmdTab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7559A7642FC06FD6004D97B7 /* BetterCmdTabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BetterCmdTabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		7559A76E2FC06FD6004D97B7 /* BetterCmdTabUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BetterCmdTabUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -38,11 +30,6 @@
 		7559A7672FC06FD6004D97B7 /* BetterCmdTabTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BetterCmdTabTests;
-			sourceTree = "<group>";
-		};
-		7559A7712FC06FD6004D97B7 /* BetterCmdTabUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BetterCmdTabUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -62,13 +49,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		7559A76B2FC06FD6004D97B7 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -77,7 +57,6 @@
 			children = (
 				7559A7592FC06FD5004D97B7 /* BetterCmdTab */,
 				7559A7672FC06FD6004D97B7 /* BetterCmdTabTests */,
-				7559A7712FC06FD6004D97B7 /* BetterCmdTabUITests */,
 				7559A7582FC06FD5004D97B7 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -87,7 +66,6 @@
 			children = (
 				7559A7572FC06FD5004D97B7 /* BetterCmdTab.app */,
 				7559A7642FC06FD6004D97B7 /* BetterCmdTabTests.xctest */,
-				7559A76E2FC06FD6004D97B7 /* BetterCmdTabUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -140,29 +118,6 @@
 			productReference = 7559A7642FC06FD6004D97B7 /* BetterCmdTabTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		7559A76D2FC06FD6004D97B7 /* BetterCmdTabUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 7559A77E2FC06FD6004D97B7 /* Build configuration list for PBXNativeTarget "BetterCmdTabUITests" */;
-			buildPhases = (
-				7559A76A2FC06FD6004D97B7 /* Sources */,
-				7559A76B2FC06FD6004D97B7 /* Frameworks */,
-				7559A76C2FC06FD6004D97B7 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				7559A7702FC06FD6004D97B7 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				7559A7712FC06FD6004D97B7 /* BetterCmdTabUITests */,
-			);
-			name = BetterCmdTabUITests;
-			packageProductDependencies = (
-			);
-			productName = BetterCmdTabUITests;
-			productReference = 7559A76E2FC06FD6004D97B7 /* BetterCmdTabUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -177,10 +132,6 @@
 						CreatedOnToolsVersion = 26.5;
 					};
 					7559A7632FC06FD6004D97B7 = {
-						CreatedOnToolsVersion = 26.5;
-						TestTargetID = 7559A7562FC06FD5004D97B7;
-					};
-					7559A76D2FC06FD6004D97B7 = {
 						CreatedOnToolsVersion = 26.5;
 						TestTargetID = 7559A7562FC06FD5004D97B7;
 					};
@@ -202,7 +153,6 @@
 			targets = (
 				7559A7562FC06FD5004D97B7 /* BetterCmdTab */,
 				7559A7632FC06FD6004D97B7 /* BetterCmdTabTests */,
-				7559A76D2FC06FD6004D97B7 /* BetterCmdTabUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -216,13 +166,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		7559A7622FC06FD6004D97B7 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		7559A76C2FC06FD6004D97B7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -246,13 +189,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		7559A76A2FC06FD6004D97B7 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -260,11 +196,6 @@
 			isa = PBXTargetDependency;
 			target = 7559A7562FC06FD5004D97B7 /* BetterCmdTab */;
 			targetProxy = 7559A7652FC06FD6004D97B7 /* PBXContainerItemProxy */;
-		};
-		7559A7702FC06FD6004D97B7 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 7559A7562FC06FD5004D97B7 /* BetterCmdTab */;
-			targetProxy = 7559A76F2FC06FD6004D97B7 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -545,56 +476,6 @@
 			};
 			name = Release;
 		};
-		7559A77F2FC06FD6004D97B7 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260524152201;
-				DEVELOPMENT_TEAM = N529W98U62;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = pro.bettercmdtab.BetterCmdTabUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = macosx;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = BetterCmdTab;
-				XROS_DEPLOYMENT_TARGET = 26.5;
-			};
-			name = Debug;
-		};
-		7559A7802FC06FD6004D97B7 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260524152201;
-				DEVELOPMENT_TEAM = N529W98U62;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = pro.bettercmdtab.BetterCmdTabUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = macosx;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = BetterCmdTab;
-				XROS_DEPLOYMENT_TARGET = 26.5;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -621,15 +502,6 @@
 			buildConfigurations = (
 				7559A77C2FC06FD6004D97B7 /* Debug */,
 				7559A77D2FC06FD6004D97B7 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		7559A77E2FC06FD6004D97B7 /* Build configuration list for PBXNativeTarget "BetterCmdTabUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				7559A77F2FC06FD6004D97B7 /* Debug */,
-				7559A7802FC06FD6004D97B7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
