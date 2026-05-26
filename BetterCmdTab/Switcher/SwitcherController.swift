@@ -801,6 +801,7 @@ final class SwitcherController: SwitcherViewDelegate {
         revealTimer?.invalidate()
         revealTimer = nil
         let currentPhase = phase
+        let instantSpace = Preferences.shared.experimentalInstantSpaceSwitch
         var pendingActivation: (() -> Void)? = nil
 
         switch currentPhase {
@@ -809,14 +810,14 @@ final class SwitcherController: SwitcherViewDelegate {
                 let row = rows[index]
                 if let pid = row.pid { mru.bump(pid) }
                 bumpWindowMRUIfPossible(for: row)
-                pendingActivation = { Activator.activate(row) }
+                pendingActivation = { Activator.activate(row, instantSpace: instantSpace) }
             }
         case .primed:
             if windowsOnlyMode, let pid = windowsOnlyPid,
                let row = pickWindowsOnlyTarget(pid: pid, delta: windowsOnlyPrimedDelta) {
                 if let p = row.pid { mru.bump(p) }
                 bumpWindowMRUIfPossible(for: row)
-                pendingActivation = { Activator.activate(row) }
+                pendingActivation = { Activator.activate(row, instantSpace: instantSpace) }
             } else if primedApps.indices.contains(primedIndex) {
                 let app = primedApps[primedIndex]
                 mru.bump(app.processIdentifier)

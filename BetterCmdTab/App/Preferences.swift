@@ -141,6 +141,7 @@ final class Preferences: ObservableObject {
         static let swipeReverseDirection = "Switcher.swipeReverseDirection"
         static let swipeCommitOnRelease = "Switcher.swipeCommitOnRelease"
         static let swipeSensitivity = "Switcher.swipeSensitivity"
+        static let experimentalInstantSpaceSwitch = "Switcher.experimentalInstantSpaceSwitch"
         static let experimentalUnreadBadges = "Switcher.experimentalUnreadBadges"
     }
 
@@ -341,6 +342,16 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// When true, committing to an app on another Space or in full screen jumps
+    /// there instantly with no slide animation (private SkyLight Space APIs).
+    /// Off by default — fragile, undocumented APIs.
+    @Published var experimentalInstantSpaceSwitch: Bool {
+        didSet {
+            guard oldValue != experimentalInstantSpaceSwitch else { return }
+            UserDefaults.standard.set(experimentalInstantSpaceSwitch, forKey: Keys.experimentalInstantSpaceSwitch)
+        }
+    }
+
     /// Experimental: show app unread-badge counts read from the Dock via the
     /// Accessibility API. Fragile and locale-dependent; off by default.
     @Published var experimentalUnreadBadges: Bool {
@@ -399,6 +410,7 @@ final class Preferences: ObservableObject {
         self.swipeCommitOnRelease = defaults.object(forKey: Keys.swipeCommitOnRelease) as? Bool ?? false
         let sensitivity = defaults.object(forKey: Keys.swipeSensitivity) as? Int ?? Self.defaultSwipeSensitivity
         self.swipeSensitivity = Self.clampSwipeSensitivity(sensitivity)
+        self.experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         self.experimentalUnreadBadges = defaults.object(forKey: Keys.experimentalUnreadBadges) as? Bool ?? false
     }
 }

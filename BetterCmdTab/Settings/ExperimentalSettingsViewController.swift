@@ -23,6 +23,7 @@ final class ExperimentalSettingsViewController: NSViewController {
         title: "Swipe sensitivity",
         subtitle: "How far to slide to move one app. Higher means a shorter slide steps further."
     )
+    private let instantSpaceSwitch = NSSwitch()
     private let badgesSwitch = NSSwitch()
 
     override func loadView() {
@@ -51,6 +52,14 @@ final class ExperimentalSettingsViewController: NSViewController {
 
         sensitivityRow.setAccessory(makeSensitivityControl())
         experimental.addContent(sensitivityRow)
+
+        experimental.addDivider()
+        configureSwitch(instantSpaceSwitch, action: #selector(toggleInstantSpace(_:)))
+        experimental.addContent(SettingsRowView(
+            title: "Switch Spaces without animation",
+            subtitle: "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too.",
+            accessory: instantSpaceSwitch
+        ))
         configureSwitch(badgesSwitch, action: #selector(toggleBadges(_:)))
         experimental.addContent(SettingsRowView(
             title: "Show unread badges",
@@ -103,6 +112,7 @@ final class ExperimentalSettingsViewController: NSViewController {
         reverseSwitch.state = prefs.swipeReverseDirection ? .on : .off
         commitSwitch.state = prefs.swipeCommitOnRelease ? .on : .off
         applySensitivity(prefs.swipeSensitivity)
+        instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
         badgesSwitch.state = prefs.experimentalUnreadBadges ? .on : .off
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
@@ -129,6 +139,10 @@ final class ExperimentalSettingsViewController: NSViewController {
     private func applySensitivity(_ level: Int) {
         if sensitivitySlider.integerValue != level { sensitivitySlider.integerValue = level }
         sensitivityValueLabel.stringValue = "\(level)/\(Preferences.swipeSensitivityRange.upperBound)"
+    }
+
+    @objc private func toggleInstantSpace(_ sender: NSSwitch) {
+        Preferences.shared.experimentalInstantSpaceSwitch = (sender.state == .on)
     }
 
     @objc private func toggleBadges(_ sender: NSSwitch) {

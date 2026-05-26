@@ -28,12 +28,15 @@ enum Activator {
         bringToFront(app)
     }
 
-    static func activate(_ row: SwitcherRow) {
+    /// `instantSpace`: when the target window lives on another Space or in full
+    /// screen, jump there with no slide animation (private SkyLight) before
+    /// raising. No-op when the window is already on the current Space.
+    static func activate(_ row: SwitcherRow, instantSpace: Bool = false) {
         switch row.subject {
         case .launchable(let installed):
             launch(installed)
         case .running(let app):
-            activateRunning(app: app, window: row.window, isFullscreen: row.isFullscreen)
+            activateRunning(app: app, window: row.window, isFullscreen: row.isFullscreen, instantSpace: instantSpace)
         case .recentlyClosed(let entry):
             reopen(entry)
         }
@@ -63,7 +66,7 @@ enum Activator {
         }
     }
 
-    private static func activateRunning(app: NSRunningApplication, window: AXUIElement?, isFullscreen: Bool) {
+    private static func activateRunning(app: NSRunningApplication, window: AXUIElement?, isFullscreen: Bool, instantSpace: Bool) {
         let pid = app.processIdentifier
 
         if app.isHidden {
@@ -85,6 +88,14 @@ enum Activator {
             AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
         }
 
+        let wid = PrivateAPI.cgWindowId(of: window)
+
+        // Jump to the window's Space instantly (no slide) before raising, so the
+        // raise lands on the now-current Space instead of animating across.
+        if instantSpace, wid != 0 {
+            PrivateAPI.switchToSpace(ofWindow: wid)
+        }
+
         // Order matches process activation first (synchronous
         // path via NSRunningApplication.activate), then per-window raise via
         // AX + SLPS. `NSWorkspace.openApplication` was racing — its async
@@ -94,7 +105,6 @@ enum Activator {
 
         AXUIElementPerformAction(window, kAXRaiseAction as CFString)
 
-        let wid = PrivateAPI.cgWindowId(of: window)
         if wid != 0 {
             PrivateAPI.raiseWindow(pid: pid, wid: wid)
         }

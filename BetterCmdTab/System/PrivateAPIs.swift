@@ -62,6 +62,22 @@ enum PrivateAPI {
     private static let getProcessForPIDFn: (@convention(c) (pid_t, UnsafeMutablePointer<ProcessSerialNumber>) -> OSStatus)? =
         sym("GetProcessForPID", in: RTLD_DEFAULT_HANDLE)
 
+    // MARK: - SkyLight: no-animation Space switch
+
+    // `CGSConnectionID` is a plain `int`.
+    private static let mainConnectionFn: (@convention(c) () -> Int32)? =
+        sym("CGSMainConnectionID", in: skyLight)
+    // (cid, CGSSpaceMask, CFArray<window ids>) -> CFArray<space ids>
+    private static let copySpacesForWindowsFn: (@convention(c) (Int32, Int32, CFArray) -> Unmanaged<CFArray>?)? =
+        sym("CGSCopySpacesForWindows", in: skyLight)
+    // (cid, spaceID) -> display UUID string the Space lives on
+    private static let copyDisplayForSpaceFn: (@convention(c) (Int32, UInt64) -> Unmanaged<CFString>?)? =
+        sym("CGSCopyManagedDisplayForSpace", in: skyLight)
+    // (cid, display UUID, spaceID) — set the display's current Space directly,
+    // with no slide animation (unlike a window raise that crosses Spaces).
+    private static let setCurrentSpaceFn: (@convention(c) (Int32, CFString, UInt64) -> Void)? =
+        sym("CGSManagedDisplaySetCurrentSpace", in: skyLight)
+
     /// One-shot startup diagnostic. Returns the list of dlsym symbols that
     /// failed to resolve, so AppDelegate can surface a single warning instead
     /// of every call site silently no-opping.
@@ -72,7 +88,38 @@ enum PrivateAPI {
         if setFrontProcFn == nil { missing.append("_SLPSSetFrontProcessWithOptions") }
         if postEventFn == nil { missing.append("SLPSPostEventRecordTo") }
         if getProcessForPIDFn == nil { missing.append("GetProcessForPID") }
+        if mainConnectionFn == nil { missing.append("CGSMainConnectionID") }
+        if copySpacesForWindowsFn == nil { missing.append("CGSCopySpacesForWindows") }
+        if copyDisplayForSpaceFn == nil { missing.append("CGSCopyManagedDisplayForSpace") }
+        if setCurrentSpaceFn == nil { missing.append("CGSManagedDisplaySetCurrentSpace") }
         return missing
+    }
+
+    /// Jump instantly — no slide animation — to the Space that contains `wid`.
+    /// Resolves the window's Space via SkyLight, then sets it as the display's
+    /// current Space directly. Returns false if the Space can't be resolved, in
+    /// which case the caller falls back to the normal (animated) raise.
+    @discardableResult
+    static func switchToSpace(ofWindow wid: CGWindowID) -> Bool {
+        guard wid != 0,
+              let mainConnection = mainConnectionFn,
+              let copySpaces = copySpacesForWindowsFn,
+              let copyDisplay = copyDisplayForSpaceFn,
+              let setCurrent = setCurrentSpaceFn else { return false }
+
+        let cid = mainConnection()
+        let windowList = [NSNumber(value: wid)] as CFArray
+        // 0x7 = current | other | user Spaces — search them all.
+        guard let spaces = copySpaces(cid, 0x7, windowList)?.takeRetainedValue(),
+              CFArrayGetCount(spaces) > 0,
+              let raw = CFArrayGetValueAtIndex(spaces, 0) else { return false }
+
+        let number = Unmanaged<CFNumber>.fromOpaque(raw).takeUnretainedValue()
+        var sid: UInt64 = 0
+        guard CFNumberGetValue(number, .sInt64Type, &sid), sid != 0 else { return false }
+        guard let display = copyDisplay(cid, sid)?.takeRetainedValue() else { return false }
+        setCurrent(cid, display, sid)
+        return true
     }
 
     /// Raise a specific window across Spaces (including a fullscreen window
