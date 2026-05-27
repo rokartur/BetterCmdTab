@@ -58,6 +58,12 @@ final class SwipeTrigger {
         MTGesture.stepDistance = MTGesture.stepDistance(forLevel: level)
     }
 
+    func setOneShot(_ oneShot: Bool) {
+        MTGesture.oneShot = oneShot
+        MTGesture.fired = false
+        MTGesture.accumulator = 0
+    }
+
     private func install() {
         guard devices.isEmpty else { return }
         guard let api = MultitouchAPI.shared else {
@@ -214,10 +220,18 @@ private enum MTGesture {
     nonisolated(unsafe) static var reverse = false
     nonisolated(unsafe) static var commitOnRelease = false
 
+    nonisolated(unsafe) static var oneShot = false
+    /// Set once a one-shot gesture has fired; cleared only when all fingers lift,
+    /// so a single swipe switches exactly one Space.
+    nonisolated(unsafe) static var fired = false
+    /// Normalized horizontal travel needed to trigger a one-shot Space switch.
+    static let oneShotThreshold: Float = 0.08
+
     static func reset() {
         active = false
         tracking = false
         accumulator = 0
+        fired = false
     }
 }
 
@@ -274,9 +288,25 @@ private func multitouchSwipeCallback(
         MTGesture.accumulator += avgX - MTGesture.lastX
         MTGesture.lastX = avgX
 
-        let step = MTGesture.stepDistance
         // Default: moving right (+x) advances the selection right (+1).
         let rightward = MTGesture.reverse ? -1 : 1
+
+        if MTGesture.oneShot {
+            // One Space jump per swipe: fire once past the fixed threshold, then
+            // latch until all fingers lift (handled below). Sensitivity ignored.
+            if !MTGesture.fired {
+                if MTGesture.accumulator >= MTGesture.oneShotThreshold {
+                    MTGesture.fired = true
+                    mtEmitStep(rightward)
+                } else if MTGesture.accumulator <= -MTGesture.oneShotThreshold {
+                    MTGesture.fired = true
+                    mtEmitStep(-rightward)
+                }
+            }
+            return 0
+        }
+
+        let step = MTGesture.stepDistance
         while MTGesture.accumulator >= step {
             MTGesture.accumulator -= step
             mtEmitStep(rightward)
@@ -297,6 +327,8 @@ private func multitouchSwipeCallback(
         }
         MTGesture.active = false
         MTGesture.accumulator = 0
+        // Re-arm one-shot mode so the next swipe can switch another Space.
+        MTGesture.fired = false
     }
     return 0
 }

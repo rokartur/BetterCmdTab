@@ -48,10 +48,12 @@ struct BetterShortcutsIntegrationTests {
     }
 
     @MainActor
-    @Test("allCases lists exactly the two switcher triggers")
+    @Test("allCases lists the switcher triggers plus the direct-activation slots")
     func allCases() {
-        #expect(BetterShortcuts.Name.allCases.count == 2)
-        #expect(BetterShortcuts.Name.allCases.contains(.switchApps))
-        #expect(BetterShortcuts.Name.allCases.contains(.switchWindows))
+        let names = BetterShortcuts.Name.allCases
+        #expect(names.contains(.switchApps))
+        #expect(names.contains(.switchWindows))
+        #expect(BetterShortcuts.Name.directActivate.count == BetterShortcuts.Name.directActivateSlotCount)
+        #expect(names.count == 2 + BetterShortcuts.Name.directActivateSlotCount)
     }
 }

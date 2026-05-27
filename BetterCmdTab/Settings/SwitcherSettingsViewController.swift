@@ -13,6 +13,7 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     private let hiddenSwitch = NSSwitch()
     private let windowlessSwitch = NSSwitch()
     private let badgesSwitch = NSSwitch()
+    private let currentSpaceSwitch = NSSwitch()
     private let recentlyClosedSwitch = NSSwitch()
     private let recentlyClosedLimitPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let recentlyClosedLimits: [Int] = [3, 5, 10, 15, 20]
@@ -27,6 +28,14 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     // Navigation
     private let scrollSwitch = NSSwitch()
     private let scrollReverseSwitch = NSSwitch()
+
+    // Hover actions
+    private let hoverSwitch = NSSwitch()
+    private let hoverCloseSwitch = NSSwitch()
+    private let hoverMinimizeSwitch = NSSwitch()
+    private let hoverMaximizeSwitch = NSSwitch()
+    private let hoverHideSwitch = NSSwitch()
+    private let hoverQuitSwitch = NSSwitch()
 
     // Apps
     private let excludedButton = NSButton(title: "Manage apps", target: nil, action: nil)
@@ -54,6 +63,10 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         addRow(to: contents, title: "Show unread badges",
                subtitle: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row.",
                accessory: badgesSwitch, searchItemID: SearchID.showBadges)
+        configureSwitch(currentSpaceSwitch, action: #selector(toggleCurrentSpace(_:)))
+        addRow(to: contents, title: "Only current Space",
+               subtitle: "Show only windows on the Space you're currently viewing.",
+               accessory: currentSpaceSwitch, searchItemID: SearchID.currentSpaceOnly)
         configureSwitch(recentlyClosedSwitch, action: #selector(toggleRecentlyClosed(_:)))
         addRow(to: contents, title: "Show recently closed apps",
                subtitle: "Lists apps and windows you just closed so you can reopen them.",
@@ -107,6 +120,23 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
                subtitle: "Scroll up to move forward instead of down.",
                accessory: scrollReverseSwitch, searchItemID: SearchID.scrollReverse)
 
+        // Hover actions section — buttons revealed on a row under the pointer.
+        let actions = addSection(title: "Hover actions", anchor: SettingsAnchor.actions)
+        configureSwitch(hoverSwitch, action: #selector(toggleHover(_:)))
+        addRow(to: actions, title: "Action buttons on hover",
+               subtitle: "Reveal quick buttons on the row your pointer is over.",
+               accessory: hoverSwitch, searchItemID: SearchID.hoverActions)
+        configureSwitch(hoverCloseSwitch, action: #selector(toggleHoverClose(_:)))
+        addRow(to: actions, title: "Close window", accessory: hoverCloseSwitch)
+        configureSwitch(hoverMinimizeSwitch, action: #selector(toggleHoverMinimize(_:)))
+        addRow(to: actions, title: "Minimize window", accessory: hoverMinimizeSwitch)
+        configureSwitch(hoverMaximizeSwitch, action: #selector(toggleHoverMaximize(_:)))
+        addRow(to: actions, title: "Zoom window", accessory: hoverMaximizeSwitch)
+        configureSwitch(hoverHideSwitch, action: #selector(toggleHoverHide(_:)))
+        addRow(to: actions, title: "Hide app", accessory: hoverHideSwitch)
+        configureSwitch(hoverQuitSwitch, action: #selector(toggleHoverQuit(_:)))
+        addRow(to: actions, title: "Quit app", accessory: hoverQuitSwitch)
+
         // App lists section — exclusion and pinning, each via a picker sheet.
         let appLists = addSection(title: "Apps", anchor: SettingsAnchor.apps)
         configureManageButton(excludedButton, action: #selector(manageExcluded))
@@ -140,6 +170,7 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         hiddenSwitch.state = prefs.showHiddenApps ? .on : .off
         windowlessSwitch.state = prefs.showWindowlessApps ? .on : .off
         badgesSwitch.state = prefs.showUnreadBadges ? .on : .off
+        currentSpaceSwitch.state = prefs.currentSpaceOnly ? .on : .off
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off
         fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
         launcherSwitch.state = prefs.searchIncludesLaunchableApps ? .on : .off
@@ -150,6 +181,13 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         scrollSwitch.state = prefs.scrollToSwitch ? .on : .off
         scrollReverseSwitch.state = prefs.scrollReverseDirection ? .on : .off
         scrollReverseSwitch.isEnabled = prefs.scrollToSwitch
+        hoverSwitch.state = prefs.hoverActionsEnabled ? .on : .off
+        hoverCloseSwitch.state = prefs.hoverShowClose ? .on : .off
+        hoverMinimizeSwitch.state = prefs.hoverShowMinimize ? .on : .off
+        hoverMaximizeSwitch.state = prefs.hoverShowMaximize ? .on : .off
+        hoverHideSwitch.state = prefs.hoverShowHide ? .on : .off
+        hoverQuitSwitch.state = prefs.hoverShowQuit ? .on : .off
+        setHoverSubOptionsEnabled(prefs.hoverActionsEnabled)
         updateAppListCounts()
 
         prefs.$searchDismissMode
@@ -188,6 +226,10 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         Preferences.shared.showUnreadBadges = (sender.state == .on)
     }
 
+    @objc private func toggleCurrentSpace(_ sender: NSSwitch) {
+        Preferences.shared.currentSpaceOnly = (sender.state == .on)
+    }
+
     @objc private func toggleLetterHints(_ sender: NSSwitch) {
         Preferences.shared.letterHintsEnabled = (sender.state == .on)
     }
@@ -208,6 +250,41 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleScrollReverse(_ sender: NSSwitch) {
         Preferences.shared.scrollReverseDirection = (sender.state == .on)
+    }
+
+    @objc private func toggleHover(_ sender: NSSwitch) {
+        let on = (sender.state == .on)
+        Preferences.shared.hoverActionsEnabled = on
+        setHoverSubOptionsEnabled(on)
+    }
+
+    @objc private func toggleHoverClose(_ sender: NSSwitch) {
+        Preferences.shared.hoverShowClose = (sender.state == .on)
+    }
+
+    @objc private func toggleHoverMinimize(_ sender: NSSwitch) {
+        Preferences.shared.hoverShowMinimize = (sender.state == .on)
+    }
+
+    @objc private func toggleHoverMaximize(_ sender: NSSwitch) {
+        Preferences.shared.hoverShowMaximize = (sender.state == .on)
+    }
+
+    @objc private func toggleHoverHide(_ sender: NSSwitch) {
+        Preferences.shared.hoverShowHide = (sender.state == .on)
+    }
+
+    @objc private func toggleHoverQuit(_ sender: NSSwitch) {
+        Preferences.shared.hoverShowQuit = (sender.state == .on)
+    }
+
+    /// The per-button toggles only matter while hover actions are enabled.
+    private func setHoverSubOptionsEnabled(_ enabled: Bool) {
+        hoverCloseSwitch.isEnabled = enabled
+        hoverMinimizeSwitch.isEnabled = enabled
+        hoverMaximizeSwitch.isEnabled = enabled
+        hoverHideSwitch.isEnabled = enabled
+        hoverQuitSwitch.isEnabled = enabled
     }
 
     @objc private func toggleRecentlyClosed(_ sender: NSSwitch) {

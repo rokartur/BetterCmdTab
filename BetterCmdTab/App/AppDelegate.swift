@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         BetterShortcuts.installDisplayNames()
+        DirectActivation.installHandlers()
         #if DEBUG
         // In Debug builds always show the menu bar icon, regardless of the
         // saved preference — otherwise a hidden icon leaves no way to reach

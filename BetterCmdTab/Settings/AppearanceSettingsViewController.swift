@@ -11,6 +11,11 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private let accentPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let delaySlider = NSSlider()
     private let delayValueLabel = NSTextField(labelWithString: "")
+    private let windowTitleSwitch = NSSwitch()
+    private let opacitySlider = NSSlider()
+    private let opacityValueLabel = NSTextField(labelWithString: "")
+    private let radiusSlider = NSSlider()
+    private let radiusValueLabel = NSTextField(labelWithString: "")
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -66,6 +71,61 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         addRow(to: section, title: "Quick-switch delay",
                subtitle: "Tap to switch instantly; hold longer to open the switcher.",
                accessory: sliderStack, searchItemID: SearchID.quickSwitchDelay)
+
+        configureSwitch(windowTitleSwitch, action: #selector(toggleWindowTitle(_:)))
+        addRow(to: section, title: "Show window title",
+               subtitle: "Show each window's title under the icon in the Grid and Previews layouts.",
+               accessory: windowTitleSwitch, searchItemID: SearchID.windowTitle)
+
+        let opacityStack = makeSliderControl(
+            opacitySlider, valueLabel: opacityValueLabel,
+            range: Preferences.panelOpacityRange, action: #selector(opacityChanged(_:))
+        )
+        addRow(to: section, title: "Panel opacity",
+               subtitle: "Translucency of the switcher panel.",
+               accessory: opacityStack, searchItemID: SearchID.opacity)
+
+        let radiusStack = makeSliderControl(
+            radiusSlider, valueLabel: radiusValueLabel,
+            range: Preferences.panelCornerRadiusRange, action: #selector(radiusChanged(_:))
+        )
+        addRow(to: section, title: "Corner radius",
+               subtitle: "Rounding of the panel's corners. Automatic follows the panel size.",
+               accessory: radiusStack, searchItemID: SearchID.cornerRadius)
+    }
+
+    private func configureSwitch(_ toggle: NSSwitch, action: Selector) {
+        toggle.controlSize = .small
+        toggle.target = self
+        toggle.action = action
+    }
+
+    /// Builds a horizontal slider + right-aligned monospaced value label, matching
+    /// the quick-switch delay control. The caller wires `viewWillAppear` sync.
+    private func makeSliderControl(_ slider: NSSlider, valueLabel: NSTextField, range: ClosedRange<Int>, action: Selector) -> NSView {
+        slider.minValue = Double(range.lowerBound)
+        slider.maxValue = Double(range.upperBound)
+        slider.isContinuous = true
+        slider.controlSize = .small
+        slider.target = self
+        slider.action = action
+        slider.translatesAutoresizingMaskIntoConstraints = false
+
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        valueLabel.textColor = .secondaryLabelColor
+        valueLabel.alignment = .right
+        valueLabel.translatesAutoresizingMaskIntoConstraints = false
+        valueLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = NSStackView(views: [slider, valueLabel])
+        stack.orientation = .horizontal
+        stack.spacing = 8
+        stack.alignment = .centerY
+        NSLayoutConstraint.activate([
+            slider.widthAnchor.constraint(equalToConstant: 140),
+            valueLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 52),
+        ])
+        return stack
     }
 
     /// Small filled-circle swatch shown beside each accent menu item. The
@@ -78,7 +138,15 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         image.lockFocus()
         let rect = NSRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5)
         let path = NSBezierPath(ovalIn: rect)
-        accent.resolved.setFill()
+        // The custom choice previews the stored hex so its swatch tracks the
+        // user's pick instead of the system accent fallback in `resolved`.
+        let fill: NSColor
+        if accent == .custom {
+            fill = Preferences.shared.customAccentHex.flatMap(NSColor.init(hexString:)) ?? .controlAccentColor
+        } else {
+            fill = accent.resolved
+        }
+        fill.setFill()
         path.fill()
         NSColor.black.withAlphaComponent(0.15).setStroke()
         path.lineWidth = 1
@@ -146,6 +214,22 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.selectAccent($0) }
             .store(in: &cancellables)
+        prefs.$customAccentHex
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refreshCustomSwatch() }
+            .store(in: &cancellables)
+        prefs.$showWindowTitleLabel
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.windowTitleSwitch.state = $0 ? .on : .off }
+            .store(in: &cancellables)
+        prefs.$panelOpacity
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.applyOpacity($0) }
+            .store(in: &cancellables)
+        prefs.$panelCornerRadius
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.applyRadius($0) }
+            .store(in: &cancellables)
     }
 
     override func viewWillDisappear() {
@@ -160,6 +244,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         selectGrid(prefs.gridMaxColumns)
         applyDelay(prefs.revealDelayMs)
         selectAccent(prefs.accentChoice)
+        windowTitleSwitch.state = prefs.showWindowTitleLabel ? .on : .off
+        applyOpacity(prefs.panelOpacity)
+        applyRadius(prefs.panelCornerRadius)
+        refreshCustomSwatch()
     }
 
     private func selectLayout(_ mode: SwitcherLayoutMode) {
@@ -188,10 +276,60 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func accentChanged() {
-        Preferences.shared.accentChoice = accents[accentPopup.indexOfSelectedItem]
+        let choice = accents[accentPopup.indexOfSelectedItem]
+        Preferences.shared.accentChoice = choice
+        if choice == .custom { presentColorPanel() }
     }
 
     @objc private func delayChanged(_ sender: NSSlider) {
         Preferences.shared.revealDelayMs = sender.integerValue
+    }
+
+    @objc private func toggleWindowTitle(_ sender: NSSwitch) {
+        Preferences.shared.showWindowTitleLabel = (sender.state == .on)
+    }
+
+    @objc private func opacityChanged(_ sender: NSSlider) {
+        Preferences.shared.panelOpacity = sender.integerValue
+        opacityValueLabel.stringValue = "\(sender.integerValue)%"
+    }
+
+    @objc private func radiusChanged(_ sender: NSSlider) {
+        Preferences.shared.panelCornerRadius = sender.integerValue
+        radiusValueLabel.stringValue = sender.integerValue == 0 ? "Auto" : "\(sender.integerValue) pt"
+    }
+
+    private func applyOpacity(_ value: Int) {
+        if opacitySlider.integerValue != value { opacitySlider.integerValue = value }
+        opacityValueLabel.stringValue = "\(value)%"
+    }
+
+    private func applyRadius(_ value: Int) {
+        if radiusSlider.integerValue != value { radiusSlider.integerValue = value }
+        radiusValueLabel.stringValue = value == 0 ? "Auto" : "\(value) pt"
+    }
+
+    /// Repaints the custom accent menu item's swatch from the stored hex.
+    private func refreshCustomSwatch() {
+        guard let i = accents.firstIndex(of: .custom) else { return }
+        accentPopup.item(at: i)?.image = Self.swatch(for: .custom)
+    }
+
+    // MARK: - Custom accent color
+
+    private func presentColorPanel() {
+        let panel = NSColorPanel.shared
+        panel.showsAlpha = false
+        if let hex = Preferences.shared.customAccentHex, let color = NSColor(hexString: hex) {
+            panel.color = color
+        }
+        panel.setTarget(self)
+        panel.setAction(#selector(customColorChanged(_:)))
+        panel.orderFront(nil)
+    }
+
+    @objc private func customColorChanged(_ sender: NSColorPanel) {
+        Preferences.shared.customAccentHex = sender.color.hexString
+        refreshCustomSwatch()
     }
 }

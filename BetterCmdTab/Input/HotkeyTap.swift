@@ -12,6 +12,10 @@ final class HotkeyTap {
         case prevRow
         case spatialLeft
         case spatialRight
+        case moveWindowLeft
+        case moveWindowRight
+        case moveWindowUp
+        case moveWindowDown
         case releaseCmd
         case commit
         case escape
@@ -317,6 +321,11 @@ final class HotkeyTap {
         // The switcher stays open while either trigger's hold modifier is down.
         let anyModHeld = appModHeld || windowModHeld
         let shiftHeld = flags.contains(.maskShift)
+        // Option + arrow (while the switcher is open) moves the highlighted
+        // window between displays/Spaces instead of moving the selection. Option
+        // is used rather than Shift because Shift already steps the selection
+        // backwards (see the flagsChanged handler below).
+        let optionHeld = flags.contains(.maskAlternate)
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
 
         if type == .keyDown {
@@ -369,13 +378,13 @@ final class HotkeyTap {
                 } else {
                     switch keyCode {
                     case Self.leftArrow:
-                        deliver(.spatialLeft); return nil
+                        deliver(optionHeld ? .moveWindowLeft : .spatialLeft); return nil
                     case Self.rightArrow:
-                        deliver(.spatialRight); return nil
+                        deliver(optionHeld ? .moveWindowRight : .spatialRight); return nil
                     case Self.upArrow:
-                        deliver(.prevRow); return nil
+                        deliver(optionHeld ? .moveWindowUp : .prevRow); return nil
                     case Self.downArrow:
-                        deliver(.nextRow); return nil
+                        deliver(optionHeld ? .moveWindowDown : .nextRow); return nil
                     case Self.returnKey, Self.keypadEnterKey, Self.spaceKey:
                         deliver(.commit); return nil
                     case Self.escKey:

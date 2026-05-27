@@ -9,9 +9,10 @@ struct CatalogFilterTests {
         pinned: [String] = [],
         showMinimized: Bool = true,
         showHidden: Bool = true,
-        showWindowless: Bool = true
+        showWindowless: Bool = true,
+        currentSpaceOnly: Bool = false
     ) -> CatalogFilter.Config {
-        CatalogFilter.Config(excluded: excluded, pinned: pinned, showMinimized: showMinimized, showHidden: showHidden, showWindowless: showWindowless)
+        CatalogFilter.Config(excluded: excluded, pinned: pinned, showMinimized: showMinimized, showHidden: showHidden, showWindowless: showWindowless, currentSpaceOnly: currentSpaceOnly)
     }
 
     // MARK: - isIdentity

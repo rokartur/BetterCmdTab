@@ -1,8 +1,27 @@
 import AppKit
 import ApplicationServices
 
+/// Direction for moving a window between displays or Spaces.
+enum MoveDirection {
+    case left, right, up, down
+}
+
 enum Activator {
     private static let finderBundleID = "com.apple.finder"
+
+    /// Focus the app with the given bundle ID, launching it if it isn't running.
+    /// Backs the direct-activation hotkeys (jump straight to a chosen app).
+    static func activateOrLaunch(bundleID: String) {
+        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
+            activateApp(running)
+            return
+        }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+        config.createsNewApplicationInstance = false
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
+    }
 
     static func activateApp(_ app: NSRunningApplication) {
         if app.isHidden {
@@ -285,6 +304,25 @@ enum Activator {
         up.postToPid(pid)
     }
 
+    /// Zoom (green-button maximize) the row's window by pressing its AX zoom
+    /// button. Apps without a zoom button (some dialogs/utilities) are no-ops.
+    static func zoomWindow(_ row: SwitcherRow) {
+        guard let window = row.window, let app = row.app else { return }
+        let apply = {
+            var buttonValue: AnyObject?
+            let err = AXUIElementCopyAttributeValue(window, kAXZoomButtonAttribute as CFString, &buttonValue)
+            guard err == .success, CFGetTypeID(buttonValue as CFTypeRef) == AXUIElementGetTypeID() else { return }
+            AXUIElementPerformAction(buttonValue as! AXUIElement, kAXPressAction as CFString)
+        }
+        // Our own window must mutate on the main thread (window-management
+        // constraint, same as close/minimize); other apps stay off-main.
+        if app.processIdentifier == getpid() {
+            DispatchQueue.main.async(execute: apply)
+        } else {
+            DispatchQueue.global(qos: .userInitiated).async(execute: apply)
+        }
+    }
+
     static func hideApp(_ row: SwitcherRow) {
         guard let app = row.app else { return }
         if app.isHidden {
@@ -305,5 +343,119 @@ enum Activator {
             return
         }
         app.terminate()
+    }
+
+    // MARK: - Move window between displays / Spaces
+
+    /// Move the row's window to the adjacent display in `direction`, preserving
+    /// its relative position within the screen and clamping it to fit. Uses the
+    /// stable Accessibility position API — no private symbols.
+    static func moveWindowToDisplay(_ row: SwitcherRow, direction: MoveDirection) {
+        guard let window = row.window, let app = row.app else { return }
+        let apply = { Self.repositionToAdjacentDisplay(window: window, direction: direction) }
+        // Our own window must mutate on the main thread (window-management
+        // constraint, as with close/minimize); other apps stay off-main.
+        if app.processIdentifier == getpid() {
+            DispatchQueue.main.async(execute: apply)
+        } else {
+            DispatchQueue.global(qos: .userInitiated).async(execute: apply)
+        }
+    }
+
+    private static func repositionToAdjacentDisplay(window: AXUIElement, direction: MoveDirection) {
+        guard !NSScreen.screens.isEmpty else { return }
+        // AX coordinates are top-left origin (y down) anchored at the main screen;
+        // Cocoa screen frames are bottom-left origin. `mainHeight` bridges them.
+        let mainHeight = NSScreen.screens[0].frame.maxY
+
+        var posRef: AnyObject?
+        var sizeRef: AnyObject?
+        guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &posRef) == .success,
+              AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeRef) == .success,
+              CFGetTypeID(posRef as CFTypeRef) == AXValueGetTypeID(),
+              CFGetTypeID(sizeRef as CFTypeRef) == AXValueGetTypeID() else { return }
+        var axPos = CGPoint.zero
+        var axSize = CGSize.zero
+        AXValueGetValue(posRef as! AXValue, .cgPoint, &axPos)
+        AXValueGetValue(sizeRef as! AXValue, .cgSize, &axSize)
+
+        let cocoaRect = CGRect(
+            x: axPos.x,
+            y: mainHeight - axPos.y - axSize.height,
+            width: axSize.width,
+            height: axSize.height
+        )
+        guard let current = screenContaining(rect: cocoaRect),
+              let target = adjacentScreen(to: current, direction: direction) else { return }
+
+        let cv = current.visibleFrame
+        let tv = target.visibleFrame
+        let relX = cv.width > 0 ? (cocoaRect.minX - cv.minX) / cv.width : 0
+        let relY = cv.height > 0 ? (cocoaRect.minY - cv.minY) / cv.height : 0
+        var newX = tv.minX + relX * tv.width
+        var newY = tv.minY + relY * tv.height
+        // Clamp so the window stays on-screen (no resize).
+        newX = min(max(newX, tv.minX), max(tv.minX, tv.maxX - axSize.width))
+        newY = min(max(newY, tv.minY), max(tv.minY, tv.maxY - axSize.height))
+
+        var newAXPos = CGPoint(x: newX, y: mainHeight - (newY + axSize.height))
+        guard let value = AXValueCreate(.cgPoint, &newAXPos) else { return }
+        AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value)
+    }
+
+    private static func screenContaining(rect: CGRect) -> NSScreen? {
+        NSScreen.screens.max { a, b in
+            intersectionArea(a.frame, rect) < intersectionArea(b.frame, rect)
+        }
+    }
+
+    private static func intersectionArea(_ a: CGRect, _ b: CGRect) -> CGFloat {
+        let i = a.intersection(b)
+        guard !i.isNull else { return 0 }
+        return max(0, i.width) * max(0, i.height)
+    }
+
+    private static func adjacentScreen(to current: NSScreen, direction: MoveDirection) -> NSScreen? {
+        let c = CGPoint(x: current.frame.midX, y: current.frame.midY)
+        let candidates = NSScreen.screens.filter { $0 != current }.filter { s in
+            let p = CGPoint(x: s.frame.midX, y: s.frame.midY)
+            switch direction {
+            case .left: return p.x < c.x
+            case .right: return p.x > c.x
+            case .up: return p.y > c.y     // Cocoa y increases upward
+            case .down: return p.y < c.y
+            }
+        }
+        return candidates.min { a, b in
+            let pa = CGPoint(x: a.frame.midX, y: a.frame.midY)
+            let pb = CGPoint(x: b.frame.midX, y: b.frame.midY)
+            switch direction {
+            case .left, .right: return abs(pa.x - c.x) < abs(pb.x - c.x)
+            case .up, .down: return abs(pa.y - c.y) < abs(pb.y - c.y)
+            }
+        }
+    }
+
+    /// Experimental: move the row's window to the adjacent Space in `direction`
+    /// (private SkyLight APIs), then follow it there with an instant Space switch
+    /// and raise it. Horizontal directions step Spaces; vertical falls back to
+    /// the caller's display move. No-op when the private APIs are unavailable.
+    static func moveWindowToSpace(_ row: SwitcherRow, direction: MoveDirection) {
+        guard let window = row.window else { return }
+        let step: Int
+        switch direction {
+        case .left, .up: step = -1
+        case .right, .down: step = 1
+        }
+        let wid = PrivateAPI.cgWindowId(of: window)
+        guard wid != 0,
+              let current = PrivateAPI.spaces(forWindows: [wid])[wid],
+              let target = PrivateAPI.adjacentSpace(toSpace: current, step: step),
+              PrivateAPI.moveWindow(wid, toSpace: target) else { return }
+        // Follow the window to its new Space (instant, no slide) and raise it.
+        PrivateAPI.switchToSpace(ofWindow: wid)
+        if let pid = row.pid {
+            PrivateAPI.raiseWindow(pid: pid, wid: wid)
+        }
     }
 }

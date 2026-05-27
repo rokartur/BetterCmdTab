@@ -80,6 +80,79 @@ enum PrivateAPI {
     // swipe will move, so we only post one for jumps within that display.
     private static let getActiveSpaceFn: (@convention(c) (Int32) -> UInt64)? =
         sym("CGSGetActiveSpace", in: skyLight)
+    // (cid, CFArray<window ids>, CGSSpaceID) -> Void. Moves the given windows to
+    // a Space. Backs the experimental "move window to adjacent Space" action.
+    private static let moveWindowsToSpaceFn: (@convention(c) (Int32, CFArray, UInt64) -> Void)? =
+        sym("CGSMoveWindowsToManagedSpace", in: skyLight)
+
+    // MARK: - SkyLight: current-Space queries (read-only)
+
+    /// The id of the currently focused Space, or nil when the private API is
+    /// unavailable. Used by the "only current Space" switcher filter.
+    static func activeSpace() -> UInt64? {
+        guard let mainConnection = mainConnectionFn, let getActive = getActiveSpaceFn else { return nil }
+        let space = getActive(mainConnection())
+        return space == 0 ? nil : space
+    }
+
+    /// Maps each window id to the first Space it belongs to. Windows whose Space
+    /// can't be resolved are omitted; the result is empty when the private API is
+    /// unavailable (callers should then degrade to showing every window).
+    static func spaces(forWindows wids: [CGWindowID]) -> [CGWindowID: UInt64] {
+        guard !wids.isEmpty,
+              let mainConnection = mainConnectionFn,
+              let copySpaces = copySpacesForWindowsFn else { return [:] }
+        let cid = mainConnection()
+        var result: [CGWindowID: UInt64] = [:]
+        result.reserveCapacity(wids.count)
+        for wid in wids where wid != 0 {
+            // Query one window at a time: `CGSCopySpacesForWindows` returns the
+            // union of Spaces for the whole input array, so a single call can't
+            // be attributed back to individual windows.
+            let list = [NSNumber(value: wid)] as CFArray
+            guard let spaces = copySpaces(cid, 0x7, list)?.takeRetainedValue(),
+                  CFArrayGetCount(spaces) > 0,
+                  let raw = CFArrayGetValueAtIndex(spaces, 0) else { continue }
+            let number = Unmanaged<CFNumber>.fromOpaque(raw).takeUnretainedValue()
+            var space: UInt64 = 0
+            if CFNumberGetValue(number, .sInt64Type, &space), space != 0 {
+                result[wid] = space
+            }
+        }
+        return result
+    }
+
+    /// The Space adjacent to `space` by `step` (-1 = left, +1 = right) within the
+    /// same display's ordered Space list. nil at the ends or when unresolved.
+    /// Backs the experimental move-window-to-adjacent-Space action.
+    static func adjacentSpace(toSpace space: UInt64, step: Int) -> UInt64? {
+        guard space != 0, step != 0,
+              let mainConnection = mainConnectionFn,
+              let copyDisplays = copyManagedDisplaySpacesFn else { return nil }
+        let cid = mainConnection()
+        guard let cf = copyDisplays(cid)?.takeRetainedValue() else { return nil }
+        let displays = (cf as NSArray).compactMap { $0 as? [String: Any] }
+        for display in displays {
+            guard let spaceArray = display["Spaces"] as? [Any] else { continue }
+            let ids = spaceArray.compactMap { ($0 as? [String: Any]).flatMap(spaceId) }
+            guard let idx = ids.firstIndex(of: space) else { continue }
+            let target = idx + step
+            return ids.indices.contains(target) ? ids[target] : nil
+        }
+        return nil
+    }
+
+    /// Move a single window to `space`. Returns false when the private API is
+    /// unavailable. Does not switch the user to that Space — call `switchToSpace`
+    /// afterwards to follow the window.
+    @discardableResult
+    static func moveWindow(_ wid: CGWindowID, toSpace space: UInt64) -> Bool {
+        guard wid != 0, space != 0,
+              let mainConnection = mainConnectionFn,
+              let move = moveWindowsToSpaceFn else { return false }
+        move(mainConnection(), [NSNumber(value: wid)] as CFArray, space)
+        return true
+    }
 
     /// One-shot startup diagnostic. Returns the list of dlsym symbols that
     /// failed to resolve, so AppDelegate can surface a single warning instead
@@ -95,6 +168,7 @@ enum PrivateAPI {
         if copySpacesForWindowsFn == nil { missing.append("CGSCopySpacesForWindows") }
         if copyManagedDisplaySpacesFn == nil { missing.append("CGSCopyManagedDisplaySpaces") }
         if getActiveSpaceFn == nil { missing.append("CGSGetActiveSpace") }
+        if moveWindowsToSpaceFn == nil { missing.append("CGSMoveWindowsToManagedSpace") }
         return missing
     }
 
@@ -156,6 +230,56 @@ enum PrivateAPI {
             postDockSwipe(rightward: steps > 0, velocity: velocity)
         }
         return true
+    }
+
+    /// Switch to the Space on the left (`rightward == false`) or right by posting
+    /// one synthetic horizontal Dock-swipe — the same instant path as
+    /// `switchToSpace`, but direction-driven rather than window-driven. Backs the
+    /// "three-finger swipe switches Spaces" mode.
+    static func switchSpace(rightward: Bool) {
+        postDockSwipe(rightward: rightward, velocity: dockSwipeVelocity)
+    }
+
+    /// Switch one Space left/right, wrapping at the ends: swiping left off the
+    /// first Space lands on the last, and vice versa. At an edge it reaches the
+    /// far Space by posting `count - 1` swipes the other way (one synthetic swipe
+    /// = one Space step, same as the instant Space switch). Falls back to a
+    /// single non-wrapping swipe when the Space layout can't be resolved.
+    static func switchSpaceWrapping(rightward: Bool) {
+        guard let layout = activeDisplaySpaces(), layout.count > 1 else {
+            switchSpace(rightward: rightward)
+            return
+        }
+        let target = layout.index + (rightward ? 1 : -1)
+        if target >= 0 && target < layout.count {
+            postDockSwipe(rightward: rightward, velocity: dockSwipeVelocity)
+        } else {
+            // Wrap to the opposite end.
+            let steps = layout.count - 1
+            let velocity = dockSwipeVelocity * Double(steps)
+            for _ in 0..<steps {
+                postDockSwipe(rightward: !rightward, velocity: velocity)
+            }
+        }
+    }
+
+    /// Ordered Space count and the active Space's index on the display that owns
+    /// the focused Space (the one a swipe moves). nil when unavailable.
+    private static func activeDisplaySpaces() -> (count: Int, index: Int)? {
+        guard let mainConnection = mainConnectionFn,
+              let getActiveSpace = getActiveSpaceFn,
+              let copyDisplays = copyManagedDisplaySpacesFn else { return nil }
+        let cid = mainConnection()
+        let active = getActiveSpace(cid)
+        guard active != 0, let cf = copyDisplays(cid)?.takeRetainedValue() else { return nil }
+        let displays = (cf as NSArray).compactMap { $0 as? [String: Any] }
+        for display in displays {
+            guard let spaceArray = display["Spaces"] as? [Any] else { continue }
+            let ids = spaceArray.compactMap { ($0 as? [String: Any]).flatMap(spaceId) }
+            guard let idx = ids.firstIndex(of: active) else { continue }
+            return (ids.count, idx)
+        }
+        return nil
     }
 
     /// On the display that owns `activeSpace` (the one a swipe would move),

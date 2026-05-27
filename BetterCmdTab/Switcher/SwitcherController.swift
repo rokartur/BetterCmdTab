@@ -231,6 +231,7 @@ final class SwitcherController: SwitcherViewDelegate {
         swipeTrigger.setReverseDirection(Preferences.shared.swipeReverseDirection)
         swipeTrigger.setCommitOnRelease(Preferences.shared.swipeCommitOnRelease)
         swipeTrigger.setSensitivity(Preferences.shared.swipeSensitivity)
+        swipeTrigger.setOneShot(Preferences.shared.swipeMode == .switchSpaces)
         swipeTrigger.setEnabled(Preferences.shared.experimentalSwipeTrigger)
         // The swipe takes over three-finger horizontal Spaces navigation, so
         // suppress the system Space-swipe whenever the swipe is enabled.
@@ -253,6 +254,10 @@ final class SwitcherController: SwitcherViewDelegate {
         Preferences.shared.$swipeSensitivity
             .receive(on: DispatchQueue.main)
             .sink { [weak self] level in self?.swipeTrigger.setSensitivity(level) }
+            .store(in: &cancellables)
+        Preferences.shared.$swipeMode
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] mode in self?.swipeTrigger.setOneShot(mode == .switchSpaces) }
             .store(in: &cancellables)
 
         // Mouse scroll-to-switch: stepped by the hotkey tap (it sees scroll
@@ -278,6 +283,12 @@ final class SwitcherController: SwitcherViewDelegate {
     /// stray modifier release won't commit; the user commits with Return or a
     /// click, or dismisses with Esc, exactly like stay-open search.
     private func triggerFromGesture(delta: Int) {
+        // In "switch Spaces" mode the swipe never opens the switcher — each step
+        // jumps to the adjacent Space instead.
+        if Preferences.shared.swipeMode == .switchSpaces {
+            PrivateAPI.switchSpaceWrapping(rightward: delta > 0)
+            return
+        }
         switch phase {
         case .visible:
             advanceLinearVisible(by: delta, wrap: true)
@@ -373,6 +384,32 @@ final class SwitcherController: SwitcherViewDelegate {
         commit()
     }
 
+    /// A hover action button on a specific row was clicked. Point the current
+    /// index at that row, then run the same path as the keyboard W/M/H/Q actions
+    /// (plus zoom, which has no keyboard binding).
+    func switcherViewDidInvokeAction(_ action: RowAction, atIndex index: Int) {
+        guard phase == .visible, rows.indices.contains(index) else { return }
+        self.index = index
+        view.setSelectedIndex(index)
+        // The user is now interacting with the mouse: detach from the held
+        // modifier so releasing ⌘ no longer commits (which would switch to the
+        // app instead of running the clicked action). Commit stays available via
+        // a tile click, Return, or Esc to dismiss.
+        stickyOpen = true
+        switch action {
+        case .close:
+            performCloseAction()
+        case .minimize:
+            performOnVisibleTarget { Activator.minimizeWindow($0) }
+        case .maximize:
+            performOnVisibleTarget { Activator.zoomWindow($0) }
+        case .hide:
+            performOnVisibleTarget { Activator.hideApp($0) }
+        case .quit:
+            performQuitAction()
+        }
+    }
+
     private func handle(_ event: HotkeyTap.Event) {
         switch event {
         case .nextApp:
@@ -391,6 +428,14 @@ final class SwitcherController: SwitcherViewDelegate {
             advanceHorizontal(by: 1)
         case .spatialLeft:
             advanceHorizontal(by: -1)
+        case .moveWindowLeft:
+            performMove(.left)
+        case .moveWindowRight:
+            performMove(.right)
+        case .moveWindowUp:
+            performMove(.up)
+        case .moveWindowDown:
+            performMove(.down)
         case .releaseCmd:
             handleModifierRelease()
         case .commit:
@@ -410,20 +455,7 @@ final class SwitcherController: SwitcherViewDelegate {
         case .hideApp:
             performOnVisibleTarget { Activator.hideApp($0) }
         case .quitApp:
-            performOnVisibleTarget { row in
-                // Record an app-level entry (no document) so a quit app can be
-                // relaunched from recently-closed search. Regular apps only —
-                // system dialog hosts shouldn't be reopenable.
-                if row.app?.activationPolicy == .regular, let bundleID = row.bundleIdentifier {
-                    RecentlyClosedStore.shared.record(
-                        bundleID: bundleID,
-                        appName: row.appName,
-                        title: "",
-                        documentPath: nil
-                    )
-                }
-                Activator.quitApp(row)
-            }
+            performQuitAction()
         case .letterInput(let ch):
             handleLetter(ch)
         }
@@ -960,6 +992,43 @@ final class SwitcherController: SwitcherViewDelegate {
         guard !rows[index].isSystemDialog else { return }
         action(rows[index])
         scheduleVisibleRefresh(after: 0.25)
+    }
+
+    /// Move the highlighted window. Horizontal moves go to the adjacent Space
+    /// when the experimental toggle is on (following the window there and
+    /// closing the switcher); otherwise — and for vertical moves — the window
+    /// hops to the adjacent display and the switcher stays open.
+    private func performMove(_ direction: MoveDirection) {
+        guard phase == .visible, rows.indices.contains(index) else { return }
+        let row = rows[index]
+        guard !row.isSystemDialog, row.app != nil, row.window != nil else { return }
+
+        let horizontal = (direction == .left || direction == .right)
+        if horizontal && Preferences.shared.experimentalMoveToSpace {
+            Activator.moveWindowToSpace(row, direction: direction)
+            // We followed the window onto its new Space; dismiss the switcher.
+            cancel()
+        } else {
+            Activator.moveWindowToDisplay(row, direction: direction)
+            scheduleVisibleRefresh(after: 0.2)
+        }
+    }
+
+    private func performQuitAction() {
+        performOnVisibleTarget { row in
+            // Record an app-level entry (no document) so a quit app can be
+            // relaunched from recently-closed search. Regular apps only —
+            // system dialog hosts shouldn't be reopenable.
+            if row.app?.activationPolicy == .regular, let bundleID = row.bundleIdentifier {
+                RecentlyClosedStore.shared.record(
+                    bundleID: bundleID,
+                    appName: row.appName,
+                    title: "",
+                    documentPath: nil
+                )
+            }
+            Activator.quitApp(row)
+        }
     }
 
     private func performCloseAction() {

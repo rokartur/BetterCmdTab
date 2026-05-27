@@ -31,9 +31,20 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         }
     }
 
+    private let actionBar = HoverActionBar(frame: .zero)
+    private var actionsAvailable = false
+    var isHovered: Bool = false {
+        didSet {
+            guard oldValue != isHovered else { return }
+            updateHoverBar()
+        }
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+
+        actionBar.isHidden = true
 
         selectionBackdrop.wantsLayer = true
         selectionBackdrop.layer?.cornerCurve = .continuous
@@ -75,6 +86,9 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         nameLabel.isSelectable = false
         addSubview(nameLabel)
 
+        // Last, so the hover bar floats above the thumbnail.
+        addSubview(actionBar)
+
         updateThumbBackground()
         updateSelectionAppearance()
         applyMetrics(metrics)
@@ -86,6 +100,29 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         super.viewDidChangeEffectiveAppearance()
         updateSelectionAppearance()
         updateThumbBackground()
+    }
+
+    /// Show the hover bar only over a hovered, actionable row when the feature
+    /// (and at least one button) is enabled.
+    private func updateHoverBar() {
+        let show = isHovered
+            && Preferences.shared.hoverActionsEnabled
+            && actionsAvailable
+            && actionBar.hasAnyEnabledButton
+        if !show { actionBar.setHotAction(nil) }
+        if actionBar.isHidden == !show { return }
+        actionBar.isHidden = !show
+        needsLayout = true
+    }
+
+    func hoverAction(atWindowPoint point: NSPoint) -> RowAction? {
+        guard !actionBar.isHidden else { return nil }
+        return actionBar.action(atWindowPoint: point)
+    }
+
+    func setHotDot(atWindowPoint point: NSPoint?) {
+        guard !actionBar.isHidden else { actionBar.setHotAction(nil); return }
+        actionBar.setHotAction(point.flatMap { actionBar.action(atWindowPoint: $0) })
     }
 
     private func updateSelectionAppearance() {
@@ -128,7 +165,9 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         let icon = isDialog ? SystemSettingsIcon.image : IconCache.icon(for: row)
         placeholderIcon = icon
         iconView.image = icon
-        nameLabel.stringValue = row.displayTitle
+        // "Window title under icon" preference: when off, keep the app icon but
+        // drop the title text so the tile is just the thumbnail + icon.
+        nameLabel.stringValue = Preferences.shared.showWindowTitleLabel ? row.displayTitle : ""
 
         // Resolve the window id and ask for (or reuse) its live thumbnail. Rows
         // without a real window (windowless apps, launchables, recents) keep the
@@ -142,6 +181,11 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
             imageView.image = icon
         }
         applyImageScaling()
+
+        // Hover action buttons apply to a real window of a running app.
+        actionsAvailable = !isDialog && row.app != nil && row.window != nil
+        actionBar.applyEnabledButtons()
+        updateHoverBar()
 
         if isSelected == selected {
             applySelection()
@@ -256,5 +300,16 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
             width: max(0, nameW),
             height: nameH
         )
+
+        if !actionBar.isHidden {
+            // Top-right corner of the thumbnail, inset slightly.
+            let size = actionBar.contentSize
+            actionBar.frame = NSRect(
+                x: round(thumbRect.maxX - size.width - 4),
+                y: round(thumbRect.maxY - size.height - 4),
+                width: size.width,
+                height: size.height
+            )
+        }
     }
 }

@@ -58,6 +58,10 @@ enum SwitcherAccent: String, CaseIterable {
     case yellow
     case green
     case graphite
+    /// User-supplied color; the actual value lives in `Preferences.customAccentHex`.
+    /// Resolve via `Preferences.shared.resolvedAccent`, not `resolved`, so the hex
+    /// is read on the main actor.
+    case custom
 
     var displayName: String {
         switch self {
@@ -70,13 +74,14 @@ enum SwitcherAccent: String, CaseIterable {
         case .yellow: return "Yellow"
         case .green: return "Green"
         case .graphite: return "Graphite"
+        case .custom: return "Custom…"
         }
     }
 
-    /// Fixed color, or `nil` when the choice tracks the system accent.
+    /// Fixed color, or `nil` when the choice tracks the system accent or is custom.
     var color: NSColor? {
         switch self {
-        case .system: return nil
+        case .system, .custom: return nil
         case .blue: return .systemBlue
         case .purple: return .systemPurple
         case .pink: return .systemPink
@@ -89,8 +94,92 @@ enum SwitcherAccent: String, CaseIterable {
     }
 
     /// The concrete color to draw with right now. Resolving `.system` lazily
-    /// keeps it appearance-reactive (light/dark) like the rest of AppKit.
+    /// keeps it appearance-reactive (light/dark) like the rest of AppKit. For
+    /// `.custom` this falls back to the system accent — use
+    /// `Preferences.shared.resolvedAccent` to honor the stored hex.
     var resolved: NSColor { color ?? .controlAccentColor }
+}
+
+/// Background material for the switcher panel (the blur behind the rows). Maps to
+/// an `NSVisualEffectView.Material`; the macOS 26 glass backdrop ignores it.
+enum BackdropMaterial: String, CaseIterable {
+    case hud
+    case sidebar
+    case menu
+    case popover
+    case fullScreen
+    case underWindow
+
+    var displayName: String {
+        switch self {
+        case .hud: return "HUD (default)"
+        case .sidebar: return "Sidebar"
+        case .menu: return "Menu"
+        case .popover: return "Popover"
+        case .fullScreen: return "Full Screen"
+        case .underWindow: return "Under Window"
+        }
+    }
+
+    var material: NSVisualEffectView.Material {
+        switch self {
+        case .hud: return .hudWindow
+        case .sidebar: return .sidebar
+        case .menu: return .menu
+        case .popover: return .popover
+        case .fullScreen: return .fullScreenUI
+        case .underWindow: return .underWindowBackground
+        }
+    }
+}
+
+extension NSColor {
+    /// Parses `#RRGGBB` / `RRGGBB` (and the 8-digit `#RRGGBBAA` form). Returns
+    /// `nil` for malformed input so callers can fall back to a default.
+    convenience init?(hexString: String) {
+        var hex = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hex.hasPrefix("#") { hex.removeFirst() }
+        guard hex.count == 6 || hex.count == 8,
+              let value = UInt64(hex, radix: 16) else { return nil }
+        let r, g, b, a: CGFloat
+        if hex.count == 8 {
+            r = CGFloat((value >> 24) & 0xFF) / 255
+            g = CGFloat((value >> 16) & 0xFF) / 255
+            b = CGFloat((value >> 8) & 0xFF) / 255
+            a = CGFloat(value & 0xFF) / 255
+        } else {
+            r = CGFloat((value >> 16) & 0xFF) / 255
+            g = CGFloat((value >> 8) & 0xFF) / 255
+            b = CGFloat(value & 0xFF) / 255
+            a = 1
+        }
+        self.init(srgbRed: r, green: g, blue: b, alpha: a)
+    }
+
+    /// `#RRGGBB` string in the sRGB space; nil if the color can't be converted.
+    var hexString: String? {
+        guard let rgb = usingColorSpace(.sRGB) else { return nil }
+        let r = Int(round(rgb.redComponent * 255))
+        let g = Int(round(rgb.greenComponent * 255))
+        let b = Int(round(rgb.blueComponent * 255))
+        return String(format: "#%02X%02X%02X", r, g, b)
+    }
+}
+
+/// What a three-finger horizontal trackpad swipe does (when the experimental
+/// swipe trigger is enabled).
+enum SwipeMode: String, CaseIterable {
+    /// Open the switcher and scrub through apps (the original behavior).
+    case openSwitcher
+    /// Switch to the Space on the left/right, one per swipe step.
+    case switchSpaces
+
+    var displayName: String {
+        switch self {
+        case .openSwitcher: return "Open switcher"
+        case .switchSpaces: return "Switch Spaces"
+        }
+    }
 }
 
 /// Overall size multiplier applied to the switcher panel (icons, text, spacing).
@@ -129,6 +218,15 @@ final class Preferences: ObservableObject {
     static let defaultSwipeSensitivity = 5
     static let swipeSensitivityRange: ClosedRange<Int> = 1...10
 
+    static let panelOpacityRange: ClosedRange<Int> = 30...100
+    /// `0` means "automatic" (track the size-derived metric); above that the
+    /// user pins an explicit radius in points.
+    static let panelCornerRadiusRange: ClosedRange<Int> = 0...40
+
+    /// Number of direct-activation hotkey slots. Each slot binds a recorded
+    /// shortcut (stored by BetterShortcuts) to a target app bundle ID.
+    static let directActivationSlotCount = 9
+
     // Internal (not private): `CatalogFilter` reads the catalog-related keys
     // directly from `UserDefaults` off the main actor, so the key strings must
     // be shared rather than duplicated.
@@ -153,6 +251,7 @@ final class Preferences: ObservableObject {
         static let accentChoice = "Switcher.accentChoice"
         static let hideMenuBarIcon = "Switcher.hideMenuBarIcon"
         static let experimentalSwipeTrigger = "Switcher.experimentalSwipeTrigger"
+        static let swipeMode = "Switcher.swipeMode"
         static let swipeReverseDirection = "Switcher.swipeReverseDirection"
         static let swipeCommitOnRelease = "Switcher.swipeCommitOnRelease"
         static let swipeSensitivity = "Switcher.swipeSensitivity"
@@ -163,6 +262,20 @@ final class Preferences: ObservableObject {
         /// Pre-graduation key (badges used to live behind the Experimental tab);
         /// read once at launch to carry a user's earlier choice over to the new key.
         static let legacyUnreadBadges = "Switcher.experimentalUnreadBadges"
+        static let showWindowTitleLabel = "Switcher.showWindowTitleLabel"
+        static let panelOpacity = "Switcher.panelOpacity"
+        static let panelCornerRadius = "Switcher.panelCornerRadius"
+        static let customAccentHex = "Switcher.customAccentHex"
+        static let backdropMaterial = "Switcher.backdropMaterial"
+        static let currentSpaceOnly = "Switcher.currentSpaceOnly"
+        static let experimentalMoveToSpace = "Switcher.experimentalMoveToSpace"
+        static let directActivationBindings = "Switcher.directActivationBindings"
+        static let hoverActionsEnabled = "Switcher.hoverActionsEnabled"
+        static let hoverShowClose = "Switcher.hoverShowClose"
+        static let hoverShowMinimize = "Switcher.hoverShowMinimize"
+        static let hoverShowMaximize = "Switcher.hoverShowMaximize"
+        static let hoverShowHide = "Switcher.hoverShowHide"
+        static let hoverShowQuit = "Switcher.hoverShowQuit"
     }
 
     @Published var switcherLayoutMode: SwitcherLayoutMode {
@@ -339,6 +452,15 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// What the three-finger swipe does: open the switcher (default) or switch
+    /// Spaces left/right. Only meaningful while `experimentalSwipeTrigger` is on.
+    @Published var swipeMode: SwipeMode {
+        didSet {
+            guard oldValue != swipeMode else { return }
+            UserDefaults.standard.set(swipeMode.rawValue, forKey: Keys.swipeMode)
+        }
+    }
+
     /// When false (default), sliding fingers right moves the selection right;
     /// when true the axis is flipped. Only affects the three-finger swipe.
     @Published var swipeReverseDirection: Bool {
@@ -411,12 +533,157 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Show the per-window title label under the icon in Grid and Previews
+    /// layouts. Default on. (No effect on the List layout, which always shows it.)
+    @Published var showWindowTitleLabel: Bool {
+        didSet {
+            guard oldValue != showWindowTitleLabel else { return }
+            UserDefaults.standard.set(showWindowTitleLabel, forKey: Keys.showWindowTitleLabel)
+        }
+    }
+
+    /// Panel opacity as a 30–100 percentage. Default 100 (fully opaque).
+    @Published var panelOpacity: Int {
+        didSet {
+            let clamped = Self.clampOpacity(panelOpacity)
+            if clamped != panelOpacity { panelOpacity = clamped; return }
+            guard oldValue != panelOpacity else { return }
+            UserDefaults.standard.set(panelOpacity, forKey: Keys.panelOpacity)
+        }
+    }
+
+    /// Explicit panel corner radius in points; `0` = automatic (size-derived).
+    @Published var panelCornerRadius: Int {
+        didSet {
+            let clamped = Self.clampCornerRadius(panelCornerRadius)
+            if clamped != panelCornerRadius { panelCornerRadius = clamped; return }
+            guard oldValue != panelCornerRadius else { return }
+            UserDefaults.standard.set(panelCornerRadius, forKey: Keys.panelCornerRadius)
+        }
+    }
+
+    /// `#RRGGBB` used when `accentChoice == .custom`. `nil` until the user picks one.
+    @Published var customAccentHex: String? {
+        didSet {
+            guard oldValue != customAccentHex else { return }
+            UserDefaults.standard.set(customAccentHex, forKey: Keys.customAccentHex)
+        }
+    }
+
+    /// Background blur material for the panel (NSVisualEffectView fallback path).
+    @Published var backdropMaterial: BackdropMaterial {
+        didSet {
+            guard oldValue != backdropMaterial else { return }
+            UserDefaults.standard.set(backdropMaterial.rawValue, forKey: Keys.backdropMaterial)
+        }
+    }
+
+    /// Show only windows that live on the currently active Space. Default off.
+    /// Reads window Space membership via the same private APIs as instant Space
+    /// switching; degrades to showing everything when those are unavailable.
+    @Published var currentSpaceOnly: Bool {
+        didSet {
+            guard oldValue != currentSpaceOnly else { return }
+            UserDefaults.standard.set(currentSpaceOnly, forKey: Keys.currentSpaceOnly)
+        }
+    }
+
+    /// Experimental: allow ⌘⇧← / ⌘⇧→ to move the highlighted window to the
+    /// adjacent Space (private SkyLight APIs). Off by default — fragile.
+    /// Display moves (⌘⇧↑ / ⌘⇧↓ and across monitors) use stable AX APIs and are
+    /// always available. [[experimental-features]]
+    @Published var experimentalMoveToSpace: Bool {
+        didSet {
+            guard oldValue != experimentalMoveToSpace else { return }
+            UserDefaults.standard.set(experimentalMoveToSpace, forKey: Keys.experimentalMoveToSpace)
+        }
+    }
+
+    /// Target app bundle IDs for the direct-activation hotkey slots. Index maps
+    /// to the slot number (0 = slot 1). An empty string means the slot is unset.
+    /// Always normalized to `directActivationSlotCount` entries.
+    @Published var directActivationBindings: [String] {
+        didSet {
+            let normalized = Self.normalizeBindings(directActivationBindings)
+            if normalized != directActivationBindings { directActivationBindings = normalized; return }
+            guard oldValue != directActivationBindings else { return }
+            UserDefaults.standard.set(directActivationBindings, forKey: Keys.directActivationBindings)
+        }
+    }
+
+    /// Master switch for the hover action buttons shown on each switcher row.
+    /// Default off. Per-button visibility lives in `hoverShow*`.
+    @Published var hoverActionsEnabled: Bool {
+        didSet {
+            guard oldValue != hoverActionsEnabled else { return }
+            UserDefaults.standard.set(hoverActionsEnabled, forKey: Keys.hoverActionsEnabled)
+        }
+    }
+
+    @Published var hoverShowClose: Bool {
+        didSet {
+            guard oldValue != hoverShowClose else { return }
+            UserDefaults.standard.set(hoverShowClose, forKey: Keys.hoverShowClose)
+        }
+    }
+
+    @Published var hoverShowMinimize: Bool {
+        didSet {
+            guard oldValue != hoverShowMinimize else { return }
+            UserDefaults.standard.set(hoverShowMinimize, forKey: Keys.hoverShowMinimize)
+        }
+    }
+
+    @Published var hoverShowMaximize: Bool {
+        didSet {
+            guard oldValue != hoverShowMaximize else { return }
+            UserDefaults.standard.set(hoverShowMaximize, forKey: Keys.hoverShowMaximize)
+        }
+    }
+
+    @Published var hoverShowHide: Bool {
+        didSet {
+            guard oldValue != hoverShowHide else { return }
+            UserDefaults.standard.set(hoverShowHide, forKey: Keys.hoverShowHide)
+        }
+    }
+
+    @Published var hoverShowQuit: Bool {
+        didSet {
+            guard oldValue != hoverShowQuit else { return }
+            UserDefaults.standard.set(hoverShowQuit, forKey: Keys.hoverShowQuit)
+        }
+    }
+
+    /// Concrete accent color honoring the `.custom` choice (reads `customAccentHex`).
+    var resolvedAccent: NSColor {
+        if accentChoice == .custom, let hex = customAccentHex, let color = NSColor(hexString: hex) {
+            return color
+        }
+        return accentChoice.resolved
+    }
+
     static func clampDelay(_ value: Int) -> Int {
         min(revealDelayRange.upperBound, max(revealDelayRange.lowerBound, value))
     }
 
     static func clampSwipeSensitivity(_ value: Int) -> Int {
         min(swipeSensitivityRange.upperBound, max(swipeSensitivityRange.lowerBound, value))
+    }
+
+    static func clampOpacity(_ value: Int) -> Int {
+        min(panelOpacityRange.upperBound, max(panelOpacityRange.lowerBound, value))
+    }
+
+    static func clampCornerRadius(_ value: Int) -> Int {
+        min(panelCornerRadiusRange.upperBound, max(panelCornerRadiusRange.lowerBound, value))
+    }
+
+    /// Pads/truncates to exactly `directActivationSlotCount` entries.
+    static func normalizeBindings(_ value: [String]) -> [String] {
+        var out = Array(value.prefix(directActivationSlotCount))
+        while out.count < directActivationSlotCount { out.append("") }
+        return out
     }
 
     private init() {
@@ -457,6 +724,8 @@ final class Preferences: ObservableObject {
         self.hideMenuBarIcon = defaults.object(forKey: Keys.hideMenuBarIcon) as? Bool ?? false
 
         self.experimentalSwipeTrigger = defaults.object(forKey: Keys.experimentalSwipeTrigger) as? Bool ?? false
+        let swipeModeRaw = defaults.string(forKey: Keys.swipeMode)
+        self.swipeMode = swipeModeRaw.flatMap(SwipeMode.init(rawValue:)) ?? .openSwitcher
         self.swipeReverseDirection = defaults.object(forKey: Keys.swipeReverseDirection) as? Bool ?? false
         self.swipeCommitOnRelease = defaults.object(forKey: Keys.swipeCommitOnRelease) as? Bool ?? false
         let sensitivity = defaults.object(forKey: Keys.swipeSensitivity) as? Int ?? Self.defaultSwipeSensitivity
@@ -474,5 +743,23 @@ final class Preferences: ObservableObject {
         } else {
             self.showUnreadBadges = true
         }
+
+        self.showWindowTitleLabel = defaults.object(forKey: Keys.showWindowTitleLabel) as? Bool ?? true
+        let opacity = defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100
+        self.panelOpacity = Self.clampOpacity(opacity)
+        let radius = defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0
+        self.panelCornerRadius = Self.clampCornerRadius(radius)
+        self.customAccentHex = defaults.string(forKey: Keys.customAccentHex)
+        let materialRaw = defaults.string(forKey: Keys.backdropMaterial)
+        self.backdropMaterial = materialRaw.flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
+        self.currentSpaceOnly = defaults.object(forKey: Keys.currentSpaceOnly) as? Bool ?? false
+        self.experimentalMoveToSpace = defaults.object(forKey: Keys.experimentalMoveToSpace) as? Bool ?? false
+        self.directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
+        self.hoverActionsEnabled = defaults.object(forKey: Keys.hoverActionsEnabled) as? Bool ?? false
+        self.hoverShowClose = defaults.object(forKey: Keys.hoverShowClose) as? Bool ?? true
+        self.hoverShowMinimize = defaults.object(forKey: Keys.hoverShowMinimize) as? Bool ?? true
+        self.hoverShowMaximize = defaults.object(forKey: Keys.hoverShowMaximize) as? Bool ?? true
+        self.hoverShowHide = defaults.object(forKey: Keys.hoverShowHide) as? Bool ?? true
+        self.hoverShowQuit = defaults.object(forKey: Keys.hoverShowQuit) as? Bool ?? true
     }
 }
