@@ -1,0 +1,71 @@
+# Sign each published GitHub Release with a BetterUpdater manifest.
+# Decoupled from the build: signs whatever .dmg/.zip assets are attached.
+#
+# Setup: add repo secret BETTERUPDATER_PRIVATE_KEY (base64 Ed25519 private key
+# whose PUBLIC half is pinned in AppDelegate's BetterUpdater.bootstrap).
+
+name: sign-release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  sign:
+    runs-on: macos-14
+    env:
+      OWNER: rokartur
+      REPO: BetterCmdTab
+      BUNDLE_ID: pro.bettercmdtab.BetterCmdTab
+      TEAM_ID: N529W98U62
+      PINNED_PUBLIC_KEY: EdGQwfRFT04hggloIRmN2twIC/UIlM6yoAAzZ97jgcI=
+    steps:
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          gh release download "${GITHUB_REF_NAME}" \
+            --repo "${{ github.repository }}" \
+            --pattern '*.dmg' --pattern '*.zip' --dir dist || true
+          ls -la dist
+
+      - name: Build betterupdater CLI
+        run: |
+          git clone --depth 1 https://github.com/rokartur/BetterUpdater.git /tmp/betterupdater
+          (cd /tmp/betterupdater && swift build -c release --product betterupdater)
+          echo "BU=/tmp/betterupdater/.build/release/betterupdater" >> "$GITHUB_ENV"
+
+      - name: Sign manifest
+        env:
+          BETTERUPDATER_PRIVATE_KEY: ${{ secrets.BETTERUPDATER_PRIVATE_KEY }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ASSETS=$(printf -- '--asset %s ' dist/*.dmg dist/*.zip 2>/dev/null)
+          [ -z "$ASSETS" ] && { echo "No .dmg/.zip assets on release"; exit 1; }
+          "$BU" sign \
+            --owner "$OWNER" --repo "$REPO" \
+            --bundle-id "$BUNDLE_ID" --team-id "$TEAM_ID" \
+            --version "$VERSION" \
+            $ASSETS \
+            --out dist/betterupdater-manifest.json
+
+      - name: Verify before upload (fail-closed guard)
+        run: |
+          ASSETS=$(printf -- '--asset %s ' dist/*.dmg dist/*.zip 2>/dev/null)
+          "$BU" verify \
+            --public-key "$PINNED_PUBLIC_KEY" \
+            --manifest dist/betterupdater-manifest.json \
+            $ASSETS
+
+      - name: Upload manifest + signature to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            dist/betterupdater-manifest.json \
+            dist/betterupdater-manifest.json.sig \
+            --repo "${{ github.repository }}" --clobber
