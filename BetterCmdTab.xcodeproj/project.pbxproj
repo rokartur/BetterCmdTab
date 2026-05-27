@@ -373,7 +373,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 26.1;
-				PRODUCT_BUNDLE_IDENTIFIER = pro.bettercmdtab.BetterCmdTab;
+				PRODUCT_BUNDLE_IDENTIFIER = pro.bettercmdtab.BetterCmdTab.debug;
 				PRODUCT_MODULE_NAME = BetterCmdTab;
 				PRODUCT_NAME = "BetterCmdTab Debug";
 				REGISTER_APP_GROUPS = YES;
