@@ -1,11 +1,12 @@
 import AppKit
+import BetterSettings
 import Combine
 
 /// Settings for what the switcher lists, how search behaves, and per-app
 /// exclusion/pinning. Split out of General so the trigger/app-level prefs and
 /// the switcher's own content/search options live under their own tab.
 @MainActor
-final class SwitcherSettingsViewController: NSViewController {
+final class SwitcherSettingsViewController: SettingsTabViewController {
 
     // Contents
     private let minimizedSwitch = NSSwitch()
@@ -26,57 +27,37 @@ final class SwitcherSettingsViewController: NSViewController {
     // Navigation
     private let scrollSwitch = NSSwitch()
     private let scrollReverseSwitch = NSSwitch()
-    private let scrollReverseRow = SettingsRowView(
-        title: "Reverse scroll direction",
-        subtitle: "Scroll up to move forward instead of down."
-    )
 
     // Apps
     private let excludedButton = NSButton(title: "Manage apps", target: nil, action: nil)
     private let pinnedButton = NSButton(title: "Manage apps", target: nil, action: nil)
-    private let excludedRow = SettingsRowView(
-        title: "Excluded apps",
-        description: "Never shown in the switcher."
-    )
-    private let pinnedRow = SettingsRowView(
-        title: "Pinned apps",
-        description: "Always shown first, before recents."
-    )
+    private var excludedRow: SettingsRowView!
+    private var pinnedRow: SettingsRowView!
     private var appsSheet: AppsPickerSheetWindowController?
 
     private var cancellables = Set<AnyCancellable>()
 
-    override func loadView() {
+    override func setupContent() {
         // Switcher contents section — what kinds of windows/apps appear.
-        let contents = SettingsSectionView(header: "Contents")
+        let contents = addSection(title: "Contents", anchor: SettingsAnchor.contents)
         configureSwitch(minimizedSwitch, action: #selector(toggleMinimized(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Show minimized windows",
-            accessory: minimizedSwitch
-        ))
+        addRow(to: contents, title: "Show minimized windows", accessory: minimizedSwitch,
+               searchItemID: SearchID.showMinimized)
         configureSwitch(hiddenSwitch, action: #selector(toggleHidden(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Show hidden apps",
-            accessory: hiddenSwitch
-        ))
+        addRow(to: contents, title: "Show hidden apps", accessory: hiddenSwitch,
+               searchItemID: SearchID.showHidden)
         configureSwitch(windowlessSwitch, action: #selector(toggleWindowless(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Show apps without windows",
-            subtitle: "Running apps with no open windows.",
-            accessory: windowlessSwitch
-        ))
+        addRow(to: contents, title: "Show apps without windows",
+               subtitle: "Running apps with no open windows.",
+               accessory: windowlessSwitch, searchItemID: SearchID.showWindowless)
         configureSwitch(badgesSwitch, action: #selector(toggleBadges(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Show unread badges",
-            subtitle: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row.",
-            accessory: badgesSwitch
-        ))
+        addRow(to: contents, title: "Show unread badges",
+               subtitle: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row.",
+               accessory: badgesSwitch, searchItemID: SearchID.showBadges)
         configureSwitch(recentlyClosedSwitch, action: #selector(toggleRecentlyClosed(_:)))
-        contents.addContent(SettingsRowView(
-            title: "Show recently closed apps",
-            subtitle: "Lists apps and windows you just closed so you can reopen them.",
-            accessory: recentlyClosedSwitch
-        ))
+        addRow(to: contents, title: "Show recently closed apps",
+               subtitle: "Lists apps and windows you just closed so you can reopen them.",
+               accessory: recentlyClosedSwitch, searchItemID: SearchID.showRecentlyClosed)
 
         recentlyClosedLimitPopup.controlSize = .small
         recentlyClosedLimitPopup.translatesAutoresizingMaskIntoConstraints = false
@@ -85,32 +66,24 @@ final class SwitcherSettingsViewController: NSViewController {
         recentlyClosedLimitPopup.addItems(withTitles: recentlyClosedLimits.map(String.init))
         recentlyClosedLimitPopup.target = self
         recentlyClosedLimitPopup.action = #selector(recentlyClosedLimitChanged)
-        contents.addContent(SettingsRowView(
-            title: "Recently closed to show",
-            subtitle: "How many recently closed items to list.",
-            accessory: recentlyClosedLimitPopup
-        ))
+        addRow(to: contents, title: "Recently closed to show",
+               subtitle: "How many recently closed items to list.",
+               accessory: recentlyClosedLimitPopup, searchItemID: SearchID.recentlyClosedLimit)
 
         // Search section — type-to-filter behavior.
-        let search = SettingsSectionView(header: "Search")
+        let search = addSection(title: "Search", anchor: SettingsAnchor.search)
         configureSwitch(letterHintsSwitch, action: #selector(toggleLetterHints(_:)))
-        search.addContent(SettingsRowView(
-            title: "Letter hints",
-            subtitle: "Show a letter on each window and jump to it by typing that letter.",
-            accessory: letterHintsSwitch
-        ))
+        addRow(to: search, title: "Letter hints",
+               subtitle: "Show a letter on each window and jump to it by typing that letter.",
+               accessory: letterHintsSwitch, searchItemID: SearchID.letterHints)
         configureSwitch(fuzzySwitch, action: #selector(toggleFuzzy(_:)))
-        search.addContent(SettingsRowView(
-            title: "Type-to-filter search",
-            subtitle: "Press / in the switcher to filter by app or window name.",
-            accessory: fuzzySwitch
-        ))
+        addRow(to: search, title: "Type-to-filter search",
+               subtitle: "Press / in the switcher to filter by app or window name.",
+               accessory: fuzzySwitch, searchItemID: SearchID.fuzzy)
         configureSwitch(launcherSwitch, action: #selector(toggleLauncher(_:)))
-        search.addContent(SettingsRowView(
-            title: "Launch apps from search",
-            subtitle: "Also show matching apps that aren't running yet.",
-            accessory: launcherSwitch
-        ))
+        addRow(to: search, title: "Launch apps from search",
+               subtitle: "Also show matching apps that aren't running yet.",
+               accessory: launcherSwitch, searchItemID: SearchID.launcher)
 
         searchModePopup.controlSize = .small
         searchModePopup.translatesAutoresizingMaskIntoConstraints = false
@@ -119,34 +92,31 @@ final class SwitcherSettingsViewController: NSViewController {
         searchModePopup.addItems(withTitles: searchDismissModes.map(\.displayName))
         searchModePopup.target = self
         searchModePopup.action = #selector(searchModeChanged)
-        search.addContent(SettingsRowView(
-            title: "When searching",
-            subtitle: "Hold ⌘: release to pick. Stay open: pick with Return or the mouse.",
-            accessory: searchModePopup
-        ))
+        addRow(to: search, title: "When searching",
+               subtitle: "Hold ⌘: release to pick. Stay open: pick with Return or the mouse.",
+               accessory: searchModePopup, searchItemID: SearchID.searchMode)
 
         // Navigation section — alternative ways to move the selection.
-        let navigation = SettingsSectionView(header: "Navigation")
+        let navigation = addSection(title: "Navigation", anchor: SettingsAnchor.navigation)
         configureSwitch(scrollSwitch, action: #selector(toggleScroll(_:)))
-        navigation.addContent(SettingsRowView(
-            title: "Switch with mouse scroll",
-            subtitle: "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the three-finger swipe instead.",
-            accessory: scrollSwitch
-        ))
+        addRow(to: navigation, title: "Switch with mouse scroll",
+               subtitle: "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the three-finger swipe instead.",
+               accessory: scrollSwitch, searchItemID: SearchID.scroll)
         configureSwitch(scrollReverseSwitch, action: #selector(toggleScrollReverse(_:)))
-        scrollReverseRow.setAccessory(scrollReverseSwitch)
-        navigation.addContent(scrollReverseRow)
+        addRow(to: navigation, title: "Reverse scroll direction",
+               subtitle: "Scroll up to move forward instead of down.",
+               accessory: scrollReverseSwitch, searchItemID: SearchID.scrollReverse)
 
         // App lists section — exclusion and pinning, each via a picker sheet.
-        let appLists = SettingsSectionView(header: "Apps")
+        let appLists = addSection(title: "Apps", anchor: SettingsAnchor.apps)
         configureManageButton(excludedButton, action: #selector(manageExcluded))
-        excludedRow.setAccessory(excludedButton)
-        appLists.addContent(excludedRow)
+        excludedRow = addRow(to: appLists, title: "Excluded apps",
+                             subtitle: "Never shown in the switcher.",
+                             accessory: excludedButton, searchItemID: SearchID.excludedApps)
         configureManageButton(pinnedButton, action: #selector(managePinned))
-        pinnedRow.setAccessory(pinnedButton)
-        appLists.addContent(pinnedRow)
-
-        view = SettingsLayout.makeScrollingTab(sections: [contents, search, navigation, appLists])
+        pinnedRow = addRow(to: appLists, title: "Pinned apps",
+                           subtitle: "Always shown first, before recents.",
+                           accessory: pinnedButton, searchItemID: SearchID.pinnedApps)
     }
 
     private func configureSwitch(_ toggle: NSSwitch, action: Selector) {
@@ -189,11 +159,11 @@ final class SwitcherSettingsViewController: NSViewController {
 
         prefs.$excludedBundleIDs
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.excludedRow.rowDescription = Self.countDescription($0.count, suffix: "never shown in the switcher.") }
+            .sink { [weak self] in self?.excludedRow?.update(subtitle: Self.countDescription($0.count, suffix: "never shown in the switcher.")) }
             .store(in: &cancellables)
         prefs.$pinnedBundleIDs
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.pinnedRow.rowDescription = Self.countDescription($0.count, suffix: "always shown first.") }
+            .sink { [weak self] in self?.pinnedRow?.update(subtitle: Self.countDescription($0.count, suffix: "always shown first.")) }
             .store(in: &cancellables)
     }
 
@@ -318,8 +288,8 @@ final class SwitcherSettingsViewController: NSViewController {
 
     private func updateAppListCounts() {
         let prefs = Preferences.shared
-        excludedRow.rowDescription = Self.countDescription(prefs.excludedBundleIDs.count, suffix: "never shown in the switcher.")
-        pinnedRow.rowDescription = Self.countDescription(prefs.pinnedBundleIDs.count, suffix: "always shown first.")
+        excludedRow?.update(subtitle: Self.countDescription(prefs.excludedBundleIDs.count, suffix: "never shown in the switcher."))
+        pinnedRow?.update(subtitle: Self.countDescription(prefs.pinnedBundleIDs.count, suffix: "always shown first."))
     }
 
     private static func countDescription(_ count: Int, suffix: String) -> String {

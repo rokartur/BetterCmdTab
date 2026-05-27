@@ -1,18 +1,14 @@
 import AppKit
+import BetterSettings
 import BetterUpdater
 import Combine
 import QuartzCore
 
 @MainActor
-final class AboutSettingsViewController: NSViewController {
+final class AboutSettingsViewController: SettingsTabViewController {
 
     private enum Layout {
         static let iconSize: CGFloat = 128
-        static let maxContentWidth: CGFloat = 480
-        static let sectionSpacing: CGFloat = 16
-        static let horizontalPadding: CGFloat = 20
-        static let topPadding: CGFloat = 20
-        static let bottomPadding: CGFloat = 20
         static let capsuleHeight: CGFloat = 24
         static let quickLinksSpacing: CGFloat = 8
         static let pillTransitionDuration: TimeInterval = 0.22
@@ -28,35 +24,6 @@ final class AboutSettingsViewController: NSViewController {
 
     // MARK: - Views
 
-    private let scrollView: NSScrollView = {
-        let sv = NSScrollView()
-        sv.hasVerticalScroller = true
-        sv.hasHorizontalScroller = false
-        sv.autohidesScrollers = true
-        sv.drawsBackground = false
-        sv.borderType = .noBorder
-        sv.verticalScrollElasticity = .allowed
-        sv.horizontalScrollElasticity = .none
-        sv.contentView.drawsBackground = false
-        sv.translatesAutoresizingMaskIntoConstraints = false
-        return sv
-    }()
-
-    private let documentView: FlippedView = {
-        let v = FlippedView()
-        v.translatesAutoresizingMaskIntoConstraints = false
-        return v
-    }()
-
-    private let contentStack: NSStackView = {
-        let stack = NSStackView()
-        stack.orientation = .vertical
-        stack.alignment = .centerX
-        stack.spacing = Layout.sectionSpacing
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
-    }()
-
     private let versionPill = CapsulePillView()
     private let updatePillSlot: NSView = {
         let v = NSView()
@@ -68,15 +35,7 @@ final class AboutSettingsViewController: NSViewController {
 
     // MARK: - Lifecycle
 
-    override func loadView() {
-        let root = NSView()
-        root.wantsLayer = true
-        view = root
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        setupLayout()
+    override func setupContent() {
         buildHero()
         buildQuickLinks()
         buildFooter()
@@ -95,33 +54,6 @@ final class AboutSettingsViewController: NSViewController {
     deinit {
         copiedVersionTask?.cancel()
         upToDateResetTask?.cancel()
-    }
-
-    // MARK: - Setup
-
-    private func setupLayout() {
-        view.addSubview(scrollView)
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
-        scrollView.documentView = documentView
-        documentView.addSubview(contentStack)
-
-        NSLayoutConstraint.activate([
-            documentView.leadingAnchor.constraint(equalTo: scrollView.contentView.leadingAnchor),
-            documentView.trailingAnchor.constraint(equalTo: scrollView.contentView.trailingAnchor),
-            documentView.topAnchor.constraint(equalTo: scrollView.contentView.topAnchor),
-
-            contentStack.topAnchor.constraint(equalTo: documentView.topAnchor, constant: Layout.topPadding),
-            contentStack.leadingAnchor.constraint(greaterThanOrEqualTo: documentView.leadingAnchor, constant: Layout.horizontalPadding),
-            contentStack.trailingAnchor.constraint(lessThanOrEqualTo: documentView.trailingAnchor, constant: -Layout.horizontalPadding),
-            contentStack.centerXAnchor.constraint(equalTo: documentView.centerXAnchor),
-            contentStack.bottomAnchor.constraint(equalTo: documentView.bottomAnchor, constant: -Layout.bottomPadding),
-            contentStack.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.maxContentWidth),
-        ])
     }
 
     // MARK: - Hero
@@ -249,8 +181,8 @@ final class AboutSettingsViewController: NSViewController {
     }
 
     private func addArrangedFullWidth(_ section: NSView) {
-        contentStack.addArrangedSubview(section)
-        section.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
+        // Base controller provides the scrolling, full-width content stack.
+        addArrangedSubview(section)
     }
 
     // MARK: - Version pill

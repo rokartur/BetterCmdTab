@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		AA0000000000000000000003 /* BetterShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000002 /* BetterShortcuts */; };
+		BS0000000000000000000003 /* BetterSettings in Frameworks */ = {isa = PBXBuildFile; productRef = BS0000000000000000000002 /* BetterSettings */; };
 		BU0000000000000000000003 /* BetterUpdater in Frameworks */ = {isa = PBXBuildFile; productRef = BU0000000000000000000002 /* BetterUpdater */; };
 /* End PBXBuildFile section */
 
@@ -46,6 +47,7 @@
 			files = (
 				AA0000000000000000000003 /* BetterShortcuts in Frameworks */,
 				BU0000000000000000000003 /* BetterUpdater in Frameworks */,
+				BS0000000000000000000003 /* BetterSettings in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -99,6 +101,7 @@
 			packageProductDependencies = (
 				AA0000000000000000000002 /* BetterShortcuts */,
 				BU0000000000000000000002 /* BetterUpdater */,
+				BS0000000000000000000002 /* BetterSettings */,
 			);
 			productName = BetterCmdTab;
 			productReference = 7559A7572FC06FD5004D97B7 /* BetterCmdTab.app */;
@@ -158,6 +161,7 @@
 			packageReferences = (
 				AA0000000000000000000001 /* XCRemoteSwiftPackageReference "BetterShortcuts" */,
 				BU0000000000000000000001 /* XCRemoteSwiftPackageReference "BetterUpdater" */,
+				BS0000000000000000000001 /* XCRemoteSwiftPackageReference "BetterSettings" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7559A7582FC06FD5004D97B7 /* Products */;
@@ -539,6 +543,14 @@
 				minimumVersion = 0.1.0;
 			};
 		};
+		BS0000000000000000000001 /* XCRemoteSwiftPackageReference "BetterSettings" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/rokartur/BetterSettings.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -546,6 +558,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000001 /* XCRemoteSwiftPackageReference "BetterShortcuts" */;
 			productName = BetterShortcuts;
+		};
+		BS0000000000000000000002 /* BetterSettings */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BS0000000000000000000001 /* XCRemoteSwiftPackageReference "BetterSettings" */;
+			productName = BetterSettings;
 		};
 		BU0000000000000000000002 /* BetterUpdater */ = {
 			isa = XCSwiftPackageProductDependency;

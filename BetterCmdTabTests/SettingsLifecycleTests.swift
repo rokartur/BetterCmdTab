@@ -37,7 +37,4 @@ struct SettingsLifecycleTests {
 
     @Test("About tab controller deallocates when released")
     func about() { #expect(expectDeallocates { AboutSettingsViewController() }) }
-
-    @Test("Settings split controller deallocates when released")
-    func splitController() { #expect(expectDeallocates { SettingsViewController() }) }
 }

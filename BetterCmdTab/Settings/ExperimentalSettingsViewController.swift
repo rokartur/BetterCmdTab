@@ -1,66 +1,49 @@
 import AppKit
+import BetterSettings
 import Combine
 
 /// Unstable, off-by-default features kept on their own tab so the distinction
 /// between stable and experimental settings is explicit.
 @MainActor
-final class ExperimentalSettingsViewController: NSViewController {
+final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     private let swipeSwitch = NSSwitch()
     private let reverseSwitch = NSSwitch()
-    private let reverseRow = SettingsRowView(
-        title: "Reverse swipe direction",
-        subtitle: "Slide right to move left and left to move right."
-    )
     private let commitSwitch = NSSwitch()
-    private let commitRow = SettingsRowView(
-        title: "Switch on release",
-        subtitle: "Lift your fingers to switch to the highlighted app. When off, pick with a click or Return."
-    )
     private let sensitivitySlider = NSSlider()
     private let sensitivityValueLabel = NSTextField(labelWithString: "")
-    private let sensitivityRow = SettingsRowView(
-        title: "Swipe sensitivity",
-        subtitle: "How far to slide to move one app. Higher means a shorter slide steps further."
-    )
     private let instantSpaceSwitch = NSSwitch()
 
-    override func loadView() {
+    override func setupContent() {
         // Experimental section — off by default, clearly flagged as unstable.
-        let experimental = SettingsSectionView(header: "Experimental")
+        let experimental = addSection(title: "Experimental", anchor: SettingsAnchor.experimental)
 
-        let intro = SettingsRowView(
-            title: "These features are unstable",
-            subtitle: "Off by default. They may change or break."
-        )
-        experimental.addContent(intro)
-        experimental.addDivider()
+        addRow(to: experimental, title: "These features are unstable",
+               subtitle: "Off by default. They may change or break.")
+        addDivider(to: experimental)
 
         configureSwitch(swipeSwitch, action: #selector(toggleSwipe(_:)))
-        experimental.addContent(SettingsRowView(
-            title: "Open with three-finger swipe",
-            subtitle: "Slide three fingers across the trackpad to open the switcher and scrub through apps — keep sliding to move further. Pick with Return or a click, Esc to cancel. Reads the trackpad directly, so no system setting is needed.",
-            accessory: swipeSwitch
-        ))
+        addRow(to: experimental, title: "Open with three-finger swipe",
+               subtitle: "Slide three fingers across the trackpad to open the switcher and scrub through apps — keep sliding to move further. Pick with Return or a click, Esc to cancel. Reads the trackpad directly, so no system setting is needed.",
+               accessory: swipeSwitch, searchItemID: SearchID.swipe)
         configureSwitch(reverseSwitch, action: #selector(toggleReverse(_:)))
-        reverseRow.setAccessory(reverseSwitch)
-        experimental.addContent(reverseRow)
+        addRow(to: experimental, title: "Reverse swipe direction",
+               subtitle: "Slide right to move left and left to move right.",
+               accessory: reverseSwitch, searchItemID: SearchID.reverseSwipe)
         configureSwitch(commitSwitch, action: #selector(toggleCommit(_:)))
-        commitRow.setAccessory(commitSwitch)
-        experimental.addContent(commitRow)
+        addRow(to: experimental, title: "Switch on release",
+               subtitle: "Lift your fingers to switch to the highlighted app. When off, pick with a click or Return.",
+               accessory: commitSwitch, searchItemID: SearchID.switchOnRelease)
 
-        sensitivityRow.setAccessory(makeSensitivityControl())
-        experimental.addContent(sensitivityRow)
+        addRow(to: experimental, title: "Swipe sensitivity",
+               subtitle: "How far to slide to move one app. Higher means a shorter slide steps further.",
+               accessory: makeSensitivityControl(), searchItemID: SearchID.sensitivity)
 
-        experimental.addDivider()
+        addDivider(to: experimental)
         configureSwitch(instantSpaceSwitch, action: #selector(toggleInstantSpace(_:)))
-        experimental.addContent(SettingsRowView(
-            title: "Switch Spaces without animation",
-            subtitle: "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too.",
-            accessory: instantSpaceSwitch
-        ))
-
-        view = SettingsLayout.makeScrollingTab(sections: [experimental])
+        addRow(to: experimental, title: "Switch Spaces without animation",
+               subtitle: "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too.",
+               accessory: instantSpaceSwitch, searchItemID: SearchID.instantSpace)
     }
 
     private func configureSwitch(_ toggle: NSSwitch, action: Selector) {

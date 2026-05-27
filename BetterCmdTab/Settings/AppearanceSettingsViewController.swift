@@ -1,8 +1,9 @@
 import AppKit
+import BetterSettings
 import Combine
 
 @MainActor
-final class AppearanceSettingsViewController: NSViewController {
+final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private var layoutRadio: SettingsRadioGroupView!
     private var sizeRadio: SettingsRadioGroupView!
@@ -19,31 +20,27 @@ final class AppearanceSettingsViewController: NSViewController {
     private let gridValues: [Int] = [0, 2, 3, 4, 5, 6] // 0 = automatic
     private let accents: [SwitcherAccent] = SwitcherAccent.allCases
 
-    override func loadView() {
-        let section = SettingsSectionView(header: "Switcher")
+    override func setupContent() {
+        let section = addSection(title: "Switcher", anchor: SettingsAnchor.appearance)
 
         layoutRadio = makeLayoutRadio()
-        section.addContent(SettingsRowView(title: "Layout", accessory: layoutRadio))
+        addRow(to: section, title: "Layout", accessory: layoutRadio, searchItemID: SearchID.layout)
 
         sizeRadio = makeSizeRadio()
-        section.addContent(SettingsRowView(title: "Size", accessory: sizeRadio))
+        addRow(to: section, title: "Size", accessory: sizeRadio, searchItemID: SearchID.size)
 
         configurePopup(gridPopup, titles: gridValues.map { $0 == 0 ? "Automatic" : "\($0)" }, action: #selector(gridChanged))
-        section.addContent(SettingsRowView(
-            title: "Grid columns",
-            subtitle: "Applies to the Grid and Previews layouts.",
-            accessory: gridPopup
-        ))
+        addRow(to: section, title: "Grid columns",
+               subtitle: "Applies to the Grid and Previews layouts.",
+               accessory: gridPopup, searchItemID: SearchID.gridColumns)
 
         configurePopup(accentPopup, titles: accents.map(\.displayName), action: #selector(accentChanged))
         for (i, accent) in accents.enumerated() {
             accentPopup.item(at: i)?.image = Self.swatch(for: accent)
         }
-        section.addContent(SettingsRowView(
-            title: "Accent color",
-            subtitle: "Color of the selection highlight and jump letters.",
-            accessory: accentPopup
-        ))
+        addRow(to: section, title: "Accent color",
+               subtitle: "Color of the selection highlight and jump letters.",
+               accessory: accentPopup, searchItemID: SearchID.accent)
 
         delaySlider.minValue = Double(Preferences.revealDelayRange.lowerBound)
         delaySlider.maxValue = Double(Preferences.revealDelayRange.upperBound)
@@ -66,13 +63,9 @@ final class AppearanceSettingsViewController: NSViewController {
             delaySlider.widthAnchor.constraint(equalToConstant: 140),
             delayValueLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 52),
         ])
-        section.addContent(SettingsRowView(
-            title: "Quick-switch delay",
-            subtitle: "Tap to switch instantly; hold longer to open the switcher.",
-            accessory: sliderStack
-        ))
-
-        view = SettingsLayout.makeScrollingTab(sections: [section])
+        addRow(to: section, title: "Quick-switch delay",
+               subtitle: "Tap to switch instantly; hold longer to open the switcher.",
+               accessory: sliderStack, searchItemID: SearchID.quickSwitchDelay)
     }
 
     /// Small filled-circle swatch shown beside each accent menu item. The

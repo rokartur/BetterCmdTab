@@ -1,10 +1,11 @@
 import AppKit
+import BetterSettings
 import BetterShortcuts
 import BetterUpdater
 import Combine
 
 @MainActor
-final class GeneralSettingsViewController: NSViewController {
+final class GeneralSettingsViewController: SettingsTabViewController {
 
     private let launchSwitch = NSSwitch()
     private let hideMenuBarSwitch = NSSwitch()
@@ -13,10 +14,6 @@ final class GeneralSettingsViewController: NSViewController {
     private let betaSwitch = NSSwitch()
     private let intervalPopUp = NSPopUpButton(frame: .zero, pullsDown: false)
 
-    private let accessibilityRow = SettingsRowView(
-        title: "Accessibility access",
-        description: "Needed to capture the shortcut and read your open windows."
-    )
     private let permissionIcon = NSImageView()
     private let permissionButton = NSButton(title: "", target: nil, action: nil)
 
@@ -26,54 +23,63 @@ final class GeneralSettingsViewController: NSViewController {
     private var cancellables = Set<AnyCancellable>()
     private var axTimer: Timer?
 
-    override func loadView() {
+    override func setupContent() {
         // Startup section
-        let startup = SettingsSectionView(header: "Startup")
-        let launchRow = SettingsRowView(title: "Launch at login", accessory: launchSwitch)
+        let startup = addSection(title: "Startup", anchor: SettingsAnchor.startup)
         launchSwitch.controlSize = .small
         launchSwitch.target = self
         launchSwitch.action = #selector(toggleLaunchAtLogin(_:))
-        startup.addContent(launchRow)
+        addRow(to: startup, title: "Launch at login", accessory: launchSwitch, searchItemID: SearchID.launchAtLogin)
 
         configureSwitch(hideMenuBarSwitch, action: #selector(toggleHideMenuBarIcon(_:)))
-        startup.addContent(SettingsRowView(
+        addRow(
+            to: startup,
             title: "Hide menu bar icon",
             subtitle: "Hides the ⌘ icon. Relaunch the app (e.g. from Spotlight) to reopen this window.",
-            accessory: hideMenuBarSwitch
-        ))
+            accessory: hideMenuBarSwitch,
+            searchItemID: SearchID.hideMenuBar
+        )
 
         // Shortcuts section — native BetterShortcuts recorders. The trigger must
         // include a hold modifier (Command/Option/Control); Shift is reserved for
         // reverse-direction stepping and is rejected by the recorder.
-        let shortcuts = SettingsSectionView(header: "Shortcuts")
-        shortcuts.addContent(SettingsRowView(
+        let shortcuts = addSection(title: "Shortcuts", anchor: SettingsAnchor.shortcuts)
+        addRow(
+            to: shortcuts,
             title: "Switch apps",
             subtitle: "Hold the modifier and tap to cycle through your open apps.",
-            accessory: appRecorder
-        ))
-        shortcuts.addContent(SettingsRowView(
+            accessory: appRecorder,
+            searchItemID: SearchID.switchApps
+        )
+        addRow(
+            to: shortcuts,
             title: "Switch windows",
             subtitle: "Cycle between the windows of the active app.",
-            accessory: windowRecorder
-        ))
+            accessory: windowRecorder,
+            searchItemID: SearchID.switchWindows
+        )
 
         // Feedback section — confirmation cues on commit.
-        let feedback = SettingsSectionView(header: "Feedback")
+        let feedback = addSection(title: "Feedback", anchor: SettingsAnchor.feedback)
         configureSwitch(hapticSwitch, action: #selector(toggleHaptic(_:)))
-        feedback.addContent(SettingsRowView(
+        addRow(
+            to: feedback,
             title: "Haptic feedback on switch",
             subtitle: "A tap when you pick an app. Force Touch trackpads only.",
-            accessory: hapticSwitch
-        ))
+            accessory: hapticSwitch,
+            searchItemID: SearchID.haptic
+        )
         configureSwitch(soundSwitch, action: #selector(toggleSound(_:)))
-        feedback.addContent(SettingsRowView(
+        addRow(
+            to: feedback,
             title: "Sound on switch",
             subtitle: "A soft click when you pick an app.",
-            accessory: soundSwitch
-        ))
+            accessory: soundSwitch,
+            searchItemID: SearchID.sound
+        )
 
         // Permissions section
-        let permissions = SettingsSectionView(header: "Permissions")
+        let permissions = addSection(title: "Permissions", anchor: SettingsAnchor.permissions)
 
         permissionIcon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
         permissionIcon.translatesAutoresizingMaskIntoConstraints = false
@@ -95,11 +101,16 @@ final class GeneralSettingsViewController: NSViewController {
         permissionAccessory.addArrangedSubview(permissionIcon)
         permissionAccessory.addArrangedSubview(permissionButton)
 
-        accessibilityRow.setAccessory(permissionAccessory)
-        permissions.addContent(accessibilityRow)
+        addRow(
+            to: permissions,
+            title: "Accessibility access",
+            subtitle: "Needed to capture the shortcut and read your open windows.",
+            accessory: permissionAccessory,
+            searchItemID: SearchID.accessibility
+        )
 
         // Updates section
-        let updates = SettingsSectionView(header: "Updates")
+        let updates = addSection(title: "Updates", anchor: SettingsAnchor.updates)
 
         for cadence in UpdateCheckInterval.selectableCadences {
             intervalPopUp.addItem(withTitle: cadence.title)
@@ -107,23 +118,24 @@ final class GeneralSettingsViewController: NSViewController {
         intervalPopUp.controlSize = .small
         intervalPopUp.target = self
         intervalPopUp.action = #selector(changeInterval(_:))
-        updates.addContent(SettingsRowView(
+        addRow(
+            to: updates,
             title: "Check for updates",
-            description: "How often to check automatically. The beta channel always checks hourly.",
-            accessory: intervalPopUp
-        ))
-
-        let betaRow = SettingsRowView(
-            title: "Include beta releases",
-            description: "Beta builds may be unstable.",
-            accessory: betaSwitch
+            subtitle: "How often to check automatically. The beta channel always checks hourly.",
+            accessory: intervalPopUp,
+            searchItemID: SearchID.updateInterval
         )
+
         betaSwitch.controlSize = .small
         betaSwitch.target = self
         betaSwitch.action = #selector(toggleBeta(_:))
-        updates.addContent(betaRow)
-
-        view = SettingsLayout.makeScrollingTab(sections: [startup, shortcuts, feedback, permissions, updates])
+        addRow(
+            to: updates,
+            title: "Include beta releases",
+            subtitle: "Beta builds may be unstable.",
+            accessory: betaSwitch,
+            searchItemID: SearchID.beta
+        )
     }
 
     private func configureSwitch(_ toggle: NSSwitch, action: Selector) {

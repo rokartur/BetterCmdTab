@@ -1,6 +1,15 @@
 {
-  "originHash" : "09b2633d0950ba3543a20d88bf31673690d6cce0be17f37f9cfda4a48fd0a767",
+  "originHash" : "a1d7e9213f98a019aadcd4a351d87ba47a4d680c19e375256b8d17738b629a26",
   "pins" : [
+    {
+      "identity" : "bettersettings",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rokartur/BetterSettings.git",
+      "state" : {
+        "revision" : "3954228ba9f1389abee920b21c8e181c3dd8d34f",
+        "version" : "0.1.0"
+      }
+    },
     {
       "identity" : "bettershortcuts",
       "kind" : "remoteSourceControl",
