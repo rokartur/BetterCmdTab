@@ -21,6 +21,7 @@ enum SettingsAnchor {
     // General
     static let startup = "general.startup"
     static let shortcuts = "general.shortcuts"
+    static let directActivation = "general.directActivation"
     static let feedback = "general.feedback"
     static let permissions = "general.permissions"
     static let updates = "general.updates"
@@ -28,6 +29,7 @@ enum SettingsAnchor {
     static let contents = "switcher.contents"
     static let search = "switcher.search"
     static let navigation = "switcher.navigation"
+    static let actions = "switcher.actions"
     static let apps = "switcher.apps"
     // Appearance
     static let appearance = "appearance.switcher"
@@ -50,11 +52,13 @@ enum SearchID {
     static let accessibility = "general.accessibility"
     static let updateInterval = "general.updateInterval"
     static let beta = "general.beta"
+    static let directActivation = "general.directActivation"
     // Switcher
     static let showMinimized = "switcher.showMinimized"
     static let showHidden = "switcher.showHidden"
     static let showWindowless = "switcher.showWindowless"
     static let showBadges = "switcher.showBadges"
+    static let currentSpaceOnly = "switcher.currentSpaceOnly"
     static let showRecentlyClosed = "switcher.showRecentlyClosed"
     static let recentlyClosedLimit = "switcher.recentlyClosedLimit"
     static let letterHints = "switcher.letterHints"
@@ -63,6 +67,7 @@ enum SearchID {
     static let searchMode = "switcher.searchMode"
     static let scroll = "switcher.scroll"
     static let scrollReverse = "switcher.scrollReverse"
+    static let hoverActions = "switcher.hoverActions"
     static let excludedApps = "switcher.excludedApps"
     static let pinnedApps = "switcher.pinnedApps"
     // Appearance
@@ -71,12 +76,17 @@ enum SearchID {
     static let gridColumns = "appearance.gridColumns"
     static let accent = "appearance.accent"
     static let quickSwitchDelay = "appearance.quickSwitchDelay"
+    static let windowTitle = "appearance.windowTitle"
+    static let opacity = "appearance.opacity"
+    static let cornerRadius = "appearance.cornerRadius"
     // Experimental
     static let swipe = "experimental.swipe"
+    static let swipeMode = "experimental.swipeMode"
     static let reverseSwipe = "experimental.reverseSwipe"
     static let switchOnRelease = "experimental.switchOnRelease"
     static let sensitivity = "experimental.sensitivity"
     static let instantSpace = "experimental.instantSpace"
+    static let moveToSpace = "experimental.moveToSpace"
 }
 
 @MainActor
@@ -166,6 +176,9 @@ enum SettingsCatalog {
              "Check for updates", ["update", "upgrade", "interval", "cadence"]),
         item(SearchID.beta, .general, SettingsAnchor.updates, "General", "Updates",
              "Include beta releases", ["beta", "prerelease", "pre-release", "channel"]),
+        // General · Direct activation
+        item(SearchID.directActivation, .general, SettingsAnchor.directActivation, "General", "Direct activation",
+             "Direct activation hotkeys", ["direct", "hotkey", "shortcut", "activate", "focus app", "jump to app"]),
 
         // Switcher · Contents
         item(SearchID.showMinimized, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
@@ -176,6 +189,8 @@ enum SettingsCatalog {
              "Show apps without windows", ["windowless", "no windows", "background apps"]),
         item(SearchID.showBadges, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
              "Show unread badges", ["badge", "unread", "dock badge", "count"]),
+        item(SearchID.currentSpaceOnly, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
+             "Only current Space", ["space", "current space", "desktop", "filter"]),
         item(SearchID.showRecentlyClosed, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
              "Show recently closed apps", ["recently closed", "reopen", "recent"]),
         item(SearchID.recentlyClosedLimit, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
@@ -194,6 +209,9 @@ enum SettingsCatalog {
              "Switch with mouse scroll", ["scroll", "wheel", "mouse"]),
         item(SearchID.scrollReverse, .switcher, SettingsAnchor.navigation, "Switcher", "Navigation",
              "Reverse scroll direction", ["scroll", "reverse", "invert"]),
+        // Switcher · Actions
+        item(SearchID.hoverActions, .switcher, SettingsAnchor.actions, "Switcher", "Hover actions",
+             "Action buttons on hover", ["hover", "buttons", "close", "minimize", "maximize", "hide", "quit", "actions"]),
         // Switcher · Apps
         item(SearchID.excludedApps, .switcher, SettingsAnchor.apps, "Switcher", "Apps",
              "Excluded apps", ["excluded", "exclude", "hide app", "blacklist"]),
@@ -211,10 +229,18 @@ enum SettingsCatalog {
              "Accent color", ["accent", "color", "highlight", "tint"]),
         item(SearchID.quickSwitchDelay, .appearance, SettingsAnchor.appearance, "Appearance", "Switcher",
              "Quick-switch delay", ["delay", "reveal", "hold", "quick switch"]),
+        item(SearchID.windowTitle, .appearance, SettingsAnchor.appearance, "Appearance", "Switcher",
+             "Show window title", ["window title", "title", "label", "name"]),
+        item(SearchID.opacity, .appearance, SettingsAnchor.appearance, "Appearance", "Switcher",
+             "Panel opacity", ["opacity", "transparency", "alpha", "translucent"]),
+        item(SearchID.cornerRadius, .appearance, SettingsAnchor.appearance, "Appearance", "Switcher",
+             "Corner radius", ["corner", "radius", "rounded", "rounding"]),
 
         // Experimental
         item(SearchID.swipe, .experimental, SettingsAnchor.experimental, "Experimental", "Experimental",
-             "Open with three-finger swipe", ["swipe", "trackpad", "gesture", "three finger"]),
+             "Three-finger swipe", ["swipe", "trackpad", "gesture", "three finger"]),
+        item(SearchID.swipeMode, .experimental, SettingsAnchor.experimental, "Experimental", "Experimental",
+             "Swipe action", ["swipe", "spaces", "switch spaces", "open switcher", "gesture action"]),
         item(SearchID.reverseSwipe, .experimental, SettingsAnchor.experimental, "Experimental", "Experimental",
              "Reverse swipe direction", ["swipe", "reverse", "invert"]),
         item(SearchID.switchOnRelease, .experimental, SettingsAnchor.experimental, "Experimental", "Experimental",
@@ -223,6 +249,8 @@ enum SettingsCatalog {
              "Swipe sensitivity", ["sensitivity", "swipe", "distance"]),
         item(SearchID.instantSpace, .experimental, SettingsAnchor.experimental, "Experimental", "Experimental",
              "Switch Spaces without animation", ["spaces", "space", "animation", "instant", "full screen"]),
+        item(SearchID.moveToSpace, .experimental, SettingsAnchor.experimental, "Experimental", "Experimental",
+             "Move window to Space", ["move", "window", "space", "send to space"]),
     ]
 
     private static func item(

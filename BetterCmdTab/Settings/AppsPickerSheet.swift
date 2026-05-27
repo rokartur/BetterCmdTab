@@ -14,8 +14,8 @@ final class AppsPickerSheetWindowController: NSWindowController {
     /// can drop its reference.
     var onDidDismiss: (() -> Void)?
 
-    init(title: String, prompt: String, selectedBundleIDs: Set<String>, onDone: @escaping (Set<String>) -> Void) {
-        content = AppsPickerSheetViewController(prompt: prompt, selectedBundleIDs: selectedBundleIDs, onDone: onDone)
+    init(title: String, prompt: String, selectedBundleIDs: Set<String>, singleSelection: Bool = false, onDone: @escaping (Set<String>) -> Void) {
+        content = AppsPickerSheetViewController(prompt: prompt, selectedBundleIDs: selectedBundleIDs, singleSelection: singleSelection, onDone: onDone)
         let window = NSWindow(contentViewController: content)
         window.styleMask = [.titled, .closable]
         window.title = title
@@ -56,6 +56,9 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
 
     private var selected: Set<String>
     private let prompt: String
+    /// When true, only one app can be chosen (radio behavior) and the search /
+    /// filter row is hidden — used by the direct-activation slot picker.
+    private let singleSelection: Bool
     private let onDone: (Set<String>) -> Void
     var onClose: (() -> Void)?
 
@@ -77,9 +80,10 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
 
     private static let cellIdentifier = NSUserInterfaceItemIdentifier("AppsPickerCell")
 
-    init(prompt: String, selectedBundleIDs: Set<String>, onDone: @escaping (Set<String>) -> Void) {
+    init(prompt: String, selectedBundleIDs: Set<String>, singleSelection: Bool = false, onDone: @escaping (Set<String>) -> Void) {
         self.prompt = prompt
         self.selected = selectedBundleIDs
+        self.singleSelection = singleSelection
         self.onDone = onDone
         super.init(nibName: nil, bundle: nil)
     }
@@ -107,7 +111,10 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
         filterPopup.target = self
         filterPopup.action = #selector(filterChanged)
 
-        let topRow = NSStackView(views: [searchField, filterPopup])
+        // Single-selection mode keeps the search field but drops the
+        // All/Checked/Unchecked filter (there's only ever one checked app).
+        let topRowViews: [NSView] = singleSelection ? [searchField] : [searchField, filterPopup]
+        let topRow = NSStackView(views: topRowViews)
         topRow.orientation = .horizontal
         topRow.spacing = 8
         topRow.alignment = .centerY
@@ -288,6 +295,12 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
     }
 
     private func toggle(bundleID: String, on: Bool) {
+        if singleSelection {
+            // Radio: enabling one clears the others; disabling clears all.
+            selected = on ? [bundleID] : []
+            tableView.reloadData()
+            return
+        }
         if on { selected.insert(bundleID) } else { selected.remove(bundleID) }
         // In a filtered view, re-apply after a short delay so a just-toggled row
         // slides out of "Checked"/"Unchecked" instead of vanishing under the

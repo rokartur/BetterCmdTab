@@ -8,11 +8,14 @@ import Combine
 final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     private let swipeSwitch = NSSwitch()
+    private let swipeModePopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let swipeModes: [SwipeMode] = SwipeMode.allCases
     private let reverseSwitch = NSSwitch()
     private let commitSwitch = NSSwitch()
     private let sensitivitySlider = NSSlider()
     private let sensitivityValueLabel = NSTextField(labelWithString: "")
     private let instantSpaceSwitch = NSSwitch()
+    private let moveToSpaceSwitch = NSSwitch()
 
     override func setupContent() {
         // Experimental section — off by default, clearly flagged as unstable.
@@ -23,9 +26,21 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addDivider(to: experimental)
 
         configureSwitch(swipeSwitch, action: #selector(toggleSwipe(_:)))
-        addRow(to: experimental, title: "Open with three-finger swipe",
-               subtitle: "Slide three fingers across the trackpad to open the switcher and scrub through apps — keep sliding to move further. Pick with Return or a click, Esc to cancel. Reads the trackpad directly, so no system setting is needed.",
+        addRow(to: experimental, title: "Three-finger swipe",
+               subtitle: "Slide three fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed.",
                accessory: swipeSwitch, searchItemID: SearchID.swipe)
+
+        swipeModePopup.controlSize = .small
+        swipeModePopup.translatesAutoresizingMaskIntoConstraints = false
+        swipeModePopup.setContentHuggingPriority(.required, for: .horizontal)
+        swipeModePopup.removeAllItems()
+        swipeModePopup.addItems(withTitles: swipeModes.map(\.displayName))
+        swipeModePopup.target = self
+        swipeModePopup.action = #selector(swipeModeChanged)
+        addRow(to: experimental, title: "Swipe action",
+               subtitle: "Open switcher: scrub through apps (commit with Return/click, Esc to cancel). Switch Spaces: jump to the Space on that side, one per step.",
+               accessory: swipeModePopup, searchItemID: SearchID.swipeMode)
+
         configureSwitch(reverseSwitch, action: #selector(toggleReverse(_:)))
         addRow(to: experimental, title: "Reverse swipe direction",
                subtitle: "Slide right to move left and left to move right.",
@@ -44,6 +59,11 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: experimental, title: "Switch Spaces without animation",
                subtitle: "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too.",
                accessory: instantSpaceSwitch, searchItemID: SearchID.instantSpace)
+
+        configureSwitch(moveToSpaceSwitch, action: #selector(toggleMoveToSpace(_:)))
+        addRow(to: experimental, title: "Move window to adjacent Space",
+               subtitle: "While the switcher is open, ⌘⌥← / ⌘⌥→ move the highlighted window to the Space on that side and follow it there. (⌘⌥↑ / ⌘⌥↓ always move it to the next display.) Uses private APIs.",
+               accessory: moveToSpaceSwitch, searchItemID: SearchID.moveToSpace)
     }
 
     private func configureSwitch(_ toggle: NSSwitch, action: Selector) {
@@ -85,10 +105,12 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         super.viewWillAppear()
         let prefs = Preferences.shared
         swipeSwitch.state = prefs.experimentalSwipeTrigger ? .on : .off
+        if let i = swipeModes.firstIndex(of: prefs.swipeMode) { swipeModePopup.selectItem(at: i) }
         reverseSwitch.state = prefs.swipeReverseDirection ? .on : .off
         commitSwitch.state = prefs.swipeCommitOnRelease ? .on : .off
         applySensitivity(prefs.swipeSensitivity)
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
+        moveToSpaceSwitch.state = prefs.experimentalMoveToSpace ? .on : .off
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
 
@@ -96,6 +118,13 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         let on = (sender.state == .on)
         Preferences.shared.experimentalSwipeTrigger = on
         setSwipeSubOptionsEnabled(on)
+    }
+
+    @objc private func swipeModeChanged() {
+        let idx = swipeModePopup.indexOfSelectedItem
+        guard swipeModes.indices.contains(idx) else { return }
+        Preferences.shared.swipeMode = swipeModes[idx]
+        setSwipeSubOptionsEnabled(Preferences.shared.experimentalSwipeTrigger)
     }
 
     @objc private func toggleReverse(_ sender: NSSwitch) {
@@ -120,11 +149,17 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         Preferences.shared.experimentalInstantSpaceSwitch = (sender.state == .on)
     }
 
+    @objc private func toggleMoveToSpace(_ sender: NSSwitch) {
+        Preferences.shared.experimentalMoveToSpace = (sender.state == .on)
+    }
+
     /// The reverse/commit/sensitivity controls only make sense while the swipe
     /// is enabled.
     private func setSwipeSubOptionsEnabled(_ enabled: Bool) {
+        let spaces = Preferences.shared.swipeMode == .switchSpaces
+        swipeModePopup.isEnabled = enabled
         reverseSwitch.isEnabled = enabled
-        commitSwitch.isEnabled = enabled
-        sensitivitySlider.isEnabled = enabled
+        commitSwitch.isEnabled = enabled && !spaces
+        sensitivitySlider.isEnabled = enabled && !spaces
     }
 }
