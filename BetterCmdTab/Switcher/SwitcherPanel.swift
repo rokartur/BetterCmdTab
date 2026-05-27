@@ -91,12 +91,30 @@ final class SwitcherPanel: NSPanel {
         if frame != newFrame {
             setFrame(newFrame, display: true)
         }
+        // Restore opacity that `dismiss()` zeroed to mask the glass-layer
+        // teardown ghost. Reset before ordering on screen so the first frame
+        // is fully opaque (no fade — `animationBehavior` is `.none`).
+        alphaValue = 1
         makeKeyAndOrderFront(nil)
         CATransaction.commit()
     }
 
+    /// Hide the panel. `NSGlassEffectView` / `NSVisualEffectView` is a
+    /// window-server-hosted layer that samples a live blur of whatever app
+    /// sits behind the panel. A plain `orderOut(nil)` removes the host window
+    /// immediately, but the server tears down that out-of-process glass layer
+    /// a frame or two later — compositing its last sampled backdrop (a
+    /// "cutout" of the app behind us) as a ghost artifact after we've already
+    /// vanished. Zeroing `alphaValue` in the same transaction as `orderOut`
+    /// makes any such residual frame fully transparent; `present()` restores
+    /// it. No fade plays because `animationBehavior` is `.none` and implicit
+    /// actions are disabled here.
     func dismiss() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        alphaValue = 0
         orderOut(nil)
+        CATransaction.commit()
     }
 
     private func activeScreen() -> NSScreen {
