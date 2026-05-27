@@ -254,6 +254,19 @@ final class SwitcherController: SwitcherViewDelegate {
             .sink { [weak self] level in self?.swipeTrigger.setSensitivity(level) }
             .store(in: &cancellables)
 
+        // Mouse scroll-to-switch: stepped by the hotkey tap (it sees scroll
+        // events and can consume them); wire enable + direction live.
+        hotkey.setScrollEnabled(Preferences.shared.scrollToSwitch)
+        hotkey.setScrollReverse(Preferences.shared.scrollReverseDirection)
+        Preferences.shared.$scrollToSwitch
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in self?.hotkey.setScrollEnabled(enabled) }
+            .store(in: &cancellables)
+        Preferences.shared.$scrollReverseDirection
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] reverse in self?.hotkey.setScrollReverse(reverse) }
+            .store(in: &cancellables)
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.prewarmPanel()
         }

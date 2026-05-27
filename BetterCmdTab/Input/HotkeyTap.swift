@@ -68,6 +68,11 @@ final class HotkeyTap {
     /// space and the w/m/h/q action letters) become query text and Delete
     /// becomes backspace, instead of driving navigation/actions.
     private let searchModeFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// When true, a discrete mouse-wheel scroll steps the open switcher's
+    /// selection. Continuous (trackpad / precise) scrolls are always ignored.
+    private let scrollEnabledFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// Flip the scroll-to-switch direction.
+    private let scrollReverseFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let config = OSAllocatedUnfairLock<Config>(
         initialState: Config(appModifier: .maskCommand, appKey: 48, windowModifier: .maskCommand, windowKey: 50)
     )
@@ -96,7 +101,8 @@ final class HotkeyTap {
     func install() -> Bool {
         let mask: CGEventMask =
             (1 << CGEventType.keyDown.rawValue) |
-            (1 << CGEventType.flagsChanged.rawValue)
+            (1 << CGEventType.flagsChanged.rawValue) |
+            (1 << CGEventType.scrollWheel.rawValue)
 
         let opaqueSelf = Unmanaged.passUnretained(self).toOpaque()
 
@@ -198,6 +204,16 @@ final class HotkeyTap {
         searchModeFlag.withLock { $0 = value }
     }
 
+    /// Enable/disable stepping the open switcher with a mouse scroll wheel.
+    func setScrollEnabled(_ value: Bool) {
+        scrollEnabledFlag.withLock { $0 = value }
+    }
+
+    /// Flip the scroll-to-switch direction.
+    func setScrollReverse(_ value: Bool) {
+        scrollReverseFlag.withLock { $0 = value }
+    }
+
     /// Apply user-chosen modifiers + trigger keys. Safe to call any time; the
     /// tap callback reads the new value on its next event.
     func updateConfig(_ newConfig: Config) {
@@ -270,6 +286,28 @@ final class HotkeyTap {
                 return nil
             }
             return Unmanaged.passUnretained(event)
+        }
+
+        if type == .scrollWheel {
+            // Step the open switcher with a discrete mouse wheel. Trackpad and
+            // Magic Mouse produce *continuous* (precise) scrolls — pass those
+            // straight through so two-finger scrolling stays free and the
+            // trackpad keeps its three-finger swipe. Only acts while the
+            // switcher is already showing; never opens it from idle.
+            guard isSwitchingNow(), scrollEnabledFlag.withLock({ $0 }) else {
+                return Unmanaged.passUnretained(event)
+            }
+            let continuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
+            let delta = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+            guard !continuous, delta != 0 else {
+                return Unmanaged.passUnretained(event)
+            }
+            // With macOS natural scrolling, rolling the wheel down gives a
+            // negative delta and should advance the selection forward.
+            let reverse = scrollReverseFlag.withLock { $0 }
+            let forward = (delta < 0) != reverse
+            deliver(forward ? .nextApp : .prevApp)
+            return nil
         }
 
         let cfg = config.withLock { $0 }

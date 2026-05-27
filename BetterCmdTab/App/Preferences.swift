@@ -142,6 +142,8 @@ final class Preferences: ObservableObject {
         static let swipeReverseDirection = "Switcher.swipeReverseDirection"
         static let swipeCommitOnRelease = "Switcher.swipeCommitOnRelease"
         static let swipeSensitivity = "Switcher.swipeSensitivity"
+        static let scrollToSwitch = "Switcher.scrollToSwitch"
+        static let scrollReverseDirection = "Switcher.scrollReverseDirection"
         static let experimentalInstantSpaceSwitch = "Switcher.experimentalInstantSpaceSwitch"
         static let showUnreadBadges = "Switcher.showUnreadBadges"
         /// Pre-graduation key (badges used to live behind the Experimental tab);
@@ -342,6 +344,26 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Step the open switcher's selection with a mouse scroll wheel. Off for
+    /// trackpads — a continuous (precise) scroll is ignored, so trackpad users
+    /// keep the three-finger swipe and two-finger scrolling stays free. Only
+    /// acts while the switcher is already showing; never opens it from idle.
+    @Published var scrollToSwitch: Bool {
+        didSet {
+            guard oldValue != scrollToSwitch else { return }
+            UserDefaults.standard.set(scrollToSwitch, forKey: Keys.scrollToSwitch)
+        }
+    }
+
+    /// When false (default), scrolling down advances the selection forward; when
+    /// true the axis is flipped. Only affects mouse scroll-to-switch.
+    @Published var scrollReverseDirection: Bool {
+        didSet {
+            guard oldValue != scrollReverseDirection else { return }
+            UserDefaults.standard.set(scrollReverseDirection, forKey: Keys.scrollReverseDirection)
+        }
+    }
+
     /// How far fingers must slide to advance one app in the three-finger swipe,
     /// as a 1–10 level. Higher = more sensitive (shorter slide per app).
     @Published var swipeSensitivity: Int {
@@ -425,6 +447,8 @@ final class Preferences: ObservableObject {
         self.swipeCommitOnRelease = defaults.object(forKey: Keys.swipeCommitOnRelease) as? Bool ?? false
         let sensitivity = defaults.object(forKey: Keys.swipeSensitivity) as? Int ?? Self.defaultSwipeSensitivity
         self.swipeSensitivity = Self.clampSwipeSensitivity(sensitivity)
+        self.scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
+        self.scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         self.experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         // Badges graduated out of the Experimental tab and now default on. Honor
         // the new key if present, otherwise carry over a choice made under the

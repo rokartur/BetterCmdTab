@@ -23,6 +23,14 @@ final class SwitcherSettingsViewController: NSViewController {
     private let searchModePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let searchDismissModes: [SearchDismissMode] = SearchDismissMode.allCases
 
+    // Navigation
+    private let scrollSwitch = NSSwitch()
+    private let scrollReverseSwitch = NSSwitch()
+    private let scrollReverseRow = SettingsRowView(
+        title: "Reverse scroll direction",
+        subtitle: "Scroll up to move forward instead of down."
+    )
+
     // Apps
     private let excludedButton = NSButton(title: "Manage apps", target: nil, action: nil)
     private let pinnedButton = NSButton(title: "Manage apps", target: nil, action: nil)
@@ -117,6 +125,18 @@ final class SwitcherSettingsViewController: NSViewController {
             accessory: searchModePopup
         ))
 
+        // Navigation section — alternative ways to move the selection.
+        let navigation = SettingsSectionView(header: "Navigation")
+        configureSwitch(scrollSwitch, action: #selector(toggleScroll(_:)))
+        navigation.addContent(SettingsRowView(
+            title: "Switch with mouse scroll",
+            subtitle: "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the three-finger swipe instead.",
+            accessory: scrollSwitch
+        ))
+        configureSwitch(scrollReverseSwitch, action: #selector(toggleScrollReverse(_:)))
+        scrollReverseRow.setAccessory(scrollReverseSwitch)
+        navigation.addContent(scrollReverseRow)
+
         // App lists section — exclusion and pinning, each via a picker sheet.
         let appLists = SettingsSectionView(header: "Apps")
         configureManageButton(excludedButton, action: #selector(manageExcluded))
@@ -126,7 +146,7 @@ final class SwitcherSettingsViewController: NSViewController {
         pinnedRow.setAccessory(pinnedButton)
         appLists.addContent(pinnedRow)
 
-        view = SettingsLayout.makeScrollingTab(sections: [contents, search, appLists])
+        view = SettingsLayout.makeScrollingTab(sections: [contents, search, navigation, appLists])
     }
 
     private func configureSwitch(_ toggle: NSSwitch, action: Selector) {
@@ -157,6 +177,9 @@ final class SwitcherSettingsViewController: NSViewController {
         selectRecentlyClosedLimit(prefs.recentlyClosedLimit)
         recentlyClosedLimitPopup.isEnabled = prefs.showRecentlyClosed
         selectSearchMode(prefs.searchDismissMode)
+        scrollSwitch.state = prefs.scrollToSwitch ? .on : .off
+        scrollReverseSwitch.state = prefs.scrollReverseDirection ? .on : .off
+        scrollReverseSwitch.isEnabled = prefs.scrollToSwitch
         updateAppListCounts()
 
         prefs.$searchDismissMode
@@ -205,6 +228,16 @@ final class SwitcherSettingsViewController: NSViewController {
 
     @objc private func toggleLauncher(_ sender: NSSwitch) {
         Preferences.shared.searchIncludesLaunchableApps = (sender.state == .on)
+    }
+
+    @objc private func toggleScroll(_ sender: NSSwitch) {
+        let on = (sender.state == .on)
+        Preferences.shared.scrollToSwitch = on
+        scrollReverseSwitch.isEnabled = on
+    }
+
+    @objc private func toggleScrollReverse(_ sender: NSSwitch) {
+        Preferences.shared.scrollReverseDirection = (sender.state == .on)
     }
 
     @objc private func toggleRecentlyClosed(_ sender: NSSwitch) {
