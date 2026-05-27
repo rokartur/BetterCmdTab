@@ -73,6 +73,15 @@ final class SwitcherPanel: NSPanel {
             super.resignKey()
             return
         }
+        // Swallow `super.resignKey()` to suppress the glass dim animation's
+        // notification — but the internal `_isKey` has already flipped to false,
+        // so without reclaiming, the panel stops being key: its controls (hover
+        // action buttons) stop receiving clicks and keyboard focus drifts. Re-key
+        // on the next runloop so the panel stays interactive while it's on screen.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.isVisible, !self.isKeyWindow else { return }
+            self.makeKeyAndOrderFront(nil)
+        }
     }
 
     func present() {
@@ -92,9 +101,12 @@ final class SwitcherPanel: NSPanel {
             setFrame(newFrame, display: true)
         }
         // Restore opacity that `dismiss()` zeroed to mask the glass-layer
-        // teardown ghost. Reset before ordering on screen so the first frame
-        // is fully opaque (no fade — `animationBehavior` is `.none`).
-        alphaValue = 1
+        // teardown ghost, and un-hide the content `dismiss()` hid to drop the
+        // glass sample. Reset before ordering on screen so the first frame is
+        // shown at the user's chosen opacity (no fade — `animationBehavior` is
+        // `.none`).
+        content.isHidden = false
+        alphaValue = CGFloat(Preferences.shared.panelOpacity) / 100
         makeKeyAndOrderFront(nil)
         CATransaction.commit()
     }
@@ -113,6 +125,11 @@ final class SwitcherPanel: NSPanel {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         alphaValue = 0
+        // Hiding the content view tears the glass/visual-effect layer out of the
+        // compositor in the same transaction as `orderOut`, so the window server
+        // has no last-sampled backdrop left to flash as a ghost after we vanish.
+        // `present()` un-hides it.
+        contentView?.isHidden = true
         orderOut(nil)
         CATransaction.commit()
     }

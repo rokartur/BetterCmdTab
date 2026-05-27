@@ -35,9 +35,20 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         }
     }
 
+    private let actionBar = HoverActionBar(frame: .zero)
+    private var actionsAvailable = false
+    var isHovered: Bool = false {
+        didSet {
+            guard oldValue != isHovered else { return }
+            updateHoverBar()
+        }
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+
+        actionBar.isHidden = true
 
         highlight.wantsLayer = true
         highlight.layer?.cornerCurve = .continuous
@@ -110,10 +121,36 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
             addSubview(iv)
         }
 
+        // Last, so the hover bar floats above the row content.
+        addSubview(actionBar)
+
         applyMetrics(metrics)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
+
+    /// Show the hover bar only over a hovered, actionable row when the feature
+    /// (and at least one button) is enabled.
+    private func updateHoverBar() {
+        let show = isHovered
+            && Preferences.shared.hoverActionsEnabled
+            && actionsAvailable
+            && actionBar.hasAnyEnabledButton
+        if !show { actionBar.setHotAction(nil) }
+        if actionBar.isHidden == !show { return }
+        actionBar.isHidden = !show
+        needsLayout = true
+    }
+
+    func hoverAction(atWindowPoint point: NSPoint) -> RowAction? {
+        guard !actionBar.isHidden else { return nil }
+        return actionBar.action(atWindowPoint: point)
+    }
+
+    func setHotDot(atWindowPoint point: NSPoint?) {
+        guard !actionBar.isHidden else { actionBar.setHotAction(nil); return }
+        actionBar.setHotAction(point.flatMap { actionBar.action(atWindowPoint: $0) })
+    }
 
     private var currentLabel: String = ""
     private var currentPrefixLength: Int = 0
@@ -189,6 +226,11 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         // it exactly once: the `isSelected` setter already does so via `didSet`
         // when the value flips, so only call it explicitly when the value is
         // unchanged but other inputs (accent, metrics, label) still need it.
+        // Hover action buttons apply to a real window of a running app.
+        actionsAvailable = !isDialog && row.app != nil && row.window != nil
+        actionBar.applyEnabledButtons()
+        updateHoverBar()
+
         if isSelected == selected {
             applySelection()
         } else {
@@ -349,5 +391,16 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
 
         let titleW = max(0, rightLimit - titleX)
         titleLabel.frame = NSRect(x: titleX, y: labelY, width: titleW, height: labelH)
+
+        if !actionBar.isHidden {
+            // Right-aligned, vertically centered — floats over the status column.
+            let size = actionBar.contentSize
+            actionBar.frame = NSRect(
+                x: bounds.width - m.horizontalInset - size.width,
+                y: round((h - size.height) / 2),
+                width: size.width,
+                height: size.height
+            )
+        }
     }
 }

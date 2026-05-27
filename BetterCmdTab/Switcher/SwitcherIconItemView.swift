@@ -3,6 +3,15 @@ import AppKit
 @MainActor
 protocol SwitcherItemViewProtocol: NSView {
     var isSelected: Bool { get set }
+    /// True while the mouse is directly over this row — drives the hover action
+    /// buttons (independent of keyboard selection).
+    var isHovered: Bool { get set }
+    /// The hover-action this row's button bar exposes at `point` (window coords),
+    /// or nil. `SwitcherView` calls this on mouseDown to route clicks (the dots
+    /// can't receive events themselves through the glass-hosted subtree).
+    func hoverAction(atWindowPoint point: NSPoint) -> RowAction?
+    /// Highlight the button under `point` (window coords); nil clears it.
+    func setHotDot(atWindowPoint point: NSPoint?)
     func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor)
 }
 
@@ -30,9 +39,20 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         }
     }
 
+    private let actionBar = HoverActionBar(frame: .zero)
+    private var actionsAvailable = false
+    var isHovered: Bool = false {
+        didSet {
+            guard oldValue != isHovered else { return }
+            updateHoverBar()
+        }
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+
+        actionBar.isHidden = true
 
         selectionBackdrop.wantsLayer = true
         selectionBackdrop.layer?.cornerCurve = .continuous
@@ -103,6 +123,9 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         titleLabel.cell?.usesSingleLineMode = true
         addSubview(titleLabel)
 
+        // Last, so the hover bar floats above the icon and labels.
+        addSubview(actionBar)
+
         updateSelectionAppearance()
         applyMetrics(metrics)
     }
@@ -112,6 +135,29 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         updateSelectionAppearance()
+    }
+
+    /// Show the hover bar only over a hovered, actionable row when the feature
+    /// (and at least one button) is enabled.
+    private func updateHoverBar() {
+        let show = isHovered
+            && Preferences.shared.hoverActionsEnabled
+            && actionsAvailable
+            && actionBar.hasAnyEnabledButton
+        if !show { actionBar.setHotAction(nil) }
+        if actionBar.isHidden == !show { return }
+        actionBar.isHidden = !show
+        needsLayout = true
+    }
+
+    func hoverAction(atWindowPoint point: NSPoint) -> RowAction? {
+        guard !actionBar.isHidden else { return nil }
+        return actionBar.action(atWindowPoint: point)
+    }
+
+    func setHotDot(atWindowPoint point: NSPoint?) {
+        guard !actionBar.isHidden else { actionBar.setHotAction(nil); return }
+        actionBar.setHotAction(point.flatMap { actionBar.action(atWindowPoint: $0) })
     }
 
     private func updateSelectionAppearance() {
@@ -159,7 +205,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         // window). Launch/reopen rows return their single cue, never a stacked
         // no-window glyph.
         let indicators = isDialog ? [] : Self.indicators(for: row)
-        let secondary = isDialog ? "" : Self.secondaryText(for: row)
+        let secondary = isDialog ? "" : Self.secondaryText(for: row, showTitle: Preferences.shared.showWindowTitleLabel)
         if indicators.isEmpty, secondary.isEmpty {
             titleLabel.attributedStringValue = NSAttributedString(string: "")
             titleLabel.isHidden = true
@@ -178,6 +224,11 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         } else {
             badgePill.isHidden = true
         }
+
+        // Hover action buttons apply to a real window of a running app.
+        actionsAvailable = !isDialog && row.app != nil && row.window != nil
+        actionBar.applyEnabledButtons()
+        updateHoverBar()
 
         // Run `applySelection` exactly once: the `isSelected` setter already does
         // so via `didSet` when the value flips, so call it explicitly only when
@@ -207,11 +258,14 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         return result
     }
 
-    private static func secondaryText(for row: SwitcherRow) -> String {
+    /// `showTitle == false` blanks the window-title text (the "Window title under
+    /// icon" preference) while leaving launch/reopen cues — which aren't window
+    /// titles — intact so those rows still read clearly.
+    private static func secondaryText(for row: SwitcherRow, showTitle: Bool) -> String {
         if row.isLaunchable { return "Launch" }
-        if row.isRecentlyClosed { return row.windowTitle.isEmpty ? "Reopen" : row.windowTitle }
+        if row.isRecentlyClosed { return (showTitle && !row.windowTitle.isEmpty) ? row.windowTitle : "Reopen" }
         if row.isPlaceholder || row.window == nil { return "" }
-        return row.windowTitle
+        return showTitle ? row.windowTitle : ""
     }
 
     /// Builds the secondary line: leading status glyphs (each tinted to its
@@ -386,6 +440,17 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         let titleH = ceil(titleLabel.font?.pointSize ?? m.tileTitleFontSize) + 2
         nameLabel.frame = NSRect(x: 0, y: labelAreaH - nameH, width: w, height: nameH)
         titleLabel.frame = NSRect(x: 0, y: labelAreaH - nameH - titleH, width: w, height: titleH)
+
+        if !actionBar.isHidden {
+            // Centered horizontally just below the icon's top edge.
+            let size = actionBar.contentSize
+            actionBar.frame = NSRect(
+                x: round(iconArea.midX - size.width / 2),
+                y: round(iconArea.maxY - size.height - 2),
+                width: size.width,
+                height: size.height
+            )
+        }
     }
 }
 

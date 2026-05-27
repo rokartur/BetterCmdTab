@@ -1,10 +1,21 @@
 import AppKit
 import os
 
+/// A window/app action invoked from a row's hover buttons. Raw values double as
+/// `NSButton.tag`s in `HoverActionBar`.
+enum RowAction: Int {
+    case close
+    case minimize
+    case maximize
+    case hide
+    case quit
+}
+
 @MainActor
 protocol SwitcherViewDelegate: AnyObject {
     func switcherViewDidHover(index: Int)
     func switcherViewDidClick(index: Int)
+    func switcherViewDidInvokeAction(_ action: RowAction, atIndex index: Int)
 }
 
 @MainActor
@@ -20,6 +31,10 @@ final class SwitcherView: NSView {
     private var rows: [SwitcherRow] = []
     private(set) var labels: [String] = []
     private var selectedIndex: Int = 0
+    /// Row the mouse is directly over (-1 = none). Separate from `selectedIndex`
+    /// so hover action buttons appear only under the pointer, not on a
+    /// keyboard-selected row.
+    private var hoveredIndex: Int = -1
     private var cachedLayout: ListLayout?
     private var trackingArea: NSTrackingArea?
 
@@ -90,7 +105,7 @@ final class SwitcherView: NSView {
         self.labels = labels
         self.highlightPrefix = highlightPrefix
         self.searchActive = searchActive
-        self.accent = Preferences.shared.accentChoice.resolved
+        self.accent = Preferences.shared.resolvedAccent
         self.selectedIndex = selectedIndex
         searchBar.update(query: searchQuery)
         searchBar.isHidden = !searchActive
@@ -98,8 +113,12 @@ final class SwitcherView: NSView {
         let layoutModeChanged = metrics.layoutMode != self.metrics.layoutMode
         if metrics != self.metrics {
             self.metrics = metrics
-            updateBackdropCornerRadius(metrics.cornerRadius)
         }
+        // Corner radius and blur material are user-tunable theme settings, so
+        // apply them on every reveal (a cheap property set) rather than only when
+        // the size-derived metrics change.
+        updateBackdropCornerRadius(effectiveCornerRadius(metrics))
+        applyBackdropMaterial()
         if layoutModeChanged {
             // Different item view class — clear the pool so rebuild picks the right type.
             for v in itemViews { v.removeFromSuperview() }
@@ -156,6 +175,19 @@ final class SwitcherView: NSView {
         } else {
             glassBackdrop.layer?.cornerRadius = radius
         }
+    }
+
+    /// User-pinned corner radius when set (> 0), otherwise the size-derived metric.
+    private func effectiveCornerRadius(_ metrics: SwitcherMetrics) -> CGFloat {
+        let pref = Preferences.shared.panelCornerRadius
+        return pref > 0 ? CGFloat(pref) : metrics.cornerRadius
+    }
+
+    /// Apply the chosen blur material to the fallback backdrop. The macOS 26
+    /// glass backdrop has no material knob, so it's left untouched there.
+    private func applyBackdropMaterial() {
+        if #available(macOS 26.0, *), glassBackdrop is NSGlassEffectView { return }
+        (glassBackdrop as? NSVisualEffectView)?.material = Preferences.shared.backdropMaterial.material
     }
 
     var columnCount: Int {
@@ -231,15 +263,39 @@ final class SwitcherView: NSView {
     }
 
     override func mouseMoved(with event: NSEvent) {
-        if let idx = indexAtWindowPoint(event.locationInWindow) {
+        let idx = indexAtWindowPoint(event.locationInWindow)
+        setHoveredIndex(idx ?? -1)
+        if let idx {
             delegate?.switcherViewDidHover(index: idx)
+            // Highlight the hover-action dot under the pointer, if any.
+            itemViews[idx].setHotDot(atWindowPoint: event.locationInWindow)
+        }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        setHoveredIndex(-1)
+    }
+
+    /// Track which row the mouse is directly over so only that row shows its
+    /// hover action buttons (distinct from the keyboard selection).
+    private func setHoveredIndex(_ index: Int) {
+        guard index != hoveredIndex else { return }
+        hoveredIndex = index
+        for (i, view) in itemViews.enumerated() {
+            view.isHovered = (i == index)
         }
     }
 
     override func mouseDown(with event: NSEvent) {
-        if let idx = indexAtWindowPoint(event.locationInWindow) {
-            delegate?.switcherViewDidClick(index: idx)
+        guard let idx = indexAtWindowPoint(event.locationInWindow), itemViews.indices.contains(idx) else { return }
+        // A click on a hover-action dot runs that action instead of committing.
+        // The dots can't receive events themselves (glass-hosted subtree), so
+        // hit-test them here against the hovered row.
+        if let action = itemViews[idx].hoverAction(atWindowPoint: event.locationInWindow) {
+            delegate?.switcherViewDidInvokeAction(action, atIndex: idx)
+            return
         }
+        delegate?.switcherViewDidClick(index: idx)
     }
 
 
@@ -297,6 +353,7 @@ final class SwitcherView: NSView {
                 metrics: metrics,
                 accent: accent
             )
+            itemViews[i].isHovered = (i == hoveredIndex)
             itemViews[i].isHidden = false
         }
     }
