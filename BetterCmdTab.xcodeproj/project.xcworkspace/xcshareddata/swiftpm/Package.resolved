@@ -1,5 +1,5 @@
 {
-  "originHash" : "5178e2a036a5e22c952f33d1126e92c6fc4195654b74dce117feeb14a1f4ddf7",
+  "originHash" : "09b2633d0950ba3543a20d88bf31673690d6cce0be17f37f9cfda4a48fd0a767",
   "pins" : [
     {
       "identity" : "bettershortcuts",
@@ -8,6 +8,24 @@
       "state" : {
         "revision" : "e1d5988ebd5a41b76be66c6cf897c609245f6477",
         "version" : "0.1.1"
+      }
+    },
+    {
+      "identity" : "betterupdater",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rokartur/BetterUpdater.git",
+      "state" : {
+        "revision" : "6986779a99dc51ff4f18fe1cc5ad3f92f7766f7e",
+        "version" : "0.2.0"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser.git",
+      "state" : {
+        "revision" : "ca37474853a4b5f59a22c74bfdd449b1f6bc4cc2",
+        "version" : "1.8.1"
       }
     }
   ],
