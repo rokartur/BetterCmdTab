@@ -1,5 +1,6 @@
 import AppKit
 import BetterShortcuts
+import BetterUpdater
 import Combine
 
 @MainActor
@@ -10,6 +11,7 @@ final class GeneralSettingsViewController: NSViewController {
     private let hapticSwitch = NSSwitch()
     private let soundSwitch = NSSwitch()
     private let betaSwitch = NSSwitch()
+    private let intervalPopUp = NSPopUpButton(frame: .zero, pullsDown: false)
 
     private let accessibilityRow = SettingsRowView(
         title: "Accessibility access",
@@ -98,6 +100,19 @@ final class GeneralSettingsViewController: NSViewController {
 
         // Updates section
         let updates = SettingsSectionView(header: "Updates")
+
+        for cadence in UpdateCheckInterval.selectableCadences {
+            intervalPopUp.addItem(withTitle: cadence.title)
+        }
+        intervalPopUp.controlSize = .small
+        intervalPopUp.target = self
+        intervalPopUp.action = #selector(changeInterval(_:))
+        updates.addContent(SettingsRowView(
+            title: "Check for updates",
+            description: "How often to check automatically. The beta channel always checks hourly.",
+            accessory: intervalPopUp
+        ))
+
         let betaRow = SettingsRowView(
             title: "Include beta releases",
             description: "Beta builds may be unstable.",
@@ -131,6 +146,9 @@ final class GeneralSettingsViewController: NSViewController {
 
         let updater = GitHubUpdater.shared
         betaSwitch.state = updater.includePreReleases ? .on : .off
+
+        let cadences = UpdateCheckInterval.selectableCadences
+        intervalPopUp.selectItem(at: cadences.firstIndex(of: updater.checkInterval) ?? 0)
 
         LaunchAtLogin.shared.$isEnabled
             .receive(on: DispatchQueue.main)
@@ -166,6 +184,13 @@ final class GeneralSettingsViewController: NSViewController {
 
     @objc private func toggleBeta(_ sender: NSSwitch) {
         GitHubUpdater.shared.includePreReleases = (sender.state == .on)
+    }
+
+    @objc private func changeInterval(_ sender: NSPopUpButton) {
+        let cadences = UpdateCheckInterval.selectableCadences
+        let idx = sender.indexOfSelectedItem
+        guard cadences.indices.contains(idx) else { return }
+        GitHubUpdater.shared.setCheckInterval(cadences[idx])
     }
 
     @objc private func toggleHideMenuBarIcon(_ sender: NSSwitch) {

@@ -1,5 +1,6 @@
 import AppKit
 import BetterShortcuts
+import BetterUpdater
 import Combine
 import os
 
@@ -54,6 +55,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !missing.isEmpty {
             Log.priv.warning("Missing private symbols: \(missing.joined(separator: ", "), privacy: .public)")
         }
+
+        // Configure the updater before any BetterUpdater type is touched.
+        // The pinned Ed25519 public key is the trust anchor for the signed
+        // repo-identity manifest (see BetterUpdater README).
+        BetterUpdater.bootstrap(configuration: .init(
+            owner: "rokartur",
+            repo: "BetterCmdTab",
+            displayName: AppInfo.displayName,
+            bundleIdentifier: "pro.bettercmdtab.BetterCmdTab",
+            pinnedPublicKeyBase64: "EdGQwfRFT04hggloIRmN2twIC/UIlM6yoAAzZ97jgcI=",
+            userAgentProduct: "BetterCmdTab-Updater",
+            manifestRequired: true
+        ))
 
         // Refuse to start the switcher (and updater) while running from a
         // translocated mount — Gatekeeper Path Randomization will keep

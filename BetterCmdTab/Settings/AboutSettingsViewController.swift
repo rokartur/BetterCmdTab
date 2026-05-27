@@ -1,4 +1,5 @@
 import AppKit
+import BetterUpdater
 import Combine
 import QuartzCore
 
