@@ -281,6 +281,7 @@ final class Preferences: ObservableObject {
         static let hoverShowHide = "Switcher.hoverShowHide"
         static let hoverShowQuit = "Switcher.hoverShowQuit"
         static let hoverShowForceQuit = "Switcher.hoverShowForceQuit"
+        static let hideFromScreenSharing = "Switcher.hideFromScreenSharing"
     }
 
     @Published var switcherLayoutMode: SwitcherLayoutMode {
@@ -669,6 +670,17 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Hide the switcher panel from screen recording / sharing capture
+    /// (Zoom, Meet, Teams, QuickTime, ScreenCaptureKit). Default off.
+    /// Requires macOS 14.6+ for `NSWindowSharingType.none` to be honored by
+    /// modern capture APIs; on older systems the toggle is a no-op.
+    @Published var hideFromScreenSharing: Bool {
+        didSet {
+            guard oldValue != hideFromScreenSharing else { return }
+            UserDefaults.standard.set(hideFromScreenSharing, forKey: Keys.hideFromScreenSharing)
+        }
+    }
+
     /// Concrete accent color honoring the `.custom` choice (reads `customAccentHex`).
     var resolvedAccent: NSColor {
         if accentChoice == .custom, let hex = customAccentHex, let color = NSColor(hexString: hex) {
@@ -776,5 +788,6 @@ final class Preferences: ObservableObject {
         self.hoverShowHide = defaults.object(forKey: Keys.hoverShowHide) as? Bool ?? true
         self.hoverShowQuit = defaults.object(forKey: Keys.hoverShowQuit) as? Bool ?? true
         self.hoverShowForceQuit = defaults.object(forKey: Keys.hoverShowForceQuit) as? Bool ?? false
+        self.hideFromScreenSharing = defaults.object(forKey: Keys.hideFromScreenSharing) as? Bool ?? false
     }
 }

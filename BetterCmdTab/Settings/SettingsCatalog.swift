@@ -23,6 +23,7 @@ enum SettingsAnchor {
     static let shortcuts = "general.shortcuts"
     static let directActivation = "general.directActivation"
     static let feedback = "general.feedback"
+    static let privacy = "general.privacy"
     static let permissions = "general.permissions"
     static let updates = "general.updates"
     // Switcher
@@ -49,6 +50,7 @@ enum SearchID {
     static let switchWindows = "general.switchWindows"
     static let haptic = "general.haptic"
     static let sound = "general.sound"
+    static let hideFromScreenSharing = "general.hideFromScreenSharing"
     static let accessibility = "general.accessibility"
     static let updateInterval = "general.updateInterval"
     static let beta = "general.beta"
@@ -167,6 +169,9 @@ enum SettingsCatalog {
              "Haptic feedback on switch", ["haptic", "vibration", "force touch", "trackpad"]),
         item(SearchID.sound, .general, SettingsAnchor.feedback, "General", "Feedback",
              "Sound on switch", ["sound", "click", "audio"]),
+        // General · Privacy
+        item(SearchID.hideFromScreenSharing, .general, SettingsAnchor.privacy, "General", "Privacy",
+             "Don't look at my windows", ["privacy", "screen sharing", "screen recording", "hide", "zoom", "meet", "teams", "screencapture"]),
         // General · Permissions
         item(SearchID.accessibility, .general, SettingsAnchor.permissions, "General", "Permissions",
              "Accessibility access", ["accessibility", "permission", "grant", "trusted"]),

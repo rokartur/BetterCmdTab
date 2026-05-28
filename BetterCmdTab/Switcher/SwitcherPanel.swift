@@ -1,8 +1,11 @@
 import AppKit
+import Combine
 import ObjectiveC
 
 @MainActor
 final class SwitcherPanel: NSPanel {
+    private var prefCancellable: AnyCancellable?
+
     /// Replace the inherited `-[NSWindow appearsActive]` getter for
     /// `SwitcherPanel` instances with a constant `true`. Dynamic NSColors used
     /// by row views (`.labelColor`, `.controlAccentColor`,
@@ -54,6 +57,26 @@ final class SwitcherPanel: NSPanel {
         ]
         isReleasedWhenClosed = false
         animationBehavior = .none
+        applyScreenSharingPolicy()
+        prefCancellable = Preferences.shared.$hideFromScreenSharing
+            .sink { [weak self] hide in
+                guard let self else { return }
+                self.applyScreenSharingPolicy(hide: hide)
+            }
+    }
+
+    /// Apply the "Hide from screen sharing" preference to `sharingType`.
+    /// `.none` makes the window invisible to ScreenCaptureKit, CGWindowList,
+    /// and screen-sharing apps (Zoom, Meet, Teams, QuickTime). `.readOnly` is
+    /// the default — captured normally.
+    ///
+    /// Honored by ScreenCaptureKit from macOS 14.6 onwards; on earlier
+    /// versions the flag still affects CGWindowList but capture apps using
+    /// SCK may still see the window. We set it unconditionally because the
+    /// API itself exists since 10.0 and the no-op case is harmless.
+    private func applyScreenSharingPolicy(hide: Bool? = nil) {
+        let shouldHide = hide ?? Preferences.shared.hideFromScreenSharing
+        sharingType = shouldHide ? .none : .readOnly
     }
 
     override var canBecomeKey: Bool { true }

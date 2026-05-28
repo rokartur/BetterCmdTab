@@ -11,6 +11,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
     private let hideMenuBarSwitch = NSSwitch()
     private let hapticSwitch = NSSwitch()
     private let soundSwitch = NSSwitch()
+    private let hideFromScreenSharingSwitch = NSSwitch()
     private let betaSwitch = NSSwitch()
     private let intervalPopUp = NSPopUpButton(frame: .zero, pullsDown: false)
 
@@ -105,6 +106,18 @@ final class GeneralSettingsViewController: SettingsTabViewController {
             searchItemID: SearchID.sound
         )
 
+        // Privacy section — hide the switcher panel from screen recording /
+        // sharing capture (Zoom, Meet, Teams, QuickTime, ScreenCaptureKit).
+        let privacy = addSection(title: "Privacy", anchor: SettingsAnchor.privacy)
+        configureSwitch(hideFromScreenSharingSwitch, action: #selector(toggleHideFromScreenSharing(_:)))
+        addRow(
+            to: privacy,
+            title: "Don't look at my windows",
+            subtitle: "Hide the switcher from screen sharing and recording. Requires macOS 14.6 or later.",
+            accessory: hideFromScreenSharingSwitch,
+            searchItemID: SearchID.hideFromScreenSharing
+        )
+
         // Permissions section
         let permissions = addSection(title: "Permissions", anchor: SettingsAnchor.permissions)
 
@@ -182,6 +195,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
         hideMenuBarSwitch.state = prefs.hideMenuBarIcon ? .on : .off
         hapticSwitch.state = prefs.hapticOnCommit ? .on : .off
         soundSwitch.state = prefs.soundOnCommit ? .on : .off
+        hideFromScreenSharingSwitch.state = prefs.hideFromScreenSharing ? .on : .off
 
         refreshDirectSlots()
 
@@ -244,6 +258,10 @@ final class GeneralSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleSound(_ sender: NSSwitch) {
         Preferences.shared.soundOnCommit = (sender.state == .on)
+    }
+
+    @objc private func toggleHideFromScreenSharing(_ sender: NSSwitch) {
+        Preferences.shared.hideFromScreenSharing = (sender.state == .on)
     }
 
     @objc private func openSystemSettings() {
