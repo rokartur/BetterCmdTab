@@ -20,6 +20,7 @@ Fast · Native · Liquid Glass · Zero telemetry · Free forever
   <a href="#install">Install</a> ·
   <a href="#features">Features</a> ·
   <a href="#shortcuts">Shortcuts</a> ·
+  <a href="#known-limitations">Limitations</a> ·
   <a href="#build-from-source">Build</a> ·
   <a href="#contributing">Contribute</a>
 </sub>
@@ -110,6 +111,20 @@ The `Cmd + Tab` activation hotkey is configurable in Settings; you can also trig
 - Accessibility permission
 
 Liquid Glass rendering requires macOS 26. On 13–15 you get NSVisualEffectView with `.hudWindow` material, which looks similar enough.
+
+## Known limitations
+
+### Secure event input
+
+When the focused app has engaged macOS **Secure Event Input** — typically while a password field is active in apps like KeePassXC, 1Password, the macOS login window, or a terminal with secure keyboard entry on — the OS delivers key events only to that process. Untrusted (non-root) Quartz event taps, including BetterCmdTab's ⌘+Tab tap, stop seeing keystrokes for the duration. ⌘+Tab will fall back to the native Dock switcher until the password field loses focus.
+
+This is a system-level restriction with no in-app workaround short of shipping a privileged helper. If you hit it often with a specific app, the practical fixes are:
+
+- Dismiss the password prompt first, then press ⌘+Tab.
+- For KeePassXC: either unlock the database before opening the switcher, or disable its quick-unlock / always-on-top behavior so the unlock dialog doesn't hold focus.
+- Press `Ctrl + ⌘ + Q` and back in to bounce out of any stuck secure-input session.
+
+The current secure-input state is logged to Console under subsystem `pro.bettercmdtab.BetterCmdTab`, category `hotkey`, if you want to confirm the cause.
 
 ## Privacy
 

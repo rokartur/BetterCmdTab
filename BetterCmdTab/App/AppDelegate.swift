@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controller: SwitcherController?
     private var statusItem: NSStatusItem?
     private var axWaiter: AccessibilityWaiter?
+    private var secureInputMonitor: SecureInputMonitor?
     private var cancellables = Set<AnyCancellable>()
 
     static func main() {
@@ -81,6 +82,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         waiter.start()
         axWaiter = waiter
+
+        let secureMonitor = SecureInputMonitor()
+        secureMonitor.start()
+        secureInputMonitor = secureMonitor
 
         Task { @MainActor in
             // Touch the singleton so it boots its scheduled auto-check task,
