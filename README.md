@@ -58,6 +58,7 @@ Fast · Native · Liquid Glass · Zero telemetry · Free forever
 - **Theming** — panel opacity, corner radius, and a custom accent color.
 - **Multi-monitor** — opens on the screen under the cursor.
 - **Trackpad & haptics** — three-finger swipe to open the switcher or switch Spaces, optional feedback.
+- **Hide from screen sharing** — keep the switcher out of screen recordings and shared screens. Needs macOS 14.6+.
 - **Configurable** — custom hotkey, size, scale, layout.
 
 ## Install
