@@ -82,6 +82,7 @@ const shortcuts: Array<[string, string]> = [
 interface GhAsset {
   name: string;
   browser_download_url: string;
+  download_count: number;
 }
 
 interface GhRelease {
@@ -92,6 +93,7 @@ interface GhRelease {
 interface Release {
   version: string | null;
   dmgUrl: string;
+  totalDownloads: number | null;
   ready: boolean;
 }
 
@@ -99,21 +101,35 @@ function useLatestRelease(): Release {
   const [rel, setRel] = useState<Release>({
     version: null,
     dmgUrl: `${REPO}/releases/latest`,
+    totalDownloads: null,
     ready: false,
   });
 
   useEffect(() => {
     const ctrl = new AbortController();
-    fetch("https://api.github.com/repos/rokartur/BetterCmdTab/releases/latest", {
+    // One call to the list endpoint covers both the latest release (for the
+    // download URL/version) and the cumulative download count across every
+    // release's assets — saves a second round-trip.
+    fetch("https://api.github.com/repos/rokartur/BetterCmdTab/releases?per_page=100", {
       headers: { Accept: "application/vnd.github+json" },
       signal: ctrl.signal,
     })
-      .then((r) => (r.ok ? (r.json() as Promise<GhRelease>) : Promise.reject(r.status)))
-      .then((d) => {
-        const dmg = d.assets.find((a) => a.name.endsWith(".dmg"));
+      .then((r) => (r.ok ? (r.json() as Promise<GhRelease[]>) : Promise.reject(r.status)))
+      .then((releases) => {
+        if (releases.length === 0) {
+          setRel((p) => ({ ...p, ready: true }));
+          return;
+        }
+        const latest = releases[0];
+        const dmg = latest.assets.find((a) => a.name.endsWith(".dmg"));
+        const total = releases.reduce(
+          (sum, r) => sum + r.assets.reduce((s, a) => s + a.download_count, 0),
+          0,
+        );
         setRel({
-          version: d.tag_name,
+          version: latest.tag_name,
           dmgUrl: dmg?.browser_download_url ?? `${REPO}/releases/latest`,
+          totalDownloads: total,
           ready: true,
         });
       })
@@ -343,8 +359,10 @@ function DownloadCta({ href }: { href: string }) {
   );
 }
 
+const downloadFmt = new Intl.NumberFormat("en-US");
+
 export function Home() {
-  const { version, dmgUrl } = useLatestRelease();
+  const { version, dmgUrl, totalDownloads } = useLatestRelease();
 
   return (
     <MotionConfig reducedMotion="user">
@@ -389,7 +407,9 @@ export function Home() {
           <motion.p className="row" variants={reveal}>
             <DownloadCta href={dmgUrl} />
             <span className="muted">
-              {version ? `${version} · ` : ""}macOS 13.0+ · Apple Silicon &amp; Intel
+              {version ? `${version} · ` : ""}
+              {totalDownloads !== null ? `${downloadFmt.format(totalDownloads)} downloads · ` : ""}
+              macOS 13.0+ · Apple Silicon &amp; Intel
             </span>
           </motion.p>
         </motion.section>
