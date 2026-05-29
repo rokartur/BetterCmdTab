@@ -2671,6 +2671,9 @@
         }
       }
     },
+    "How long a typed letter sequence stays active. When it expires, the highlight clears and the list returns to its original order." : {
+
+    },
     "How many recently closed items to list." : {
       "localizations" : {
         "de" : {
@@ -3258,6 +3261,9 @@
           }
         }
       }
+    },
+    "Letter chain timeout" : {
+
     },
     "Letter hints" : {
       "localizations" : {

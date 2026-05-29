@@ -303,8 +303,13 @@ enum WindowEnumerator {
             let minimized = (values[2] as? Bool) ?? false
             let fullscreen = (values[3] as? Bool) ?? false
             let windowTitle = (values[4] as? String) ?? ""
-            // Minimized windows legitimately share (0, 0) — never frame-group them.
-            let frameKey = minimized ? nil : frameKeyFromAttributes(values[5], values[6])
+            // Minimized windows legitimately share (0, 0); fullscreen windows
+            // each fill the same display bounds, so two separate fullscreen
+            // windows of one app (each on its own Space — recovered by the brute
+            // scan) share a frame yet are NOT tabs (macOS never tabs fullscreen
+            // windows). Excluding both from frame-grouping prevents collapsing a
+            // real off-Space fullscreen window into an unrelated row (issue #10).
+            let frameKey = (minimized || fullscreen) ? nil : frameKeyFromAttributes(values[5], values[6])
 
             raws.append(RawWindow(
                 element: window,
@@ -365,7 +370,7 @@ enum WindowEnumerator {
 
     /// Decide which windows to surface and which are native background tabs.
     /// Pure (no AX) so it is unit-testable. `frameKeys[i] == nil` means the
-    /// window is unframeable/minimized and is never treated as a tab.
+    /// window is unframeable/minimized/fullscreen and is never treated as a tab.
     ///
     /// - expand: every window is kept as its own row (one entry per tab); no
     ///   grouping.

@@ -78,4 +78,20 @@ struct TabStackResolutionTests {
         #expect(r.keep == [true, true])
         #expect(r.siblingIndices.isEmpty)
     }
+
+    @Test("a brute-only nil-frame window (fullscreen) is kept even next to an AX window with a real frame")
+    func fullscreenNilFrameKept() {
+        // The caller maps fullscreen (and minimized) windows to a nil frameKey,
+        // so two separate fullscreen windows of one app — one AX-listed on the
+        // current Space, one recovered off-Space by the brute scan — are never
+        // folded into one row (issue #10 / off-Space fullscreen vanish). Here the
+        // brute window's nil frame must not collapse despite an AX window present.
+        let r = WindowEnumerator.resolveTabStacks(
+            frameKeys: ["F", nil],
+            fromAXList: [true, false],
+            expand: false
+        )
+        #expect(r.keep == [true, true])
+        #expect(r.siblingIndices.isEmpty)
+    }
 }
