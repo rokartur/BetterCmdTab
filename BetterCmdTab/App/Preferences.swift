@@ -396,7 +396,17 @@ final class Preferences: ObservableObject {
         static let clickOutsideToDismiss = "Switcher.clickOutsideToDismiss"
         static let cycleTileWidths = "Switcher.cycleTileWidths"
         static let experimentalInstantSpaceSwitch = "Switcher.experimentalInstantSpaceSwitch"
-        static let experimentalTabDrillIn = "Switcher.experimentalTabDrillIn"
+        /// `\` tab drill-in (peek the highlighted window's tabs in a strip).
+        /// Graduated out of the Experimental tab in 26.x and flipped to default
+        /// ON (intentional — the `\` peek is now the standard way to reach tabs).
+        /// The pre-graduation key `Switcher.experimentalTabDrillIn` defaulted OFF
+        /// and is deliberately not migrated: everyone, including users who never
+        /// touched the old toggle, gets the peek on by default now.
+        static let tabDrillEnabled = "Switcher.tabDrillEnabled"
+        /// Expand native-system-tab windows (Finder, Terminal, TextEdit, …) into
+        /// one switcher row per tab instead of a single collapsed window row.
+        /// Default off — the collapsed row + `\` peek is the default.
+        static let expandTabsAsWindows = "Switcher.expandTabsAsWindows"
         static let showUnreadBadges = "Switcher.showUnreadBadges"
         /// Pre-graduation key (badges used to live behind the Experimental tab);
         /// read once at launch to carry a user's earlier choice over to the new key.
@@ -702,14 +712,26 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// Browser/Finder tab drill-in: pressing `\` on a row with a tab group
-    /// reveals a horizontal tab strip beneath the switcher. Off by default —
-    /// depends on AX `AXTabs`/`AXPress` which varies in reliability across
-    /// browsers and ships changes.
-    @Published var experimentalTabDrillIn: Bool {
+    /// Tab drill-in: pressing `\` on a row whose window has a tab group reveals
+    /// a horizontal tab strip beneath the switcher so a specific tab can be
+    /// picked. Native AX `AXTabs` for Finder/Terminal/…; AppleScript for
+    /// Safari/Chromium. Default on (graduated out of Experimental).
+    @Published var tabDrillEnabled: Bool {
         didSet {
-            guard oldValue != experimentalTabDrillIn else { return }
-            UserDefaults.standard.set(experimentalTabDrillIn, forKey: Keys.experimentalTabDrillIn)
+            guard oldValue != tabDrillEnabled else { return }
+            UserDefaults.standard.set(tabDrillEnabled, forKey: Keys.tabDrillEnabled)
+        }
+    }
+
+    /// Show each native-system-tab window's tabs as their own switcher rows
+    /// (one entry per tab) instead of a single collapsed window row. Applies to
+    /// apps that expose AppKit `AXTabs` (Finder, Terminal, TextEdit, Ghostty,
+    /// …); browsers keep a single row and the `\` peek. Default off. Read
+    /// off-main by `WindowEnumerator`, so the key is shared.
+    @Published var expandTabsAsWindows: Bool {
+        didSet {
+            guard oldValue != expandTabsAsWindows else { return }
+            UserDefaults.standard.set(expandTabsAsWindows, forKey: Keys.expandTabsAsWindows)
         }
     }
 
@@ -984,7 +1006,8 @@ final class Preferences: ObservableObject {
         self.clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
         self.cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         self.experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
-        self.experimentalTabDrillIn = defaults.object(forKey: Keys.experimentalTabDrillIn) as? Bool ?? false
+        self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
+        self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         // Badges graduated out of the Experimental tab and now default on. Honor
         // the new key if present, otherwise carry over a choice made under the
         // old experimental key, otherwise default to on.
@@ -1065,7 +1088,8 @@ final class Preferences: ObservableObject {
         clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
         cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
-        experimentalTabDrillIn = defaults.object(forKey: Keys.experimentalTabDrillIn) as? Bool ?? false
+        tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
+        expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         showUnreadBadges = defaults.object(forKey: Keys.showUnreadBadges) as? Bool ?? true
 
         showWindowTitleLabel = defaults.object(forKey: Keys.showWindowTitleLabel) as? Bool ?? true

@@ -112,15 +112,7 @@ final class AppCatalogCache {
                 }
             } else {
                 for window in entry.windows {
-                    result.append(SwitcherRow(
-                        app: entry.app,
-                        window: window.ref,
-                        windowTitle: window.title,
-                        isMinimized: window.isMinimized,
-                        isFullscreen: window.isFullscreen,
-                        tabs: window.tabs,
-                        cgWindowID: window.cgWindowID
-                    ))
+                    result.append(SwitcherRow.from(app: entry.app, window: window))
                 }
             }
         }

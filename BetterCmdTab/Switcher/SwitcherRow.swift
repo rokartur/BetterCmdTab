@@ -28,9 +28,15 @@ struct SwitcherRow {
     /// it, avoiding a no-window→hidden flash. `isHidden` is read live, so if the
     /// app hides before then the row already shows the hidden glyph.
     let suppressNoWindowGlyph: Bool
-    /// `AXTabs` children of this row's window, propagated from `WindowInfo`.
-    /// Non-empty only when the window has a tab group with 2+ tabs.
+    /// In-content `AXTabs` of this row's window (rare; most apps don't expose
+    /// it). Drives the AX `\` drill backend for apps that do.
     let tabs: [AXUIElement]
+    /// Native macOS window-tab siblings, when this row is the collapsed front
+    /// tab of a group (Finder/Terminal/TextEdit/…). Each is a real NSWindow;
+    /// the `\` peek lists them and committing one raises that window (selecting
+    /// the tab). Empty for ordinary windows and in "expand tabs as windows" mode
+    /// (each tab is then its own row).
+    let tabWindows: [TabWindowRef]
 
     init(
         app: NSRunningApplication,
@@ -41,6 +47,7 @@ struct SwitcherRow {
         isPlaceholder: Bool = false,
         suppressNoWindowGlyph: Bool = false,
         tabs: [AXUIElement] = [],
+        tabWindows: [TabWindowRef] = [],
         cgWindowID: CGWindowID = 0
     ) {
         self.subject = .running(app)
@@ -52,6 +59,24 @@ struct SwitcherRow {
         self.isPlaceholder = isPlaceholder
         self.suppressNoWindowGlyph = suppressNoWindowGlyph
         self.tabs = tabs
+        self.tabWindows = tabWindows
+    }
+
+    /// Map one enumerated window to its switcher row, carrying its native
+    /// window-tab siblings (if any) for the `\` peek. Expansion to one row per
+    /// tab is decided upstream in `WindowEnumerator` (it emits one `WindowInfo`
+    /// per tab in that mode), so this is always 1:1.
+    static func from(app: NSRunningApplication, window w: WindowInfo) -> SwitcherRow {
+        SwitcherRow(
+            app: app,
+            window: w.ref,
+            windowTitle: w.title,
+            isMinimized: w.isMinimized,
+            isFullscreen: w.isFullscreen,
+            tabs: w.tabs,
+            tabWindows: w.tabWindows,
+            cgWindowID: w.cgWindowID
+        )
     }
 
     /// A not-yet-running app surfaced in search so it can be launched.
@@ -65,6 +90,7 @@ struct SwitcherRow {
         self.isPlaceholder = false
         self.suppressNoWindowGlyph = false
         self.tabs = []
+        self.tabWindows = []
     }
 
     /// A recently closed window/app surfaced in search so it can be reopened.
@@ -78,6 +104,7 @@ struct SwitcherRow {
         self.isPlaceholder = false
         self.suppressNoWindowGlyph = false
         self.tabs = []
+        self.tabWindows = []
     }
 
     /// A copy of this row with an updated window title, used for in-place title
@@ -94,12 +121,14 @@ struct SwitcherRow {
             isPlaceholder: isPlaceholder,
             suppressNoWindowGlyph: suppressNoWindowGlyph,
             tabs: tabs,
+            tabWindows: tabWindows,
             cgWindowID: cgWindowID
         )
     }
 
-    /// True when this row has a tab group worth drilling into.
-    var hasTabs: Bool { tabs.count > 1 }
+    /// True when this row has a tab group worth peeking with `\` — either native
+    /// window-tab siblings or an in-content `AXTabs` group.
+    var hasTabs: Bool { tabWindows.count > 1 || tabs.count > 1 }
 
     /// The backing running application, or `nil` for a launchable/recent row.
     var app: NSRunningApplication? {

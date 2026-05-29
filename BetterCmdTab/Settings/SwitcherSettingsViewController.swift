@@ -20,6 +20,10 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     private let sortOrderPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
 
+    // Tabs
+    private let tabDrillSwitch = NSSwitch()
+    private let expandTabsSwitch = NSSwitch()
+
     // Search
     private let letterHintsSwitch = NSSwitch()
     private let fuzzySwitch = NSSwitch()
@@ -90,6 +94,26 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         addRow(to: contents, title: String(localized: "Recently closed to show"),
                subtitle: String(localized: "How many recently closed items to list."),
                accessory: recentlyClosedLimitPopup, searchItemID: SearchID.recentlyClosedLimit)
+
+        // Tabs section — how windows that use native system tabs (Finder,
+        // Terminal, TextEdit, …) are surfaced. Browsers (Safari/Chromium) can't
+        // expand to rows, but the `\` peek still drills their tabs.
+        let tabs = addSection(title: String(localized: "Tabs"), anchor: SettingsAnchor.tabs)
+        configureSwitch(tabDrillSwitch, action: #selector(toggleTabDrill(_:)))
+        addRow(to: tabs, title: String(localized: "Peek tabs with \\"),
+               subtitle: String(localized: "Press \\ on a window that has tabs to reveal a strip below the switcher and pick a tab. Native tabs use Accessibility; browsers use Apple Events."),
+               accessory: tabDrillSwitch, searchItemID: SearchID.tabDrill)
+        configureSwitch(expandTabsSwitch, action: #selector(toggleExpandTabs(_:)))
+        addRow(to: tabs, title: String(localized: "Show tabs as separate entries"),
+               subtitle: String(localized: "List each tab of a native-tab window (Finder, Terminal, TextEdit, …) as its own row instead of one collapsed window. Off keeps one row per window — peek its tabs with \\."),
+               accessory: expandTabsSwitch, searchItemID: SearchID.expandTabs)
+
+        let grantButton = NSButton(title: String(localized: "Grant permissions…"), target: self, action: #selector(grantBrowserPermissions))
+        grantButton.bezelStyle = .rounded
+        grantButton.controlSize = .small
+        addRow(to: tabs, title: String(localized: "Browser tab access"),
+               subtitle: String(localized: "Browsers need Apple Events consent to list their tabs. Click to prompt for each running browser (Safari, Chrome, Arc, Brave, Edge…). Must be done with this window open."),
+               accessory: grantButton, searchItemID: SearchID.tabPermissions)
 
         // Search section — type-to-filter behavior.
         let search = addSection(title: String(localized: "Search"), anchor: SettingsAnchor.search)
@@ -172,6 +196,8 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         badgesSwitch.state = prefs.showUnreadBadges ? .on : .off
         currentSpaceSwitch.state = prefs.currentSpaceOnly ? .on : .off
         selectSortOrder(prefs.sortOrder)
+        tabDrillSwitch.state = prefs.tabDrillEnabled ? .on : .off
+        expandTabsSwitch.state = prefs.expandTabsAsWindows ? .on : .off
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off
         fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
         launcherSwitch.state = prefs.searchIncludesLaunchableApps ? .on : .off
@@ -231,6 +257,22 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
 
     private func selectSortOrder(_ order: SwitcherSortOrder) {
         if let i = sortOrders.firstIndex(of: order) { sortOrderPopup.selectItem(at: i) }
+    }
+
+    @objc private func toggleTabDrill(_ sender: NSSwitch) {
+        let on = (sender.state == .on)
+        Preferences.shared.tabDrillEnabled = on
+        // Opting in while Settings is foreground is the right moment to ask for
+        // Apple Events consent — TCC needs that UI context to surface the prompt.
+        if on { BrowserTabs.requestPermissionForRunningBrowsers() }
+    }
+
+    @objc private func toggleExpandTabs(_ sender: NSSwitch) {
+        Preferences.shared.expandTabsAsWindows = (sender.state == .on)
+    }
+
+    @objc private func grantBrowserPermissions() {
+        BrowserTabs.requestPermissionForRunningBrowsers()
     }
 
     @objc private func toggleLetterHints(_ sender: NSSwitch) {
