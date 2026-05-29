@@ -68,10 +68,21 @@ extension BetterShortcuts.Name {
     static let windowMaximize = Self("windowMaximize", default: .init(.upArrow, modifiers: [.control, .command]))
     static let windowCenter = Self("windowCenter", default: .init(.downArrow, modifiers: [.control, .command]))
 
+    /// Quarter-screen corner tiles. Defaults are ⌃⌘ + [ ] ; ' — laid out like the
+    /// physical key positions (top row [ ] over bottom row ; ', left over right).
+    static let windowTileTopLeft = Self("windowTileTopLeft", default: .init(.leftBracket, modifiers: [.control, .command]))
+    static let windowTileTopRight = Self("windowTileTopRight", default: .init(.rightBracket, modifiers: [.control, .command]))
+    static let windowTileBottomLeft = Self("windowTileBottomLeft", default: .init(.semicolon, modifiers: [.control, .command]))
+    static let windowTileBottomRight = Self("windowTileBottomRight", default: .init(.quote, modifiers: [.control, .command]))
+
     /// All window-management names, paired with a stable label.
     static let windowMgmt: [(name: Self, title: String)] = [
         (.windowTileLeft, "Tile left half"),
         (.windowTileRight, "Tile right half"),
+        (.windowTileTopLeft, "Tile top-left corner"),
+        (.windowTileTopRight, "Tile top-right corner"),
+        (.windowTileBottomLeft, "Tile bottom-left corner"),
+        (.windowTileBottomRight, "Tile bottom-right corner"),
         (.windowMaximize, "Maximize"),
         (.windowCenter, "Center"),
     ]

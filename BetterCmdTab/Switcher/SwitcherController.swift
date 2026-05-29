@@ -58,6 +58,12 @@ final class SwitcherController: SwitcherViewDelegate {
     /// kept populated for search reordering regardless.
     private var displayLabels: [String] { Preferences.shared.letterHintsEnabled ? labels : [] }
     private var index: Int = 0
+    /// The frontmost app's focused window captured at the instant the switcher
+    /// opens — before the panel is presented, while the user's real app is still
+    /// frontmost. Window-management chords act on THIS ("obecne okno"), not the
+    /// highlighted row and not a live `frontmostApplication` read (which returns
+    /// BetterCmdTab once our key panel is on screen). Cleared on teardown.
+    private var openFocusedWindow: AXUIElement?
     private var revealTimer: Timer?
     private var currentMetrics: SwitcherMetrics = .baseline
     private var letterBuffer: String = ""
@@ -495,27 +501,44 @@ final class SwitcherController: SwitcherViewDelegate {
     /// ⌃⌘← reads as ⌃← inside the panel. Re-derived on launch and on any change.
     private func pushWindowMgmtBindings() {
         var map: [Int: HotkeyTap.Event] = [:]
+        var fullMap: [Int: HotkeyTap.Event] = [:]
         let pairs: [(BetterShortcuts.Name, HotkeyTap.Event)] = [
             (.windowTileLeft, .tileLeft),
             (.windowTileRight, .tileRight),
+            (.windowTileTopLeft, .tileTopLeft),
+            (.windowTileTopRight, .tileTopRight),
+            (.windowTileBottomLeft, .tileBottomLeft),
+            (.windowTileBottomRight, .tileBottomRight),
             (.windowMaximize, .maximizeWindow),
             (.windowCenter, .centerWindow),
         ]
         for (name, event) in pairs {
             guard let shortcut = BetterShortcuts.getShortcut(for: name) else { continue }
-            // `carbonModifiers` is a Carbon bitmask. Pack ⌃/⌥/⇧ into the tap's
-            // chord bits (⌘ excluded — held by the switcher). A chord that's
-            // ⌘-only in-panel (no other modifier) would collide with a bare key,
-            // so skip it.
+            // `carbonModifiers` is a Carbon bitmask.
             let m = shortcut.carbonModifiers
+            let keyCode = Int64(shortcut.carbonKeyCode)
             var bits = 0
             if m & controlKey != 0 { bits |= 1 }
             if m & optionKey != 0 { bits |= 2 }
             if m & shiftKey != 0 { bits |= 4 }
-            guard bits != 0 else { continue }
-            map[HotkeyTap.wmChordKey(keyCode: Int64(shortcut.carbonKeyCode), modBits: bits)] = event
+            // In-switcher map: ⌘ excluded (the switcher holds it). A chord that's
+            // ⌘-only in-panel (no other modifier) would collide with a bare key.
+            if bits != 0 {
+                map[HotkeyTap.wmChordKey(keyCode: keyCode, modBits: bits)] = event
+            }
+            // Global (switcher-closed) map: keep the full chord, ⌘ included.
+            var fullBits = bits
+            if m & cmdKey != 0 { fullBits |= 8 }
+            if fullBits != 0 {
+                fullMap[HotkeyTap.wmFullChordKey(keyCode: keyCode, modBits: fullBits)] = event
+            }
         }
+        // BetterShortcuts is the single source of truth: `getShortcut` resolves
+        // the user binding or the declared default (BetterShortcuts ≥ 0.1.2), so
+        // these maps are always derived here rather than from any hardcoded
+        // chord table in the tap.
         hotkey.setWindowMgmtBindings(map)
+        hotkey.setWindowMgmtGlobalBindings(fullMap)
     }
 
     private func pushHotkeyConfig() {
@@ -883,13 +906,21 @@ final class SwitcherController: SwitcherViewDelegate {
         case .moveWindowDown:
             performMove(.down)
         case .tileLeft:
-            performOnVisibleTarget { Activator.arrangeWindow($0, .tileLeftHalf) }
+            arrangeFrontmost(.tileLeftHalf)
         case .tileRight:
-            performOnVisibleTarget { Activator.arrangeWindow($0, .tileRightHalf) }
+            arrangeFrontmost(.tileRightHalf)
+        case .tileTopLeft:
+            arrangeFrontmost(.tileTopLeft)
+        case .tileTopRight:
+            arrangeFrontmost(.tileTopRight)
+        case .tileBottomLeft:
+            arrangeFrontmost(.tileBottomLeft)
+        case .tileBottomRight:
+            arrangeFrontmost(.tileBottomRight)
         case .maximizeWindow:
-            performOnVisibleTarget { Activator.arrangeWindow($0, .maximize) }
+            arrangeFrontmost(.maximize)
         case .centerWindow:
-            performOnVisibleTarget { Activator.arrangeWindow($0, .center) }
+            arrangeFrontmost(.center)
         case .releaseCmd:
             handleModifierRelease()
         case .commit:
@@ -1170,6 +1201,11 @@ final class SwitcherController: SwitcherViewDelegate {
         guard phase == .primed else { return }
         tabDrillHint = nil
         mru.syncFrontmost()
+        // Capture the user's current window BEFORE `panel.present()` makes our
+        // key panel frontmost — a live read afterwards returns BetterCmdTab and
+        // window-management chords would no-op. This is the window WM acts on
+        // for the whole open session, regardless of which row is highlighted.
+        openFocusedWindow = Activator.frontmostFocusedWindow()
         refreshAuxiliaryIndicators()
 
         if windowsOnlyMode, let pid = windowsOnlyPid {
@@ -1560,6 +1596,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabPrefetchTimer = nil
         resetLetterBuffer()
         resetSearch()
+        openFocusedWindow = nil
         view.releaseIdleResources()
     }
 
@@ -1573,15 +1610,35 @@ final class SwitcherController: SwitcherViewDelegate {
         scheduleVisibleRefresh(after: 0.25)
     }
 
-    /// Move the highlighted window to the adjacent display in `direction`; the
-    /// switcher stays open so the move can be repeated.
-    private func performMove(_ direction: MoveDirection) {
-        guard phase == .visible, rows.indices.contains(index) else { return }
-        let row = rows[index]
-        guard !row.isSystemDialog, row.app != nil, row.window != nil else { return }
+    /// Window-management chords act on the window that was current when the
+    /// switcher opened (`openFocusedWindow`), not the highlighted row. A live
+    /// `frontmostApplication` read can't be used here: once our key panel is on
+    /// screen the system reports BetterCmdTab as frontmost, so the chord would
+    /// no-op. The switcher stays open so chords can be chained.
+    private func arrangeFrontmost(_ arrangement: WindowArrangement) {
+        if phase == .visible {
+            guard let window = openFocusedWindow else { return }
+            Activator.arrange(window: window, arrangement)
+            scheduleVisibleRefresh(after: 0.25)
+        } else {
+            // Switcher closed: the global tap chord delivered this. Act on the
+            // live frontmost window — no panel is up, so it's the user's app.
+            Activator.arrangeFrontmostWindow(arrangement)
+        }
+    }
 
-        Activator.moveWindowToDisplay(row, direction: direction)
-        scheduleVisibleRefresh(after: 0.2)
+    /// Move the current window to the adjacent display in `direction`. While the
+    /// switcher is open this targets the window captured at open and the panel
+    /// stays open so the move can be repeated; closed, it moves the live
+    /// frontmost window.
+    private func performMove(_ direction: MoveDirection) {
+        if phase == .visible {
+            guard let window = openFocusedWindow else { return }
+            Activator.moveToDisplay(window: window, direction: direction)
+            scheduleVisibleRefresh(after: 0.2)
+        } else {
+            Activator.moveFrontmostWindowToDisplay(direction: direction)
+        }
     }
 
     private func performQuitAction() {

@@ -18,6 +18,10 @@ final class HotkeyTap {
         case moveWindowDown
         case tileLeft
         case tileRight
+        case tileTopLeft
+        case tileTopRight
+        case tileBottomLeft
+        case tileBottomRight
         case maximizeWindow
         case centerWindow
         case releaseCmd
@@ -113,23 +117,19 @@ final class HotkeyTap {
     /// in the non-search switching branch before the letter-jump fallback, so a
     /// bound key suppresses letter-jumping (same as the old hardcoded W/M/H/Q).
     /// `.quit` escalates to force-quit when Option is held (preserved behavior).
-    /// Pushed from main via `setPanelKeyBindings`; defaults to W/M/H/Q until set.
+    /// Pushed from main via `setPanelKeyBindings`, derived from BetterShortcuts.
     enum PanelActionKey { case close, minimize, hide, quit }
-    private let panelKeyMap = OSAllocatedUnfairLock<[Int64: PanelActionKey]>(
-        initialState: [13: .close, 46: .minimize, 4: .hide, 12: .quit]
-    )
+    /// Populated entirely from BetterShortcuts at launch via
+    /// `SwitcherController.pushPanelKeyBindings` (and on every shortcut change) —
+    /// BetterShortcuts' `panelClose/Minimize/Hide/Quit` are the single source of
+    /// truth, including their defaults. Empty until the first push (which runs
+    /// synchronously in `start()` before the tap processes any event).
+    private let panelKeyMap = OSAllocatedUnfairLock<[Int64: PanelActionKey]>(initialState: [:])
     /// Rebindable window-management chords (#7): packed chord key (see
     /// `wmChordKey`) → the arrange `Event`. Checked in the switching branch
-    /// before the plain-arrow handling. Pushed from main via
-    /// `setWindowMgmtBindings`; defaults to ⌃+arrow until set.
-    private let windowMgmtMap = OSAllocatedUnfairLock<[Int: Event]>(
-        initialState: [
-            wmChordKey(keyCode: 123, modBits: 1): .tileLeft,   // ⌃←
-            wmChordKey(keyCode: 124, modBits: 1): .tileRight,  // ⌃→
-            wmChordKey(keyCode: 126, modBits: 1): .maximizeWindow, // ⌃↑
-            wmChordKey(keyCode: 125, modBits: 1): .centerWindow,   // ⌃↓
-        ]
-    )
+    /// before the plain-arrow handling. Derived from BetterShortcuts' `window*`
+    /// bindings via `setWindowMgmtBindings`; empty until the launch push.
+    private let windowMgmtMap = OSAllocatedUnfairLock<[Int: Event]>(initialState: [:])
 
     /// Pack a (keyCode, modifier-bits) chord into a single dictionary key.
     /// `modBits`: control = 1, option = 2, shift = 4 (Command excluded — it's the
@@ -137,6 +137,25 @@ final class HotkeyTap {
     static func wmChordKey(keyCode: Int64, modBits: Int) -> Int {
         (Int(keyCode) << 3) | (modBits & 0b111)
     }
+
+    /// GLOBAL window-management chords (#7), used when the switcher is CLOSED.
+    /// Unlike `windowMgmtMap` these keep the FULL modifier set — including
+    /// Command, which is not implicitly held outside the switcher — so a bare
+    /// ⌃← (Mission Control) never triggers a tile. Matched in the tap so the
+    /// arrange fires reliably without depending on a registered global Carbon
+    /// hot key. Derived from the same BetterShortcuts `window*` bindings via
+    /// `setWindowMgmtGlobalBindings`; empty until the launch push.
+    private let windowMgmtFullMap = OSAllocatedUnfairLock<[Int: Event]>(initialState: [:])
+
+    /// Pack a full chord (Command included) into a dictionary key.
+    /// `modBits`: control = 1, option = 2, shift = 4, command = 8.
+    static func wmFullChordKey(keyCode: Int64, modBits: Int) -> Int {
+        (Int(keyCode) << 4) | (modBits & 0b1111)
+    }
+    /// Boot floor for the switcher trigger. `Config` can't be empty, so this
+    /// mirrors BetterShortcuts' `switchApps`/`switchWindows` defaults (⌘Tab/⌘`);
+    /// `SwitcherController.pushHotkeyConfig` overwrites it from BetterShortcuts
+    /// at launch and on every change, so BetterShortcuts stays authoritative.
     private let config = OSAllocatedUnfairLock<Config>(
         initialState: Config(appModifier: .maskCommand, appKey: 48, windowModifier: .maskCommand, windowKey: 50)
     )
@@ -325,6 +344,12 @@ final class HotkeyTap {
         windowMgmtMap.withLock { $0 = map }
     }
 
+    /// Replace the GLOBAL (switcher-closed) full-chord window-management map.
+    /// Pushed from main whenever the bindings change; empty leaves the default.
+    func setWindowMgmtGlobalBindings(_ map: [Int: Event]) {
+        windowMgmtFullMap.withLock { $0 = map }
+    }
+
     private func isSwitchingNow() -> Bool {
         switchingFlag.withLock { $0 }
     }
@@ -502,6 +527,24 @@ final class HotkeyTap {
             if anyModHeld && keyCode == Self.escKey {
                 deliver(.escape)
                 return nil
+            }
+            // GLOBAL window-management chords (switcher CLOSED). Match the full
+            // chord — Command included — and arrange the frontmost window via
+            // the tap, so it works without a registered global Carbon hot key.
+            // The OPEN switcher handles the same physical chord through
+            // `windowMgmtMap` (Command dropped) in the switching branch below,
+            // so this is gated on not-switching to avoid double handling.
+            if !isSwitchingNow() {
+                let cmdHeld = flags.contains(.maskCommand)
+                let fullBits = (controlHeld ? 1 : 0) | (optionHeld ? 2 : 0)
+                    | (shiftHeld ? 4 : 0) | (cmdHeld ? 8 : 0)
+                if fullBits != 0 {
+                    let chord = Self.wmFullChordKey(keyCode: keyCode, modBits: fullBits)
+                    if let wmEvent = windowMgmtFullMap.withLock({ $0[chord] }) {
+                        deliver(wmEvent)
+                        return nil
+                    }
+                }
             }
             // Drill-in trigger — backslash while the switcher is open.
             // Controller no-ops if the highlighted row has no tab group or the

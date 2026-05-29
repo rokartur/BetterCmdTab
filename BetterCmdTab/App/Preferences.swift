@@ -394,6 +394,7 @@ final class Preferences: ObservableObject {
         static let scrollToSwitch = "Switcher.scrollToSwitch"
         static let scrollReverseDirection = "Switcher.scrollReverseDirection"
         static let clickOutsideToDismiss = "Switcher.clickOutsideToDismiss"
+        static let cycleTileWidths = "Switcher.cycleTileWidths"
         static let experimentalInstantSpaceSwitch = "Switcher.experimentalInstantSpaceSwitch"
         static let experimentalTabDrillIn = "Switcher.experimentalTabDrillIn"
         static let showUnreadBadges = "Switcher.showUnreadBadges"
@@ -664,6 +665,16 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != clickOutsideToDismiss else { return }
             UserDefaults.standard.set(clickOutsideToDismiss, forKey: Keys.clickOutsideToDismiss)
+        }
+    }
+
+    /// When on, repeatedly pressing the tile-left / tile-right window-management
+    /// shortcut cycles the window through half → one-third → two-thirds width on
+    /// that side instead of always snapping to half. Default off.
+    @Published var cycleTileWidths: Bool {
+        didSet {
+            guard oldValue != cycleTileWidths else { return }
+            UserDefaults.standard.set(cycleTileWidths, forKey: Keys.cycleTileWidths)
         }
     }
 
@@ -971,6 +982,7 @@ final class Preferences: ObservableObject {
         self.scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
         self.scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         self.clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
+        self.cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         self.experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         self.experimentalTabDrillIn = defaults.object(forKey: Keys.experimentalTabDrillIn) as? Bool ?? false
         // Badges graduated out of the Experimental tab and now default on. Honor
@@ -1051,6 +1063,7 @@ final class Preferences: ObservableObject {
         scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
         scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
+        cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         experimentalTabDrillIn = defaults.object(forKey: Keys.experimentalTabDrillIn) as? Bool ?? false
         showUnreadBadges = defaults.object(forKey: Keys.showUnreadBadges) as? Bool ?? true

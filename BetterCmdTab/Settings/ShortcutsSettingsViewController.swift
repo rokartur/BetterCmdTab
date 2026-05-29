@@ -16,6 +16,9 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     private var scopePopups: [NSPopUpButton] = []
     private let scopeOptions: [SwitchScope] = SwitchScope.allCases
 
+    // Window-management options.
+    private let cycleWidthsSwitch = NSSwitch()
+
     override func setupContent() {
         // Switching section — the core ⌘Tab triggers. The trigger must include a
         // hold modifier (⌘/⌥/⌃); Shift is reserved for stepping backwards and is
@@ -105,24 +108,38 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
 
         // Window management section — tile / maximize / center. These ARE global
         // shortcuts (they work whether the switcher is open or closed); when the
-        // switcher is open they arrange the highlighted window, otherwise the
-        // frontmost app's focused window. Default ⌃⌘ + arrows.
+        // they always arrange the frontmost app's focused window, whether or
+        // not the switcher is open. Default ⌃⌘ + arrows.
         let windowMgmt = addSection(title: "Window management", anchor: SettingsAnchor.windowMgmt)
         addRow(
             to: windowMgmt,
             title: "Arrange the focused window",
-            subtitle: "Tile, maximize, or center the focused window — or the highlighted one while the switcher is open. Works system-wide.",
+            subtitle: "Tile to a half or corner, maximize, or center the frontmost window. Works system-wide.",
             searchItemID: SearchID.windowMgmt
         )
         for (name, title) in BetterShortcuts.Name.windowMgmt {
             addRow(to: windowMgmt, title: title, accessory: BetterShortcuts.RecorderCocoa(for: name))
         }
+        cycleWidthsSwitch.controlSize = .small
+        cycleWidthsSwitch.target = self
+        cycleWidthsSwitch.action = #selector(toggleCycleWidths(_:))
+        addRow(
+            to: windowMgmt,
+            title: "Cycle tile widths",
+            subtitle: "Press Tile left / Tile right again to step the window through ½ → ⅓ → ⅔ of the screen on that side.",
+            accessory: cycleWidthsSwitch
+        )
     }
 
     override func viewWillAppear() {
         super.viewWillAppear()
         refreshDirectSlots()
         refreshScopeSlots()
+        cycleWidthsSwitch.state = Preferences.shared.cycleTileWidths ? .on : .off
+    }
+
+    @objc private func toggleCycleWidths(_ sender: NSSwitch) {
+        Preferences.shared.cycleTileWidths = (sender.state == .on)
     }
 
     // MARK: - Direct activation slots

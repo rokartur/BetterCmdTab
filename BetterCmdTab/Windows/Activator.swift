@@ -7,25 +7,48 @@ enum MoveDirection {
 }
 
 /// Lightweight window arrangement applied to the highlighted window without
-/// leaving the switcher — tile to a screen half, fill the screen, or recenter.
-/// Pure AX frame writes (position + size); no private APIs, no window-manager
-/// entitlements. Computed against the window's current screen `visibleFrame`
-/// so the menu bar / Dock are never covered.
+/// leaving the switcher — tile to a screen half or corner quarter, fill the
+/// screen, or recenter. Pure AX frame writes (position + size); no private
+/// APIs, no window-manager entitlements. Computed against the window's current
+/// screen `visibleFrame` so the menu bar / Dock are never covered.
 enum WindowArrangement {
     case tileLeftHalf
     case tileRightHalf
+    case tileTopLeft
+    case tileTopRight
+    case tileBottomLeft
+    case tileBottomRight
     case maximize
     case center
+
+    /// Side a repeated-press width cycle applies to, or nil if this arrangement
+    /// isn't a left/right half (corners and maximize/center never width-cycle).
+    var cyclingSide: TileSide? {
+        switch self {
+        case .tileLeftHalf: return .left
+        case .tileRightHalf: return .right
+        default: return nil
+        }
+    }
 
     /// Target Cocoa frame for `window` on `screen`, given the window's current
     /// size (used by `.center`, which preserves size). `nil` arguments fall back
     /// to the visible frame. Pure function so it can be unit-tested.
+    /// Cocoa coordinates are bottom-left origin, so "top" corners sit at `midY`.
     static func frame(for arrangement: WindowArrangement, visibleFrame v: CGRect, windowSize: CGSize) -> CGRect {
         switch arrangement {
         case .tileLeftHalf:
             return CGRect(x: v.minX, y: v.minY, width: v.width / 2, height: v.height)
         case .tileRightHalf:
             return CGRect(x: v.midX, y: v.minY, width: v.width / 2, height: v.height)
+        case .tileTopLeft:
+            return CGRect(x: v.minX, y: v.midY, width: v.width / 2, height: v.height / 2)
+        case .tileTopRight:
+            return CGRect(x: v.midX, y: v.midY, width: v.width / 2, height: v.height / 2)
+        case .tileBottomLeft:
+            return CGRect(x: v.minX, y: v.minY, width: v.width / 2, height: v.height / 2)
+        case .tileBottomRight:
+            return CGRect(x: v.midX, y: v.minY, width: v.width / 2, height: v.height / 2)
         case .maximize:
             return v
         case .center:
@@ -34,6 +57,62 @@ enum WindowArrangement {
             let h = min(windowSize.height, v.height)
             return CGRect(x: v.minX + (v.width - w) / 2, y: v.minY + (v.height - h) / 2, width: w, height: h)
         }
+    }
+
+    // MARK: - Repeated-press width cycle (½ → ⅓ → ⅔)
+
+    enum TileSide { case left, right }
+
+    /// Width fractions a left/right tile steps through on repeated presses when
+    /// "cycle tile widths" is on: half → one-third → two-thirds → half…
+    static let widthCycle: [CGFloat] = [1.0 / 2.0, 1.0 / 3.0, 2.0 / 3.0]
+
+    /// Full-height tile flush to `side` at width `fraction` of the visible frame.
+    static func tileFrame(side: TileSide, fraction: CGFloat, visibleFrame v: CGRect) -> CGRect {
+        let w = v.width * fraction
+        let x = side == .left ? v.minX : v.maxX - w
+        return CGRect(x: x, y: v.minY, width: w, height: v.height)
+    }
+
+}
+
+/// Tracks the repeated-press width cycle (½ → ⅓ → ⅔) per window so it advances
+/// reliably on *every* window — including apps that don't honor an exact AX size
+/// write (min/max constraints, character-cell increments, fixed-height panels).
+/// Earlier logic re-derived the position from the window's resulting frame, so a
+/// window that landed even slightly off "full-height flush half" looked untiled
+/// and the cycle reset to ½ on each press. We instead remember the index we last
+/// applied and advance it whenever the same window is tiled to the same side.
+@MainActor
+enum TileCycler {
+    private static var lastWindowId: CGWindowID = 0
+    private static var lastSide: WindowArrangement.TileSide?
+    private static var lastIndex = 0
+
+    /// Clear cycle state so the next tile press restarts at ½. Called when a
+    /// non-cycling arrangement (maximize / center / a corner) intervenes — so
+    /// tile-left → maximize → tile-left restarts at ½ rather than resuming a
+    /// stale index — and used as a test seam.
+    static func reset() {
+        lastWindowId = 0
+        lastSide = nil
+        lastIndex = 0
+    }
+
+    /// Width fraction to apply for tiling `windowId` to `side`. Re-tiling the same
+    /// window to the same side steps through `WindowArrangement.widthCycle`; a
+    /// different window, a different side, or the first press starts at ½.
+    /// `windowId == 0` means the window id couldn't be resolved (see
+    /// `PrivateAPI.cgWindowId`); treat it as non-continuable so two distinct
+    /// unidentifiable windows never inherit each other's cycle position.
+    static func nextFraction(windowId: CGWindowID, side: WindowArrangement.TileSide) -> CGFloat {
+        let cycle = WindowArrangement.widthCycle
+        let continuing = windowId != 0 && side == lastSide && windowId == lastWindowId
+        let index = continuing ? (lastIndex + 1) % cycle.count : 0
+        lastWindowId = windowId
+        lastSide = side
+        lastIndex = index
+        return cycle[index]
     }
 }
 
@@ -426,50 +505,55 @@ enum Activator {
 
     // MARK: - Move window between displays / Spaces
 
-    /// Move the row's window to the adjacent display in `direction`, preserving
-    /// its relative position within the screen and clamping it to fit. Uses the
-    /// stable Accessibility position API — no private symbols.
-    static func moveWindowToDisplay(_ row: SwitcherRow, direction: MoveDirection) {
-        guard let window = row.window, let _ = row.app else { return }
-        // Run on main regardless of target pid: `repositionToAdjacentDisplay`
-        // reads `NSScreen.screens`, which Apple documents as main-thread only.
-        // Under macOS Tahoe (26) off-main `NSScreen.screens` access triggers
-        // an `NSInternalInconsistencyException` (layout engine modified from a
-        // background thread) the next time AppKit lays out — sometimes
-        // immediately, sometimes on a later reveal. The AX position write is
-        // cheap (microseconds) so keeping the whole call on main has no
-        // latency cost worth chasing.
-        DispatchQueue.main.async {
-            Self.repositionToAdjacentDisplay(window: window, direction: direction)
-        }
-    }
-
-    /// Arrange the row's window on its current screen (tile half / maximize /
-    /// center). Runs on main for the same `NSScreen.screens` main-thread reason
-    /// as `moveWindowToDisplay`. The AX position+size writes are cheap.
-    static func arrangeWindow(_ row: SwitcherRow, _ arrangement: WindowArrangement) {
-        guard let window = row.window, row.app != nil else { return }
-        DispatchQueue.main.async {
-            Self.applyArrangement(window: window, arrangement: arrangement)
-        }
-    }
-
-    /// Arrange the frontmost app's focused window on its current screen. Backs
-    /// the global window-management hotkeys (#7) when the switcher is closed.
-    /// No-op if there's no frontmost app, it's us, or it has no focused window.
-    static func arrangeFrontmostWindow(_ arrangement: WindowArrangement) {
+    /// Resolve the focused window of the system's frontmost app. The switcher
+    /// panel is a non-activating `NSPanel`, so this still returns the user's
+    /// real window while the switcher is open — window-management chords act on
+    /// the *current* window, not the highlighted switcher row.
+    /// Nil if there's no frontmost app, it's us, or it has no focused window.
+    static func frontmostFocusedWindow() -> AXUIElement? {
         guard let app = NSWorkspace.shared.frontmostApplication,
-              app.processIdentifier != getpid() else { return }
+              app.processIdentifier != getpid() else { return nil }
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
         AXUIElementSetMessagingTimeout(axApp, 0.25)
         var focused: CFTypeRef?
         guard AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &focused) == .success,
               let windowValue = focused,
-              CFGetTypeID(windowValue) == AXUIElementGetTypeID() else { return }
-        let window = windowValue as! AXUIElement
+              CFGetTypeID(windowValue) == AXUIElementGetTypeID() else { return nil }
+        return (windowValue as! AXUIElement)
+    }
+
+    /// Arrange an explicit window on its current screen. Used by the switcher
+    /// for the window it captured at open time (see `openFocusedWindow`).
+    /// Always on main: `applyArrangement` reads `NSScreen.screens` (documented
+    /// main-thread only — off-main access throws `NSInternalInconsistencyException`
+    /// on macOS Tahoe) and the MainActor cycle/pref state. The AX writes are cheap.
+    static func arrange(window: AXUIElement, _ arrangement: WindowArrangement) {
         DispatchQueue.main.async {
             Self.applyArrangement(window: window, arrangement: arrangement)
         }
+    }
+
+    /// Move an explicit window to the adjacent display in `direction`. On main for
+    /// the same `NSScreen.screens` main-thread reason as `arrange(window:)`.
+    static func moveToDisplay(window: AXUIElement, direction: MoveDirection) {
+        DispatchQueue.main.async {
+            Self.repositionToAdjacentDisplay(window: window, direction: direction)
+        }
+    }
+
+    /// Arrange the frontmost app's focused window on its current screen. Backs
+    /// the global window-management hotkeys (#7) when the switcher is closed —
+    /// here a live `frontmostApplication` read is correct because no panel is up.
+    static func arrangeFrontmostWindow(_ arrangement: WindowArrangement) {
+        guard let window = frontmostFocusedWindow() else { return }
+        arrange(window: window, arrangement)
+    }
+
+    /// Move the frontmost app's focused window to the adjacent display. Global
+    /// (switcher-closed) counterpart of `moveToDisplay(window:direction:)`.
+    static func moveFrontmostWindowToDisplay(direction: MoveDirection) {
+        guard let window = frontmostFocusedWindow() else { return }
+        moveToDisplay(window: window, direction: direction)
     }
 
     private static func applyArrangement(window: AXUIElement, arrangement: WindowArrangement) {
@@ -494,7 +578,26 @@ enum Activator {
             height: axSize.height
         )
         guard let screen = screenContaining(rect: cocoaRect) else { return }
-        let target = WindowArrangement.frame(for: arrangement, visibleFrame: screen.visibleFrame, windowSize: axSize)
+        let v = screen.visibleFrame
+        // Left/right halves width-cycle (½→⅓→⅔) on repeated presses when the
+        // user enabled it; corners/maximize/center always use their fixed frame.
+        // `applyArrangement` only runs inside `DispatchQueue.main.async`, so the
+        // MainActor reads (pref + cycle state) are safe via `assumeIsolated`. The
+        // cycle is tracked by window id, not re-derived from the resulting frame,
+        // so it advances even on apps that don't honor an exact size write.
+        let target: CGRect
+        if let side = arrangement.cyclingSide,
+           MainActor.assumeIsolated({ Preferences.shared.cycleTileWidths }) {
+            let wid = PrivateAPI.cgWindowId(of: window)
+            let fraction = MainActor.assumeIsolated { TileCycler.nextFraction(windowId: wid, side: side) }
+            target = WindowArrangement.tileFrame(side: side, fraction: fraction, visibleFrame: v)
+        } else {
+            // A non-cycling arrangement (corner / maximize / center) breaks the
+            // tile cycle, so the next tile-left/right restarts at ½ rather than
+            // resuming a stale index.
+            MainActor.assumeIsolated { TileCycler.reset() }
+            target = WindowArrangement.frame(for: arrangement, visibleFrame: v, windowSize: axSize)
+        }
 
         // Order: size first, then position. Some apps clamp position against the
         // *old* size; setting size first lets the position land correctly.
