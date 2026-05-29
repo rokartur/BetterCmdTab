@@ -511,9 +511,19 @@ enum Activator {
     /// the *current* window, not the highlighted switcher row.
     /// Nil if there's no frontmost app, it's us, or it has no focused window.
     static func frontmostFocusedWindow() -> AXUIElement? {
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              app.processIdentifier != getpid() else { return nil }
-        let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        return focusedWindow(pid: app.processIdentifier)
+    }
+
+    /// Focused window of `pid` via AX. A short messaging timeout keeps a wedged
+    /// app from stalling the caller. Safe to call off the main thread: the AX
+    /// request is serviced in the target process and only the (thread-safe)
+    /// AXUIElement crosses back — so the switcher can resolve it during the
+    /// primed phase without blocking the reveal critical path. Nil for self, an
+    /// invalid pid, or no focused window.
+    static func focusedWindow(pid: pid_t) -> AXUIElement? {
+        guard pid > 0, pid != getpid() else { return nil }
+        let axApp = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(axApp, 0.25)
         var focused: CFTypeRef?
         guard AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &focused) == .success,

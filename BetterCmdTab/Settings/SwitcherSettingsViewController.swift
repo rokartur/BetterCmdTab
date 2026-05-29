@@ -26,6 +26,8 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
 
     // Search
     private let letterHintsSwitch = NSSwitch()
+    private let letterTimeoutSlider = NSSlider()
+    private let letterTimeoutValueLabel = NSTextField(labelWithString: "")
     private let fuzzySwitch = NSSwitch()
     private let launcherSwitch = NSSwitch()
     private let searchModePopup = NSPopUpButton(frame: .zero, pullsDown: false)
@@ -121,6 +123,31 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         addRow(to: search, title: String(localized: "Letter hints"),
                subtitle: String(localized: "Show a letter on each window and jump to it by typing that letter."),
                accessory: letterHintsSwitch, searchItemID: SearchID.letterHints)
+
+        letterTimeoutSlider.minValue = Double(Preferences.letterChainTimeoutRange.lowerBound)
+        letterTimeoutSlider.maxValue = Double(Preferences.letterChainTimeoutRange.upperBound)
+        letterTimeoutSlider.isContinuous = true
+        letterTimeoutSlider.controlSize = .small
+        letterTimeoutSlider.target = self
+        letterTimeoutSlider.action = #selector(letterTimeoutChanged(_:))
+        letterTimeoutSlider.translatesAutoresizingMaskIntoConstraints = false
+        letterTimeoutValueLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        letterTimeoutValueLabel.textColor = .secondaryLabelColor
+        letterTimeoutValueLabel.alignment = .right
+        letterTimeoutValueLabel.translatesAutoresizingMaskIntoConstraints = false
+        letterTimeoutValueLabel.setContentHuggingPriority(.required, for: .horizontal)
+        let letterTimeoutStack = NSStackView(views: [letterTimeoutSlider, letterTimeoutValueLabel])
+        letterTimeoutStack.orientation = .horizontal
+        letterTimeoutStack.spacing = 8
+        letterTimeoutStack.alignment = .centerY
+        NSLayoutConstraint.activate([
+            letterTimeoutSlider.widthAnchor.constraint(equalToConstant: 140),
+            letterTimeoutValueLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 52),
+        ])
+        addRow(to: search, title: String(localized: "Letter chain timeout"),
+               subtitle: String(localized: "How long a typed letter sequence stays active. When it expires, the highlight clears and the list returns to its original order."),
+               accessory: letterTimeoutStack, searchItemID: SearchID.letterChainTimeout)
+
         configureSwitch(fuzzySwitch, action: #selector(toggleFuzzy(_:)))
         addRow(to: search, title: String(localized: "Type-to-filter search"),
                subtitle: String(localized: "Press / in the switcher to filter by app or window name."),
@@ -199,6 +226,8 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         tabDrillSwitch.state = prefs.tabDrillEnabled ? .on : .off
         expandTabsSwitch.state = prefs.expandTabsAsWindows ? .on : .off
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off
+        applyLetterTimeout(prefs.letterChainTimeoutMs)
+        letterTimeoutSlider.isEnabled = prefs.letterHintsEnabled
         fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
         launcherSwitch.state = prefs.searchIncludesLaunchableApps ? .on : .off
         recentlyClosedSwitch.state = prefs.showRecentlyClosed ? .on : .off
@@ -221,6 +250,12 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         prefs.$searchDismissMode
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.selectSearchMode($0) }
+            .store(in: &cancellables)
+        // Keep the slider in sync if the value changes underneath us (e.g. a
+        // settings import calls reloadFromDefaults while this pane is open).
+        prefs.$letterChainTimeoutMs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.applyLetterTimeout($0) }
             .store(in: &cancellables)
     }
 
@@ -276,7 +311,21 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func toggleLetterHints(_ sender: NSSwitch) {
-        Preferences.shared.letterHintsEnabled = (sender.state == .on)
+        let on = (sender.state == .on)
+        Preferences.shared.letterHintsEnabled = on
+        // The chain timeout only matters while letter-jump is on (typing a letter
+        // is a no-op otherwise), so gray it out to match.
+        letterTimeoutSlider.isEnabled = on
+    }
+
+    @objc private func letterTimeoutChanged(_ sender: NSSlider) {
+        Preferences.shared.letterChainTimeoutMs = sender.integerValue
+        applyLetterTimeout(sender.integerValue)
+    }
+
+    private func applyLetterTimeout(_ ms: Int) {
+        if Int(letterTimeoutSlider.intValue) != ms { letterTimeoutSlider.integerValue = ms }
+        letterTimeoutValueLabel.stringValue = String(format: "%.1f s", Double(ms) / 1000.0)
     }
 
     @objc private func toggleFuzzy(_ sender: NSSwitch) {

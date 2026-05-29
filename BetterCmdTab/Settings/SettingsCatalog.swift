@@ -88,6 +88,7 @@ enum SearchID {
     static let fuzzy = "switcher.fuzzy"
     static let launcher = "switcher.launcher"
     static let searchMode = "switcher.searchMode"
+    static let letterChainTimeout = "switcher.letterChainTimeout"
     static let scroll = "switcher.scroll"
     static let scrollReverse = "switcher.scrollReverse"
     static let clickDismiss = "switcher.clickDismiss"
@@ -268,6 +269,8 @@ enum SettingsCatalog {
         // Switcher · Search
         item(SearchID.letterHints, .switcher, SettingsAnchor.search, "Switcher", "Search",
              String(localized: "Letter hints"), ["letter hints", "jump", "vim"]),
+        item(SearchID.letterChainTimeout, .switcher, SettingsAnchor.search, "Switcher", "Search",
+             String(localized: "Letter chain timeout"), ["letter", "chain", "timeout", "reset", "jump", "delay", "prefix", "sequence", "expire"]),
         item(SearchID.fuzzy, .switcher, SettingsAnchor.search, "Switcher", "Search",
              String(localized: "Type-to-filter search"), ["search", "filter", "fuzzy", "type"]),
         item(SearchID.launcher, .switcher, SettingsAnchor.search, "Switcher", "Search",

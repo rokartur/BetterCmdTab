@@ -341,6 +341,11 @@ final class Preferences: ObservableObject {
     static let defaultRevealDelayMs = 100
     static let revealDelayRange: ClosedRange<Int> = 40...500
 
+    /// How long a partial letter-jump prefix survives before it expires and the
+    /// switcher returns to its pre-typing order. Default 1000ms.
+    static let defaultLetterChainTimeoutMs = 1000
+    static let letterChainTimeoutRange: ClosedRange<Int> = 200...3000
+
     static let defaultSwipeSensitivity = 5
     static let swipeSensitivityRange: ClosedRange<Int> = 1...10
 
@@ -366,6 +371,7 @@ final class Preferences: ObservableObject {
         static let switcherLayoutMode = "Switcher.layoutMode"
         static let sortOrder = "Switcher.sortOrder"
         static let revealDelayMs = "Switcher.revealDelayMs"
+        static let letterChainTimeoutMs = "Switcher.letterChainTimeoutMs"
         static let panelSize = "Switcher.panelSize"
         static let gridMaxColumns = "Switcher.gridMaxColumns"
         static let appExceptions = "Switcher.appExceptions"
@@ -454,6 +460,22 @@ final class Preferences: ObservableObject {
             }
             guard oldValue != revealDelayMs else { return }
             UserDefaults.standard.set(revealDelayMs, forKey: Keys.revealDelayMs)
+        }
+    }
+
+    /// How long a typed letter-jump prefix stays active before it expires. On
+    /// expiry the switcher drops the prefix, clears the highlight, and restores
+    /// the order rows had before typing. Read live so a change applies to the
+    /// next keystroke without restart.
+    @Published var letterChainTimeoutMs: Int {
+        didSet {
+            let clamped = Self.clampLetterChainTimeout(letterChainTimeoutMs)
+            if clamped != letterChainTimeoutMs {
+                letterChainTimeoutMs = clamped
+                return
+            }
+            guard oldValue != letterChainTimeoutMs else { return }
+            UserDefaults.standard.set(letterChainTimeoutMs, forKey: Keys.letterChainTimeoutMs)
         }
     }
 
@@ -906,6 +928,10 @@ final class Preferences: ObservableObject {
         min(revealDelayRange.upperBound, max(revealDelayRange.lowerBound, value))
     }
 
+    static func clampLetterChainTimeout(_ value: Int) -> Int {
+        min(letterChainTimeoutRange.upperBound, max(letterChainTimeoutRange.lowerBound, value))
+    }
+
     static func clampSwipeSensitivity(_ value: Int) -> Int {
         min(swipeSensitivityRange.upperBound, max(swipeSensitivityRange.lowerBound, value))
     }
@@ -950,6 +976,9 @@ final class Preferences: ObservableObject {
 
         let delay = defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs
         self.revealDelayMs = Self.clampDelay(delay)
+
+        let letterTimeout = defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs
+        self.letterChainTimeoutMs = Self.clampLetterChainTimeout(letterTimeout)
 
         let sizeRaw = defaults.string(forKey: Keys.panelSize)
         self.panelSize = sizeRaw.flatMap(PanelSize.init(rawValue:)) ?? .standard
@@ -1053,6 +1082,7 @@ final class Preferences: ObservableObject {
         switcherLayoutMode = defaults.string(forKey: Keys.switcherLayoutMode).flatMap(SwitcherLayoutMode.init(rawValue:)) ?? .gridView
         sortOrder = defaults.string(forKey: Keys.sortOrder).flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
         revealDelayMs = Self.clampDelay(defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs)
+        letterChainTimeoutMs = Self.clampLetterChainTimeout(defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs)
         panelSize = defaults.string(forKey: Keys.panelSize).flatMap(PanelSize.init(rawValue:)) ?? .standard
         gridMaxColumns = defaults.object(forKey: Keys.gridMaxColumns) as? Int ?? 0
 

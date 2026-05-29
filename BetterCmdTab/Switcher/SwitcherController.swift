@@ -155,6 +155,18 @@ final class SwitcherController: SwitcherViewDelegate {
     /// effect on the next chord without restart.
     var revealDelay: TimeInterval { Double(Preferences.shared.revealDelayMs) / 1000.0 }
 
+    /// How long a typed letter-jump prefix survives before it expires. Read live
+    /// so a settings change takes effect on the next keystroke without restart.
+    var letterChainTimeout: TimeInterval { Double(Preferences.shared.letterChainTimeoutMs) / 1000.0 }
+
+    /// Frontmost app's focused window, resolved off-main during the primed phase
+    /// (overlapping the reveal delay) so `reveal()` doesn't block its critical
+    /// path on the synchronous AX read. Consumed and cleared by `reveal()`.
+    private var prefetchedFocusedWindow: AXUIElement?
+    /// Token bumped per primed chord so a stale off-main focused-window capture
+    /// from an earlier chord can't land on a newer one.
+    private var focusedWindowCaptureGen: UInt64 = 0
+
     init() {
         view = SwitcherView(frame: .zero)
         panel.contentView = view
@@ -1045,9 +1057,13 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func scheduleLetterBufferReset() {
         letterBufferTimer?.invalidate()
-        let timer = Timer(timeInterval: 1.0, repeats: false) { [weak self] _ in
+        let timer = Timer(timeInterval: letterChainTimeout, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.letterBuffer = ""
+                // Timeout elapsed: drop the prefix AND restore the pre-typing
+                // display — `resetLetterBuffer` clears the buffer and refreshes,
+                // so the highlight disappears and the rows return to the order
+                // they had before the letters were typed.
+                self?.resetLetterBuffer()
             }
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -1215,6 +1231,10 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func schedulePrimedReveal() {
         phase = .primed
+        // Resolve the user's current window off-main now, while we wait out the
+        // tap-vs-hold delay, so reveal() doesn't stall its critical path on a
+        // synchronous AX read (up to 0.25s when the frontmost app is busy).
+        prefetchOpenFocusedWindow()
         revealTimer?.invalidate()
         let timer = Timer(timeInterval: revealDelay, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -1225,6 +1245,36 @@ final class SwitcherController: SwitcherViewDelegate {
         revealTimer = timer
     }
 
+    /// Resolve the frontmost app's focused window off the main thread during the
+    /// primed phase so the work overlaps the reveal delay instead of stalling
+    /// `reveal()`. `openFocusedWindow` is what window-management chords act on
+    /// for the whole open session; the frontmost pid is captured now (cheap, on
+    /// main, while the user's app is still frontmost) and the blocking AX read
+    /// runs off-main. `reveal()` consumes the result, or falls back to a
+    /// synchronous read if this hasn't landed yet (e.g. an immediate reveal that
+    /// skips the primed timer).
+    private func prefetchOpenFocusedWindow() {
+        prefetchedFocusedWindow = nil
+        let selfPid = getpid()
+        guard let front = NSWorkspace.shared.frontmostApplication,
+              front.processIdentifier != selfPid else { return }
+        let pid = front.processIdentifier
+        focusedWindowCaptureGen &+= 1
+        let gen = focusedWindowCaptureGen
+        DispatchQueue.global(qos: .userInteractive).async {
+            let window = Activator.focusedWindow(pid: pid)
+            DispatchQueue.main.async { [weak self] in
+                // `.primed` only: reveal() consumes + nils this and flips to
+                // `.visible`, so a landing after reveal (or after a cancel to
+                // `.idle`) is unwanted and must be dropped — otherwise it would
+                // re-arm a stale capture that a later gesture/scoped open (which
+                // skip the primed prefetch) would adopt.
+                guard let self, gen == self.focusedWindowCaptureGen, self.phase == .primed else { return }
+                self.prefetchedFocusedWindow = window
+            }
+        }
+    }
+
     private func reveal() {
         guard phase == .primed else { return }
         tabDrillHint = nil
@@ -1233,7 +1283,12 @@ final class SwitcherController: SwitcherViewDelegate {
         // key panel frontmost — a live read afterwards returns BetterCmdTab and
         // window-management chords would no-op. This is the window WM acts on
         // for the whole open session, regardless of which row is highlighted.
-        openFocusedWindow = Activator.frontmostFocusedWindow()
+        // Prefer the window `prefetchOpenFocusedWindow()` resolved off-main during
+        // the primed delay; fall back to a synchronous AX read only when that
+        // hasn't landed (e.g. gesture/scoped opens that skip the primed timer).
+        // Either way `openFocusedWindow` is assigned fresh on every reveal.
+        openFocusedWindow = prefetchedFocusedWindow ?? Activator.frontmostFocusedWindow()
+        prefetchedFocusedWindow = nil
         refreshAuxiliaryIndicators()
 
         if windowsOnlyMode, let pid = windowsOnlyPid {
@@ -1590,6 +1645,10 @@ final class SwitcherController: SwitcherViewDelegate {
         windowsOnlyPid = nil
         windowsOnlyPrimedDelta = 0
         closedTombstones.removeAll()
+        // Drop any focused-window prefetch so it can't survive into the next
+        // session and be adopted by a gesture/scoped open that skips the primed
+        // prefetch (those call reveal() directly).
+        prefetchedFocusedWindow = nil
         resetLetterBuffer()
         resetSearch()
         view.releaseIdleResources()
@@ -1625,6 +1684,7 @@ final class SwitcherController: SwitcherViewDelegate {
         resetLetterBuffer()
         resetSearch()
         openFocusedWindow = nil
+        prefetchedFocusedWindow = nil
         view.releaseIdleResources()
     }
 
