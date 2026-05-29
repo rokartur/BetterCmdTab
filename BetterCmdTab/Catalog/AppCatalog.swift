@@ -98,7 +98,8 @@ enum AppCatalog {
                         windowTitle: win.title,
                         isMinimized: win.isMinimized,
                         isFullscreen: win.isFullscreen,
-                        tabs: win.tabs
+                        tabs: win.tabs,
+                        cgWindowID: win.cgWindowID
                     ))
                 }
             }

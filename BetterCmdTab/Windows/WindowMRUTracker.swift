@@ -76,7 +76,9 @@ final class WindowMRUTracker {
         // Resolve each row's CGWindowID once; reused for both the dead-id prune
         // and the rank lookup below.
         let rowWids = rows.enumerated().map { offset, row -> (wid: CGWindowID, offset: Int, row: SwitcherRow) in
-            let wid = row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
+            // Prefer the id resolved during the window scan; only fall back to a
+            // live `_AXUIElementGetWindow` for rows that lack one.
+            let wid = row.cgWindowID != 0 ? row.cgWindowID : (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0)
             return (wid, offset, row)
         }
 

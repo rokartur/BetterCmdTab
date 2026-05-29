@@ -4,6 +4,10 @@ import CoreGraphics
 
 struct WindowInfo {
     let ref: AXUIElement
+    /// WindowServer id of this window, resolved once during the scan. The stable
+    /// identity across AX element churn — used for z-order ranking, MRU, and
+    /// matching a window across refreshes without re-querying `_AXUIElementGetWindow`.
+    let cgWindowID: CGWindowID
     let title: String
     let isMinimized: Bool
     let isFullscreen: Bool
@@ -14,12 +18,14 @@ struct WindowInfo {
 
     init(
         ref: AXUIElement,
+        cgWindowID: CGWindowID = 0,
         title: String,
         isMinimized: Bool,
         isFullscreen: Bool = false,
         tabs: [AXUIElement] = []
     ) {
         self.ref = ref
+        self.cgWindowID = cgWindowID
         self.title = title
         self.isMinimized = isMinimized
         self.isFullscreen = isFullscreen
@@ -116,6 +122,9 @@ enum WindowEnumerator {
         var elements: [AXUIElement] = []
         var seenByElement = Set<AXRef>()
         var seenByWid = Set<CGWindowID>()
+        // Remember each accepted element's WindowServer id so the build pass can
+        // stamp `WindowInfo.cgWindowID` without a second `_AXUIElementGetWindow`.
+        var widByElement: [AXRef: CGWindowID] = [:]
 
         func appendIfNew(_ e: AXUIElement) {
             let ref = AXRef(element: e)
@@ -136,6 +145,7 @@ enum WindowEnumerator {
             if seenByWid.contains(wid) { return }
             seenByWid.insert(wid)
             seenByElement.insert(ref)
+            widByElement[ref] = wid
             elements.append(e)
         }
 
@@ -148,9 +158,16 @@ enum WindowEnumerator {
         // Skip brute-force AX scan when the CG window list says AX already has
         // every on-screen window covered. Apps with no CG-AX gap (the common
         // case) pay zero brute-scan cost.
+        // An empty CG hint means WindowServer reported no qualifying on-screen
+        // windows for this pid (the snapshot uses `.optionAll`, so fullscreen and
+        // other-Space windows are already covered). The brute-force token scan
+        // would only rediscover windows that have a CGWindowID, so there is
+        // nothing for it to find — skip it instead of probing 1024 ids for
+        // nothing. Brute-scan stays gated to the real case: a CG hint the AX
+        // window list didn't fully cover.
         let needBruteScan: Bool
         if expectedCGWindowIDs.isEmpty {
-            needBruteScan = isRegularApp
+            needBruteScan = false
         } else {
             needBruteScan = isRegularApp && !expectedCGWindowIDs.isSubset(of: seenByWid)
         }
@@ -235,6 +252,7 @@ enum WindowEnumerator {
         // iteration order.
         struct RawWindow {
             let element: AXUIElement
+            let cgWindowID: CGWindowID
             let tabs: [AXUIElement]?
             let minimized: Bool
             let fullscreen: Bool
@@ -266,6 +284,7 @@ enum WindowEnumerator {
 
             raws.append(RawWindow(
                 element: window,
+                cgWindowID: widByElement[AXRef(element: window)] ?? 0,
                 tabs: tabs,
                 minimized: minimized,
                 fullscreen: fullscreen,
@@ -305,6 +324,7 @@ enum WindowEnumerator {
 
             infos.append(WindowInfo(
                 ref: raw.element,
+                cgWindowID: raw.cgWindowID,
                 title: raw.title,
                 isMinimized: raw.minimized,
                 isFullscreen: raw.fullscreen,
@@ -345,7 +365,7 @@ enum WindowEnumerator {
         for (i, wid) in cgZOrder.enumerated() { rank[wid] = i }
 
         let indexed = infos.enumerated().map { (offset, info) -> (rank: Int, fallback: Int, info: WindowInfo) in
-            let wid = PrivateAPI.cgWindowId(of: info.ref)
+            let wid = info.cgWindowID
             let r = (wid != 0 ? rank[wid] : nil) ?? Int.max
             return (r, offset, info)
         }
