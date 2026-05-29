@@ -137,8 +137,27 @@ final class SwitcherPanel: NSPanel {
         content.isHidden = false
         alphaValue = CGFloat(Preferences.shared.panelOpacity) / 100
         makeKeyAndOrderFront(nil)
+        // Activate the app while the switcher is shown. `NSGlassEffectView`'s
+        // active/inactive look is decided window-server-side from the owning app's
+        // real activation state — the in-process `appearsActive` override can't
+        // reach it — so a non-activating accessory app's glass renders dimmed
+        // unless we actually become active. The controller captured the previously
+        // frontmost app first and restores it on cancel.
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
         CATransaction.commit()
         onFrameDidChange?(Self.cgGlobalFrame(from: frame))
+        // A non-activating panel isn't always granted key on the first
+        // `makeKeyAndOrderFront` if another app is mid-activation when the switcher
+        // opens; re-key on the next runloop (same approach as `resignKey`) so the
+        // panel always holds key while it's on screen.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.isVisible, !self.isKeyWindow else { return }
+            self.makeKeyAndOrderFront(nil)
+        }
     }
 
     /// Hide the panel. `NSGlassEffectView` / `NSVisualEffectView` is a

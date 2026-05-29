@@ -246,7 +246,12 @@ final class SwitcherView: NSView, TabStripDelegate {
     /// glass backdrop has no material knob, so it's left untouched there.
     private func applyBackdropMaterial() {
         if #available(macOS 26.0, *), glassBackdrop is NSGlassEffectView { return }
-        (glassBackdrop as? NSVisualEffectView)?.material = Preferences.shared.backdropMaterial.material
+        guard let effect = glassBackdrop as? NSVisualEffectView else { return }
+        effect.material = Preferences.shared.backdropMaterial.material
+        // Pin to `.active` on every reveal: the switcher must always read as
+        // active/focused, never follow the (non-activating) panel's key state and
+        // dim. Idempotent — cheap to re-assert alongside the material.
+        effect.state = .active
     }
 
     var columnCount: Int {

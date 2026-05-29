@@ -64,6 +64,14 @@ final class SwitcherController: SwitcherViewDelegate {
     /// highlighted row and not a live `frontmostApplication` read (which returns
     /// BetterCmdTab once our key panel is on screen). Cleared on teardown.
     private var openFocusedWindow: AXUIElement?
+    /// The app that was frontmost when the switcher opened. On open we activate
+    /// BetterCmdTab so the WindowServer renders the Liquid Glass backdrop as
+    /// active (an `.accessory`/non-activating app's in-process `appearsActive`
+    /// override can't reach the server-side glass). Restored on `cancel()` so
+    /// dismissing without picking anything leaves the user exactly where they
+    /// were; `commit()`/`commitTab()` clear it because they activate a target
+    /// instead. Nil when the previous app was us (Settings window) or unknown.
+    private var previousFrontmostApp: NSRunningApplication?
     private var revealTimer: Timer?
     private var currentMetrics: SwitcherMetrics = .baseline
     private var letterBuffer: String = ""
@@ -1286,6 +1294,11 @@ final class SwitcherController: SwitcherViewDelegate {
         guard phase == .primed else { return }
         tabDrillHint = nil
         mru.syncFrontmost()
+        // Remember who was frontmost so `cancel()` can restore them — captured
+        // before `panel.present()` activates us (which it does so the server
+        // renders the glass backdrop active). Ignore us as the "previous" app.
+        let front = NSWorkspace.shared.frontmostApplication
+        previousFrontmostApp = (front?.processIdentifier == getpid()) ? nil : front
         // Capture the user's current window BEFORE `panel.present()` makes our
         // key panel frontmost — a live read afterwards returns BetterCmdTab and
         // window-management chords would no-op. This is the window WM acts on
@@ -1656,6 +1669,9 @@ final class SwitcherController: SwitcherViewDelegate {
         // session and be adopted by a gesture/scoped open that skips the primed
         // prefetch (those call reveal() directly).
         prefetchedFocusedWindow = nil
+        // We picked a target — `pendingActivation` activates it, so there's
+        // nothing to restore. Drop the captured previous app.
+        previousFrontmostApp = nil
         resetLetterBuffer()
         resetSearch()
         view.releaseIdleResources()
@@ -1694,6 +1710,25 @@ final class SwitcherController: SwitcherViewDelegate {
         openFocusedWindow = nil
         prefetchedFocusedWindow = nil
         view.releaseIdleResources()
+        // Dismissing without picking: undo the self-activation `present()` did for
+        // the glass backdrop and put the user back in the app they came from.
+        restorePreviousFrontmostApp()
+    }
+
+    /// Re-activate whatever app was frontmost when the switcher opened (captured
+    /// in `reveal()`), undoing `present()`'s self-activation. No-op if there was
+    /// none or it has since quit.
+    private func restorePreviousFrontmostApp() {
+        guard let app = previousFrontmostApp, !app.isTerminated else {
+            previousFrontmostApp = nil
+            return
+        }
+        previousFrontmostApp = nil
+        if #available(macOS 14.0, *) {
+            _ = app.activate(from: .current, options: [])
+        } else {
+            app.activate(options: [.activateIgnoringOtherApps])
+        }
     }
 
     private func performOnVisibleTarget(_ action: (SwitcherRow) -> Void) {
@@ -2009,6 +2044,8 @@ final class SwitcherController: SwitcherViewDelegate {
         phase = .idle
         cache.setPanelVisible(false)
         panel.dismiss()
+        // Activating the chosen tab's app below; nothing to restore.
+        previousFrontmostApp = nil
         tabDrillActive = false
         tabTitles = []
         liveTabElements = []
