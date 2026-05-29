@@ -12,6 +12,13 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     private var directButtons: [NSButton] = []
     private var directSlotSheet: AppsPickerSheetWindowController?
 
+    // Scoped-switch slots: a scope popup + shortcut recorder per slot.
+    private var scopePopups: [NSPopUpButton] = []
+    private let scopeOptions: [SwitchScope] = SwitchScope.allCases
+
+    // In-panel action keys (#5): one bare-key capture button per action.
+    private var panelKeyButtons: [PanelKeyAction: KeyCaptureButton] = [:]
+
     override func setupContent() {
         // Switching section — the core ⌘Tab triggers. The trigger must include a
         // hold modifier (⌘/⌥/⌃); Shift is reserved for stepping backwards and is
@@ -54,11 +61,61 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
             addRow(to: direct, title: "Slot \(index + 1)", accessory: stack)
             directButtons.append(button)
         }
+
+        // Scoped shortcuts section — global shortcuts that open the switcher
+        // already filtered to a subset of windows.
+        let scoped = addSection(title: "Scoped shortcuts", anchor: SettingsAnchor.scopedSwitch)
+        addRow(
+            to: scoped,
+            title: "Open the switcher on a subset",
+            subtitle: "Give a shortcut its own view — all windows, just this Space, the current app's windows, or only minimized.",
+            searchItemID: SearchID.scopedSwitch
+        )
+        for (index, name) in BetterShortcuts.Name.scopedSwitch.enumerated() {
+            let recorder = BetterShortcuts.RecorderCocoa(for: name)
+            let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+            popup.controlSize = .small
+            popup.translatesAutoresizingMaskIntoConstraints = false
+            popup.setContentHuggingPriority(.required, for: .horizontal)
+            popup.addItems(withTitles: scopeOptions.map(\.displayName))
+            popup.target = self
+            popup.action = #selector(scopeChanged(_:))
+            popup.tag = index
+            let stack = NSStackView(views: [popup, recorder])
+            stack.orientation = .horizontal
+            stack.spacing = 8
+            stack.alignment = .centerY
+            addRow(to: scoped, title: "Slot \(index + 1)", accessory: stack)
+            scopePopups.append(popup)
+        }
+
+        // In-panel keys section — rebind the action keys used while the switcher
+        // is open (close / minimize / hide / quit).
+        let panelKeys = addSection(title: "In-panel keys", anchor: SettingsAnchor.panelKeys)
+        addRow(
+            to: panelKeys,
+            title: "Action keys while switching",
+            subtitle: "Rebind the keys that act on the highlighted window while the switcher is open. ⌥ with Quit still force-quits.",
+            searchItemID: SearchID.panelKeys
+        )
+        let bindings = Preferences.shared.panelKeyBindings
+        for action in PanelKeyAction.allCases {
+            let code = bindings[action] ?? action.defaultKeyCode
+            let button = KeyCaptureButton(keyCode: code)
+            button.onCapture = { [weak self] newCode in self?.setPanelKey(action, newCode) }
+            panelKeyButtons[action] = button
+            addRow(to: panelKeys, title: action.displayName, accessory: button)
+        }
+        let resetButton = NSButton(title: "Reset to defaults", target: self, action: #selector(resetPanelKeys))
+        resetButton.bezelStyle = .rounded
+        resetButton.controlSize = .small
+        addRow(to: panelKeys, title: "Defaults", subtitle: "Restore W / M / H / Q.", accessory: resetButton)
     }
 
     override func viewWillAppear() {
         super.viewWillAppear()
         refreshDirectSlots()
+        refreshScopeSlots()
     }
 
     // MARK: - Direct activation slots
@@ -102,6 +159,44 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         }
         directSlotSheet = controller
         controller.present(asSheetFor: window)
+    }
+
+    // MARK: - Scoped shortcut slots
+
+    /// Sync each slot's scope popup to its stored `SwitchScope`.
+    private func refreshScopeSlots() {
+        let scopes = Preferences.shared.scopedShortcutScopes
+        for (index, popup) in scopePopups.enumerated() {
+            let scope = scopes.indices.contains(index) ? scopes[index] : .allAppsAllSpaces
+            if let i = scopeOptions.firstIndex(of: scope) { popup.selectItem(at: i) }
+        }
+    }
+
+    @objc private func scopeChanged(_ sender: NSPopUpButton) {
+        let slot = sender.tag
+        let idx = sender.indexOfSelectedItem
+        guard scopeOptions.indices.contains(idx) else { return }
+        var scopes = Preferences.shared.scopedShortcutScopes
+        while scopes.count <= slot { scopes.append(.allAppsAllSpaces) }
+        scopes[slot] = scopeOptions[idx]
+        Preferences.shared.scopedShortcutScopes = scopes
+    }
+
+    // MARK: - In-panel keys
+
+    private func setPanelKey(_ action: PanelKeyAction, _ keyCode: Int) {
+        var bindings = Preferences.shared.panelKeyBindings
+        bindings[action] = keyCode
+        Preferences.shared.panelKeyBindings = bindings
+    }
+
+    @objc private func resetPanelKeys() {
+        var bindings: [PanelKeyAction: Int] = [:]
+        for action in PanelKeyAction.allCases {
+            bindings[action] = action.defaultKeyCode
+            panelKeyButtons[action]?.setKeyCode(action.defaultKeyCode)
+        }
+        Preferences.shared.panelKeyBindings = bindings
     }
 
     private static func appName(forBundleID bundleID: String) -> String? {

@@ -6,6 +6,37 @@ enum MoveDirection {
     case left, right, up, down
 }
 
+/// Lightweight window arrangement applied to the highlighted window without
+/// leaving the switcher — tile to a screen half, fill the screen, or recenter.
+/// Pure AX frame writes (position + size); no private APIs, no window-manager
+/// entitlements. Computed against the window's current screen `visibleFrame`
+/// so the menu bar / Dock are never covered.
+enum WindowArrangement {
+    case tileLeftHalf
+    case tileRightHalf
+    case maximize
+    case center
+
+    /// Target Cocoa frame for `window` on `screen`, given the window's current
+    /// size (used by `.center`, which preserves size). `nil` arguments fall back
+    /// to the visible frame. Pure function so it can be unit-tested.
+    static func frame(for arrangement: WindowArrangement, visibleFrame v: CGRect, windowSize: CGSize) -> CGRect {
+        switch arrangement {
+        case .tileLeftHalf:
+            return CGRect(x: v.minX, y: v.minY, width: v.width / 2, height: v.height)
+        case .tileRightHalf:
+            return CGRect(x: v.midX, y: v.minY, width: v.width / 2, height: v.height)
+        case .maximize:
+            return v
+        case .center:
+            // Keep the window's size (clamped to the visible frame) and center it.
+            let w = min(windowSize.width, v.width)
+            let h = min(windowSize.height, v.height)
+            return CGRect(x: v.minX + (v.width - w) / 2, y: v.minY + (v.height - h) / 2, width: w, height: h)
+        }
+    }
+}
+
 enum Activator {
     private static let finderBundleID = "com.apple.finder"
 
@@ -410,6 +441,57 @@ enum Activator {
         // latency cost worth chasing.
         DispatchQueue.main.async {
             Self.repositionToAdjacentDisplay(window: window, direction: direction)
+        }
+    }
+
+    /// Arrange the row's window on its current screen (tile half / maximize /
+    /// center). Runs on main for the same `NSScreen.screens` main-thread reason
+    /// as `moveWindowToDisplay`. The AX position+size writes are cheap.
+    static func arrangeWindow(_ row: SwitcherRow, _ arrangement: WindowArrangement) {
+        guard let window = row.window, row.app != nil else { return }
+        DispatchQueue.main.async {
+            Self.applyArrangement(window: window, arrangement: arrangement)
+        }
+    }
+
+    private static func applyArrangement(window: AXUIElement, arrangement: WindowArrangement) {
+        guard !NSScreen.screens.isEmpty else { return }
+        let mainHeight = NSScreen.screens[0].frame.maxY
+
+        var posRef: AnyObject?
+        var sizeRef: AnyObject?
+        guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &posRef) == .success,
+              AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeRef) == .success,
+              CFGetTypeID(posRef as CFTypeRef) == AXValueGetTypeID(),
+              CFGetTypeID(sizeRef as CFTypeRef) == AXValueGetTypeID() else { return }
+        var axPos = CGPoint.zero
+        var axSize = CGSize.zero
+        AXValueGetValue(posRef as! AXValue, .cgPoint, &axPos)
+        AXValueGetValue(sizeRef as! AXValue, .cgSize, &axSize)
+
+        let cocoaRect = CGRect(
+            x: axPos.x,
+            y: mainHeight - axPos.y - axSize.height,
+            width: axSize.width,
+            height: axSize.height
+        )
+        guard let screen = screenContaining(rect: cocoaRect) else { return }
+        let target = WindowArrangement.frame(for: arrangement, visibleFrame: screen.visibleFrame, windowSize: axSize)
+
+        // Order: size first, then position. Some apps clamp position against the
+        // *old* size; setting size first lets the position land correctly.
+        var newSize = CGSize(width: target.width, height: target.height)
+        if let sizeValue = AXValueCreate(.cgSize, &newSize) {
+            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+        }
+        var newAXPos = CGPoint(x: target.minX, y: mainHeight - (target.minY + target.height))
+        if let posValue = AXValueCreate(.cgPoint, &newAXPos) {
+            AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, posValue)
+        }
+        // Re-assert size after the move: an app that resisted the first resize
+        // (min-size constraints relative to the old origin) often accepts it now.
+        if let sizeValue = AXValueCreate(.cgSize, &newSize) {
+            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
         }
     }
 

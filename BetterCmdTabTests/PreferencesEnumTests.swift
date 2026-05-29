@@ -83,6 +83,7 @@ struct BetterShortcutsIntegrationTests {
         #expect(names.contains(.switchApps))
         #expect(names.contains(.switchWindows))
         #expect(BetterShortcuts.Name.directActivate.count == BetterShortcuts.Name.directActivateSlotCount)
-        #expect(names.count == 2 + BetterShortcuts.Name.directActivateSlotCount)
+        #expect(names.count == 2 + BetterShortcuts.Name.directActivateSlotCount + BetterShortcuts.Name.scopedSwitchSlotCount)
+        #expect(names.contains(.scopedSwitch.first!))
     }
 }

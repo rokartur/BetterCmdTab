@@ -1,0 +1,414 @@
+{
+  "sourceLanguage" : "en",
+  "version" : "1.0",
+  "strings" : {
+    "About" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Informacje" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Über" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "À propos" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Acerca de" } }
+      }
+    },
+    "All windows" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Wszystkie okna" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Fenster" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Toutes les fenêtres" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Todas las ventanas" } }
+      }
+    },
+    "Alphabetical" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Alfabetycznie" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alphabetisch" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Alphabétique" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Alfabético" } }
+      }
+    },
+    "Always" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Zawsze" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Immer" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Toujours" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Siempre" } }
+      }
+    },
+    "Appearance" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Wygląd" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Darstellung" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Apparence" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Apariencia" } }
+      }
+    },
+    "Apps" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Aplikacje" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Apps" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Apps" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Apps" } }
+      }
+    },
+    "Blue" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Niebieski" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Blau" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Bleu" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Azul" } }
+      }
+    },
+    "Close window" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Zamknij okno" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fenster schließen" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fermer la fenêtre" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cerrar ventana" } }
+      }
+    },
+    "Current app's windows" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Okna bieżącej aplikacji" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fenster der aktuellen App" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fenêtres de l’app active" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ventanas de la app actual" } }
+      }
+    },
+    "Custom…" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Niestandardowy…" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Eigene…" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Personnalisé…" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Personalizado…" } }
+      }
+    },
+    "Don't hide" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Nie ukrywaj" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nicht ausblenden" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ne pas masquer" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No ocultar" } }
+      }
+    },
+    "Experimental" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Eksperymentalne" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Experimentell" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Expérimental" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Experimental" } }
+      }
+    },
+    "Full Screen" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Pełny ekran" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Vollbild" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Plein écran" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pantalla completa" } }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Ogólne" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Allgemein" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Général" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "General" } }
+      }
+    },
+    "Graphite" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Grafitowy" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Graphit" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Graphite" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Grafito" } }
+      }
+    },
+    "Green" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Zielony" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Grün" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Vert" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Verde" } }
+      }
+    },
+    "Grid View" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Siatka" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Raster" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Grille" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cuadrícula" } }
+      }
+    },
+    "Hide app" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Ukryj aplikację" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "App ausblenden" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Masquer l’app" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ocultar app" } }
+      }
+    },
+    "Hold ⌘" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Przytrzymaj ⌘" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "⌘ halten" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Maintenir ⌘" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mantener ⌘" } }
+      }
+    },
+    "HUD (default)" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "HUD (domyślny)" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "HUD (Standard)" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "HUD (par défaut)" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "HUD (predeterminado)" } }
+      }
+    },
+    "Large" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Duży" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Groß" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Grand" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Grande" } }
+      }
+    },
+    "Launch order" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Kolejność uruchamiania" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Startreihenfolge" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ordre de lancement" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Orden de inicio" } }
+      }
+    },
+    "List" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Lista" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Liste" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Liste" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Lista" } }
+      }
+    },
+    "Medium" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Średni" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mittel" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Moyen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mediano" } }
+      }
+    },
+    "Menu" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Menu" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Menü" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Menu" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Menú" } }
+      }
+    },
+    "Minimize window" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Zminimalizuj okno" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fenster minimieren" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Réduire la fenêtre" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Minimizar ventana" } }
+      }
+    },
+    "Minimized windows" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Zminimalizowane okna" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Minimierte Fenster" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fenêtres réduites" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ventanas minimizadas" } }
+      }
+    },
+    "Most recent" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Ostatnio używane" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zuletzt verwendet" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Plus récent" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Más reciente" } }
+      }
+    },
+    "Never" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Nigdy" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nie" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Jamais" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nunca" } }
+      }
+    },
+    "Open switcher" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Otwórz przełącznik" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Umschalter öffnen" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ouvrir le sélecteur" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir el selector" } }
+      }
+    },
+    "Orange" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Pomarańczowy" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Orange" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Orange" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Naranja" } }
+      }
+    },
+    "Pink" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Różowy" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Rosa" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Rose" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Rosa" } }
+      }
+    },
+    "Popover" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Popover" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Popover" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Popover" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Popover" } }
+      }
+    },
+    "Previews" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Podglądy" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Vorschauen" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aperçus" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Vistas previas" } }
+      }
+    },
+    "Privacy" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Prywatność" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Datenschutz" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Confidentialité" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Privacidad" } }
+      }
+    },
+    "Purple" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Fioletowy" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Lila" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Violet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Morado" } }
+      }
+    },
+    "Quick switch (last 2 apps)" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Szybkie przełączanie (2 ostatnie aplikacje)" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schnellwechsel (letzte 2 Apps)" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Bascule rapide (2 dernières apps)" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cambio rápido (últimas 2 apps)" } }
+      }
+    },
+    "Red" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Czerwony" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Rot" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Rouge" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Rojo" } }
+      }
+    },
+    "Quit app" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Zakończ aplikację" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "App beenden" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Quitter l’app" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Salir de la app" } }
+      }
+    },
+    "Shortcuts" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Skróty" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kurzbefehle" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Raccourcis" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atajos" } }
+      }
+    },
+    "Sidebar" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Pasek boczny" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Seitenleiste" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Barre latérale" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Barra lateral" } }
+      }
+    },
+    "Small" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Mały" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Klein" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Petit" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pequeño" } }
+      }
+    },
+    "Stay open until I choose" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Pozostaw otwarte do wyboru" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Geöffnet lassen bis zur Auswahl" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Rester ouvert jusqu’au choix" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mantener abierto hasta elegir" } }
+      }
+    },
+    "Switch Spaces" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Przełącz pulpity" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Spaces wechseln" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Changer d’espace" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cambiar de espacio" } }
+      }
+    },
+    "Switcher" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Przełącznik" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Umschalter" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Sélecteur" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Selector" } }
+      }
+    },
+    "System" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Systemowy" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "System" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Système" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sistema" } }
+      }
+    },
+    "Under Window" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Pod oknem" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Unter Fenster" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Sous la fenêtre" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Bajo la ventana" } }
+      }
+    },
+    "When fullscreen" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Gdy pełny ekran" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bei Vollbild" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "En plein écran" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "En pantalla completa" } }
+      }
+    },
+    "When no open windows" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Gdy brak otwartych okien" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wenn keine Fenster offen sind" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Quand aucune fenêtre n’est ouverte" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cuando no hay ventanas abiertas" } }
+      }
+    },
+    "Windows on this Space" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Okna na tym pulpicie" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fenster auf diesem Space" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fenêtres de cet espace" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ventanas de este espacio" } }
+      }
+    },
+    "Yellow" : {
+      "localizations" : {
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Żółty" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gelb" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Jaune" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Amarillo" } }
+      }
+    }
+  }
+}

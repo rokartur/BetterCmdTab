@@ -17,6 +17,8 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     private let recentlyClosedSwitch = NSSwitch()
     private let recentlyClosedLimitPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let recentlyClosedLimits: [Int] = [3, 5, 10, 15, 20]
+    private let sortOrderPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
 
     // Search
     private let letterHintsSwitch = NSSwitch()
@@ -62,6 +64,17 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         addRow(to: contents, title: "Only current Space",
                subtitle: "Show only windows on the Space you're currently viewing.",
                accessory: currentSpaceSwitch, searchItemID: SearchID.currentSpaceOnly)
+
+        sortOrderPopup.controlSize = .small
+        sortOrderPopup.translatesAutoresizingMaskIntoConstraints = false
+        sortOrderPopup.setContentHuggingPriority(.required, for: .horizontal)
+        sortOrderPopup.removeAllItems()
+        sortOrderPopup.addItems(withTitles: sortOrders.map(\.displayName))
+        sortOrderPopup.target = self
+        sortOrderPopup.action = #selector(sortOrderChanged)
+        addRow(to: contents, title: "Sort order",
+               subtitle: "Most recent keeps the classic ⌘Tab order; the others stay put as you switch.",
+               accessory: sortOrderPopup, searchItemID: SearchID.sortOrder)
         configureSwitch(recentlyClosedSwitch, action: #selector(toggleRecentlyClosed(_:)))
         addRow(to: contents, title: "Show recently closed apps",
                subtitle: "Lists apps and windows you just closed so you can reopen them.",
@@ -158,6 +171,7 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         windowlessSwitch.state = prefs.showWindowlessApps ? .on : .off
         badgesSwitch.state = prefs.showUnreadBadges ? .on : .off
         currentSpaceSwitch.state = prefs.currentSpaceOnly ? .on : .off
+        selectSortOrder(prefs.sortOrder)
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off
         fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
         launcherSwitch.state = prefs.searchIncludesLaunchableApps ? .on : .off
@@ -207,6 +221,16 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleCurrentSpace(_ sender: NSSwitch) {
         Preferences.shared.currentSpaceOnly = (sender.state == .on)
+    }
+
+    @objc private func sortOrderChanged() {
+        let idx = sortOrderPopup.indexOfSelectedItem
+        guard sortOrders.indices.contains(idx) else { return }
+        Preferences.shared.sortOrder = sortOrders[idx]
+    }
+
+    private func selectSortOrder(_ order: SwitcherSortOrder) {
+        if let i = sortOrders.firstIndex(of: order) { sortOrderPopup.selectItem(at: i) }
     }
 
     @objc private func toggleLetterHints(_ sender: NSSwitch) {

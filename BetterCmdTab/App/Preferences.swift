@@ -9,9 +9,9 @@ enum SwitcherLayoutMode: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .list: return "List"
-        case .gridView: return "Grid View"
-        case .windowPreview: return "Previews"
+        case .list: return String(localized: "List")
+        case .gridView: return String(localized: "Grid View")
+        case .windowPreview: return String(localized: "Previews")
         }
     }
 
@@ -36,8 +36,8 @@ enum SearchDismissMode: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .holdModifier: return "Hold ⌘"
-        case .stayOpen: return "Stay open until I choose"
+        case .holdModifier: return String(localized: "Hold ⌘")
+        case .stayOpen: return String(localized: "Stay open until I choose")
         }
     }
 }
@@ -62,16 +62,16 @@ enum SwitcherAccent: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .system: return "System"
-        case .blue: return "Blue"
-        case .purple: return "Purple"
-        case .pink: return "Pink"
-        case .red: return "Red"
-        case .orange: return "Orange"
-        case .yellow: return "Yellow"
-        case .green: return "Green"
-        case .graphite: return "Graphite"
-        case .custom: return "Custom…"
+        case .system: return String(localized: "System")
+        case .blue: return String(localized: "Blue")
+        case .purple: return String(localized: "Purple")
+        case .pink: return String(localized: "Pink")
+        case .red: return String(localized: "Red")
+        case .orange: return String(localized: "Orange")
+        case .yellow: return String(localized: "Yellow")
+        case .green: return String(localized: "Green")
+        case .graphite: return String(localized: "Graphite")
+        case .custom: return String(localized: "Custom…")
         }
     }
 
@@ -109,12 +109,12 @@ enum BackdropMaterial: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .hud: return "HUD (default)"
-        case .sidebar: return "Sidebar"
-        case .menu: return "Menu"
-        case .popover: return "Popover"
-        case .fullScreen: return "Full Screen"
-        case .underWindow: return "Under Window"
+        case .hud: return String(localized: "HUD (default)")
+        case .sidebar: return String(localized: "Sidebar")
+        case .menu: return String(localized: "Menu")
+        case .popover: return String(localized: "Popover")
+        case .fullScreen: return String(localized: "Full Screen")
+        case .underWindow: return String(localized: "Under Window")
         }
     }
 
@@ -126,6 +126,82 @@ enum BackdropMaterial: String, CaseIterable {
         case .popover: return .popover
         case .fullScreen: return .fullScreenUI
         case .underWindow: return .underWindowBackground
+        }
+    }
+}
+
+/// Order the switcher lists apps/windows in. `.mru` is the default (most
+/// recently used first, the classic ⌘Tab behavior); the others give a stable
+/// ordering that doesn't reshuffle as you switch. Read off the main actor by
+/// `CatalogFilter`, so the raw value is stored in the shared UserDefaults key.
+enum SwitcherSortOrder: String, CaseIterable {
+    /// Most-recently-used first, with the usual status buckets. Default.
+    case mru
+    /// Apps A→Z by name; an app's windows stay grouped together.
+    case alphabetical
+    /// By launch order — oldest running process first.
+    case launchOrder
+
+    var displayName: String {
+        switch self {
+        case .mru: return String(localized: "Most recent")
+        case .alphabetical: return String(localized: "Alphabetical")
+        case .launchOrder: return String(localized: "Launch order")
+        }
+    }
+}
+
+/// An in-panel action whose trigger key the user can rebind (#5). Each maps to
+/// one physical-key keycode in `Preferences.panelKeyBindings`; the CGEvent tap
+/// reads the keycode→action map to drive the action while the switcher is open.
+/// Raw values are persisted as the stored dictionary's keys — don't rename.
+enum PanelKeyAction: String, CaseIterable {
+    case close
+    case minimize
+    case hide
+    case quit
+
+    var displayName: String {
+        switch self {
+        case .close: return String(localized: "Close window")
+        case .minimize: return String(localized: "Minimize window")
+        case .hide: return String(localized: "Hide app")
+        case .quit: return String(localized: "Quit app")
+        }
+    }
+
+    /// Default physical keycode (kVK_ANSI_*): W, M, H, Q — the long-standing
+    /// hardcoded bindings, so existing users see no change.
+    var defaultKeyCode: Int {
+        switch self {
+        case .close: return 13     // W
+        case .minimize: return 46  // M
+        case .hide: return 4       // H
+        case .quit: return 12      // Q
+        }
+    }
+}
+
+/// The subset of windows a scoped custom shortcut opens the switcher onto.
+/// Each user-defined scoped shortcut (Shortcuts settings) carries one of these;
+/// triggering it opens the switcher already filtered to that subset instead of
+/// the full app list. Raw values are persisted, so don't rename cases.
+enum SwitchScope: String, CaseIterable {
+    /// Every open window of every app, flat (one row per window), across Spaces.
+    case allAppsAllSpaces
+    /// Every app's windows, but only those on the Space you're viewing.
+    case allAppsCurrentSpace
+    /// Just the windows of the app that was frontmost when you triggered it.
+    case currentAppWindows
+    /// Only minimized windows, from every app.
+    case minimizedOnly
+
+    var displayName: String {
+        switch self {
+        case .allAppsAllSpaces: return String(localized: "All windows")
+        case .allAppsCurrentSpace: return String(localized: "Windows on this Space")
+        case .currentAppWindows: return String(localized: "Current app's windows")
+        case .minimizedOnly: return String(localized: "Minimized windows")
         }
     }
 }
@@ -176,9 +252,9 @@ enum SwipeMode: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .openSwitcher: return "Open switcher"
-        case .switchSpaces: return "Switch Spaces"
-        case .quickSwitch: return "Quick switch (last 2 apps)"
+        case .openSwitcher: return String(localized: "Open switcher")
+        case .switchSpaces: return String(localized: "Switch Spaces")
+        case .quickSwitch: return String(localized: "Quick switch (last 2 apps)")
         }
     }
 }
@@ -203,9 +279,9 @@ enum PanelSize: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .small: return "Small"
-        case .standard: return "Medium"
-        case .large: return "Large"
+        case .small: return String(localized: "Small")
+        case .standard: return String(localized: "Medium")
+        case .large: return String(localized: "Large")
         }
     }
 }
@@ -225,9 +301,9 @@ enum HideWindowsMode: String, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .dontHide: return "Don't hide"
-        case .always: return "Always"
-        case .whenNoWindows: return "When no open windows"
+        case .dontHide: return String(localized: "Don't hide")
+        case .always: return String(localized: "Always")
+        case .whenNoWindows: return String(localized: "When no open windows")
         }
     }
 }
@@ -246,9 +322,9 @@ enum IgnoreShortcutsMode: String, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .never: return "Never"
-        case .always: return "Always"
-        case .whenFullscreen: return "When fullscreen"
+        case .never: return String(localized: "Never")
+        case .always: return String(localized: "Always")
+        case .whenFullscreen: return String(localized: "When fullscreen")
         }
     }
 }
@@ -308,11 +384,18 @@ final class Preferences: ObservableObject {
     /// shortcut (stored by BetterShortcuts) to a target app bundle ID.
     static let directActivationSlotCount = 9
 
+    /// Number of scoped-switch shortcut slots. Each slot binds a recorded
+    /// shortcut to a `SwitchScope` — triggering it opens the switcher already
+    /// filtered to that subset (all windows / current Space / current app /
+    /// minimized).
+    static let scopedShortcutSlotCount = 3
+
     // Internal (not private): `CatalogFilter` reads the catalog-related keys
     // directly from `UserDefaults` off the main actor, so the key strings must
     // be shared rather than duplicated.
     enum Keys {
         static let switcherLayoutMode = "Switcher.layoutMode"
+        static let sortOrder = "Switcher.sortOrder"
         static let revealDelayMs = "Switcher.revealDelayMs"
         static let panelSize = "Switcher.panelSize"
         static let gridMaxColumns = "Switcher.gridMaxColumns"
@@ -355,6 +438,8 @@ final class Preferences: ObservableObject {
         static let backdropMaterial = "Switcher.backdropMaterial"
         static let currentSpaceOnly = "Switcher.currentSpaceOnly"
         static let directActivationBindings = "Switcher.directActivationBindings"
+        static let scopedShortcutScopes = "Switcher.scopedShortcutScopes"
+        static let panelKeyBindings = "Switcher.panelKeyBindings"
         static let hoverActionsEnabled = "Switcher.hoverActionsEnabled"
         static let hoverShowClose = "Switcher.hoverShowClose"
         static let hoverShowMinimize = "Switcher.hoverShowMinimize"
@@ -369,6 +454,15 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != switcherLayoutMode else { return }
             UserDefaults.standard.set(switcherLayoutMode.rawValue, forKey: Keys.switcherLayoutMode)
+        }
+    }
+
+    /// Order apps/windows appear in the switcher (most-recent / alphabetical /
+    /// launch order). Read off-main by `CatalogFilter`, so the key is shared.
+    @Published var sortOrder: SwitcherSortOrder {
+        didSet {
+            guard oldValue != sortOrder else { return }
+            UserDefaults.standard.set(sortOrder.rawValue, forKey: Keys.sortOrder)
         }
     }
 
@@ -716,6 +810,36 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Scope for each scoped-switch shortcut slot, as `SwitchScope` raw values.
+    /// Index maps to the slot number. Always normalized to
+    /// `scopedShortcutSlotCount` entries; an unset slot defaults to `.allAppsAllSpaces`.
+    /// The slot is only *live* when the user has recorded a shortcut for it
+    /// (BetterShortcuts stores that separately); the scope just says what the
+    /// shortcut shows.
+    @Published var scopedShortcutScopes: [SwitchScope] {
+        didSet {
+            let normalized = Self.normalizeScopes(scopedShortcutScopes)
+            if normalized != scopedShortcutScopes { scopedShortcutScopes = normalized; return }
+            guard oldValue != scopedShortcutScopes else { return }
+            UserDefaults.standard.set(scopedShortcutScopes.map(\.rawValue), forKey: Keys.scopedShortcutScopes)
+        }
+    }
+
+    /// Rebindable in-panel action keys (#5): `PanelKeyAction` → physical keycode.
+    /// The CGEvent tap reads this (via `SwitcherController.pushPanelKeyBindings`)
+    /// to drive close/minimize/hide/quit while the switcher is open. Always
+    /// normalized to contain every action, defaulting any missing one to its
+    /// W/M/H/Q keycode. Persisted as a `[String: Int]` dictionary.
+    @Published var panelKeyBindings: [PanelKeyAction: Int] {
+        didSet {
+            let normalized = Self.normalizePanelKeys(panelKeyBindings)
+            if normalized != panelKeyBindings { panelKeyBindings = normalized; return }
+            guard oldValue != panelKeyBindings else { return }
+            let raw = Dictionary(uniqueKeysWithValues: panelKeyBindings.map { ($0.key.rawValue, $0.value) })
+            UserDefaults.standard.set(raw, forKey: Keys.panelKeyBindings)
+        }
+    }
+
     /// Master switch for the hover action buttons shown on each switcher row.
     /// Default off. Per-button visibility lives in `hoverShow*`.
     @Published var hoverActionsEnabled: Bool {
@@ -811,11 +935,47 @@ final class Preferences: ObservableObject {
         return out
     }
 
+    /// Pads/truncates to exactly `scopedShortcutSlotCount` entries, filling
+    /// missing slots with the neutral `.allAppsAllSpaces` default.
+    static func normalizeScopes(_ value: [SwitchScope]) -> [SwitchScope] {
+        var out = Array(value.prefix(scopedShortcutSlotCount))
+        while out.count < scopedShortcutSlotCount { out.append(.allAppsAllSpaces) }
+        return out
+    }
+
+    /// Parse the stored `[String]` raw values into `[SwitchScope]`, normalized.
+    static func loadScopes(_ raw: [String]?) -> [SwitchScope] {
+        normalizeScopes((raw ?? []).map { SwitchScope(rawValue: $0) ?? .allAppsAllSpaces })
+    }
+
+    /// Ensure every `PanelKeyAction` has a binding, filling any missing one with
+    /// its default keycode. Unknown stored keys are dropped.
+    static func normalizePanelKeys(_ value: [PanelKeyAction: Int]) -> [PanelKeyAction: Int] {
+        var out: [PanelKeyAction: Int] = [:]
+        for action in PanelKeyAction.allCases {
+            out[action] = value[action] ?? action.defaultKeyCode
+        }
+        return out
+    }
+
+    /// Parse the stored `[String: Int]` dictionary into `[PanelKeyAction: Int]`,
+    /// normalized (missing actions default to W/M/H/Q).
+    static func loadPanelKeys(_ raw: [String: Int]?) -> [PanelKeyAction: Int] {
+        var parsed: [PanelKeyAction: Int] = [:]
+        for (k, v) in raw ?? [:] {
+            if let action = PanelKeyAction(rawValue: k) { parsed[action] = v }
+        }
+        return normalizePanelKeys(parsed)
+    }
+
     private init() {
         let defaults = UserDefaults.standard
 
         let layoutRaw = defaults.string(forKey: Keys.switcherLayoutMode)
         self.switcherLayoutMode = layoutRaw.flatMap(SwitcherLayoutMode.init(rawValue:)) ?? .gridView
+
+        let sortRaw = defaults.string(forKey: Keys.sortOrder)
+        self.sortOrder = sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
 
         let delay = defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs
         self.revealDelayMs = Self.clampDelay(delay)
@@ -896,6 +1056,8 @@ final class Preferences: ObservableObject {
         self.backdropMaterial = materialRaw.flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
         self.currentSpaceOnly = defaults.object(forKey: Keys.currentSpaceOnly) as? Bool ?? false
         self.directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
+        self.scopedShortcutScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
+        self.panelKeyBindings = Self.loadPanelKeys(defaults.dictionary(forKey: Keys.panelKeyBindings) as? [String: Int])
         self.hoverActionsEnabled = defaults.object(forKey: Keys.hoverActionsEnabled) as? Bool ?? false
         self.hoverShowClose = defaults.object(forKey: Keys.hoverShowClose) as? Bool ?? true
         self.hoverShowMinimize = defaults.object(forKey: Keys.hoverShowMinimize) as? Bool ?? true
@@ -904,5 +1066,75 @@ final class Preferences: ObservableObject {
         self.hoverShowQuit = defaults.object(forKey: Keys.hoverShowQuit) as? Bool ?? true
         self.hoverShowForceQuit = defaults.object(forKey: Keys.hoverShowForceQuit) as? Bool ?? false
         self.hideFromScreenSharing = defaults.object(forKey: Keys.hideFromScreenSharing) as? Bool ?? false
+    }
+
+    /// Re-read every preference from `UserDefaults` into the published
+    /// properties. Used after importing a settings file so open Settings panes
+    /// and the live switcher pick up the new values without a restart — the
+    /// `@Published` assignments fire `objectWillChange` and the per-property
+    /// publishers `SwitcherController` subscribes to. The didSet observers
+    /// persist the same value back (a no-op when unchanged), so this is safe to
+    /// call repeatedly. No legacy-key migration here — that runs once in `init`.
+    func reloadFromDefaults() {
+        let defaults = UserDefaults.standard
+
+        switcherLayoutMode = defaults.string(forKey: Keys.switcherLayoutMode).flatMap(SwitcherLayoutMode.init(rawValue:)) ?? .gridView
+        sortOrder = defaults.string(forKey: Keys.sortOrder).flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
+        revealDelayMs = Self.clampDelay(defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs)
+        panelSize = defaults.string(forKey: Keys.panelSize).flatMap(PanelSize.init(rawValue:)) ?? .standard
+        gridMaxColumns = defaults.object(forKey: Keys.gridMaxColumns) as? Int ?? 0
+
+        if let stored = defaults.array(forKey: Keys.appExceptions) as? [[String: String]] {
+            appExceptions = stored.compactMap(AppException.init(dictionary:))
+        } else {
+            appExceptions = []
+        }
+        pinnedBundleIDs = defaults.stringArray(forKey: Keys.pinnedBundleIDs) ?? []
+
+        showMinimizedWindows = defaults.object(forKey: Keys.showMinimizedWindows) as? Bool ?? true
+        showHiddenApps = defaults.object(forKey: Keys.showHiddenApps) as? Bool ?? true
+        showWindowlessApps = defaults.object(forKey: Keys.showWindowlessApps) as? Bool ?? true
+        fuzzySearchEnabled = defaults.object(forKey: Keys.fuzzySearchEnabled) as? Bool ?? true
+        letterHintsEnabled = defaults.object(forKey: Keys.letterHintsEnabled) as? Bool ?? true
+        searchDismissMode = defaults.string(forKey: Keys.searchDismissMode).flatMap(SearchDismissMode.init(rawValue:)) ?? .holdModifier
+        searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
+        showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
+        recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5
+
+        hapticOnCommit = defaults.object(forKey: Keys.hapticOnCommit) as? Bool ?? false
+        soundOnCommit = defaults.object(forKey: Keys.soundOnCommit) as? Bool ?? false
+        accentChoice = defaults.string(forKey: Keys.accentChoice).flatMap(SwitcherAccent.init(rawValue:)) ?? .system
+        hideMenuBarIcon = defaults.object(forKey: Keys.hideMenuBarIcon) as? Bool ?? false
+
+        experimentalSwipeTrigger = defaults.object(forKey: Keys.experimentalSwipeTrigger) as? Bool ?? false
+        swipeMode = defaults.string(forKey: Keys.swipeMode).flatMap(SwipeMode.init(rawValue:)) ?? .openSwitcher
+        swipeReverseDirection = defaults.object(forKey: Keys.swipeReverseDirection) as? Bool ?? false
+        swipeCommitOnRelease = defaults.object(forKey: Keys.swipeCommitOnRelease) as? Bool ?? false
+        swipeSensitivity = Self.clampSwipeSensitivity(defaults.object(forKey: Keys.swipeSensitivity) as? Int ?? Self.defaultSwipeSensitivity)
+        scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
+        scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
+        clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
+        experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
+        experimentalTabDrillIn = defaults.object(forKey: Keys.experimentalTabDrillIn) as? Bool ?? false
+        showUnreadBadges = defaults.object(forKey: Keys.showUnreadBadges) as? Bool ?? true
+
+        showWindowTitleLabel = defaults.object(forKey: Keys.showWindowTitleLabel) as? Bool ?? true
+        panelOpacity = Self.clampOpacity(defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100)
+        panelCornerRadius = Self.clampCornerRadius(defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0)
+        customAccentHex = defaults.string(forKey: Keys.customAccentHex)
+        backdropMaterial = defaults.string(forKey: Keys.backdropMaterial).flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
+        currentSpaceOnly = defaults.object(forKey: Keys.currentSpaceOnly) as? Bool ?? false
+        directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
+        scopedShortcutScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
+        panelKeyBindings = Self.loadPanelKeys(defaults.dictionary(forKey: Keys.panelKeyBindings) as? [String: Int])
+
+        hoverActionsEnabled = defaults.object(forKey: Keys.hoverActionsEnabled) as? Bool ?? false
+        hoverShowClose = defaults.object(forKey: Keys.hoverShowClose) as? Bool ?? true
+        hoverShowMinimize = defaults.object(forKey: Keys.hoverShowMinimize) as? Bool ?? true
+        hoverShowMaximize = defaults.object(forKey: Keys.hoverShowMaximize) as? Bool ?? true
+        hoverShowHide = defaults.object(forKey: Keys.hoverShowHide) as? Bool ?? true
+        hoverShowQuit = defaults.object(forKey: Keys.hoverShowQuit) as? Bool ?? true
+        hoverShowForceQuit = defaults.object(forKey: Keys.hoverShowForceQuit) as? Bool ?? false
+        hideFromScreenSharing = defaults.object(forKey: Keys.hideFromScreenSharing) as? Bool ?? false
     }
 }

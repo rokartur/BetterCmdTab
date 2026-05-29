@@ -19,6 +19,10 @@ protocol SwitcherViewDelegate: AnyObject {
     func switcherViewDidInvokeAction(_ action: RowAction, atIndex index: Int)
     func switcherViewDidSelectTab(_ index: Int)
     func switcherViewDidHoverTab(_ index: Int)
+    /// A drag session (e.g. a file from Finder) dwelled over the row at `index`.
+    /// The controller raises that row's app so the user can drop into it — a
+    /// spring-loaded passthrough; the switcher never consumes the drop itself.
+    func switcherViewDidDragOverRow(index: Int)
 }
 
 @MainActor
@@ -98,6 +102,12 @@ final class SwitcherView: NSView, TabStripDelegate {
         noResultsLabel.textColor = .secondaryLabelColor
         noResultsLabel.font = .systemFont(ofSize: 13, weight: .medium)
         contentContainer.addSubview(noResultsLabel)
+
+        // Accept drags (#8 drag-and-drop onto a tile). We don't consume the drop
+        // — we raise the hovered app so the user can drop into its window — so a
+        // broad set of common pasteboard types is registered just to receive the
+        // hover callbacks for any dragged content.
+        registerForDraggedTypes([.fileURL, .URL, .string, .png, .tiff, .pdf, .rtf, .html])
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
@@ -218,6 +228,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         searchBar.isHidden = true
         noResultsLabel.isHidden = true
         WindowThumbnailCache.shared.onReady = nil
+        cancelSpringLoad()
     }
 
     var selectedRow: SwitcherRow? {
@@ -357,6 +368,64 @@ final class SwitcherView: NSView, TabStripDelegate {
         delegate?.switcherViewDidClick(index: idx)
     }
 
+
+    // MARK: - Drag-and-drop (raise app under the drag)
+
+    /// Last row a drag dwelled on, so moving within the same tile doesn't restart
+    /// the spring-load timer and re-raise repeatedly.
+    private var lastDragIndex: Int = -1
+    private var springLoadTimer: Timer?
+    /// Dwell time over a tile before its app is raised — short enough to feel
+    /// responsive, long enough that dragging *across* tiles doesn't raise each.
+    private let springLoadDelay: TimeInterval = 0.35
+
+    /// We never accept the drop ourselves (the user drops into the raised app's
+    /// window, not our panel), so the operation is always empty — but the hover
+    /// callbacks still fire while the drag is over us, which is all we need.
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        handleDrag(at: sender.draggingLocation)
+        return []
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        handleDrag(at: sender.draggingLocation)
+        return []
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        cancelSpringLoad()
+    }
+
+    override func draggingEnded(_ sender: NSDraggingInfo) {
+        cancelSpringLoad()
+    }
+
+    private func handleDrag(at locationInWindow: NSPoint) {
+        guard let idx = indexAtWindowPoint(locationInWindow), itemViews.indices.contains(idx) else {
+            cancelSpringLoad()
+            return
+        }
+        // Reflect the drag target as the selection so it's visually obvious which
+        // app will be raised, even before the spring-load fires.
+        if idx != selectedIndex { setSelectedIndex(idx) }
+        guard idx != lastDragIndex else { return }
+        lastDragIndex = idx
+        springLoadTimer?.invalidate()
+        let timer = Timer(timeInterval: springLoadDelay, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.lastDragIndex == idx else { return }
+                self.delegate?.switcherViewDidDragOverRow(index: idx)
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        springLoadTimer = timer
+    }
+
+    private func cancelSpringLoad() {
+        springLoadTimer?.invalidate()
+        springLoadTimer = nil
+        lastDragIndex = -1
+    }
 
     private func indexAtWindowPoint(_ pointInWindow: NSPoint) -> Int? {
         let local = convert(pointInWindow, from: nil)

@@ -21,10 +21,21 @@ extension BetterShortcuts.Name {
 
     /// The raw-value prefix shared by every `directActivate` slot name.
     static let directActivatePrefix = "directActivate"
+
+    /// Number of scoped-switch slots. Mirrors `Preferences.scopedShortcutSlotCount`.
+    static let scopedSwitchSlotCount = 3
+
+    /// "Open the switcher filtered to a scope" hotkeys, slot 1…N. Like the
+    /// direct-activation slots these are live Carbon hotkeys (a `BetterShortcuts.onKeyDown`
+    /// handler fires them); the scope each shows lives in `Preferences.scopedShortcutScopes`.
+    static let scopedSwitch: [Self] = (1...scopedSwitchSlotCount).map { Self("scopedSwitch\($0)") }
+
+    /// The raw-value prefix shared by every `scopedSwitch` slot name.
+    static let scopedSwitchPrefix = "scopedSwitch"
 }
 
 extension BetterShortcuts.Name: @retroactive CaseIterable {
-    public static var allCases: [Self] { [.switchApps, .switchWindows] + directActivate }
+    public static var allCases: [Self] { [.switchApps, .switchWindows] + directActivate + scopedSwitch }
 
     /// Human-readable label used by the recorder's conflict alert.
     var displayName: String {
@@ -35,6 +46,10 @@ extension BetterShortcuts.Name: @retroactive CaseIterable {
             if rawValue.hasPrefix(Self.directActivatePrefix) {
                 let slot = rawValue.dropFirst(Self.directActivatePrefix.count)
                 return "Direct activation \(slot)"
+            }
+            if rawValue.hasPrefix(Self.scopedSwitchPrefix) {
+                let slot = rawValue.dropFirst(Self.scopedSwitchPrefix.count)
+                return "Scoped shortcut \(slot)"
             }
             return rawValue
         }

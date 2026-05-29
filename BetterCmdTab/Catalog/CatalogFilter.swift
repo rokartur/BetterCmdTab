@@ -19,10 +19,11 @@ enum CatalogFilter {
         let showHidden: Bool
         let showWindowless: Bool
         let currentSpaceOnly: Bool
+        let sortOrder: SwitcherSortOrder
 
         /// No filtering and no reordering — lets callers skip work entirely.
         var isIdentity: Bool {
-            hideModes.isEmpty && pinned.isEmpty && showMinimized && showHidden && showWindowless && !currentSpaceOnly
+            hideModes.isEmpty && pinned.isEmpty && showMinimized && showHidden && showWindowless && !currentSpaceOnly && sortOrder == .mru
         }
     }
 
@@ -36,13 +37,15 @@ enum CatalogFilter {
                 if mode != .dontHide { hideModes[bid] = mode }
             }
         }
+        let sortRaw = defaults.string(forKey: Preferences.Keys.sortOrder)
         return Config(
             hideModes: hideModes,
             pinned: defaults.stringArray(forKey: Preferences.Keys.pinnedBundleIDs) ?? [],
             showMinimized: defaults.object(forKey: Preferences.Keys.showMinimizedWindows) as? Bool ?? true,
             showHidden: defaults.object(forKey: Preferences.Keys.showHiddenApps) as? Bool ?? true,
             showWindowless: defaults.object(forKey: Preferences.Keys.showWindowlessApps) as? Bool ?? true,
-            currentSpaceOnly: defaults.object(forKey: Preferences.Keys.currentSpaceOnly) as? Bool ?? false
+            currentSpaceOnly: defaults.object(forKey: Preferences.Keys.currentSpaceOnly) as? Bool ?? false,
+            sortOrder: sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
         )
     }
 
@@ -53,6 +56,9 @@ enum CatalogFilter {
         if cfg.isIdentity { return rows }
         var filtered = rows.filter {
             includes(bundleID: $0.bundleIdentifier, isPlaceholder: $0.isPlaceholder, isMinimized: $0.isMinimized, appHidden: $0.isHidden, hasWindow: $0.window != nil, cfg)
+        }
+        if cfg.sortOrder != .mru {
+            filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.appName }, pid: { $0.pid })
         }
         if !cfg.pinned.isEmpty {
             filtered = stablePartition(filtered) { row in
@@ -70,7 +76,7 @@ enum CatalogFilter {
     /// window whose Space can't be resolved are kept, so the filter only ever
     /// hides windows it's certain are elsewhere. Degrades to a no-op when the
     /// private Space APIs are unavailable.
-    private static func filterToCurrentSpace(_ rows: [SwitcherRow]) -> [SwitcherRow] {
+    static func filterToCurrentSpace(_ rows: [SwitcherRow]) -> [SwitcherRow] {
         guard let active = PrivateAPI.activeSpace() else { return rows }
         let widByOffset: [(offset: Int, wid: CGWindowID)] = rows.enumerated().compactMap { idx, row in
             guard let window = row.window else { return nil }
@@ -112,15 +118,43 @@ enum CatalogFilter {
     /// are still dropped per the global toggle.
     static func filteredApps(_ apps: [NSRunningApplication], _ cfg: Config) -> [NSRunningApplication] {
         if cfg.isIdentity { return apps }
-        let filtered = apps.filter { app in
+        var filtered = apps.filter { app in
             if let bid = app.bundleIdentifier, cfg.hideModes[bid] == .always { return false }
             if !cfg.showHidden, app.isHidden { return false }
             return true
+        }
+        if cfg.sortOrder != .mru {
+            filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.localizedName ?? "" }, pid: { $0.processIdentifier })
         }
         guard !cfg.pinned.isEmpty else { return filtered }
         return stablePartition(filtered) { app in
             app.bundleIdentifier.flatMap { cfg.pinned.firstIndex(of: $0) }
         }
+    }
+
+    /// Reorder by the user's global sort preference. `.mru` returns the input
+    /// untouched (the caller skips calling it then). Alphabetical sorts by app
+    /// name (case-insensitive); launch order by pid ascending (older process
+    /// first). Both are stable on the incoming offset, so equal keys keep their
+    /// order — that preserves each app's window grouping/status ordering.
+    static func applySortOrder<T>(_ items: [T], _ order: SwitcherSortOrder, name: (T) -> String, pid: (T) -> pid_t?) -> [T] {
+        switch order {
+        case .mru:
+            return items
+        case .alphabetical:
+            return sortedStably(items) { name($0).lowercased() }
+        case .launchOrder:
+            return sortedStably(items) { Int(pid($0) ?? pid_t.max) }
+        }
+    }
+
+    /// Stable sort: decorate with the original offset and tie-break on it so
+    /// equal-key elements keep their incoming order (Swift's `sort` isn't stable).
+    static func sortedStably<T, K: Comparable>(_ items: [T], by key: (T) -> K) -> [T] {
+        items.enumerated()
+            .map { (offset: $0.offset, key: key($0.element), item: $0.element) }
+            .sorted { $0.key != $1.key ? $0.key < $1.key : $0.offset < $1.offset }
+            .map(\.item)
     }
 
     /// Move items with a non-nil rank to the front, ordered by (rank, original

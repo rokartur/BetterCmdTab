@@ -109,6 +109,16 @@ final class SwitcherController: SwitcherViewDelegate {
     private var windowsOnlyPid: pid_t? = nil
     private var windowsOnlyPrimedDelta: Int = 0
 
+    /// Active scope for a scoped-shortcut open (#3). Non-nil only between a
+    /// scoped open and the next return to idle; while set, every row set
+    /// (`reveal`, background `applyFullSnapshot`) is post-filtered to this
+    /// subset. nil for normal ⌘Tab opens, so the standard path is unaffected.
+    private var activeScope: SwitchScope? = nil
+    /// Frontmost app's pid captured when a scoped open started — used by the
+    /// `.currentAppWindows` scope (we're an accessory app, so the frontmost at
+    /// trigger time is the user's real app, not us).
+    private var scopeFrontPid: pid_t? = nil
+
     /// Signatures of windows the user just closed locally. Any cache refresh
     /// completing before the AX close has propagated would otherwise re-add
     /// the row (flicker). Each entry is dropped once the cache agrees the
@@ -287,7 +297,15 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         // The Carbon fallback drives the same handler as the tap.
         carbonTrigger.onEvent = { [weak self] event in self?.handle(event) }
+        // Scoped-shortcut triggers open the switcher pre-filtered (#3).
+        ScopedSwitch.onTrigger = { [weak self] scope in self?.openScoped(scope) }
         pushHotkeyConfig()
+        // Rebindable in-panel action keys (#5): push the map and re-push on change.
+        pushPanelKeyBindings()
+        Preferences.shared.$panelKeyBindings
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.pushPanelKeyBindings() }
+            .store(in: &cancellables)
         // The BetterShortcuts recorders persist the user's trigger choices and
         // post this notification on change — re-derive the tap config live.
         NotificationCenter.default.publisher(
@@ -442,6 +460,23 @@ final class SwitcherController: SwitcherViewDelegate {
         guard let app = NSRunningApplication(processIdentifier: targetPid) else { return }
         Activator.activateApp(app)
         mru.bump(targetPid)
+    }
+
+    /// Translate the user's `panelKeyBindings` (action → keycode) into the tap's
+    /// keycode → action map and push it. Re-derived on launch and on every change.
+    private func pushPanelKeyBindings() {
+        var map: [Int64: HotkeyTap.PanelActionKey] = [:]
+        for (action, keyCode) in Preferences.shared.panelKeyBindings {
+            let tapAction: HotkeyTap.PanelActionKey
+            switch action {
+            case .close: tapAction = .close
+            case .minimize: tapAction = .minimize
+            case .hide: tapAction = .hide
+            case .quit: tapAction = .quit
+            }
+            map[Int64(keyCode)] = tapAction
+        }
+        hotkey.setPanelKeyBindings(map)
     }
 
     private func pushHotkeyConfig() {
@@ -638,6 +673,59 @@ final class SwitcherController: SwitcherViewDelegate {
         set {
             _phase = newValue
             hotkey.setSwitching(newValue != .idle)
+            // Returning to idle ends any scoped-shortcut open so the next plain
+            // ⌘Tab is unfiltered. Single chokepoint — every exit path (commit,
+            // cancel, dismiss) flows through here.
+            if newValue == .idle {
+                activeScope = nil
+                scopeFrontPid = nil
+            }
+        }
+    }
+
+    /// Open the switcher already filtered to `scope` (#3). Driven by a user
+    /// scoped-shortcut via `ScopedSwitch.onTrigger`. Opens sticky (like a
+    /// gesture/stay-open open) so releasing the shortcut's own modifier doesn't
+    /// commit — the user steps with Tab/arrows/scroll and commits with Return or
+    /// a click, or dismisses with Esc. Ignored if the switcher is already open.
+    func openScoped(_ scope: SwitchScope) {
+        guard phase == .idle else { return }
+        mru.syncFrontmost()
+        cache.scheduleFullRefresh()
+        let selfPid = getpid()
+        // The frontmost app at trigger time (we're accessory, so it's the user's
+        // real app) — needed for the current-app scope.
+        if let front = NSWorkspace.shared.frontmostApplication, front.processIdentifier != selfPid {
+            scopeFrontPid = front.processIdentifier
+        } else {
+            scopeFrontPid = nil
+        }
+        activeScope = scope
+        primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
+        primedIndex = 0
+        phase = .primed
+        reveal()
+        // reveal() may cancel back to idle (nothing matched the scope); only
+        // stick if it actually presented.
+        if phase == .visible { stickyOpen = true }
+    }
+
+    /// Filter `rows` to the active scope. Operates on already content-filtered
+    /// rows (the user's hide/minimized/space toggles still apply); the scope
+    /// narrows further. `.allAppsAllSpaces` only escapes the current-Space
+    /// toggle when that toggle is off (the cache already dropped other-Space
+    /// windows otherwise — documented edge case).
+    private func scopeFiltered(_ rows: [SwitcherRow], scope: SwitchScope) -> [SwitcherRow] {
+        switch scope {
+        case .allAppsAllSpaces:
+            return rows.filter { $0.window != nil }
+        case .allAppsCurrentSpace:
+            return CatalogFilter.filterToCurrentSpace(rows.filter { $0.window != nil })
+        case .currentAppWindows:
+            guard let pid = scopeFrontPid else { return [] }
+            return rows.filter { $0.pid == pid && $0.window != nil }
+        case .minimizedOnly:
+            return rows.filter { $0.isMinimized && $0.window != nil }
         }
     }
 
@@ -661,6 +749,28 @@ final class SwitcherController: SwitcherViewDelegate {
         guard tabDrillActive, tabTitles.indices.contains(index) else { return }
         tabIndex = index
         commitTab()
+    }
+
+    /// A drag dwelled over a row (#8): raise that row's app/window so the user
+    /// can drop a file into it without leaving the switcher. The switcher stays
+    /// open and never consumes the drop — it's a spring-loaded raise only. Detach
+    /// from the held modifier so a later ⌘ release doesn't also commit.
+    func switcherViewDidDragOverRow(index: Int) {
+        guard phase == .visible, rows.indices.contains(index) else { return }
+        self.index = index
+        view.setSelectedIndex(index)
+        stickyOpen = true
+        let row = rows[index]
+        if let app = row.app {
+            if let window = row.window {
+                AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+            }
+            if #available(macOS 14.0, *) {
+                _ = app.activate(from: NSRunningApplication.current, options: [])
+            } else {
+                app.activate(options: [.activateIgnoringOtherApps])
+            }
+        }
     }
 
     func switcherViewDidHoverTab(_ index: Int) {
@@ -742,6 +852,14 @@ final class SwitcherController: SwitcherViewDelegate {
             performMove(.up)
         case .moveWindowDown:
             performMove(.down)
+        case .tileLeft:
+            performOnVisibleTarget { Activator.arrangeWindow($0, .tileLeftHalf) }
+        case .tileRight:
+            performOnVisibleTarget { Activator.arrangeWindow($0, .tileRightHalf) }
+        case .maximizeWindow:
+            performOnVisibleTarget { Activator.arrangeWindow($0, .maximize) }
+        case .centerWindow:
+            performOnVisibleTarget { Activator.arrangeWindow($0, .center) }
         case .releaseCmd:
             handleModifierRelease()
         case .commit:
@@ -1064,6 +1182,17 @@ final class SwitcherController: SwitcherViewDelegate {
             labels = baseLabels
             index = max(0, min(targetIdx, rows.count - 1))
         }
+        // Scoped-shortcut open: narrow the row set to the chosen subset. Only on
+        // the warm (real-row) branch — cold placeholder rows have no windows yet,
+        // so the background `applyFullSnapshot` below applies the scope once the
+        // real scan lands. nil scope (normal ⌘Tab) leaves rows untouched.
+        if let scope = activeScope, hadCachedRows {
+            baseRows = scopeFiltered(baseRows, scope: scope)
+            baseLabels = RowLabels.labels(for: baseRows)
+            rows = baseRows
+            labels = baseLabels
+            index = 0
+        }
         guard !rows.isEmpty else { cancel(); return }
 
         currentMetrics = SwitcherMetrics.forScreen(SwitcherPanel.preferredScreen(), layoutMode: Preferences.shared.switcherLayoutMode, userScale: Preferences.shared.panelSize.scale, letterHints: Preferences.shared.letterHintsEnabled)
@@ -1181,11 +1310,20 @@ final class SwitcherController: SwitcherViewDelegate {
         guard phase == .visible else { return }
         if fresh.isEmpty { cancel(); return }
 
+        // Scoped open: narrow the refreshed snapshot the same way the reveal did.
+        // If the scope empties it, keep the current rows rather than cancelling —
+        // a transient empty refresh shouldn't tear the panel down.
+        var next = fresh
+        if let scope = activeScope {
+            next = scopeFiltered(fresh, scope: scope)
+            if next.isEmpty { return }
+        }
+
         // `refreshDisplay` preserves the user's current selection by identity so
         // a Tab press landing between reveal-from-cache and this
         // background-refreshed apply isn't reverted to the originally-primed
         // app, falling back to `anchorPid` only if the row is gone.
-        baseRows = fresh
+        baseRows = next
         baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay(anchorPid: anchorPid)
     }

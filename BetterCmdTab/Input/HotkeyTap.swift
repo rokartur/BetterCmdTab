@@ -16,6 +16,10 @@ final class HotkeyTap {
         case moveWindowRight
         case moveWindowUp
         case moveWindowDown
+        case tileLeft
+        case tileRight
+        case maximizeWindow
+        case centerWindow
         case releaseCmd
         case commit
         case escape
@@ -105,6 +109,15 @@ final class HotkeyTap {
     /// here; only consulted while the switcher is idle (an already-open switcher
     /// keeps navigating normally).
     private let suppressTriggerFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// Rebindable in-panel action keys (#5): physical keycode → action. Consulted
+    /// in the non-search switching branch before the letter-jump fallback, so a
+    /// bound key suppresses letter-jumping (same as the old hardcoded W/M/H/Q).
+    /// `.quit` escalates to force-quit when Option is held (preserved behavior).
+    /// Pushed from main via `setPanelKeyBindings`; defaults to W/M/H/Q until set.
+    enum PanelActionKey { case close, minimize, hide, quit }
+    private let panelKeyMap = OSAllocatedUnfairLock<[Int64: PanelActionKey]>(
+        initialState: [13: .close, 46: .minimize, 4: .hide, 12: .quit]
+    )
     private let config = OSAllocatedUnfairLock<Config>(
         initialState: Config(appModifier: .maskCommand, appKey: 48, windowModifier: .maskCommand, windowKey: 50)
     )
@@ -119,10 +132,8 @@ final class HotkeyTap {
     private static let spaceKey: Int64 = 49
     private static let deleteKey: Int64 = 51
     private static let slashKey: Int64 = 44
-    private static let wKey: Int64 = 13
-    private static let mKey: Int64 = 46
-    private static let hKey: Int64 = 4
-    private static let qKey: Int64 = 12
+    // W/M/H/Q are no longer hardcoded here — they live in the rebindable
+    // `panelKeyMap` (#5), consulted in the switching branch's default case.
     /// kVK_ANSI_Backslash. Used to drop into browser tab drill-in on the
     /// highlighted row when the experimental pref is enabled.
     private static let backslashKey: Int64 = 42
@@ -283,6 +294,12 @@ final class HotkeyTap {
         config.withLock { $0 = newConfig }
     }
 
+    /// Replace the rebindable in-panel action-key map (keycode → action). Pushed
+    /// from main on launch and on every preference change; read on the tap thread.
+    func setPanelKeyBindings(_ map: [Int64: PanelActionKey]) {
+        panelKeyMap.withLock { $0 = map }
+    }
+
     private func isSwitchingNow() -> Bool {
         switchingFlag.withLock { $0 }
     }
@@ -403,6 +420,10 @@ final class HotkeyTap {
         // is used rather than Shift because Shift already steps the selection
         // backwards (see the flagsChanged handler below).
         let optionHeld = flags.contains(.maskAlternate)
+        // Control + arrow (while the switcher is open) arranges the highlighted
+        // window on its current screen — tile to a half, maximize, or center —
+        // without leaving the switcher. Distinct from Option (move to display).
+        let controlHeld = flags.contains(.maskControl)
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
 
         if type == .keyDown {
@@ -498,31 +519,41 @@ final class HotkeyTap {
                 } else {
                     switch keyCode {
                     case Self.leftArrow:
-                        deliver(optionHeld ? .moveWindowLeft : .spatialLeft); return nil
+                        if controlHeld { deliver(.tileLeft) }
+                        else { deliver(optionHeld ? .moveWindowLeft : .spatialLeft) }
+                        return nil
                     case Self.rightArrow:
-                        deliver(optionHeld ? .moveWindowRight : .spatialRight); return nil
+                        if controlHeld { deliver(.tileRight) }
+                        else { deliver(optionHeld ? .moveWindowRight : .spatialRight) }
+                        return nil
                     case Self.upArrow:
-                        deliver(optionHeld ? .moveWindowUp : .prevRow); return nil
+                        if controlHeld { deliver(.maximizeWindow) }
+                        else { deliver(optionHeld ? .moveWindowUp : .prevRow) }
+                        return nil
                     case Self.downArrow:
-                        deliver(optionHeld ? .moveWindowDown : .nextRow); return nil
+                        if controlHeld { deliver(.centerWindow) }
+                        else { deliver(optionHeld ? .moveWindowDown : .nextRow) }
+                        return nil
                     case Self.returnKey, Self.keypadEnterKey, Self.spaceKey:
                         deliver(.commit); return nil
                     case Self.escKey:
                         deliver(.escape); return nil
                     case Self.slashKey:
                         deliver(.toggleSearch); return nil
-                    case Self.wKey:
-                        deliver(.closeWindow); return nil
-                    case Self.mKey:
-                        deliver(.minimizeWindow); return nil
-                    case Self.hKey:
-                        deliver(.hideApp); return nil
-                    case Self.qKey:
-                        // ⌘+⌥+Q escalates to SIGKILL; bare ⌘+Q is the graceful
-                        // terminate(). Option is already tracked above for the
-                        // arrow-key move-window chords — reuse the same flag.
-                        deliver(optionHeld ? .forceQuitApp : .quitApp); return nil
                     default:
+                        // Rebindable in-panel action keys (#5). Checked before the
+                        // letter-jump fallback so a bound key suppresses jumping,
+                        // exactly as the old hardcoded W/M/H/Q did. ⌘+⌥+Q still
+                        // escalates Quit to force-quit (SIGKILL).
+                        if let action = panelKeyMap.withLock({ $0[keyCode] }) {
+                            switch action {
+                            case .close: deliver(.closeWindow)
+                            case .minimize: deliver(.minimizeWindow)
+                            case .hide: deliver(.hideApp)
+                            case .quit: deliver(optionHeld ? .forceQuitApp : .quitApp)
+                            }
+                            return nil
+                        }
                         if let letter = translate(keyCode: UInt16(keyCode)) {
                             // Layout-agnostic drill-in trigger: regardless of
                             // where `\` lives on the physical keyboard (US,

@@ -25,9 +25,12 @@ enum SettingsAnchor {
     static let startup = "general.startup"
     static let feedback = "general.feedback"
     static let updates = "general.updates"
+    static let backup = "general.backup"
     // Shortcuts
     static let switching = "shortcuts.switching"
     static let directActivation = "shortcuts.directActivation"
+    static let scopedSwitch = "shortcuts.scopedSwitch"
+    static let panelKeys = "shortcuts.panelKeys"
     // Privacy
     static let screenSharing = "privacy.screenSharing"
     static let permissions = "privacy.permissions"
@@ -62,12 +65,17 @@ enum SearchID {
     static let updateInterval = "general.updateInterval"
     static let beta = "general.beta"
     static let directActivation = "general.directActivation"
+    static let scopedSwitch = "shortcuts.scopedSwitch"
+    static let panelKeys = "shortcuts.panelKeys"
+    static let exportSettings = "general.exportSettings"
+    static let importSettings = "general.importSettings"
     // Switcher
     static let showMinimized = "switcher.showMinimized"
     static let showHidden = "switcher.showHidden"
     static let showWindowless = "switcher.showWindowless"
     static let showBadges = "switcher.showBadges"
     static let currentSpaceOnly = "switcher.currentSpaceOnly"
+    static let sortOrder = "switcher.sortOrder"
     static let showRecentlyClosed = "switcher.showRecentlyClosed"
     static let recentlyClosedLimit = "switcher.recentlyClosedLimit"
     static let letterHints = "switcher.letterHints"
@@ -129,38 +137,38 @@ enum SettingsCatalog {
         // gradient badges (gray, blue, purple, pink, red, orange; white badge for
         // About) with white SF Symbols.
         SettingsTab(
-            id: SettingsTabID.general, title: "General", icon: "gear",
+            id: SettingsTabID.general, title: String(localized: "General"), icon: "gear",
             iconStyle: style(0x898A8F, 0x67686E, scale: 1.0)
         ),
         // ⌘ glyph — the Shortcuts tab is where you bind the Command-Tab triggers.
         SettingsTab(
-            id: SettingsTabID.shortcuts, title: "Shortcuts", icon: "command",
+            id: SettingsTabID.shortcuts, title: String(localized: "Shortcuts"), icon: "command",
             iconStyle: style(0x40BCFF, 0x0060FF, scale: 0.9)
         ),
         // Stacked windows — the switcher cycles through your open windows/apps.
         SettingsTab(
-            id: SettingsTabID.switcher, title: "Switcher", icon: "rectangle.stack.fill",
+            id: SettingsTabID.switcher, title: String(localized: "Switcher"), icon: "rectangle.stack.fill",
             iconStyle: style(0xB272FF, 0x6228FF, scale: 0.95)
         ),
         // Per-app rules (hide / ⌘Tab) and pinned apps.
         SettingsTab(
-            id: SettingsTabID.apps, title: "Apps", icon: "square.grid.2x2.fill",
+            id: SettingsTabID.apps, title: String(localized: "Apps"), icon: "square.grid.2x2.fill",
             iconStyle: style(0x4ED98F, 0x12A85B, scale: 0.9)
         ),
         SettingsTab(
-            id: SettingsTabID.appearance, title: "Appearance", icon: "paintbrush.fill",
+            id: SettingsTabID.appearance, title: String(localized: "Appearance"), icon: "paintbrush.fill",
             iconStyle: style(0xFF6991, 0xD41E5A, scale: 0.9)
         ),
         SettingsTab(
-            id: SettingsTabID.privacy, title: "Privacy", icon: "lock.fill",
+            id: SettingsTabID.privacy, title: String(localized: "Privacy"), icon: "lock.fill",
             iconStyle: style(0xFF5E62, 0xFF0016, scale: 0.9)
         ),
         SettingsTab(
-            id: SettingsTabID.experimental, title: "Experimental", icon: "flask.fill",
+            id: SettingsTabID.experimental, title: String(localized: "Experimental"), icon: "flask.fill",
             iconStyle: style(0xFFA846, 0xFF6F00, scale: 0.9)
         ),
         SettingsTab(
-            id: SettingsTabID.about, title: "About", icon: "info.circle.fill",
+            id: SettingsTabID.about, title: String(localized: "About"), icon: "info.circle.fill",
             iconStyle: style(0xFFFFFF, 0xECECF0, scale: 1.0, symbol: 0x1C1C1E)
         ),
     ]
@@ -199,6 +207,11 @@ enum SettingsCatalog {
              "Check for updates", ["update", "upgrade", "interval", "cadence"]),
         item(SearchID.beta, .general, SettingsAnchor.updates, "General", "Updates",
              "Include beta releases", ["beta", "prerelease", "pre-release", "channel"]),
+        // General · Backup
+        item(SearchID.exportSettings, .general, SettingsAnchor.backup, "General", "Backup",
+             "Export settings", ["export", "backup", "save settings", "share settings"]),
+        item(SearchID.importSettings, .general, SettingsAnchor.backup, "General", "Backup",
+             "Import settings", ["import", "restore", "load settings"]),
 
         // Shortcuts · Switching
         item(SearchID.switchApps, .shortcuts, SettingsAnchor.switching, "Shortcuts", "Switching",
@@ -208,6 +221,10 @@ enum SettingsCatalog {
         // Shortcuts · Direct activation
         item(SearchID.directActivation, .shortcuts, SettingsAnchor.directActivation, "Shortcuts", "Direct activation",
              "Direct activation hotkeys", ["direct", "hotkey", "shortcut", "activate", "focus app", "jump to app"]),
+        item(SearchID.scopedSwitch, .shortcuts, SettingsAnchor.scopedSwitch, "Shortcuts", "Scoped shortcuts",
+             "Scoped shortcuts", ["scope", "scoped", "all windows", "current app", "minimized", "this space", "filtered switcher"]),
+        item(SearchID.panelKeys, .shortcuts, SettingsAnchor.panelKeys, "Shortcuts", "In-panel keys",
+             "Action keys while switching", ["panel keys", "rebind", "close", "minimize", "hide", "quit", "wmhq", "in-panel"]),
 
         // Privacy · Screen sharing
         item(SearchID.hideFromScreenSharing, .privacy, SettingsAnchor.screenSharing, "Privacy", "Screen sharing",
@@ -227,6 +244,8 @@ enum SettingsCatalog {
              "Show unread badges", ["badge", "unread", "dock badge", "count"]),
         item(SearchID.currentSpaceOnly, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
              "Only current Space", ["space", "current space", "desktop", "filter"]),
+        item(SearchID.sortOrder, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
+             "Sort order", ["sort", "order", "mru", "most recent", "alphabetical", "launch order"]),
         item(SearchID.showRecentlyClosed, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
              "Show recently closed apps", ["recently closed", "reopen", "recent"]),
         item(SearchID.recentlyClosedLimit, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
