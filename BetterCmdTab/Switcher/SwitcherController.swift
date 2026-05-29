@@ -101,6 +101,13 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Picked once per drill, never crossed.
     private enum TabDrillBackend { case appleScript, accessibility, windows }
     private var tabDrillBackend: TabDrillBackend = .accessibility
+    /// The window `applyDrill` built the current tab strip against. `commitTab`
+    /// re-validates that the selected row still points at this window before
+    /// pairing it with the captured tab elements — a background refresh can move
+    /// the selection off the drilled row (the drilled app quits, or a re-sort
+    /// reorders rows) while the strip stays open, which would otherwise activate
+    /// the wrong window or a different app. Cleared whenever the drill ends.
+    private var drillWindow: AXUIElement?
     /// Background prefetch of tab titles keyed by AXUIElement window
     /// identity. Populated when selection lands on a tab-capable row so that
     /// the eventual `\` finds the work already done. Cleared when the panel
@@ -1676,6 +1683,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabTitles = []
         liveTabElements = []
         tabIndex = 0
+        drillWindow = nil
         hotkey.setTabDrillActive(false)
         tabPrefetchCache.removeAll()
         tabPrefetchInFlight.removeAll()
@@ -1835,6 +1843,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabIndex = 0
         tabDrillActive = true
         tabDrillHint = nil
+        drillWindow = window
         stickyOpen = true
         hotkey.setTabDrillActive(true)
         refreshDisplay()
@@ -1951,6 +1960,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabTitles = []
         liveTabElements = []
         tabIndex = 0
+        drillWindow = nil
         hotkey.setTabDrillActive(false)
         refreshDisplay()
     }
@@ -1966,7 +1976,14 @@ final class SwitcherController: SwitcherViewDelegate {
         guard tabDrillActive, !tabTitles.isEmpty,
               rows.indices.contains(index),
               let app = rows[index].app,
-              let window = rows[index].window else {
+              let window = rows[index].window,
+              // The selection must still be the row the strip was built against.
+              // A background refresh can drift `index` onto a different row while
+              // the strip stays open (the drilled app quit, or a re-sort moved
+              // rows); the captured tab elements then no longer belong to
+              // rows[index]. Fall back to a plain commit rather than activating a
+              // mismatched window/app.
+              let dw = drillWindow, CFEqual(window, dw) else {
             exitTabDrill()
             commit()
             return
@@ -1996,6 +2013,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabTitles = []
         liveTabElements = []
         tabIndex = 0
+        drillWindow = nil
         hotkey.setTabDrillActive(false)
         primedApps = []
         rows = []
