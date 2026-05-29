@@ -111,6 +111,14 @@ final class CarbonHotkeyTrigger {
                     &hotKeyID
                 )
                 guard err == noErr else { return noErr }
+                // This handler is installed on the shared dispatcher target, so
+                // Carbon calls it for EVERY app hot key — including the ones
+                // BetterShortcuts registers (signature 'SSKS') for the window-
+                // management chords. Their numeric ids start at 1 and collide
+                // with ours (1 = .nextApp, 2 = .prevApp, …), so without this
+                // signature gate a ⌃⌘← tile also fires .nextApp and opens the
+                // switcher. Only act on our own 'BCmT' hot keys.
+                guard hotKeyID.signature == CarbonHotkeyTrigger.signature else { return noErr }
                 let id = hotKeyID.id
                 // Carbon dispatches on the main run loop, but hop explicitly so
                 // we touch MainActor state safely and match HotkeyTap's pattern.
