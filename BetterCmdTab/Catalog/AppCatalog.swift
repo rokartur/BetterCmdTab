@@ -92,15 +92,7 @@ enum AppCatalog {
                 ))
             } else {
                 for win in entry.windows {
-                    rows.append(SwitcherRow(
-                        app: entry.app,
-                        window: win.ref,
-                        windowTitle: win.title,
-                        isMinimized: win.isMinimized,
-                        isFullscreen: win.isFullscreen,
-                        tabs: win.tabs,
-                        cgWindowID: win.cgWindowID
-                    ))
+                    rows.append(SwitcherRow.from(app: entry.app, window: win))
                 }
             }
         }

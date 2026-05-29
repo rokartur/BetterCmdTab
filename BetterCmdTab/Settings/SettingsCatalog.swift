@@ -37,6 +37,7 @@ enum SettingsAnchor {
     static let permissions = "privacy.permissions"
     // Switcher
     static let contents = "switcher.contents"
+    static let tabs = "switcher.tabs"
     static let search = "switcher.search"
     static let navigation = "switcher.navigation"
     static let actions = "switcher.actions"
@@ -80,6 +81,9 @@ enum SearchID {
     static let sortOrder = "switcher.sortOrder"
     static let showRecentlyClosed = "switcher.showRecentlyClosed"
     static let recentlyClosedLimit = "switcher.recentlyClosedLimit"
+    static let tabDrill = "switcher.tabDrill"
+    static let expandTabs = "switcher.expandTabs"
+    static let tabPermissions = "switcher.tabPermissions"
     static let letterHints = "switcher.letterHints"
     static let fuzzy = "switcher.fuzzy"
     static let launcher = "switcher.launcher"
@@ -254,6 +258,13 @@ enum SettingsCatalog {
              String(localized: "Show recently closed apps"), ["recently closed", "reopen", "recent"]),
         item(SearchID.recentlyClosedLimit, .switcher, SettingsAnchor.contents, "Switcher", "Contents",
              String(localized: "Recently closed to show"), ["recently closed", "limit", "count"]),
+        // Switcher · Tabs
+        item(SearchID.tabDrill, .switcher, SettingsAnchor.tabs, "Switcher", "Tabs",
+             String(localized: "Peek tabs with \\"), ["tabs", "tab", "drill", "peek", "backslash", "finder tabs", "browser tabs", "safari", "chrome"]),
+        item(SearchID.expandTabs, .switcher, SettingsAnchor.tabs, "Switcher", "Tabs",
+             String(localized: "Show tabs as separate entries"), ["tabs", "tab", "expand", "separate", "rows", "per tab", "finder", "terminal", "native tabs"]),
+        item(SearchID.tabPermissions, .switcher, SettingsAnchor.tabs, "Switcher", "Tabs",
+             String(localized: "Browser tab access"), ["tabs", "apple events", "automation", "permission", "browser", "consent"]),
         // Switcher · Search
         item(SearchID.letterHints, .switcher, SettingsAnchor.search, "Switcher", "Search",
              String(localized: "Letter hints"), ["letter hints", "jump", "vim"]),

@@ -96,8 +96,10 @@ final class SwitcherController: SwitcherViewDelegate {
     private var liveTabElements: [AXUIElement] = []
     /// Source of the current drill-in. `appleScript` → activate by index via
     /// `BrowserTabs.activateTab`. `accessibility` → AX press on
-    /// `liveTabElements[tabIndex]`. Picked once per drill, never crossed.
-    private enum TabDrillBackend { case appleScript, accessibility }
+    /// `liveTabElements[tabIndex]`. `windows` → native window tabs: each
+    /// `liveTabElements[i]` is a real NSWindow; raising it selects that tab.
+    /// Picked once per drill, never crossed.
+    private enum TabDrillBackend { case appleScript, accessibility, windows }
     private var tabDrillBackend: TabDrillBackend = .accessibility
     /// Background prefetch of tab titles keyed by AXUIElement window
     /// identity. Populated when selection lands on a tab-capable row so that
@@ -1696,10 +1698,22 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Both run off-main; the strip appears once titles land. Silently
     /// no-ops if no tabs are found.
     private func enterTabDrill() {
-        guard Preferences.shared.experimentalTabDrillIn else { return }
+        guard Preferences.shared.tabDrillEnabled else { return }
         guard phase == .visible, rows.indices.contains(index) else { return }
         let row = rows[index]
         guard let window = row.window, let app = row.app else { return }
+        // Native macOS window tabs: the sibling tab windows + titles were already
+        // resolved during the scan, so the strip appears instantly with no fetch.
+        // Committing a strip entry raises that tab's window (selecting the tab).
+        if row.tabWindows.count > 1 {
+            applyDrill(
+                titles: row.tabWindows.map(\.title),
+                liveTabs: row.tabWindows.map(\.ref),
+                backend: .windows,
+                window: window
+            )
+            return
+        }
         // Never drill our own windows — the AX walk would run in-process off the
         // main thread and crash the layout engine (see `isOwnProcess`).
         guard !Self.isOwnProcess(app) else { return }
@@ -1824,7 +1838,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// `tabPrefetchCache`.
     private func schedulePrefetchForCurrentSelection() {
         tabPrefetchTimer?.invalidate()
-        guard Preferences.shared.experimentalTabDrillIn,
+        guard Preferences.shared.tabDrillEnabled,
               phase == .visible, rows.indices.contains(index),
               let window = rows[index].window,
               let app = rows[index].app else { return }
@@ -1900,9 +1914,12 @@ final class SwitcherController: SwitcherViewDelegate {
         let row = rows[index]
         let chosen = tabIndex
         let backend = tabDrillBackend
-        let axTab: AXUIElement? = (backend == .accessibility && liveTabElements.indices.contains(chosen))
+        // For AX/native-window backends the target element is `liveTabElements[chosen]`
+        // (an AXTab control, or a real tab window respectively). Bail to a plain
+        // commit if it's somehow missing.
+        let targetElement: AXUIElement? = (backend != .appleScript && liveTabElements.indices.contains(chosen))
             ? liveTabElements[chosen] : nil
-        if backend == .accessibility && axTab == nil {
+        if backend != .appleScript && targetElement == nil {
             exitTabDrill()
             commit()
             return
@@ -1936,8 +1953,14 @@ final class SwitcherController: SwitcherViewDelegate {
                 _ = BrowserTabs.activateTab(at: chosen, in: app, window: window, title: title)
             }
         case .accessibility:
-            if let tab = axTab {
+            if let tab = targetElement {
                 Activator.activateTab(in: app, window: window, tab: tab, instantSpace: instantSpace)
+            }
+        case .windows:
+            // The chosen tab is a real NSWindow — raising it selects that tab.
+            if let tabWindow = targetElement {
+                let tabRow = SwitcherRow(app: app, window: tabWindow, windowTitle: row.windowTitle, isMinimized: false)
+                Activator.activate(tabRow, instantSpace: instantSpace)
             }
         }
     }

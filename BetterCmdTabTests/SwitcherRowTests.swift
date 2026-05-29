@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Testing
 @testable import BetterCmdTab
 
@@ -9,6 +10,22 @@ struct SwitcherRowTests {
     /// for any NSRunningApplication. Properties we exercise (localizedName, pid)
     /// are guaranteed non-nil for the current process.
     private var hostApp: NSRunningApplication { .current }
+
+    /// A throwaway AX element. `SwitcherRow.from` never messages it — so the app
+    /// element of the test process is a fine stand-in.
+    private func axElement() -> AXUIElement { AXUIElementCreateApplication(getpid()) }
+
+    private func windowInfo(tabWindows: Int, titles: [String], title: String = "Window") -> WindowInfo {
+        WindowInfo(
+            ref: axElement(),
+            cgWindowID: 42,
+            title: title,
+            isMinimized: false,
+            tabWindows: (0..<tabWindows).map { i in
+                TabWindowRef(ref: axElement(), title: titles.indices.contains(i) ? titles[i] : "", cgWindowID: CGWindowID(100 + i))
+            }
+        )
+    }
 
     @Test("placeholder rows always show app name")
     func placeholderShowsAppName() {
@@ -84,5 +101,26 @@ struct SwitcherRowTests {
         let row = SwitcherRow(app: hostApp, window: nil, windowTitle: "", isMinimized: false)
         #expect(!row.isLaunchable)
         #expect(row.app != nil)
+    }
+
+    // MARK: - native window-tab rows
+
+    @Test("from carries the window's native tab siblings for the peek")
+    func fromCarriesTabWindows() {
+        let info = windowInfo(tabWindows: 3, titles: ["A", "B", "C"], title: "Window A")
+        let row = SwitcherRow.from(app: hostApp, window: info)
+        #expect(row.tabWindows.count == 3)
+        #expect(row.hasTabs)                      // peekable with `\`
+        #expect(row.windowTitle == "Window A")    // front tab's title
+        #expect(row.cgWindowID == 42)
+        #expect(row.tabWindows.map(\.title) == ["A", "B", "C"])
+    }
+
+    @Test("a plain window (no tab siblings) is not peekable")
+    func plainWindowNoTabs() {
+        let info = WindowInfo(ref: axElement(), cgWindowID: 7, title: "Solo", isMinimized: false)
+        let row = SwitcherRow.from(app: hostApp, window: info)
+        #expect(row.tabWindows.isEmpty)
+        #expect(!row.hasTabs)
     }
 }

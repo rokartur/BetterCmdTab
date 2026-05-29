@@ -15,7 +15,6 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let sensitivitySlider = NSSlider()
     private let sensitivityValueLabel = NSTextField(labelWithString: "")
     private let instantSpaceSwitch = NSSwitch()
-    private let tabDrillSwitch = NSSwitch()
 
     override func setupContent() {
         // Experimental section — off by default, clearly flagged as unstable.
@@ -59,19 +58,9 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: experimental, title: String(localized: "Switch Spaces without animation"),
                subtitle: String(localized: "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too."),
                accessory: instantSpaceSwitch, searchItemID: SearchID.instantSpace)
-
-        addDivider(to: experimental)
-        configureSwitch(tabDrillSwitch, action: #selector(toggleTabDrill(_:)))
-        addRow(to: experimental, title: String(localized: "Browser tab drill-in"),
-               subtitle: String(localized: "Press \\ on a row whose window has tabs to pick a specific tab from a strip below the switcher. Reliability varies across browsers — uses Accessibility AXTabs."),
-               accessory: tabDrillSwitch)
-
-        let grantButton = NSButton(title: String(localized: "Grant permissions…"), target: self, action: #selector(grantBrowserPermissions))
-        grantButton.bezelStyle = .rounded
-        grantButton.controlSize = .small
-        addRow(to: experimental, title: String(localized: "Apple Events permission"),
-               subtitle: String(localized: "Browsers require Apple Events consent to enumerate tabs. Click to trigger a prompt for each running browser (Safari, Chrome, Helium, Arc, Brave, Edge…). Must be done with this Settings window open."),
-               accessory: grantButton)
+        // Tab drill-in (the `\` peek) + tab expansion graduated to the Switcher
+        // tab's "Tabs" section — they are stable, on by default, and belong with
+        // the other content options.
     }
 
     private func configureSwitch(_ toggle: NSSwitch, action: Selector) {
@@ -118,7 +107,6 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         commitSwitch.state = prefs.swipeCommitOnRelease ? .on : .off
         applySensitivity(prefs.swipeSensitivity)
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
-        tabDrillSwitch.state = prefs.experimentalTabDrillIn ? .on : .off
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
 
@@ -155,19 +143,6 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleInstantSpace(_ sender: NSSwitch) {
         Preferences.shared.experimentalInstantSpaceSwitch = (sender.state == .on)
-    }
-
-    @objc private func toggleTabDrill(_ sender: NSSwitch) {
-        let on = (sender.state == .on)
-        Preferences.shared.experimentalTabDrillIn = on
-        // Toggling on while Settings is visible is the ideal moment to ask
-        // for Apple Events consent: the user just opted in, and Settings
-        // gives us the foreground UI context TCC needs to surface the prompt.
-        if on { BrowserTabs.requestPermissionForRunningBrowsers() }
-    }
-
-    @objc private func grantBrowserPermissions() {
-        BrowserTabs.requestPermissionForRunningBrowsers()
     }
 
     /// The reverse/commit/sensitivity controls only make sense while the swipe

@@ -11,10 +11,18 @@ struct WindowInfo {
     let title: String
     let isMinimized: Bool
     let isFullscreen: Bool
-    /// `AXTabs` children of this window (browsers, tabbed Finder, iTerm, …).
-    /// Empty when the window has no tab group or only a single tab — drill-in
-    /// is only meaningful with at least two tabs.
+    /// In-content `AXTabs` children of this window (the deep tab strip some apps
+    /// expose, e.g. via an `AXTabGroup`). Empty for the common case — most apps,
+    /// including Finder/Terminal/TextEdit, do NOT expose this. Native window
+    /// tabs are represented by `tabWindows` instead.
     let tabs: [AXUIElement]
+    /// Native macOS window-tab siblings, when this is the collapsed front tab of
+    /// a group (Finder/Terminal/TextEdit/Ghostty/…). Each entry is a real
+    /// NSWindow (own title + CGWindowID) at the same on-screen frame; raising
+    /// one selects that tab. Includes this window itself, in tab order. Empty
+    /// for an ordinary single window and whenever "expand tabs as windows" is on
+    /// (each tab is then its own `WindowInfo`).
+    let tabWindows: [TabWindowRef]
 
     init(
         ref: AXUIElement,
@@ -22,7 +30,8 @@ struct WindowInfo {
         title: String,
         isMinimized: Bool,
         isFullscreen: Bool = false,
-        tabs: [AXUIElement] = []
+        tabs: [AXUIElement] = [],
+        tabWindows: [TabWindowRef] = []
     ) {
         self.ref = ref
         self.cgWindowID = cgWindowID
@@ -30,7 +39,18 @@ struct WindowInfo {
         self.isMinimized = isMinimized
         self.isFullscreen = isFullscreen
         self.tabs = tabs
+        self.tabWindows = tabWindows
     }
+}
+
+/// One window in a native macOS window-tab group. Each tab is a distinct
+/// NSWindow — own AX element, title, and CGWindowID — sharing the group's
+/// on-screen frame; AX exposes only the front tab, the others are recovered by
+/// the brute-force scan. Raising a tab's window selects that tab.
+struct TabWindowRef {
+    let ref: AXUIElement
+    let title: String
+    let cgWindowID: CGWindowID
 }
 
 /// Hashable wrapper around `AXUIElement` whose equality follows the CF identity
@@ -155,6 +175,14 @@ enum WindowEnumerator {
             for w in axWindows { appendIfNew(w) }
         }
 
+        // Snapshot which elements the app's own window list exposed, before the
+        // brute scan runs. This is the discriminator for native window tabs:
+        // AppKit lists only the FRONT tab of a group, so any window the brute
+        // scan recovers at the same frame as an AX-listed window is a background
+        // tab — never a genuinely separate window (two real overlapping windows
+        // are both in the AX list). Drives collapse/expand below.
+        let axListRefs = seenByElement
+
         // Skip brute-force AX scan when the CG window list says AX already has
         // every on-screen window covered. Apps with no CG-AX gap (the common
         // case) pay zero brute-scan cost.
@@ -253,17 +281,15 @@ enum WindowEnumerator {
         struct RawWindow {
             let element: AXUIElement
             let cgWindowID: CGWindowID
-            let tabs: [AXUIElement]?
+            let tabs: [AXUIElement]
             let minimized: Bool
             let fullscreen: Bool
             let title: String
             let frameKey: String?
+            let fromAXList: Bool
         }
         var raws: [RawWindow] = []
         raws.reserveCapacity(elements.count)
-        // Frames occupied by a native macOS window-tab group. Only these are
-        // eligible for the merged-window dedup further down.
-        var tabGroupFrames: Set<String> = []
         for window in elements {
             AXUIElementSetMessagingTimeout(window, Self.confirmedTimeout)
             var valuesRef: CFArray?
@@ -273,14 +299,12 @@ enum WindowEnumerator {
             let subrole = (values[0] as? String) ?? ""
             guard acceptedSubroles.contains(subrole) else { continue }
 
-            let tabs = values[1] as? [AXUIElement]
+            let tabs = (values[1] as? [AXUIElement]) ?? []
             let minimized = (values[2] as? Bool) ?? false
             let fullscreen = (values[3] as? Bool) ?? false
             let windowTitle = (values[4] as? String) ?? ""
-            // Minimized windows legitimately share (0, 0) — never frame-dedup them.
+            // Minimized windows legitimately share (0, 0) — never frame-group them.
             let frameKey = minimized ? nil : frameKeyFromAttributes(values[5], values[6])
-
-            if let tabs, tabs.count > 1, let frameKey { tabGroupFrames.insert(frameKey) }
 
             raws.append(RawWindow(
                 element: window,
@@ -289,50 +313,86 @@ enum WindowEnumerator {
                 minimized: minimized,
                 fullscreen: fullscreen,
                 title: windowTitle,
-                frameKey: frameKey
+                frameKey: frameKey,
+                fromAXList: axListRefs.contains(AXRef(element: window))
             ))
         }
 
-        var seenTabGroups: Set<[AXRef]> = []
-        var addedTabGroupForPid = false
-        // Native macOS window tabs (Finder, Terminal, TextEdit, Ghostty, ...)
-        // expose each tab as its own AXWindow with its own CGWindowID — but
-        // they share the same on-screen frame because only one tab renders at
-        // a time and macOS keeps the merged-window outline identical across
-        // tabs. Collapsing by (origin × size) keeps one row per visual merged
-        // window. Crucially this is gated on `tabGroupFrames`: two genuinely
-        // separate windows that merely overlap (e.g. two maximized Chrome
-        // windows, which don't use native window tabs) must NOT collapse —
-        // doing so was issue #10, where the second maximized window vanished
-        // from the switcher.
-        var seenFrames: Set<String> = []
-        for raw in raws {
-            var windowTabs: [AXUIElement] = []
-            if let tabs = raw.tabs, tabs.count > 1 {
-                if addedTabGroupForPid { continue }
-                let key = tabs.map { AXRef(element: $0) }
-                if seenTabGroups.contains(key) { continue }
-                seenTabGroups.insert(key)
-                windowTabs = tabs
-                addedTabGroupForPid = true
-            }
-
-            if let frameKey = raw.frameKey, tabGroupFrames.contains(frameKey) {
-                if seenFrames.contains(frameKey) { continue }
-                seenFrames.insert(frameKey)
-            }
-
+        // Native macOS window tabs: each tab is its own NSWindow at the group's
+        // shared frame, but AppKit exposes only the FRONT tab in the app's window
+        // list — the background tabs surface only via the brute scan. So a
+        // brute-only window whose frame matches an AX-listed window of the same
+        // app is a background tab, never a separate window (two real overlapping
+        // windows are both AX-listed — issue #10 stays safe). Collapse keeps the
+        // front tab and attaches the rest as `tabWindows` for the `\` peek;
+        // expand emits one row per tab. No reliance on `AXTabs` (which these
+        // apps don't expose).
+        let expand = UserDefaults.standard.bool(forKey: Preferences.Keys.expandTabsAsWindows)
+        let resolution = resolveTabStacks(
+            frameKeys: raws.map(\.frameKey),
+            fromAXList: raws.map(\.fromAXList),
+            expand: expand
+        )
+        for (i, raw) in raws.enumerated() where resolution.keep[i] {
+            let siblings = resolution.siblingIndices[i] ?? []
+            let tabWindows: [TabWindowRef] = siblings.isEmpty ? [] :
+                ([i] + siblings).map { idx in
+                    TabWindowRef(ref: raws[idx].element, title: raws[idx].title, cgWindowID: raws[idx].cgWindowID)
+                }
             infos.append(WindowInfo(
                 ref: raw.element,
                 cgWindowID: raw.cgWindowID,
                 title: raw.title,
                 isMinimized: raw.minimized,
                 isFullscreen: raw.fullscreen,
-                tabs: windowTabs
+                tabs: raw.tabs.count > 1 ? raw.tabs : [],
+                tabWindows: tabWindows
             ))
         }
 
         return sortedByZOrder(infos, cgZOrder: cgZOrder)
+    }
+
+    /// Result of grouping a pid's windows into native tab stacks.
+    /// `keep[i]` is false for background-tab windows folded into their front tab
+    /// (collapse mode only). `siblingIndices[front]` lists the background-tab
+    /// indices folded under that kept front window, so the caller can attach
+    /// them as `tabWindows` for the `\` peek.
+    struct TabResolution {
+        let keep: [Bool]
+        let siblingIndices: [Int: [Int]]
+    }
+
+    /// Decide which windows to surface and which are native background tabs.
+    /// Pure (no AX) so it is unit-testable. `frameKeys[i] == nil` means the
+    /// window is unframeable/minimized and is never treated as a tab.
+    ///
+    /// - expand: every window is kept as its own row (one entry per tab); no
+    ///   grouping.
+    /// - collapse: every AX-listed window is kept; a brute-only window whose
+    ///   frame matches an AX-listed window's frame is dropped and recorded as a
+    ///   background tab of the first AX-listed window at that frame. Brute-only
+    ///   windows at a frame with no AX-listed window are kept (e.g. fullscreen
+    ///   windows the public list misses), preserving prior behavior.
+    static func resolveTabStacks(frameKeys: [String?], fromAXList: [Bool], expand: Bool) -> TabResolution {
+        let n = frameKeys.count
+        var keep = [Bool](repeating: true, count: n)
+        guard !expand else { return TabResolution(keep: keep, siblingIndices: [:]) }
+
+        var axFrames = Set<String>()
+        var frontForFrame: [String: Int] = [:]
+        for i in 0..<n where fromAXList[i] {
+            guard let f = frameKeys[i] else { continue }
+            axFrames.insert(f)
+            if frontForFrame[f] == nil { frontForFrame[f] = i }
+        }
+        var siblings: [Int: [Int]] = [:]
+        for i in 0..<n where !fromAXList[i] {
+            guard let f = frameKeys[i], axFrames.contains(f) else { continue }
+            keep[i] = false
+            if let front = frontForFrame[f] { siblings[front, default: []].append(i) }
+        }
+        return TabResolution(keep: keep, siblingIndices: siblings)
     }
 
     /// Stringify a window's (position, size) for dedup. Returns nil when

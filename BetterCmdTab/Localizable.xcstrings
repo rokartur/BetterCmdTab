@@ -534,6 +534,7 @@
       }
     },
     "Apple Events permission" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -785,7 +786,11 @@
         }
       }
     },
+    "Browser tab access" : {
+
+    },
     "Browser tab drill-in" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -813,7 +818,11 @@
         }
       }
     },
+    "Browsers need Apple Events consent to list their tabs. Click to prompt for each running browser (Safari, Chrome, Arc, Brave, Edge…). Must be done with this window open." : {
+
+    },
     "Browsers require Apple Events consent to enumerate tabs. Click to trigger a prompt for each running browser (Safari, Chrome, Helium, Arc, Brave, Edge…). Must be done with this Settings window open." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3334,6 +3343,9 @@
         }
       }
     },
+    "List each tab of a native-tab window (Finder, Terminal, TextEdit, …) as its own row instead of one collapsed window. Off keeps one row per window — peek its tabs with \\." : {
+
+    },
     "Lists apps and windows you just closed so you can reopen them." : {
       "localizations" : {
         "de" : {
@@ -4119,6 +4131,9 @@
         }
       }
     },
+    "Peek tabs with \\" : {
+
+    },
     "Permissions" : {
       "localizations" : {
         "de" : {
@@ -4372,6 +4387,7 @@
       }
     },
     "Press \\ on a row whose window has tabs to pick a specific tab from a strip below the switcher. Reliability varies across browsers — uses Accessibility AXTabs." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4398,6 +4414,9 @@
           }
         }
       }
+    },
+    "Press \\ on a window that has tabs to reveal a strip below the switcher and pick a tab. Native tabs use Accessibility; browsers use Apple Events." : {
+
     },
     "Press Tile left / Tile right again to step the window through ½ → ⅔ → ⅓ of the screen on that side." : {
       "localizations" : {
@@ -5603,6 +5622,9 @@
         }
       }
     },
+    "Show tabs as separate entries" : {
+
+    },
     "Show unread badges" : {
       "localizations" : {
         "de" : {
@@ -6278,6 +6300,9 @@
           }
         }
       }
+    },
+    "Tabs" : {
+
     },
     "Tap to switch instantly; hold longer to open the switcher." : {
       "localizations" : {
