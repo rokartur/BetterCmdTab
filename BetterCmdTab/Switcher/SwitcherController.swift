@@ -214,18 +214,44 @@ final class SwitcherController: SwitcherViewDelegate {
                 }
             }
         }
-        // Recompute the "Ignore shortcuts" suppression whenever the frontmost
-        // app changes or the active Space flips (the latter covers full-screen
-        // enter/exit, which is its own Space). The flag is read by the tap on
-        // the next trigger chord.
-        for name in [NSWorkspace.didActivateApplicationNotification, NSWorkspace.activeSpaceDidChangeNotification] {
-            NSWorkspace.shared.notificationCenter.addObserver(
-                forName: name,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in self?.updateTriggerSuppression() }
+        // Track every app activation live — a Dock click, a click on another
+        // app's window, or ⌘Tab from any source — so the app-MRU order is
+        // always current. Without this, `mru.order` only self-corrects lazily
+        // via `syncFrontmost()` when the switcher opens, which reads
+        // `NSWorkspace.frontmostApplication`; that value lags briefly after a
+        // Dock switch, so a fast ⌘⇥ right after switching via the Dock reads a
+        // stale frontmost and steps from the wrong anchor (wrong target app and
+        // window). Bumping here pins `mru.order[0]` to the real frontmost the
+        // instant it changes, and refreshes the activated app's focused window
+        // in the window-MRU, so the next chord starts from the correct app.
+        // Self-activation (our own panel becoming key) is skipped — it must
+        // never claim MRU[0]. Also recompute the "Ignore shortcuts" suppression
+        // here since the frontmost app just changed.
+        let selfPid = getpid()
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if let pid, pid != selfPid {
+                    self.mru.bump(pid)
+                    self.handleFocusChange(pid: pid)
+                }
+                self.updateTriggerSuppression()
             }
+        }
+        // The active Space flipping (full-screen enter/exit is its own Space)
+        // only affects trigger suppression, not the MRU. The flag is read by the
+        // tap on the next trigger chord.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.updateTriggerSuppression() }
         }
     }
 
