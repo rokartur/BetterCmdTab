@@ -59,25 +59,25 @@ final class AppRuleRowView: NSView {
         nameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         configure(showPopup, titles: showOptions.map(\.title), selected: showOptions.firstIndex { $0.mode == hide } ?? 0, action: #selector(showChanged))
-        showPopup.toolTip = "When this app appears in the switcher"
+        showPopup.toolTip = String(localized: "When this app appears in the switcher")
 
         configure(shortcutPopup, titles: shortcutOptions.map(\.title), selected: shortcutOptions.firstIndex { $0.mode == ignore } ?? 0, action: #selector(shortcutChanged))
-        shortcutPopup.toolTip = "Pass ⌘Tab through to the app instead of opening the switcher — for apps with their own window switching (virtual machines, remote desktop, some games)."
+        shortcutPopup.toolTip = String(localized: "Pass ⌘Tab through to the app instead of opening the switcher — for apps with their own window switching (virtual machines, remote desktop, some games).")
 
         let removeButton = NSButton()
         removeButton.isBordered = false
         removeButton.bezelStyle = .accessoryBarAction
         removeButton.imagePosition = .imageOnly
-        removeButton.image = NSImage(systemSymbolName: "minus.circle.fill", accessibilityDescription: "Remove rule")?
+        removeButton.image = NSImage(systemSymbolName: "minus.circle.fill", accessibilityDescription: String(localized: "Remove rule"))?
             .withSymbolConfiguration(.init(pointSize: 13, weight: .regular))
         removeButton.contentTintColor = .tertiaryLabelColor
-        removeButton.toolTip = "Remove this rule"
+        removeButton.toolTip = String(localized: "Remove this rule")
         removeButton.target = self
         removeButton.action = #selector(removeClicked)
         removeButton.translatesAutoresizingMaskIntoConstraints = false
         removeButton.setContentHuggingPriority(.required, for: .horizontal)
 
-        let showGroup = captionedControl("Show", info: Self.showInfo, showPopup)
+        let showGroup = captionedControl(String(localized: "Show"), info: Self.showInfo, showPopup)
         let shortcutGroup = captionedControl("⌘Tab", info: Self.shortcutInfo, shortcutPopup)
 
         let stack = NSStackView(views: [iconView, nameLabel, NSView(), showGroup, shortcutGroup, removeButton])
@@ -133,9 +133,9 @@ final class AppRuleRowView: NSView {
     }
 
     private static let showInfo =
-        "Controls whether this app shows up in the switcher.\n\n• Always — always listed.\n• With open windows — listed only while it has at least one open window.\n• Never — never listed (hidden from the switcher)."
+        String(localized: "Controls whether this app shows up in the switcher.\n\n• Always — always listed.\n• With open windows — listed only while it has at least one open window.\n• Never — never listed (hidden from the switcher).")
     private static let shortcutInfo =
-        "Lets the app keep ⌘Tab for itself: the chord is passed through to the app instead of opening the switcher. Useful for apps with their own window switching — virtual machines, remote desktop, some games.\n\n• Never — the switcher always opens.\n• Always — the app keeps ⌘Tab whenever it's focused.\n• In full screen — only while the app is in full screen."
+        String(localized: "Lets the app keep ⌘Tab for itself: the chord is passed through to the app instead of opening the switcher. Useful for apps with their own window switching — virtual machines, remote desktop, some games.\n\n• Never — the switcher always opens.\n• Always — the app keeps ⌘Tab whenever it's focused.\n• In full screen — only while the app is in full screen.")
 
     // MARK: - Actions
 
@@ -174,7 +174,7 @@ final class AddAppRowView: NSView {
         button.image = NSImage(systemSymbolName: "plus.circle.fill", accessibilityDescription: nil)?
             .withSymbolConfiguration(.init(pointSize: 13, weight: .regular))
         button.contentTintColor = .controlAccentColor
-        button.attributedTitle = NSAttributedString(string: " Add App…", attributes: [
+        button.attributedTitle = NSAttributedString(string: String(localized: " Add App…"), attributes: [
             .font: NSFont.systemFont(ofSize: 13, weight: .regular),
             .foregroundColor: NSColor.controlAccentColor,
         ])
@@ -208,7 +208,7 @@ final class InfoButton: NSButton {
         isBordered = false
         bezelStyle = .accessoryBarAction
         imagePosition = .imageOnly
-        image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: "More info")?
+        image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: String(localized: "More info"))?
             .withSymbolConfiguration(.init(pointSize: 11, weight: .regular))
         contentTintColor = .tertiaryLabelColor
         setContentHuggingPriority(.required, for: .horizontal)

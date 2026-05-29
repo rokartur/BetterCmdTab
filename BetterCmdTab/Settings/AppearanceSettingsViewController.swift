@@ -26,25 +26,25 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private let accents: [SwitcherAccent] = SwitcherAccent.allCases
 
     override func setupContent() {
-        let section = addSection(title: "Switcher", anchor: SettingsAnchor.appearance)
+        let section = addSection(title: String(localized: "Switcher"), anchor: SettingsAnchor.appearance)
 
         layoutRadio = makeLayoutRadio()
-        addRow(to: section, title: "Layout", accessory: layoutRadio, searchItemID: SearchID.layout)
+        addRow(to: section, title: String(localized: "Layout"), accessory: layoutRadio, searchItemID: SearchID.layout)
 
         sizeRadio = makeSizeRadio()
-        addRow(to: section, title: "Size", accessory: sizeRadio, searchItemID: SearchID.size)
+        addRow(to: section, title: String(localized: "Size"), accessory: sizeRadio, searchItemID: SearchID.size)
 
-        configurePopup(gridPopup, titles: gridValues.map { $0 == 0 ? "Automatic" : "\($0)" }, action: #selector(gridChanged))
-        addRow(to: section, title: "Grid columns",
-               subtitle: "Applies to the Grid and Previews layouts.",
+        configurePopup(gridPopup, titles: gridValues.map { $0 == 0 ? String(localized: "Automatic") : "\($0)" }, action: #selector(gridChanged))
+        addRow(to: section, title: String(localized: "Grid columns"),
+               subtitle: String(localized: "Applies to the Grid and Previews layouts."),
                accessory: gridPopup, searchItemID: SearchID.gridColumns)
 
         configurePopup(accentPopup, titles: accents.map(\.displayName), action: #selector(accentChanged))
         for (i, accent) in accents.enumerated() {
             accentPopup.item(at: i)?.image = Self.swatch(for: accent)
         }
-        addRow(to: section, title: "Accent color",
-               subtitle: "Color of the selection highlight and jump letters.",
+        addRow(to: section, title: String(localized: "Accent color"),
+               subtitle: String(localized: "Color of the selection highlight and jump letters."),
                accessory: accentPopup, searchItemID: SearchID.accent)
 
         delaySlider.minValue = Double(Preferences.revealDelayRange.lowerBound)
@@ -68,29 +68,29 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             delaySlider.widthAnchor.constraint(equalToConstant: 140),
             delayValueLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 52),
         ])
-        addRow(to: section, title: "Quick-switch delay",
-               subtitle: "Tap to switch instantly; hold longer to open the switcher.",
+        addRow(to: section, title: String(localized: "Quick-switch delay"),
+               subtitle: String(localized: "Tap to switch instantly; hold longer to open the switcher."),
                accessory: sliderStack, searchItemID: SearchID.quickSwitchDelay)
 
         configureSwitch(windowTitleSwitch, action: #selector(toggleWindowTitle(_:)))
-        addRow(to: section, title: "Show window title",
-               subtitle: "Show each window's title under the icon in the Grid and Previews layouts.",
+        addRow(to: section, title: String(localized: "Show window title"),
+               subtitle: String(localized: "Show each window's title under the icon in the Grid and Previews layouts."),
                accessory: windowTitleSwitch, searchItemID: SearchID.windowTitle)
 
         let opacityStack = makeSliderControl(
             opacitySlider, valueLabel: opacityValueLabel,
             range: Preferences.panelOpacityRange, action: #selector(opacityChanged(_:))
         )
-        addRow(to: section, title: "Panel opacity",
-               subtitle: "Translucency of the switcher panel.",
+        addRow(to: section, title: String(localized: "Panel opacity"),
+               subtitle: String(localized: "Translucency of the switcher panel."),
                accessory: opacityStack, searchItemID: SearchID.opacity)
 
         let radiusStack = makeSliderControl(
             radiusSlider, valueLabel: radiusValueLabel,
             range: Preferences.panelCornerRadiusRange, action: #selector(radiusChanged(_:))
         )
-        addRow(to: section, title: "Corner radius",
-               subtitle: "Rounding of the panel's corners. Automatic follows the panel size.",
+        addRow(to: section, title: String(localized: "Corner radius"),
+               subtitle: String(localized: "Rounding of the panel's corners. Automatic follows the panel size."),
                accessory: radiusStack, searchItemID: SearchID.cornerRadius)
     }
 
@@ -296,7 +296,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     @objc private func radiusChanged(_ sender: NSSlider) {
         Preferences.shared.panelCornerRadius = sender.integerValue
-        radiusValueLabel.stringValue = sender.integerValue == 0 ? "Auto" : "\(sender.integerValue) pt"
+        radiusValueLabel.stringValue = sender.integerValue == 0 ? String(localized: "Auto") : "\(sender.integerValue) pt"
     }
 
     private func applyOpacity(_ value: Int) {
@@ -306,7 +306,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private func applyRadius(_ value: Int) {
         if radiusSlider.integerValue != value { radiusSlider.integerValue = value }
-        radiusValueLabel.stringValue = value == 0 ? "Auto" : "\(value) pt"
+        radiusValueLabel.stringValue = value == 0 ? String(localized: "Auto") : "\(value) pt"
     }
 
     /// Repaints the custom accent menu item's swatch from the stored hex.

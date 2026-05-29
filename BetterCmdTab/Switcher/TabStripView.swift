@@ -89,7 +89,7 @@ final class TabStripView: NSView {
             cell.removeFromSuperview()
         }
         for (i, title) in titles.enumerated() {
-            cells[i].configure(title: title.isEmpty ? "Untitled" : title,
+            cells[i].configure(title: title.isEmpty ? String(localized: "Untitled") : title,
                                selected: i == selectedIndex,
                                accent: accent)
         }

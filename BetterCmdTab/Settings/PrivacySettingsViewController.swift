@@ -16,18 +16,18 @@ final class PrivacySettingsViewController: SettingsTabViewController {
     override func setupContent() {
         // Screen-sharing section — hide the switcher panel from screen recording
         // / sharing capture (Zoom, Meet, Teams, QuickTime, ScreenCaptureKit).
-        let sharing = addSection(title: "Screen sharing", anchor: SettingsAnchor.screenSharing)
+        let sharing = addSection(title: String(localized: "Screen sharing"), anchor: SettingsAnchor.screenSharing)
         configureSwitch(hideFromScreenSharingSwitch, action: #selector(toggleHideFromScreenSharing(_:)))
         addRow(
             to: sharing,
-            title: "Don't look at my windows",
-            subtitle: "Hide the switcher from screen recordings and shared screens (Zoom, Meet, Teams). Needs macOS 14.6 or later.",
+            title: String(localized: "Don't look at my windows"),
+            subtitle: String(localized: "Hide the switcher from screen recordings and shared screens (Zoom, Meet, Teams). Needs macOS 14.6 or later."),
             accessory: hideFromScreenSharingSwitch,
             searchItemID: SearchID.hideFromScreenSharing
         )
 
         // Permissions section.
-        let permissions = addSection(title: "Permissions", anchor: SettingsAnchor.permissions)
+        let permissions = addSection(title: String(localized: "Permissions"), anchor: SettingsAnchor.permissions)
 
         permissionIcon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
         permissionIcon.translatesAutoresizingMaskIntoConstraints = false
@@ -51,8 +51,8 @@ final class PrivacySettingsViewController: SettingsTabViewController {
 
         addRow(
             to: permissions,
-            title: "Accessibility access",
-            subtitle: "Lets BetterCmdTab capture the shortcut and read your open windows. Required to work.",
+            title: String(localized: "Accessibility access"),
+            subtitle: String(localized: "Lets BetterCmdTab capture the shortcut and read your open windows. Required to work."),
             accessory: permissionAccessory,
             searchItemID: SearchID.accessibility
         )
@@ -94,13 +94,13 @@ final class PrivacySettingsViewController: SettingsTabViewController {
 
     private func refreshAccessibilityStatus() {
         if AccessibilityCheck.isTrusted {
-            permissionIcon.image = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: "Granted")
+            permissionIcon.image = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: String(localized: "Granted"))
             permissionIcon.contentTintColor = .systemGreen
-            permissionButton.title = "Open Settings"
+            permissionButton.title = String(localized: "Open Settings")
         } else {
-            permissionIcon.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Required")
+            permissionIcon.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: String(localized: "Required"))
             permissionIcon.contentTintColor = .systemOrange
-            permissionButton.title = "Grant Access"
+            permissionButton.title = String(localized: "Grant Access")
         }
     }
 

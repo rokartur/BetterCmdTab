@@ -80,7 +80,7 @@ final class AboutSettingsViewController: SettingsTabViewController {
         titleLabel.alignment = .left
         titleLabel.maximumNumberOfLines = 1
 
-        let subtitleLabel = NSTextField(labelWithString: "Faster window switching for macOS")
+        let subtitleLabel = NSTextField(labelWithString: String(localized: "Faster window switching for macOS"))
         subtitleLabel.font = .systemFont(ofSize: 13, weight: .regular)
         subtitleLabel.textColor = .secondaryLabelColor
         subtitleLabel.alignment = .left
@@ -89,7 +89,7 @@ final class AboutSettingsViewController: SettingsTabViewController {
         subtitleLabel.preferredMaxLayoutWidth = 320
 
         versionInfoLine.translatesAutoresizingMaskIntoConstraints = false
-        versionInfoLine.setAccessibilityLabel("Click to copy version info")
+        versionInfoLine.setAccessibilityLabel(String(localized: "Click to copy version info"))
 
         let updateWidthConstraint = updatePillSlot.widthAnchor.constraint(equalToConstant: 0)
         updateWidthConstraint.isActive = true
@@ -133,17 +133,17 @@ final class AboutSettingsViewController: SettingsTabViewController {
 
     private func buildResources() {
         let sourceCode = AboutResourceTileView(
-            title: "Source Code",
+            title: String(localized: "Source Code"),
             iconName: "chevron.left.forwardslash.chevron.right",
             url: URL(string: "https://github.com/rokartur/BetterCmdTab")!
         )
         let issues = AboutResourceTileView(
-            title: "Report an Issue",
+            title: String(localized: "Report an Issue"),
             iconName: "exclamationmark.bubble.fill",
             url: URL(string: "https://github.com/rokartur/BetterCmdTab/issues")!
         )
         let releases = AboutResourceTileView(
-            title: "Releases",
+            title: String(localized: "Releases"),
             iconName: "shippingbox.fill",
             url: URL(string: "https://github.com/rokartur/BetterCmdTab/releases")!
         )
@@ -299,7 +299,7 @@ final class AboutSettingsViewController: SettingsTabViewController {
         switch state {
         case .idle:
             newView = makeActionPill(
-                text: "Check for Updates",
+                text: String(localized: "Check for Updates"),
                 iconName: "arrow.triangle.2.circlepath",
                 iconColor: .secondaryLabelColor,
                 prominent: nil
@@ -309,18 +309,18 @@ final class AboutSettingsViewController: SettingsTabViewController {
             }
 
         case .checking:
-            newView = makeLoadingPill(text: "Checking…")
+            newView = makeLoadingPill(text: String(localized: "Checking…"))
 
         case .upToDate:
             newView = makeStatusPill(
                 iconName: "checkmark.circle.fill",
                 iconColor: .systemGreen,
-                text: "You're up to date!"
+                text: String(localized: "You're up to date!")
             )
 
         case .available(let version, _):
             newView = makeActionPill(
-                text: "v\(version) — View Update",
+                text: String(format: String(localized: "v%@ — View Update"), version),
                 iconName: "arrow.down.circle.fill",
                 iconColor: .controlAccentColor,
                 prominent: .controlAccentColor
@@ -331,19 +331,19 @@ final class AboutSettingsViewController: SettingsTabViewController {
         case .downloading(let progress):
             newView = makeProgressPill(
                 progress: progress,
-                text: "Downloading \(Int(progress * 100))%",
+                text: String(format: String(localized: "Downloading %d%%"), Int(progress * 100)),
                 color: .controlAccentColor
             )
 
         case .installing(let progress, let step):
             let text = step.isEmpty
-                ? "Installing \(Int(progress * 100))%"
+                ? String(format: String(localized: "Installing %d%%"), Int(progress * 100))
                 : step
             newView = makeProgressPill(progress: progress, text: text, color: .systemOrange)
 
         case .readyToInstall:
             newView = makeActionPill(
-                text: "Restart to Update",
+                text: String(localized: "Restart to Update"),
                 iconName: "arrow.clockwise.circle.fill",
                 iconColor: .systemGreen,
                 prominent: .systemGreen

@@ -1,6 +1,118 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    " — always shown first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " — werden immer zuerst angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " — siempre se muestran primero."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " — toujours affichées en premier."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " — zawsze pokazywane jako pierwsze."
+          }
+        }
+      }
+    },
+    " Add App…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " App hinzufügen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " Añadir app…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " Ajouter une app…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " Dodaj aplikację…"
+          }
+        }
+      }
+    },
+    "A soft click when you pick an app." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein leiser Klick, wenn du eine App auswählst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un clic suave al seleccionar una app."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un léger clic lorsque vous sélectionnez une app."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cichy klik, gdy wybierasz aplikację."
+          }
+        }
+      }
+    },
+    "A tap when you pick an app. Force Touch trackpads only." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Tippen, wenn du eine App auswählst. Nur bei Force-Touch-Trackpads."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un toque al seleccionar una app. Solo en trackpads Force Touch."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une vibration lorsque vous sélectionnez une app. Trackpads Force Touch uniquement."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stuknięcie, gdy wybierasz aplikację. Tylko gładziki Force Touch."
+          }
+        }
+      }
+    },
     "About" : {
       "localizations" : {
         "de" : {
@@ -25,6 +137,230 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Informacje"
+          }
+        }
+      }
+    },
+    "Accent color" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akzentfarbe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color de acento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couleur d’accentuation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolor akcentu"
+          }
+        }
+      }
+    },
+    "Accessibility access" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bedienungshilfen-Zugriff"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceso de accesibilidad"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès à l’Accessibilité"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do Dostępności"
+          }
+        }
+      }
+    },
+    "Action buttons on hover" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktionstasten beim Überfahren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Botones de acción al pasar el cursor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boutons d’action au survol"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przyciski akcji po najechaniu"
+          }
+        }
+      }
+    },
+    "Action keys while switching" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktionstasten beim Wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teclas de acción al cambiar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touches d’action pendant le changement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klawisze akcji podczas przełączania"
+          }
+        }
+      }
+    },
+    "Activate App" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App aktivieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activar app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer l’app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktywuj aplikację"
+          }
+        }
+      }
+    },
+    "Add" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinzufügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj"
+          }
+        }
+      }
+    },
+    "Add App" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App hinzufügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter une app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj aplikację"
+          }
+        }
+      }
+    },
+    "All" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie"
           }
         }
       }
@@ -85,6 +421,34 @@
         }
       }
     },
+    "Also show matching apps that aren't running yet." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt auch passende Apps an, die noch nicht laufen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra también las apps coincidentes que aún no están en ejecución."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche aussi les apps correspondantes qui ne sont pas encore en cours d’exécution."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj też pasujące aplikacje, które nie są jeszcze uruchomione."
+          }
+        }
+      }
+    },
     "Always" : {
       "localizations" : {
         "de" : {
@@ -109,6 +473,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zawsze"
+          }
+        }
+      }
+    },
+    "App rules" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-Regeln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reglas de apps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Règles d’apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reguły aplikacji"
           }
         }
       }
@@ -141,6 +533,62 @@
         }
       }
     },
+    "Apple Events permission" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple-Events-Berechtigung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permiso de Apple Events"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisation d’Apple Events"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uprawnienie Apple Events"
+          }
+        }
+      }
+    },
+    "Applies to the Grid and Previews layouts." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gilt für die Layouts „Raster“ und „Vorschauen“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se aplica a las disposiciones Cuadrícula y Vistas previas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S’applique aux dispositions Grille et Aperçus."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dotyczy układów Siatka i Podglądy."
+          }
+        }
+      }
+    },
     "Apps" : {
       "localizations" : {
         "de" : {
@@ -169,6 +617,146 @@
         }
       }
     },
+    "Arrange the focused window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktives Fenster anordnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organizar la ventana enfocada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organiser la fenêtre active"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozmieść aktywne okno"
+          }
+        }
+      }
+    },
+    "Arrange the highlighted window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markiertes Fenster anordnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organizar la ventana resaltada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organiser la fenêtre en surbrillance"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozmieść podświetlone okno"
+          }
+        }
+      }
+    },
+    "Auto" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto"
+          }
+        }
+      }
+    },
+    "Automatic" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatique"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatycznie"
+          }
+        }
+      }
+    },
+    "Backup" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia de seguridad"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sauvegarde"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopia zapasowa"
+          }
+        }
+      }
+    },
     "Blue" : {
       "localizations" : {
         "de" : {
@@ -193,6 +781,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niebieski"
+          }
+        }
+      }
+    },
+    "Browser tab drill-in" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser-Tabs aufschlüsseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceso a pestañas del navegador"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès aux onglets du navigateur"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zagłębianie w karty przeglądarki"
+          }
+        }
+      }
+    },
+    "Browsers require Apple Events consent to enumerate tabs. Click to trigger a prompt for each running browser (Safari, Chrome, Helium, Arc, Brave, Edge…). Must be done with this Settings window open." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser benötigen die Zustimmung zu Apple-Events, um Tabs aufzulisten. Klicke, um für jeden laufenden Browser eine Abfrage auszulösen (Safari, Chrome, Helium, Arc, Brave, Edge…). Muss bei geöffnetem Einstellungsfenster erfolgen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los navegadores requieren el consentimiento de Apple Events para enumerar las pestañas. Haz clic para activar una solicitud por cada navegador en ejecución (Safari, Chrome, Helium, Arc, Brave, Edge…). Debe hacerse con esta ventana de Ajustes abierta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les navigateurs requièrent le consentement Apple Events pour énumérer les onglets. Cliquez pour déclencher une invite pour chaque navigateur en cours d’exécution (Safari, Chrome, Helium, Arc, Brave, Edge…). À effectuer avec cette fenêtre Réglages ouverte."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeglądarki wymagają zgody Apple Events, aby wyliczyć karty. Kliknij, aby wywołać monit dla każdej uruchomionej przeglądarki (Safari, Chrome, Helium, Arc, Brave, Edge…). Musi to być wykonane przy otwartym oknie Ustawień."
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbrechen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anuluj"
           }
         }
       }
@@ -226,8 +898,371 @@
         }
       }
     },
+    "Check for updates" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Updates suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar actualizaciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher les mises à jour"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdzaj aktualizacje"
+          }
+        }
+      }
+    },
+    "Check for Updates" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Updates suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar actualizaciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher les mises à jour"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź dostępność uaktualnień"
+          }
+        }
+      }
+    },
+    "Checked" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiviert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleccionadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cochées"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaznaczone"
+          }
+        }
+      }
+    },
+    "Checking…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird gesucht…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscando…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche en cours…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdzanie…"
+          }
+        }
+      }
+    },
+    "Choose" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswählen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz"
+          }
+        }
+      }
+    },
+    "Choose an app to set switcher rules for." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle eine App, für die du Umschalter-Regeln festlegen möchtest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige una app para establecer sus reglas del selector."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez une app pour définir ses règles de sélecteur."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz aplikację, dla której chcesz ustawić reguły przełącznika."
+          }
+        }
+      }
+    },
+    "Choose the app this shortcut focuses." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle die App, die dieser Kurzbefehl aktiviert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige la app que enfoca este atajo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez l’app que ce raccourci active."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz aplikację, którą ten skrót aktywuje."
+          }
+        }
+      }
+    },
+    "Choose which apps appear in the switcher, and let some apps keep ⌘Tab for themselves." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle, welche Apps im Umschalter erscheinen, und lass einige Apps ⌘Tab für sich behalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige qué apps aparecen en el selector y permite que algunas apps conserven ⌘Tab para sí mismas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez les apps qui apparaissent dans le sélecteur, et laissez certaines apps conserver ⌘Tab pour elles-mêmes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz, które aplikacje pojawiają się w przełączniku, i pozwól niektórym aplikacjom zachować ⌘Tab dla siebie."
+          }
+        }
+      }
+    },
+    "Choose…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswählen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz…"
+          }
+        }
+      }
+    },
+    "Clear" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löschen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść"
+          }
+        }
+      }
+    },
+    "Click anywhere outside the switcher to close it, leaving the current window focused." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klicke irgendwo außerhalb des Umschalters, um ihn zu schließen, wobei das aktuelle Fenster aktiv bleibt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz clic en cualquier punto fuera del selector para cerrarlo, dejando enfocada la ventana actual."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cliquez n’importe où à l’extérieur du sélecteur pour le fermer, en laissant la fenêtre actuelle active."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kliknij w dowolnym miejscu poza przełącznikiem, aby go zamknąć, pozostawiając aktywne bieżące okno."
+          }
+        }
+      }
+    },
+    "Click outside to dismiss" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Schließen außerhalb klicken"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hacer clic fuera para descartar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cliquer à l’extérieur pour fermer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kliknij na zewnątrz, aby zamknąć"
+          }
+        }
+      }
+    },
+    "Click to copy version info" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klicken, um Versionsinfo zu kopieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz clic para copiar la información de versión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cliquez pour copier les informations de version"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kliknij, aby skopiować informacje o wersji"
+          }
+        }
+      }
+    },
     "Close window" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -251,6 +1286,174 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zamknij okno"
+          }
+        }
+      }
+    },
+    "Color of the selection highlight and jump letters." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farbe der Auswahlmarkierung und der Sprungbuchstaben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color del resaltado de selección y de las letras de salto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couleur de la surbrillance de sélection et des lettres de raccourci."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolor podświetlenia zaznaczenia oraz liter skoku."
+          }
+        }
+      }
+    },
+    "Contents" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contenido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contenu"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawartość"
+          }
+        }
+      }
+    },
+    "Controls whether this app shows up in the switcher.\n\n• Always — always listed.\n• With open windows — listed only while it has at least one open window.\n• Never — never listed (hidden from the switcher)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legt fest, ob diese App im Umschalter erscheint.\n\n• Immer — immer aufgeführt.\n• Mit offenen Fenstern — nur aufgeführt, solange mindestens ein Fenster geöffnet ist.\n• Nie — nie aufgeführt (im Umschalter ausgeblendet)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controla si esta app aparece en el selector.\n\n• Siempre — siempre aparece en la lista.\n• Con ventanas abiertas — aparece en la lista solo mientras tiene al menos una ventana abierta.\n• Nunca — nunca aparece en la lista (oculta del selector)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Détermine si cette app apparaît dans le sélecteur.\n\n• Toujours — toujours répertoriée.\n• Avec des fenêtres ouvertes — répertoriée uniquement lorsqu’elle possède au moins une fenêtre ouverte.\n• Jamais — jamais répertoriée (masquée du sélecteur)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Określa, czy ten program pojawia się w przełączniku.\n\n• Zawsze — zawsze na liście.\n• Z otwartymi oknami — na liście tylko wtedy, gdy ma co najmniej jedno otwarte okno.\n• Nigdy — nigdy na liście (ukryty w przełączniku)."
+          }
+        }
+      }
+    },
+    "Corner radius" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eckenradius"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Radio de las esquinas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rayon des coins"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Promień zaokrąglenia narożników"
+          }
+        }
+      }
+    },
+    "Couldn't export settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen konnten nicht exportiert werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se han podido exportar los ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’exporter les réglages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wyeksportować ustawień"
+          }
+        }
+      }
+    },
+    "Couldn't import settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen konnten nicht importiert werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se han podido importar los ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’importer les réglages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zaimportować ustawień"
           }
         }
       }
@@ -311,6 +1514,118 @@
         }
       }
     },
+    "Cycle through the windows of the app you're on." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blättere durch die Fenster der App, in der du dich befindest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorre las ventanas de la app en la que estás."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parcourez les fenêtres de l’app sur laquelle vous vous trouvez."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj kolejno okna aplikacji, na której się znajdujesz."
+          }
+        }
+      }
+    },
+    "Cycle tile widths" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anordnungsbreiten durchschalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alternar anchos de mosaico"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faire défiler les largeurs de mosaïque"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj szerokości kafelków"
+          }
+        }
+      }
+    },
+    "Direct activation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direktaktivierung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activación directa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activation directe"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezpośrednia aktywacja"
+          }
+        }
+      }
+    },
+    "Direct activation hotkeys" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tastaturkurzbefehle zur Direktaktivierung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teclas de activación directa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccourcis d’activation directe"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klawisze bezpośredniej aktywacji"
+          }
+        }
+      }
+    },
     "Don't hide" : {
       "localizations" : {
         "de" : {
@@ -335,6 +1650,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie ukrywaj"
+          }
+        }
+      }
+    },
+    "Don't look at my windows" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Fenster nicht anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No mostrar mis ventanas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne pas regarder mes fenêtres"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie zaglądaj do moich okien"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fertig"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe"
+          }
+        }
+      }
+    },
+    "Downloading %d%%" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laden %d%%"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargando %d%%"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Téléchargement %d%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie %d%%"
           }
         }
       }
@@ -367,6 +1766,202 @@
         }
       }
     },
+    "Export" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj"
+          }
+        }
+      }
+    },
+    "Export settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen exportieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter les réglages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj ustawienia"
+          }
+        }
+      }
+    },
+    "Export Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen exportieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter les réglages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj ustawienia"
+          }
+        }
+      }
+    },
+    "Export…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportieren…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eksportuj…"
+          }
+        }
+      }
+    },
+    "Faster window switching for macOS" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schnelleres Fensterwechseln für macOS"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambio de ventanas más rápido para macOS"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un changement de fenêtre plus rapide pour macOS"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szybsze przełączanie okien w systemie macOS"
+          }
+        }
+      }
+    },
+    "Feedback" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rückmeldung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respuesta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retour"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reakcje"
+          }
+        }
+      }
+    },
+    "Force quit app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App sofort beenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forzar salida de la app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forcer à quitter l’app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymuś zakończenie aplikacji"
+          }
+        }
+      }
+    },
     "Full Screen" : {
       "localizations" : {
         "de" : {
@@ -395,6 +1990,34 @@
         }
       }
     },
+    "Full-screen window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vollbildfenster"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ventana en pantalla completa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenêtre en plein écran"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okno na pełnym ekranie"
+          }
+        }
+      }
+    },
     "General" : {
       "localizations" : {
         "de" : {
@@ -419,6 +2042,202 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ogólne"
+          }
+        }
+      }
+    },
+    "Get pre-release builds early. They may be unstable." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erhalte Vorabversionen frühzeitig. Sie können instabil sein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recibe versiones preliminares antes. Pueden ser inestables."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obtenez les versions préliminaires en avance. Elles peuvent être instables."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otrzymuj kompilacje przedpremierowe wcześniej. Mogą być niestabilne."
+          }
+        }
+      }
+    },
+    "Give a shortcut its own view — all windows, just this Space, the current app's windows, or only minimized." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weise einem Kurzbefehl eine eigene Ansicht zu — alle Fenster, nur dieser Space, die Fenster der aktuellen App oder nur minimierte."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asigna a un atajo su propia vista: todas las ventanas, solo este espacio, las ventanas de la app actual o solo las minimizadas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attribuez à un raccourci sa propre vue — toutes les fenêtres, cet espace uniquement, les fenêtres de l’app active, ou seulement les réduites."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypisz skrótowi własny widok — wszystkie okna, tylko to biurko, okna bieżącej aplikacji lub tylko zminimalizowane."
+          }
+        }
+      }
+    },
+    "Give a shortcut to one app — it focuses that app, opening it first if needed." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weise einer App einen Kurzbefehl zu — er aktiviert diese App und öffnet sie zunächst, falls nötig."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asigna un atajo a una app: enfoca esa app y la abre primero si es necesario."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attribuez un raccourci à une app — il active cette app, en l’ouvrant d’abord si nécessaire."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypisz skrót do jednej aplikacji — aktywuje on tę aplikację, otwierając ją najpierw, jeśli to konieczne."
+          }
+        }
+      }
+    },
+    "Grant Access" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugriff erlauben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conceder acceso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser l’accès"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przyznaj dostęp"
+          }
+        }
+      }
+    },
+    "Grant Automation access to %@ in System Settings ▸ Privacy" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erteile %@ Zugriff für Automation in den Systemeinstellungen ▸ Datenschutz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concede acceso de Automatización a %@ en Ajustes del Sistema ▸ Privacidad"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accordez l’accès Automatisation à %@ dans Réglages Système ▸ Confidentialité"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przyznaj dostęp Automatyzacji aplikacji %@ w Ustawieniach systemowych ▸ Prywatność"
+          }
+        }
+      }
+    },
+    "Grant permissions…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berechtigungen erteilen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conceder permisos…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accorder les autorisations…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przyznaj uprawnienia…"
+          }
+        }
+      }
+    },
+    "Granted" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erteilt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concedido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accordé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przyznano"
           }
         }
       }
@@ -479,6 +2298,34 @@
         }
       }
     },
+    "Grid columns" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rasterspalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Columnas de la cuadrícula"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colonnes de la grille"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolumny siatki"
+          }
+        }
+      }
+    },
     "Grid View" : {
       "localizations" : {
         "de" : {
@@ -507,8 +2354,63 @@
         }
       }
     },
+    "Haptic feedback on switch" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haptisches Feedback beim Wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respuesta háptica al cambiar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retour haptique lors du changement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reakcja haptyczna przy przełączaniu"
+          }
+        }
+      }
+    },
+    "Hidden app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeblendete App"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App oculta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App masquée"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryta aplikacja"
+          }
+        }
+      }
+    },
     "Hide app" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -532,6 +2434,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ukryj aplikację"
+          }
+        }
+      }
+    },
+    "Hide menu bar icon" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menüleistensymbol ausblenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar icono de la barra de menús"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer l’icône de la barre des menus"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj ikonę paska menu"
+          }
+        }
+      }
+    },
+    "Hide the ⌘ icon. Reopen this window from Spotlight." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blendet das ⌘-Symbol aus. Öffne dieses Fenster über Spotlight erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oculta el icono ⌘. Vuelve a abrir esta ventana desde Spotlight."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masque l’icône ⌘. Rouvrez cette fenêtre depuis Spotlight."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj ikonę ⌘. Otwórz to okno ponownie z poziomu Spotlight."
+          }
+        }
+      }
+    },
+    "Hide the switcher from screen recordings and shared screens (Zoom, Meet, Teams). Needs macOS 14.6 or later." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blendet den Umschalter bei Bildschirmaufnahmen und freigegebenen Bildschirmen aus (Zoom, Meet, Teams). Erfordert macOS 14.6 oder neuer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oculta el selector en las grabaciones de pantalla y las pantallas compartidas (Zoom, Meet, Teams). Requiere macOS 14.6 o posterior."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masque le sélecteur dans les enregistrements d’écran et les écrans partagés (Zoom, Meet, Teams). Nécessite macOS 14.6 ou ultérieur."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj przełącznik przed nagraniami ekranu i udostępnianymi ekranami (Zoom, Meet, Teams). Wymaga systemu macOS 14.6 lub nowszego."
           }
         }
       }
@@ -564,6 +2550,174 @@
         }
       }
     },
+    "Hold ⌘: release to pick. Stay open: pick with Return or the mouse." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘ halten: zum Auswählen loslassen. Geöffnet lassen: mit Return oder der Maus auswählen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener ⌘: suelta para seleccionar. Permanecer abierto: selecciona con Retorno o el ratón."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenir ⌘ : relâchez pour sélectionner. Rester ouvert : sélectionnez avec Retour ou la souris."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przytrzymaj ⌘: puść, aby wybrać. Pozostaw otwarte: wybierz klawiszem Return lub myszą."
+          }
+        }
+      }
+    },
+    "Hold the modifier (⌘ by default) and tap to move through your open apps." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte die Sondertaste (standardmäßig ⌘) gedrückt und tippe, um durch deine geöffneten Apps zu blättern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén pulsado el modificador (⌘ de forma predeterminada) y toca para recorrer tus apps abiertas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenez le modificateur (⌘ par défaut) et appuyez pour parcourir vos apps ouvertes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przytrzymaj modyfikator (domyślnie ⌘) i stukaj, aby poruszać się po otwartych aplikacjach."
+          }
+        }
+      }
+    },
+    "Hover actions" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktionen beim Überfahren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acciones al pasar el cursor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions au survol"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akcje po najechaniu"
+          }
+        }
+      }
+    },
+    "How far to slide to move one app. Higher means a shorter slide steps further." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie weit du streichen musst, um eine App weiterzugehen. Höhere Werte bedeuten, dass ein kürzeres Streichen weiter springt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuánto hay que deslizar para avanzar una app. Cuanto más alto, un deslizamiento más corto avanza más."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distance à parcourir pour avancer d’une app. Plus la valeur est élevée, plus un court glissement progresse loin."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jak daleko trzeba przesunąć, aby przejść o jedną aplikację. Wyższa wartość oznacza, że krótsze przesunięcie przenosi dalej."
+          }
+        }
+      }
+    },
+    "How many recently closed items to list." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie viele zuletzt geschlossene Einträge aufgelistet werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuántos elementos cerrados recientemente se enumeran."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre d’éléments récemment fermés à lister."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ile ostatnio zamkniętych elementów wyświetlać."
+          }
+        }
+      }
+    },
+    "How often to check automatically. The beta channel always checks hourly." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie oft automatisch gesucht wird. Der Beta-Kanal sucht immer stündlich."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con qué frecuencia buscar automáticamente. El canal beta siempre comprueba cada hora."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fréquence de vérification automatique. Le canal bêta vérifie toujours toutes les heures."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jak często sprawdzać automatycznie. Kanał beta zawsze sprawdza co godzinę."
+          }
+        }
+      }
+    },
     "HUD (default)" : {
       "localizations" : {
         "de" : {
@@ -588,6 +2742,258 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HUD (domyślny)"
+          }
+        }
+      }
+    },
+    "Import" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importuj"
+          }
+        }
+      }
+    },
+    "Import settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen importieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer les réglages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importuj ustawienia"
+          }
+        }
+      }
+    },
+    "Import Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen importieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer les réglages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importuj ustawienia"
+          }
+        }
+      }
+    },
+    "Import…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importieren…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importuj…"
+          }
+        }
+      }
+    },
+    "In full screen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Vollbildmodus"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En pantalla completa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En plein écran"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na pełnym ekranie"
+          }
+        }
+      }
+    },
+    "In-panel keys" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasten im Bedienfeld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teclas dentro del panel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touches dans le panneau"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klawisze w panelu"
+          }
+        }
+      }
+    },
+    "Include beta releases" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beta-Versionen einschließen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incluir versiones beta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inclure les versions bêta"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uwzględniaj wersje beta"
+          }
+        }
+      }
+    },
+    "Installing %d%%" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installieren %d%%"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalando %d%%"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installation %d%%"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalowanie %d%%"
+          }
+        }
+      }
+    },
+    "Jump straight to an app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direkt zu einer App springen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saltar directamente a una app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accéder directement à une app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeskocz prosto do aplikacji"
           }
         }
       }
@@ -620,6 +3026,118 @@
         }
       }
     },
+    "Launch" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchom"
+          }
+        }
+      }
+    },
+    "Launch app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer l’app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchom aplikację"
+          }
+        }
+      }
+    },
+    "Launch apps from search" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps aus der Suche öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir apps desde la búsqueda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer des apps depuis la recherche"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchamiaj aplikacje z wyszukiwania"
+          }
+        }
+      }
+    },
+    "Launch at login" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Anmelden öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir al iniciar sesión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer à l’ouverture de session"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchamiaj przy logowaniu"
+          }
+        }
+      }
+    },
     "Launch order" : {
       "localizations" : {
         "de" : {
@@ -648,6 +3166,146 @@
         }
       }
     },
+    "Layout" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disposición"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disposition"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ"
+          }
+        }
+      }
+    },
+    "Lets BetterCmdTab capture the shortcut and read your open windows. Required to work." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ermöglicht BetterCmdTab, den Kurzbefehl zu erfassen und deine geöffneten Fenster auszulesen. Für die Funktion erforderlich."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite a BetterCmdTab capturar el atajo y leer tus ventanas abiertas. Es obligatorio para funcionar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet à BetterCmdTab de capturer le raccourci et de lire vos fenêtres ouvertes. Requis pour fonctionner."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala aplikacji BetterCmdTab przechwytywać skrót i odczytywać otwarte okna. Wymagane do działania."
+          }
+        }
+      }
+    },
+    "Lets the app keep ⌘Tab for itself: the chord is passed through to the app instead of opening the switcher. Useful for apps with their own window switching — virtual machines, remote desktop, some games.\n\n• Never — the switcher always opens.\n• Always — the app keeps ⌘Tab whenever it's focused.\n• In full screen — only while the app is in full screen." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lässt die App ⌘Tab für sich behalten: Die Tastenkombination wird an die App weitergeleitet, statt den Umschalter zu öffnen. Nützlich für Apps mit eigenem Fensterwechsel — virtuelle Maschinen, Remote-Desktop, manche Spiele.\n\n• Nie — der Umschalter öffnet sich immer.\n• Immer — die App behält ⌘Tab, sobald sie im Vordergrund ist.\n• Im Vollbildmodus — nur solange sich die App im Vollbildmodus befindet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite que la app conserve ⌘Tab para sí misma: la combinación se transfiere a la app en lugar de abrir el selector. Útil para apps con su propio cambio de ventanas — máquinas virtuales, escritorio remoto, algunos juegos.\n\n• Nunca — el selector siempre se abre.\n• Siempre — la app conserva ⌘Tab siempre que esté en primer plano.\n• En pantalla completa — solo mientras la app está en pantalla completa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet à l’app de conserver ⌘Tab pour elle-même : le raccourci est transmis à l’app au lieu d’ouvrir le sélecteur. Utile pour les apps disposant de leur propre changement de fenêtre — machines virtuelles, bureau à distance, certains jeux.\n\n• Jamais — le sélecteur s’ouvre toujours.\n• Toujours — l’app conserve ⌘Tab dès qu’elle est active.\n• En plein écran — uniquement lorsque l’app est en plein écran."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala programowi zachować ⌘Tab dla siebie: skrót jest przekazywany do programu, zamiast otwierać przełącznik. Przydatne dla programów z własnym przełączaniem okien — maszyn wirtualnych, zdalnego pulpitu, niektórych gier.\n\n• Nigdy — przełącznik otwiera się zawsze.\n• Zawsze — program zachowuje ⌘Tab zawsze, gdy jest aktywny.\n• Na pełnym ekranie — tylko gdy program jest na pełnym ekranie."
+          }
+        }
+      }
+    },
+    "Letter hints" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buchstabenhinweise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indicaciones con letras"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indices de lettres"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiedzi literowe"
+          }
+        }
+      }
+    },
+    "Lift your fingers to switch to the highlighted app. When off, pick with a click or Return." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hebe deine Finger an, um zur markierten App zu wechseln. Wenn deaktiviert, wähle mit einem Klick oder mit Return aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Levanta los dedos para cambiar a la app resaltada. Si está desactivado, selecciona con un clic o con Retorno."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Levez vos doigts pour passer à l’app en surbrillance. Lorsque c’est désactivé, sélectionnez avec un clic ou Retour."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unieś palce, aby przełączyć na podświetloną aplikację. Gdy wyłączone, wybierz kliknięciem lub klawiszem Return."
+          }
+        }
+      }
+    },
     "List" : {
       "localizations" : {
         "de" : {
@@ -672,6 +3330,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lista"
+          }
+        }
+      }
+    },
+    "Lists apps and windows you just closed so you can reopen them." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listet Apps und Fenster auf, die du gerade geschlossen hast, damit du sie erneut öffnen kannst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enumera las apps y ventanas que acabas de cerrar para que puedas volver a abrirlas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liste les apps et fenêtres que vous venez de fermer afin que vous puissiez les rouvrir."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyświetla aplikacje i okna, które właśnie zamknięto, aby można je było otworzyć ponownie."
+          }
+        }
+      }
+    },
+    "Manage apps" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps verwalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestionar apps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gérer les apps"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzaj programami"
           }
         }
       }
@@ -762,7 +3476,6 @@
       }
     },
     "Minimize window" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -786,6 +3499,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zminimalizuj okno"
+          }
+        }
+      }
+    },
+    "Minimized window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimiertes Fenster"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ventana minimizada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenêtre réduite"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zminimalizowane okno"
           }
         }
       }
@@ -818,6 +3559,34 @@
         }
       }
     },
+    "More info" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere Informationen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más información"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus d’infos"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Więcej informacji"
+          }
+        }
+      }
+    },
     "Most recent" : {
       "localizations" : {
         "de" : {
@@ -835,13 +3604,69 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plus récent"
+            "value" : "Récemment utilisé"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ostatnio używane"
+          }
+        }
+      }
+    },
+    "Most recent keeps the classic ⌘Tab order; the others stay put as you switch." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Zuletzt verwendet“ behält die klassische ⌘Tab-Reihenfolge bei; die anderen bleiben beim Wechseln an Ort und Stelle."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Más reciente» mantiene el orden clásico de ⌘Tab; las demás permanecen en su sitio al cambiar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récemment utilisé conserve l’ordre classique de ⌘Tab ; les autres restent en place lorsque vous changez."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ostatnio używane zachowuje klasyczną kolejność ⌘Tab; pozostałe pozostają na miejscu podczas przełączania."
+          }
+        }
+      }
+    },
+    "Navigation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navigation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navegación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navigation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nawigacja"
           }
         }
       }
@@ -874,6 +3699,258 @@
         }
       }
     },
+    "No apps added yet." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Apps hinzugefügt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no se ha añadido ninguna app."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune app ajoutée pour l’instant."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie dodano jeszcze żadnych aplikacji."
+          }
+        }
+      }
+    },
+    "No matches" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Treffer"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin coincidencias"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune correspondance"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak dopasowań"
+          }
+        }
+      }
+    },
+    "No open window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein geöffnetes Fenster"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin ventanas abiertas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune fenêtre ouverte"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak otwartego okna"
+          }
+        }
+      }
+    },
+    "None" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguna"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak"
+          }
+        }
+      }
+    },
+    "Off by default. They may change or break." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standardmäßig deaktiviert. Sie können sich ändern oder nicht funktionieren."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactivadas de forma predeterminada. Pueden cambiar o dejar de funcionar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivées par défaut. Elles peuvent changer ou cesser de fonctionner."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślnie wyłączone. Mogą się zmienić lub przestać działać."
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "Only current Space" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur aktueller Space"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo el espacio actual"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espace actuel uniquement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko bieżące biurko"
+          }
+        }
+      }
+    },
+    "Open BetterCmdTab automatically when you log in." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet BetterCmdTab automatisch, wenn du dich anmeldest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre BetterCmdTab automáticamente al iniciar sesión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvre BetterCmdTab automatiquement à l’ouverture de votre session."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwieraj BetterCmdTab automatycznie po zalogowaniu."
+          }
+        }
+      }
+    },
+    "Open Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les réglages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Ustawienia"
+          }
+        }
+      }
+    },
     "Open switcher" : {
       "localizations" : {
         "de" : {
@@ -898,6 +3975,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz przełącznik"
+          }
+        }
+      }
+    },
+    "Open switcher: scrub through apps (commit with Return/click, Esc to cancel). Switch Spaces: jump to the Space on that side, one per step. Quick switch: flip to your last app, like a quick ⌘Tab tap — swipe again to flip back." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umschalter öffnen: Apps durchblättern (mit Return/Klick bestätigen, Esc zum Abbrechen). Spaces wechseln: zum Space auf dieser Seite springen, einer pro Schritt. Schnellwechsel: zur zuletzt verwendeten App wechseln, wie ein kurzes ⌘Tab-Tippen — erneut streichen, um zurückzuwechseln."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir el selector: recorre las apps (confirma con Retorno/clic, Esc para cancelar). Cambiar de espacio: salta al espacio de ese lado, uno por paso. Cambio rápido: alterna a tu última app, como un toque rápido de ⌘Tab; desliza de nuevo para volver."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir le sélecteur : faites défiler les apps (validez avec Retour/clic, Échap pour annuler). Changer d’espace : passez à l’espace de ce côté, un par pas. Bascule rapide : basculez vers votre dernière app, comme une pression rapide sur ⌘Tab — balayez de nouveau pour revenir."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz przełącznik: przewijaj aplikacje (zatwierdź klawiszem Return lub kliknięciem, Esc anuluje). Przełącz biurka: przeskocz do biurka po tej stronie, po jednym na krok. Szybkie przełączanie: przerzuć do ostatniej aplikacji, jak szybkie stuknięcie ⌘Tab — przesuń ponownie, aby wrócić."
+          }
+        }
+      }
+    },
+    "Open the switcher on a subset" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umschalter mit einer Teilmenge öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir el selector en un subconjunto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir le sélecteur sur un sous-ensemble"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz przełącznik na podzbiorze"
           }
         }
       }
@@ -930,6 +4063,118 @@
         }
       }
     },
+    "Panel opacity" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deckkraft des Bedienfelds"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opacidad del panel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opacité du panneau"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krycie panelu"
+          }
+        }
+      }
+    },
+    "Pass ⌘Tab through to the app instead of opening the switcher — for apps with their own window switching (virtual machines, remote desktop, some games)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘Tab an die App weiterleiten, statt den Umschalter zu öffnen — für Apps mit eigenem Fensterwechsel (virtuelle Maschinen, Remote-Desktop, manche Spiele)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfiere ⌘Tab a la app en lugar de abrir el selector — para apps con su propio cambio de ventanas (máquinas virtuales, escritorio remoto, algunos juegos)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transmettre ⌘Tab à l’app au lieu d’ouvrir le sélecteur — pour les apps disposant de leur propre changement de fenêtre (machines virtuelles, bureau à distance, certains jeux)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przekazuj ⌘Tab do programu, zamiast otwierać przełącznik — dla programów z własnym przełączaniem okien (maszyny wirtualne, zdalny pulpit, niektóre gry)."
+          }
+        }
+      }
+    },
+    "Permissions" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berechtigungen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permisos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uprawnienia"
+          }
+        }
+      }
+    },
+    "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Auswählen einer App auf einem anderen Space oder im Vollbild springt die Ansicht sofort dorthin, ohne Schiebeanimation. Gilt auch für das Wechseln per Tastatur."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al seleccionar una app en otro espacio o en pantalla completa, salta allí al instante, sin animación de desplazamiento. También se aplica al cambio con el teclado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionner une app sur un autre espace ou en plein écran y bascule instantanément, sans animation de glissement. S’applique aussi au changement au clavier."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybranie aplikacji na innym biurku lub na pełnym ekranie powoduje natychmiastowy przeskok, bez animacji przesuwania. Dotyczy też przełączania klawiaturą."
+          }
+        }
+      }
+    },
     "Pink" : {
       "localizations" : {
         "de" : {
@@ -958,6 +4203,118 @@
         }
       }
     },
+    "Pinned" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angeheftet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fijada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Épinglé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypięte"
+          }
+        }
+      }
+    },
+    "Pinned apps" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angeheftete Apps"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps fijadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps épinglées"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypięte aplikacje"
+          }
+        }
+      }
+    },
+    "Pinned Apps" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angeheftete Apps"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps fijadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps épinglées"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypięte aplikacje"
+          }
+        }
+      }
+    },
+    "Playing audio" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audiowiedergabe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduciendo audio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture audio en cours"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odtwarza dźwięk"
+          }
+        }
+      }
+    },
     "Popover" : {
       "localizations" : {
         "de" : {
@@ -982,6 +4339,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Popover"
+          }
+        }
+      }
+    },
+    "Press / in the switcher to filter by app or window name." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drücke / im Umschalter, um nach App- oder Fensternamen zu filtern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa / en el selector para filtrar por nombre de app o de ventana."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez sur / dans le sélecteur pour filtrer par nom d’app ou de fenêtre."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij / w przełączniku, aby filtrować według nazwy aplikacji lub okna."
+          }
+        }
+      }
+    },
+    "Press \\ on a row whose window has tabs to pick a specific tab from a strip below the switcher. Reliability varies across browsers — uses Accessibility AXTabs." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drücke \\ auf einer Zeile, deren Fenster Tabs hat, um einen bestimmten Tab aus einer Leiste unter dem Umschalter auszuwählen. Die Zuverlässigkeit variiert je nach Browser — verwendet die Bedienungshilfen-Funktion AXTabs."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa \\ en una fila cuya ventana tenga pestañas para elegir una pestaña concreta de una tira situada bajo el selector. La fiabilidad varía según el navegador; usa AXTabs de Accesibilidad."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez sur \\ sur une ligne dont la fenêtre comporte des onglets pour sélectionner un onglet précis dans une bande située sous le sélecteur. La fiabilité varie selon les navigateurs — utilise AXTabs de l’Accessibilité."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij \\ na wierszu, którego okno ma karty, aby wybrać konkretną kartę z paska pod przełącznikiem. Niezawodność różni się w zależności od przeglądarki — korzysta z funkcji Dostępność AXTabs."
+          }
+        }
+      }
+    },
+    "Press Tile left / Tile right again to step the window through ½ → ⅔ → ⅓ of the screen on that side." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drücke „Linke Hälfte“ / „Rechte Hälfte“ erneut, um das Fenster auf dieser Seite durch ½ → ⅔ → ⅓ des Bildschirms zu schalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa de nuevo «Mitad izquierda» / «Mitad derecha» para recorrer la ventana por ½ → ⅔ → ⅓ de la pantalla en ese lado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez de nouveau sur Moitié gauche / Moitié droite pour faire passer la fenêtre par ½ → ⅔ → ⅓ de l’écran de ce côté."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij ponownie Lewa połowa / Prawa połowa, aby przesuwać okno przez ½ → ⅔ → ⅓ ekranu po tej stronie."
           }
         }
       }
@@ -1053,7 +4494,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Morado"
+            "value" : "Púrpura"
           }
         },
         "fr" : {
@@ -1098,8 +4539,35 @@
         }
       }
     },
+    "Quick-switch delay" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verzögerung für Schnellwechsel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retardo de cambio rápido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai de bascule rapide"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opóźnienie szybkiego przełączania"
+          }
+        }
+      }
+    },
     "Quit app" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1123,6 +4591,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zakończ aplikację"
+          }
+        }
+      }
+    },
+    "Recently closed to show" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzahl der zuletzt geschlossenen Einträge"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerradas recientemente que se muestran"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éléments récemment fermés à afficher"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ile ostatnio zamkniętych pokazywać"
           }
         }
       }
@@ -1155,12 +4651,684 @@
         }
       }
     },
+    "Releases" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Releases"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versiones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wydania"
+          }
+        }
+      }
+    },
+    "Remove rule" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regel entfernen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar regla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer la règle"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń regułę"
+          }
+        }
+      }
+    },
+    "Remove this rule" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Regel entfernen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar esta regla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer cette règle"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń tę regułę"
+          }
+        }
+      }
+    },
+    "Reopen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reabrir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rouvrir"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ponownie"
+          }
+        }
+      }
+    },
+    "Reopen recently closed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt geschlossene erneut öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a abrir cerradas recientemente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rouvrir les éléments récemment fermés"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ponownie ostatnio zamknięte"
+          }
+        }
+      }
+    },
+    "Replace your current settings with those from a previously exported file." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ersetzt deine aktuellen Einstellungen durch die aus einer zuvor exportierten Datei."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sustituye tus ajustes actuales por los de un archivo exportado anteriormente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplace vos réglages actuels par ceux d’un fichier exporté précédemment."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zastąp bieżące ustawienia tymi z wcześniej wyeksportowanego pliku."
+          }
+        }
+      }
+    },
+    "Report an Issue" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problem melden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informar de un problema"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signaler un problème"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zgłoś problem"
+          }
+        }
+      }
+    },
+    "Required" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erforderlich"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obligatorio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requis"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymagane"
+          }
+        }
+      }
+    },
+    "Restart to Update" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Aktualisieren neu starten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiniciar para actualizar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redémarrer pour mettre à jour"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchom ponownie, aby uaktualnić"
+          }
+        }
+      }
+    },
+    "Reveal quick buttons on the row your pointer is over." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blendet Schnelltasten in der Zeile ein, über der sich dein Zeiger befindet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra botones rápidos en la fila sobre la que está el puntero."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche des boutons rapides sur la ligne survolée par le pointeur."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj szybkie przyciski w wierszu, nad którym znajduje się wskaźnik."
+          }
+        }
+      }
+    },
+    "Reverse scroll direction" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrollrichtung umkehren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invertir dirección de desplazamiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inverser le sens de défilement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odwróć kierunek przewijania"
+          }
+        }
+      }
+    },
+    "Reverse swipe direction" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streichrichtung umkehren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invertir dirección del deslizamiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inverser le sens du balayage"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odwróć kierunek przesunięcia"
+          }
+        }
+      }
+    },
+    "Rounding of the panel's corners. Automatic follows the panel size." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rundung der Ecken des Bedienfelds. „Automatisch“ richtet sich nach der Größe des Bedienfelds."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redondeo de las esquinas del panel. «Automático» se ajusta al tamaño del panel."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrondi des coins du panneau. Le mode automatique suit la taille du panneau."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaokrąglenie narożników panelu. Automatyczny dopasowuje się do rozmiaru panelu."
+          }
+        }
+      }
+    },
+    "Running apps with no open windows." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laufende Apps ohne geöffnete Fenster."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps en ejecución sin ventanas abiertas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps en cours d’exécution sans fenêtre ouverte."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchomione aplikacje bez otwartych okien."
+          }
+        }
+      }
+    },
+    "Save all your settings to a file you can back up or move to another Mac." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sichert alle deine Einstellungen in einer Datei, die du als Backup verwenden oder auf einen anderen Mac übertragen kannst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guarda todos tus ajustes en un archivo que puedes respaldar o trasladar a otro Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistre tous vos réglages dans un fichier que vous pouvez sauvegarder ou transférer sur un autre Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz wszystkie ustawienia do pliku, który możesz zarchiwizować lub przenieść na innego Maca."
+          }
+        }
+      }
+    },
+    "Scoped shortcuts" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingegrenzte Kurzbefehle"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atajos con ámbito"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccourcis ciblés"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skróty zakresowe"
+          }
+        }
+      }
+    },
+    "Screen sharing" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirmfreigabe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartir pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partage d’écran"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Udostępnianie ekranu"
+          }
+        }
+      }
+    },
+    "Scroll up to move forward instead of down." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach oben scrollen, um vorwärtszugehen, statt nach unten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desplázate hacia arriba para avanzar en lugar de hacia abajo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Défiler vers le haut pour avancer au lieu de vers le bas."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przewijaj w górę, aby przejść do przodu, zamiast w dół."
+          }
+        }
+      }
+    },
+    "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the three-finger swipe instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrolle mit dem Mausrad nach oben/unten, um die Auswahl bei geöffnetem Umschalter zu verschieben. Trackpads verwenden stattdessen das Streichen mit drei Fingern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desplázate hacia arriba o abajo con la rueda del ratón para mover la selección mientras el selector está abierto. Los trackpads usan el deslizamiento con tres dedos en su lugar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites défiler vers le haut/bas avec la molette de la souris pour déplacer la sélection lorsque le sélecteur est ouvert. Les trackpads utilisent plutôt le balayage à trois doigts."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przewijaj w górę/w dół kółkiem myszy, aby przesuwać zaznaczenie, gdy przełącznik jest otwarty. Gładziki używają zamiast tego przesunięcia trzema palcami."
+          }
+        }
+      }
+    },
+    "Search" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj"
+          }
+        }
+      }
+    },
+    "Search apps…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps suchen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar apps…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des apps…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj programów…"
+          }
+        }
+      }
+    },
+    "Selected" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgewählt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleccionada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionné"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybrane"
+          }
+        }
+      }
+    },
+    "Selected apps are forced to the front of the switcher, before recents." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgewählte Apps werden im Umschalter ganz nach vorn gesetzt, vor den zuletzt verwendeten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las apps seleccionadas se sitúan al principio del selector, antes de las recientes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les apps sélectionnées sont placées en tête du sélecteur, avant les récentes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybrane aplikacje są wymuszane na początek przełącznika, przed ostatnio używanymi."
+          }
+        }
+      }
+    },
+    "Sends SIGKILL — for hung apps that ignore Quit. ⌘+⌥+Q always works regardless." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendet SIGKILL — für hängende Apps, die „Beenden“ ignorieren. ⌘+⌥+Q funktioniert ungeachtet dessen immer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía SIGKILL: para apps colgadas que ignoran «Salir». ⌘+⌥+Q siempre funciona de todos modos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoie SIGKILL — pour les apps bloquées qui ignorent Quitter. ⌘+⌥+Q fonctionne toujours, quoi qu’il arrive."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wysyła SIGKILL — dla zawieszonych aplikacji, które ignorują polecenie Zakończ. ⌘+⌥+Q zawsze działa niezależnie od tego."
+          }
+        }
+      }
+    },
     "Shortcuts" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kurzbefehle"
+            "value" : "Tastaturkurzbefehle"
           }
         },
         "es" : {
@@ -1179,6 +5347,314 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skróty"
+          }
+        }
+      }
+    },
+    "Show" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj"
+          }
+        }
+      }
+    },
+    "Show a letter on each window and jump to it by typing that letter." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt auf jedem Fenster einen Buchstaben an und springt durch Tippen dieses Buchstabens dorthin."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra una letra en cada ventana y salta a ella escribiendo esa letra."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche une lettre sur chaque fenêtre et y accède lorsque vous tapez cette lettre."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj literę na każdym oknie i przeskocz do niego, wpisując tę literę."
+          }
+        }
+      }
+    },
+    "Show apps without windows" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps ohne Fenster anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar apps sin ventanas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les apps sans fenêtre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj aplikacje bez okien"
+          }
+        }
+      }
+    },
+    "Show each app's Dock badge count (e.g. Mail's unread mail) on its row." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt die Anzahl im Dock-Kennzeichen jeder App (z. B. ungelesene E-Mails in „Mail“) in ihrer Zeile an."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra en su fila el recuento del distintivo del Dock de cada app (por ejemplo, el correo no leído de Mail)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche le nombre de la pastille du Dock de chaque app (par ex. les messages non lus de Mail) sur sa ligne."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj liczbę z plakietki w Docku każdej aplikacji (np. nieprzeczytane wiadomości w Mail) w jej wierszu."
+          }
+        }
+      }
+    },
+    "Show each window's title under the icon in the Grid and Previews layouts." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt den Titel jedes Fensters unter dem Symbol in den Layouts „Raster“ und „Vorschauen“ an."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra el título de cada ventana bajo el icono en las disposiciones Cuadrícula y Vistas previas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche le titre de chaque fenêtre sous l’icône dans les dispositions Grille et Aperçus."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj tytuł każdego okna pod ikoną w układach Siatka i Podglądy."
+          }
+        }
+      }
+    },
+    "Show hidden apps" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeblendete Apps anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar apps ocultas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les apps masquées"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj ukryte aplikacje"
+          }
+        }
+      }
+    },
+    "Show minimized windows" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimierte Fenster anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar ventanas minimizadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les fenêtres réduites"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj zminimalizowane okna"
+          }
+        }
+      }
+    },
+    "Show only windows on the Space you're currently viewing." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt nur Fenster auf dem Space an, den du gerade anzeigst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra solo las ventanas del espacio que estás viendo actualmente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche uniquement les fenêtres de l’espace que vous consultez actuellement."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj tylko okna na biurku, które aktualnie oglądasz."
+          }
+        }
+      }
+    },
+    "Show recently closed apps" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt geschlossene Apps anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar apps cerradas recientemente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les apps récemment fermées"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj ostatnio zamknięte aplikacje"
+          }
+        }
+      }
+    },
+    "Show unread badges" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kennzeichen für Ungelesenes anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar distintivos de no leídos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les pastilles de non-lus"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj plakietki nieprzeczytanych"
+          }
+        }
+      }
+    },
+    "Show window title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenstertitel anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar título de la ventana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher le titre de la fenêtre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj tytuł okna"
           }
         }
       }
@@ -1211,6 +5687,122 @@
         }
       }
     },
+    "Size" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Größe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamaño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozmiar"
+          }
+        }
+      }
+    },
+    "Slide right to move left and left to move right." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach rechts streichen, um nach links zu gehen, und nach links, um nach rechts zu gehen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desliza a la derecha para ir a la izquierda y a la izquierda para ir a la derecha."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser vers la droite pour aller à gauche et vers la gauche pour aller à droite."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń w prawo, aby przejść w lewo, i w lewo, aby przejść w prawo."
+          }
+        }
+      }
+    },
+    "Slide three fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streiche mit drei Fingern waagerecht über das Trackpad. Liest das Trackpad direkt aus, sodass keine Systemeinstellung erforderlich ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desliza tres dedos horizontalmente por el trackpad. Lee el trackpad directamente, por lo que no se necesita ningún ajuste del sistema."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser trois doigts horizontalement sur le trackpad. Lit directement le trackpad, donc aucun réglage système n’est nécessaire."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesuń trzema palcami w poziomie po gładziku. Odczytuje gładzik bezpośrednio, więc nie jest potrzebne żadne ustawienie systemowe."
+          }
+        }
+      }
+    },
+    "Slot" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranura"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emplacement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gniazdo"
+          }
+        }
+      }
+    },
+    "Slot %lld" : {
+
+    },
     "Small" : {
       "localizations" : {
         "de" : {
@@ -1239,6 +5831,118 @@
         }
       }
     },
+    "Sort order" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sortierreihenfolge"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordre de tri"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolejność sortowania"
+          }
+        }
+      }
+    },
+    "Sound on switch" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ton beim Wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sonido al cambiar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son lors du changement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dźwięk przy przełączaniu"
+          }
+        }
+      }
+    },
+    "Source Code" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quellcode"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código fuente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code source"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kod źródłowy"
+          }
+        }
+      }
+    },
+    "Startup" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Démarrage"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchamianie"
+          }
+        }
+      }
+    },
     "Stay open until I choose" : {
       "localizations" : {
         "de" : {
@@ -1262,7 +5966,119 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pozostaw otwarte do wyboru"
+            "value" : "Pozostaw otwarte, aż dokonam wyboru"
+          }
+        }
+      }
+    },
+    "Swipe action" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streichaktion"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acción del deslizamiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Action de balayage"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Działanie przesunięcia"
+          }
+        }
+      }
+    },
+    "Swipe sensitivity" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streichempfindlichkeit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sensibilidad del deslizamiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sensibilité du balayage"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czułość przesunięcia"
+          }
+        }
+      }
+    },
+    "Switch apps" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar de app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer d’app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj aplikacje"
+          }
+        }
+      }
+    },
+    "Switch on release" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Loslassen wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar al soltar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer au relâchement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz po puszczeniu"
           }
         }
       }
@@ -1290,7 +6106,91 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przełącz pulpity"
+            "value" : "Przełącz biurka"
+          }
+        }
+      }
+    },
+    "Switch Spaces without animation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spaces ohne Animation wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar de espacio sin animación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer d’espace sans animation"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj biurka bez animacji"
+          }
+        }
+      }
+    },
+    "Switch windows" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar de ventana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer de fenêtre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj okna"
+          }
+        }
+      }
+    },
+    "Switch with mouse scroll" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit dem Mausrad wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar con la rueda del ratón"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer avec la molette de la souris"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj przewijaniem myszą"
           }
         }
       }
@@ -1323,6 +6223,34 @@
         }
       }
     },
+    "Switching" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączanie"
+          }
+        }
+      }
+    },
     "System" : {
       "localizations" : {
         "de" : {
@@ -1347,6 +6275,146 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Systemowy"
+          }
+        }
+      }
+    },
+    "Tap to switch instantly; hold longer to open the switcher." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippen, um sofort zu wechseln; länger halten, um den Umschalter zu öffnen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toca para cambiar al instante; mantén pulsado más tiempo para abrir el selector."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez pour changer instantanément ; maintenez plus longtemps pour ouvrir le sélecteur."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stuknij, aby przełączyć od razu; przytrzymaj dłużej, aby otworzyć przełącznik."
+          }
+        }
+      }
+    },
+    "These act on the highlighted window while the switcher is open. ⌘ is held the whole time, so the modifier you record is ignored in-panel." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese wirken auf das markierte Fenster, während der Umschalter geöffnet ist. ⌘ wird die ganze Zeit gedrückt gehalten, daher wird die von dir aufgezeichnete Sondertaste im Bedienfeld ignoriert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estas actúan sobre la ventana resaltada mientras el selector está abierto. ⌘ se mantiene pulsado todo el tiempo, por lo que el modificador que registres se ignora dentro del panel."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elles agissent sur la fenêtre en surbrillance lorsque le sélecteur est ouvert. ⌘ est maintenu en permanence, donc le modificateur que vous enregistrez est ignoré dans le panneau."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Działają one na podświetlone okno, gdy przełącznik jest otwarty. ⌘ jest przytrzymywany przez cały czas, więc zarejestrowany modyfikator jest ignorowany w panelu."
+          }
+        }
+      }
+    },
+    "These features are unstable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Funktionen sind instabil"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estas funciones son inestables"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ces fonctionnalités sont instables"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te funkcje są niestabilne"
+          }
+        }
+      }
+    },
+    "this browser" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "diesem Browser"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "este navegador"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ce navigateur"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ta przeglądarka"
+          }
+        }
+      }
+    },
+    "Three-finger swipe" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streichen mit drei Fingern"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deslizamiento con tres dedos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balayage à trois doigts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przesunięcie trzema palcami"
           }
         }
       }
@@ -1409,6 +6477,146 @@
         }
       }
     },
+    "Tile to a half or corner, maximize, or center the frontmost window. Works system-wide." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lege das vorderste Fenster an eine Hälfte oder Ecke an, maximiere es oder zentriere es. Funktioniert systemweit."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coloca la ventana en primer plano en una mitad o esquina, maximízala o céntrala. Funciona en todo el sistema."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placez la fenêtre de premier plan sur une moitié ou un coin, agrandissez-la ou centrez-la. Fonctionne dans tout le système."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przyciągnij do połowy lub narożnika, zmaksymalizuj albo wyśrodkuj okno na pierwszym planie. Działa w całym systemie."
+          }
+        }
+      }
+    },
+    "Translucency of the switcher panel." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transparenz des Umschalter-Bedienfelds."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translucidez del panel del selector."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translucidité du panneau du sélecteur."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przezroczystość panelu przełącznika."
+          }
+        }
+      }
+    },
+    "Type to filter apps & windows…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippen, um Apps und Fenster zu filtern…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe para filtrar apps y ventanas…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez pour filtrer les apps et fenêtres…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisz, aby filtrować programy i okna…"
+          }
+        }
+      }
+    },
+    "Type-to-filter search" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche durch Tippen filtern"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Búsqueda al escribir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche par saisie"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyszukiwanie przez pisanie"
+          }
+        }
+      }
+    },
+    "Unchecked" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deaktiviert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No seleccionadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non cochées"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niezaznaczone"
+          }
+        }
+      }
+    },
     "Under Window" : {
       "localizations" : {
         "de" : {
@@ -1433,6 +6641,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pod oknem"
+          }
+        }
+      }
+    },
+    "Untitled" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Titel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin título"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans titre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bez tytułu"
+          }
+        }
+      }
+    },
+    "Updates" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizaciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mises à jour"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualizacje"
+          }
+        }
+      }
+    },
+    "v%@ — View Update" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@ — Update anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@ — Ver actualización"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@ — Afficher la mise à jour"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@ — Wyświetl aktualizację"
           }
         }
       }
@@ -1493,6 +6785,90 @@
         }
       }
     },
+    "When searching" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al buscar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lors de la recherche"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podczas wyszukiwania"
+          }
+        }
+      }
+    },
+    "When this app appears in the switcher" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn diese App im Umschalter erscheint"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuando esta app aparece en el selector"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsque cette app apparaît dans le sélecteur"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy ten program pojawia się w przełączniku"
+          }
+        }
+      }
+    },
+    "Window management" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fensterverwaltung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestión de ventanas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestion des fenêtres"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzanie oknami"
+          }
+        }
+      }
+    },
     "Windows on this Space" : {
       "localizations" : {
         "de" : {
@@ -1521,6 +6897,34 @@
         }
       }
     },
+    "With open windows" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit offenen Fenstern"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con ventanas abiertas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec des fenêtres ouvertes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z otwartymi oknami"
+          }
+        }
+      }
+    },
     "Yellow" : {
       "localizations" : {
         "de" : {
@@ -1545,6 +6949,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Żółty"
+          }
+        }
+      }
+    },
+    "You're up to date!" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles auf dem neuesten Stand!"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¡Estás al día!"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes à jour !"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masz najnowszą wersję!"
+          }
+        }
+      }
+    },
+    "Zoom window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster zoomen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ampliar ventana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoomer la fenêtre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiększ okno"
           }
         }
       }

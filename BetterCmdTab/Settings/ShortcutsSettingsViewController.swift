@@ -23,34 +23,34 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         // Switching section — the core ⌘Tab triggers. The trigger must include a
         // hold modifier (⌘/⌥/⌃); Shift is reserved for stepping backwards and is
         // rejected by the recorder.
-        let switching = addSection(title: "Switching", anchor: SettingsAnchor.switching)
+        let switching = addSection(title: String(localized: "Switching"), anchor: SettingsAnchor.switching)
         addRow(
             to: switching,
-            title: "Switch apps",
-            subtitle: "Hold the modifier (⌘ by default) and tap to move through your open apps.",
+            title: String(localized: "Switch apps"),
+            subtitle: String(localized: "Hold the modifier (⌘ by default) and tap to move through your open apps."),
             accessory: appRecorder,
             searchItemID: SearchID.switchApps
         )
         addRow(
             to: switching,
-            title: "Switch windows",
-            subtitle: "Cycle through the windows of the app you're on.",
+            title: String(localized: "Switch windows"),
+            subtitle: String(localized: "Cycle through the windows of the app you're on."),
             accessory: windowRecorder,
             searchItemID: SearchID.switchWindows
         )
 
         // Direct activation section — global shortcuts that jump straight to a
         // chosen app, bypassing the switcher.
-        let direct = addSection(title: "Direct activation", anchor: SettingsAnchor.directActivation)
+        let direct = addSection(title: String(localized: "Direct activation"), anchor: SettingsAnchor.directActivation)
         addRow(
             to: direct,
-            title: "Jump straight to an app",
-            subtitle: "Give a shortcut to one app — it focuses that app, opening it first if needed.",
+            title: String(localized: "Jump straight to an app"),
+            subtitle: String(localized: "Give a shortcut to one app — it focuses that app, opening it first if needed."),
             searchItemID: SearchID.directActivation
         )
         for (index, name) in BetterShortcuts.Name.directActivate.enumerated() {
             let recorder = BetterShortcuts.RecorderCocoa(for: name)
-            let button = NSButton(title: "Choose…", target: self, action: #selector(chooseDirectApp(_:)))
+            let button = NSButton(title: String(localized: "Choose…"), target: self, action: #selector(chooseDirectApp(_:)))
             button.bezelStyle = .rounded
             button.controlSize = .small
             button.tag = index
@@ -58,17 +58,17 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
             stack.orientation = .horizontal
             stack.spacing = 8
             stack.alignment = .centerY
-            addRow(to: direct, title: "Slot \(index + 1)", accessory: stack)
+            addRow(to: direct, title: String(localized: "Slot \(index + 1)"), accessory: stack)
             directButtons.append(button)
         }
 
         // Scoped shortcuts section — global shortcuts that open the switcher
         // already filtered to a subset of windows.
-        let scoped = addSection(title: "Scoped shortcuts", anchor: SettingsAnchor.scopedSwitch)
+        let scoped = addSection(title: String(localized: "Scoped shortcuts"), anchor: SettingsAnchor.scopedSwitch)
         addRow(
             to: scoped,
-            title: "Open the switcher on a subset",
-            subtitle: "Give a shortcut its own view — all windows, just this Space, the current app's windows, or only minimized.",
+            title: String(localized: "Open the switcher on a subset"),
+            subtitle: String(localized: "Give a shortcut its own view — all windows, just this Space, the current app's windows, or only minimized."),
             searchItemID: SearchID.scopedSwitch
         )
         for (index, name) in BetterShortcuts.Name.scopedSwitch.enumerated() {
@@ -85,7 +85,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
             stack.orientation = .horizontal
             stack.spacing = 8
             stack.alignment = .centerY
-            addRow(to: scoped, title: "Slot \(index + 1)", accessory: stack)
+            addRow(to: scoped, title: String(localized: "Slot \(index + 1)"), accessory: stack)
             scopePopups.append(popup)
         }
 
@@ -95,11 +95,11 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         // whole time), so e.g. ⌘W reads as W while switching. No global hotkey is
         // registered for these — there's no onKeyDown handler — so binding ⌘W
         // doesn't steal Close in other apps.
-        let panelKeys = addSection(title: "In-panel keys", anchor: SettingsAnchor.panelKeys)
+        let panelKeys = addSection(title: String(localized: "In-panel keys"), anchor: SettingsAnchor.panelKeys)
         addRow(
             to: panelKeys,
-            title: "Action keys while switching",
-            subtitle: "These act on the highlighted window while the switcher is open. ⌘ is held the whole time, so the modifier you record is ignored in-panel.",
+            title: String(localized: "Action keys while switching"),
+            subtitle: String(localized: "These act on the highlighted window while the switcher is open. ⌘ is held the whole time, so the modifier you record is ignored in-panel."),
             searchItemID: SearchID.panelKeys
         )
         for (name, title) in BetterShortcuts.Name.panelActionKeys {
@@ -110,11 +110,11 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         // shortcuts (they work whether the switcher is open or closed); when the
         // they always arrange the frontmost app's focused window, whether or
         // not the switcher is open. Default ⌃⌘ + arrows.
-        let windowMgmt = addSection(title: "Window management", anchor: SettingsAnchor.windowMgmt)
+        let windowMgmt = addSection(title: String(localized: "Window management"), anchor: SettingsAnchor.windowMgmt)
         addRow(
             to: windowMgmt,
-            title: "Arrange the focused window",
-            subtitle: "Tile to a half or corner, maximize, or center the frontmost window. Works system-wide.",
+            title: String(localized: "Arrange the focused window"),
+            subtitle: String(localized: "Tile to a half or corner, maximize, or center the frontmost window. Works system-wide."),
             searchItemID: SearchID.windowMgmt
         )
         for (name, title) in BetterShortcuts.Name.windowMgmt {
@@ -125,8 +125,8 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         cycleWidthsSwitch.action = #selector(toggleCycleWidths(_:))
         addRow(
             to: windowMgmt,
-            title: "Cycle tile widths",
-            subtitle: "Press Tile left / Tile right again to step the window through ½ → ⅔ → ⅓ of the screen on that side.",
+            title: String(localized: "Cycle tile widths"),
+            subtitle: String(localized: "Press Tile left / Tile right again to step the window through ½ → ⅔ → ⅓ of the screen on that side."),
             accessory: cycleWidthsSwitch
         )
     }
@@ -150,7 +150,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         for (index, button) in directButtons.enumerated() {
             let bundleID = bindings.indices.contains(index) ? bindings[index] : ""
             if bundleID.isEmpty {
-                button.title = "Choose…"
+                button.title = String(localized: "Choose…")
                 button.image = nil
             } else {
                 button.title = Self.appName(forBundleID: bundleID) ?? bundleID
@@ -166,11 +166,11 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         let current = Preferences.shared.directActivationBindings
         let selected: Set<String> = (current.indices.contains(slot) && !current[slot].isEmpty) ? [current[slot]] : []
         let controller = AppsPickerSheetWindowController(
-            title: "Activate App",
-            prompt: "Choose the app this shortcut focuses.",
+            title: String(localized: "Activate App"),
+            prompt: String(localized: "Choose the app this shortcut focuses."),
             selectedBundleIDs: selected,
             singleSelection: true,
-            confirmTitle: "Choose"
+            confirmTitle: String(localized: "Choose")
         ) { selection in
             var bindings = Preferences.shared.directActivationBindings
             while bindings.count <= slot { bindings.append("") }

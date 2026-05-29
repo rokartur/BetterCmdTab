@@ -19,15 +19,15 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     override func setupContent() {
         // Experimental section — off by default, clearly flagged as unstable.
-        let experimental = addSection(title: "Experimental", anchor: SettingsAnchor.experimental)
+        let experimental = addSection(title: String(localized: "Experimental"), anchor: SettingsAnchor.experimental)
 
-        addRow(to: experimental, title: "These features are unstable",
-               subtitle: "Off by default. They may change or break.")
+        addRow(to: experimental, title: String(localized: "These features are unstable"),
+               subtitle: String(localized: "Off by default. They may change or break."))
         addDivider(to: experimental)
 
         configureSwitch(swipeSwitch, action: #selector(toggleSwipe(_:)))
-        addRow(to: experimental, title: "Three-finger swipe",
-               subtitle: "Slide three fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed.",
+        addRow(to: experimental, title: String(localized: "Three-finger swipe"),
+               subtitle: String(localized: "Slide three fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed."),
                accessory: swipeSwitch, searchItemID: SearchID.swipe)
 
         swipeModePopup.controlSize = .small
@@ -37,40 +37,40 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         swipeModePopup.addItems(withTitles: swipeModes.map(\.displayName))
         swipeModePopup.target = self
         swipeModePopup.action = #selector(swipeModeChanged)
-        addRow(to: experimental, title: "Swipe action",
-               subtitle: "Open switcher: scrub through apps (commit with Return/click, Esc to cancel). Switch Spaces: jump to the Space on that side, one per step. Quick switch: flip to your last app, like a quick ⌘Tab tap — swipe again to flip back.",
+        addRow(to: experimental, title: String(localized: "Swipe action"),
+               subtitle: String(localized: "Open switcher: scrub through apps (commit with Return/click, Esc to cancel). Switch Spaces: jump to the Space on that side, one per step. Quick switch: flip to your last app, like a quick ⌘Tab tap — swipe again to flip back."),
                accessory: swipeModePopup, searchItemID: SearchID.swipeMode)
 
         configureSwitch(reverseSwitch, action: #selector(toggleReverse(_:)))
-        addRow(to: experimental, title: "Reverse swipe direction",
-               subtitle: "Slide right to move left and left to move right.",
+        addRow(to: experimental, title: String(localized: "Reverse swipe direction"),
+               subtitle: String(localized: "Slide right to move left and left to move right."),
                accessory: reverseSwitch, searchItemID: SearchID.reverseSwipe)
         configureSwitch(commitSwitch, action: #selector(toggleCommit(_:)))
-        addRow(to: experimental, title: "Switch on release",
-               subtitle: "Lift your fingers to switch to the highlighted app. When off, pick with a click or Return.",
+        addRow(to: experimental, title: String(localized: "Switch on release"),
+               subtitle: String(localized: "Lift your fingers to switch to the highlighted app. When off, pick with a click or Return."),
                accessory: commitSwitch, searchItemID: SearchID.switchOnRelease)
 
-        addRow(to: experimental, title: "Swipe sensitivity",
-               subtitle: "How far to slide to move one app. Higher means a shorter slide steps further.",
+        addRow(to: experimental, title: String(localized: "Swipe sensitivity"),
+               subtitle: String(localized: "How far to slide to move one app. Higher means a shorter slide steps further."),
                accessory: makeSensitivityControl(), searchItemID: SearchID.sensitivity)
 
         addDivider(to: experimental)
         configureSwitch(instantSpaceSwitch, action: #selector(toggleInstantSpace(_:)))
-        addRow(to: experimental, title: "Switch Spaces without animation",
-               subtitle: "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too.",
+        addRow(to: experimental, title: String(localized: "Switch Spaces without animation"),
+               subtitle: String(localized: "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too."),
                accessory: instantSpaceSwitch, searchItemID: SearchID.instantSpace)
 
         addDivider(to: experimental)
         configureSwitch(tabDrillSwitch, action: #selector(toggleTabDrill(_:)))
-        addRow(to: experimental, title: "Browser tab drill-in",
-               subtitle: "Press \\ on a row whose window has tabs to pick a specific tab from a strip below the switcher. Reliability varies across browsers — uses Accessibility AXTabs.",
+        addRow(to: experimental, title: String(localized: "Browser tab drill-in"),
+               subtitle: String(localized: "Press \\ on a row whose window has tabs to pick a specific tab from a strip below the switcher. Reliability varies across browsers — uses Accessibility AXTabs."),
                accessory: tabDrillSwitch)
 
-        let grantButton = NSButton(title: "Grant permissions…", target: self, action: #selector(grantBrowserPermissions))
+        let grantButton = NSButton(title: String(localized: "Grant permissions…"), target: self, action: #selector(grantBrowserPermissions))
         grantButton.bezelStyle = .rounded
         grantButton.controlSize = .small
-        addRow(to: experimental, title: "Apple Events permission",
-               subtitle: "Browsers require Apple Events consent to enumerate tabs. Click to trigger a prompt for each running browser (Safari, Chrome, Helium, Arc, Brave, Edge…). Must be done with this Settings window open.",
+        addRow(to: experimental, title: String(localized: "Apple Events permission"),
+               subtitle: String(localized: "Browsers require Apple Events consent to enumerate tabs. Click to trigger a prompt for each running browser (Safari, Chrome, Helium, Arc, Brave, Edge…). Must be done with this Settings window open."),
                accessory: grantButton)
     }
 

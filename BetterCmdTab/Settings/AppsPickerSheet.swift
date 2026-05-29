@@ -117,7 +117,7 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
         promptLabel.maximumNumberOfLines = 0
         promptLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        searchField.placeholderString = "Search apps…"
+        searchField.placeholderString = String(localized: "Search apps…")
         searchField.delegate = self
         searchField.translatesAutoresizingMaskIntoConstraints = false
         searchField.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -126,7 +126,7 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
         filterPopup.translatesAutoresizingMaskIntoConstraints = false
         filterPopup.setContentHuggingPriority(.required, for: .horizontal)
         filterPopup.removeAllItems()
-        filterPopup.addItems(withTitles: ["All", "Checked", "Unchecked"])
+        filterPopup.addItems(withTitles: [String(localized: "All"), String(localized: "Checked"), String(localized: "Unchecked")])
         filterPopup.target = self
         filterPopup.action = #selector(filterChanged)
 
@@ -178,7 +178,7 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
         spinner.isDisplayedWhenStopped = false
         spinner.translatesAutoresizingMaskIntoConstraints = false
 
-        cancelButton.title = "Cancel"
+        cancelButton.title = String(localized: "Cancel")
         cancelButton.bezelStyle = .rounded
         cancelButton.keyEquivalent = "\u{1b}" // Esc
         cancelButton.target = self
@@ -192,7 +192,7 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
         confirmButton.action = #selector(handleConfirm)
         confirmButton.translatesAutoresizingMaskIntoConstraints = false
 
-        clearButton.title = "Clear"
+        clearButton.title = String(localized: "Clear")
         clearButton.bezelStyle = .rounded
         clearButton.target = self
         clearButton.action = #selector(handleClear)
@@ -514,7 +514,7 @@ final class AppsPickerCellView: NSTableCellView {
 
         // Membership shown by a trailing accent checkmark only (like macOS
         // "choose apps" lists) — no full-row tint.
-        checkmark.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: "Selected")?
+        checkmark.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: String(localized: "Selected"))?
             .withSymbolConfiguration(.init(pointSize: 13, weight: .semibold))
         checkmark.contentTintColor = .controlAccentColor
         checkmark.translatesAutoresizingMaskIntoConstraints = false

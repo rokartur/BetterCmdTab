@@ -182,9 +182,9 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         } else {
             appNameLabel.stringValue = row.appName
             if row.isLaunchable {
-                titleLabel.stringValue = "Launch"
+                titleLabel.stringValue = String(localized: "Launch")
             } else if row.isRecentlyClosed {
-                titleLabel.stringValue = row.windowTitle.isEmpty ? "Reopen" : row.windowTitle
+                titleLabel.stringValue = row.windowTitle.isEmpty ? String(localized: "Reopen") : row.windowTitle
             } else {
                 titleLabel.stringValue = row.displayTitle
             }

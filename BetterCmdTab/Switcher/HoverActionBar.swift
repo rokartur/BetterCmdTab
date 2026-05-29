@@ -40,12 +40,12 @@ final class HoverActionBar: NSView {
     // Window controls borrow the real traffic-light colors (red / yellow /
     // green); app controls use neutral grays to read as a different group.
     private static let specs: [Spec] = [
-        Spec(action: .close, symbol: "xmark", color: .systemRed, tooltip: "Close window"),
-        Spec(action: .minimize, symbol: "minus", color: .systemYellow, tooltip: "Minimize window"),
-        Spec(action: .maximize, symbol: "plus", color: .systemGreen, tooltip: "Zoom window"),
-        Spec(action: .hide, symbol: "eye.slash.fill", color: .systemGray, tooltip: "Hide app"),
-        Spec(action: .quit, symbol: "power", color: .systemGray, tooltip: "Quit app"),
-        Spec(action: .forceQuit, symbol: "xmark.octagon.fill", color: .systemRed, tooltip: "Force quit app"),
+        Spec(action: .close, symbol: "xmark", color: .systemRed, tooltip: String(localized: "Close window")),
+        Spec(action: .minimize, symbol: "minus", color: .systemYellow, tooltip: String(localized: "Minimize window")),
+        Spec(action: .maximize, symbol: "plus", color: .systemGreen, tooltip: String(localized: "Zoom window")),
+        Spec(action: .hide, symbol: "eye.slash.fill", color: .systemGray, tooltip: String(localized: "Hide app")),
+        Spec(action: .quit, symbol: "power", color: .systemGray, tooltip: String(localized: "Quit app")),
+        Spec(action: .forceQuit, symbol: "xmark.octagon.fill", color: .systemRed, tooltip: String(localized: "Force quit app")),
     ]
 
     override init(frame frameRect: NSRect) {

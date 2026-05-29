@@ -15,19 +15,19 @@ final class AppsSettingsViewController: SettingsTabViewController {
     /// Short, plain-language popup titles (kept compact for inline rows; the
     /// row summary spells the choice out in full).
     private let showOptions: [(mode: HideWindowsMode, title: String)] = [
-        (.dontHide, "Always"),
-        (.whenNoWindows, "With open windows"),
-        (.always, "Never"),
+        (.dontHide, String(localized: "Always")),
+        (.whenNoWindows, String(localized: "With open windows")),
+        (.always, String(localized: "Never")),
     ]
     private let shortcutOptions: [(mode: IgnoreShortcutsMode, title: String)] = [
-        (.never, "Never"),
-        (.always, "Always"),
-        (.whenFullscreen, "In full screen"),
+        (.never, String(localized: "Never")),
+        (.always, String(localized: "Always")),
+        (.whenFullscreen, String(localized: "In full screen")),
     ]
 
     private let rulesCard = SettingsSectionView()
 
-    private let pinnedButton = NSButton(title: "Manage apps", target: nil, action: nil)
+    private let pinnedButton = NSButton(title: String(localized: "Manage apps"), target: nil, action: nil)
     private var pinnedRow: SettingsRowView!
     private var appsSheet: AppsPickerSheetWindowController?
     private var addSheet: AppsPickerSheetWindowController?
@@ -38,8 +38,8 @@ final class AppsSettingsViewController: SettingsTabViewController {
         // App rules — a titled group (header + description) above a card whose
         // rows are one app each, ending in an "Add App…" row.
         let header = makeGroupHeader(
-            title: "App rules",
-            description: "Choose which apps appear in the switcher, and let some apps keep ⌘Tab for themselves."
+            title: String(localized: "App rules"),
+            description: String(localized: "Choose which apps appear in the switcher, and let some apps keep ⌘Tab for themselves.")
         )
         let block = NSStackView(views: [header, rulesCard])
         block.orientation = .vertical
@@ -54,9 +54,9 @@ final class AppsSettingsViewController: SettingsTabViewController {
         rebuildRulesCard()
 
         // Pinned apps — a lightweight chooser (a picker, not an editor).
-        let pinned = addSection(title: "Pinned", anchor: SettingsAnchor.pinned)
+        let pinned = addSection(title: String(localized: "Pinned"), anchor: SettingsAnchor.pinned)
         configureManageButton(pinnedButton, action: #selector(managePinned))
-        pinnedRow = addRow(to: pinned, title: "Pinned apps",
+        pinnedRow = addRow(to: pinned, title: String(localized: "Pinned apps"),
                            subtitle: Self.pinnedDescription(Preferences.shared.pinnedBundleIDs.count),
                            accessory: pinnedButton, searchItemID: SearchID.pinnedApps)
     }
@@ -98,7 +98,7 @@ final class AppsSettingsViewController: SettingsTabViewController {
         }
 
         if exceptions.isEmpty {
-            let empty = NSTextField(labelWithString: "No apps added yet.")
+            let empty = NSTextField(labelWithString: String(localized: "No apps added yet."))
             empty.font = .systemFont(ofSize: 12)
             empty.textColor = .tertiaryLabelColor
             rulesCard.addContent(empty)
@@ -156,11 +156,11 @@ final class AppsSettingsViewController: SettingsTabViewController {
     private func presentAddPicker() {
         guard let window = view.window, addSheet == nil else { return }
         let controller = AppsPickerSheetWindowController(
-            title: "Add App",
-            prompt: "Choose an app to set switcher rules for.",
+            title: String(localized: "Add App"),
+            prompt: String(localized: "Choose an app to set switcher rules for."),
             selectedBundleIDs: [],
             singleSelection: true,
-            confirmTitle: "Add"
+            confirmTitle: String(localized: "Add")
         ) { [weak self] selection in
             guard let self, let bundleID = selection.first else { return }
             if !self.exceptions.contains(where: { $0.bundleID == bundleID }) {
@@ -193,10 +193,10 @@ final class AppsSettingsViewController: SettingsTabViewController {
     @objc private func managePinned() {
         guard let window = view.window, appsSheet == nil else { return }
         let controller = AppsPickerSheetWindowController(
-            title: "Pinned Apps",
-            prompt: "Selected apps are forced to the front of the switcher, before recents.",
+            title: String(localized: "Pinned Apps"),
+            prompt: String(localized: "Selected apps are forced to the front of the switcher, before recents."),
             selectedBundleIDs: Set(Preferences.shared.pinnedBundleIDs),
-            confirmTitle: "Done"
+            confirmTitle: String(localized: "Done")
         ) { selection in
             // Preserve existing pin order; append newly-checked apps at the end.
             let current = Preferences.shared.pinnedBundleIDs
@@ -217,8 +217,8 @@ final class AppsSettingsViewController: SettingsTabViewController {
     }
 
     private static func pinnedDescription(_ count: Int) -> String {
-        let prefix = count == 0 ? "None" : "\(count) app\(count == 1 ? "" : "s")"
-        return "\(prefix) — always shown first."
+        let prefix = count == 0 ? String(localized: "None") : "\(count) app\(count == 1 ? "" : "s")"
+        return "\(prefix)\(String(localized: " — always shown first."))"
     }
 
     // MARK: - Helpers

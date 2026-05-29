@@ -45,24 +45,24 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
 
     override func setupContent() {
         // Switcher contents section — what kinds of windows/apps appear.
-        let contents = addSection(title: "Contents", anchor: SettingsAnchor.contents)
+        let contents = addSection(title: String(localized: "Contents"), anchor: SettingsAnchor.contents)
         configureSwitch(minimizedSwitch, action: #selector(toggleMinimized(_:)))
-        addRow(to: contents, title: "Show minimized windows", accessory: minimizedSwitch,
+        addRow(to: contents, title: String(localized: "Show minimized windows"), accessory: minimizedSwitch,
                searchItemID: SearchID.showMinimized)
         configureSwitch(hiddenSwitch, action: #selector(toggleHidden(_:)))
-        addRow(to: contents, title: "Show hidden apps", accessory: hiddenSwitch,
+        addRow(to: contents, title: String(localized: "Show hidden apps"), accessory: hiddenSwitch,
                searchItemID: SearchID.showHidden)
         configureSwitch(windowlessSwitch, action: #selector(toggleWindowless(_:)))
-        addRow(to: contents, title: "Show apps without windows",
-               subtitle: "Running apps with no open windows.",
+        addRow(to: contents, title: String(localized: "Show apps without windows"),
+               subtitle: String(localized: "Running apps with no open windows."),
                accessory: windowlessSwitch, searchItemID: SearchID.showWindowless)
         configureSwitch(badgesSwitch, action: #selector(toggleBadges(_:)))
-        addRow(to: contents, title: "Show unread badges",
-               subtitle: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row.",
+        addRow(to: contents, title: String(localized: "Show unread badges"),
+               subtitle: String(localized: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row."),
                accessory: badgesSwitch, searchItemID: SearchID.showBadges)
         configureSwitch(currentSpaceSwitch, action: #selector(toggleCurrentSpace(_:)))
-        addRow(to: contents, title: "Only current Space",
-               subtitle: "Show only windows on the Space you're currently viewing.",
+        addRow(to: contents, title: String(localized: "Only current Space"),
+               subtitle: String(localized: "Show only windows on the Space you're currently viewing."),
                accessory: currentSpaceSwitch, searchItemID: SearchID.currentSpaceOnly)
 
         sortOrderPopup.controlSize = .small
@@ -72,12 +72,12 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         sortOrderPopup.addItems(withTitles: sortOrders.map(\.displayName))
         sortOrderPopup.target = self
         sortOrderPopup.action = #selector(sortOrderChanged)
-        addRow(to: contents, title: "Sort order",
-               subtitle: "Most recent keeps the classic ⌘Tab order; the others stay put as you switch.",
+        addRow(to: contents, title: String(localized: "Sort order"),
+               subtitle: String(localized: "Most recent keeps the classic ⌘Tab order; the others stay put as you switch."),
                accessory: sortOrderPopup, searchItemID: SearchID.sortOrder)
         configureSwitch(recentlyClosedSwitch, action: #selector(toggleRecentlyClosed(_:)))
-        addRow(to: contents, title: "Show recently closed apps",
-               subtitle: "Lists apps and windows you just closed so you can reopen them.",
+        addRow(to: contents, title: String(localized: "Show recently closed apps"),
+               subtitle: String(localized: "Lists apps and windows you just closed so you can reopen them."),
                accessory: recentlyClosedSwitch, searchItemID: SearchID.showRecentlyClosed)
 
         recentlyClosedLimitPopup.controlSize = .small
@@ -87,23 +87,23 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         recentlyClosedLimitPopup.addItems(withTitles: recentlyClosedLimits.map(String.init))
         recentlyClosedLimitPopup.target = self
         recentlyClosedLimitPopup.action = #selector(recentlyClosedLimitChanged)
-        addRow(to: contents, title: "Recently closed to show",
-               subtitle: "How many recently closed items to list.",
+        addRow(to: contents, title: String(localized: "Recently closed to show"),
+               subtitle: String(localized: "How many recently closed items to list."),
                accessory: recentlyClosedLimitPopup, searchItemID: SearchID.recentlyClosedLimit)
 
         // Search section — type-to-filter behavior.
-        let search = addSection(title: "Search", anchor: SettingsAnchor.search)
+        let search = addSection(title: String(localized: "Search"), anchor: SettingsAnchor.search)
         configureSwitch(letterHintsSwitch, action: #selector(toggleLetterHints(_:)))
-        addRow(to: search, title: "Letter hints",
-               subtitle: "Show a letter on each window and jump to it by typing that letter.",
+        addRow(to: search, title: String(localized: "Letter hints"),
+               subtitle: String(localized: "Show a letter on each window and jump to it by typing that letter."),
                accessory: letterHintsSwitch, searchItemID: SearchID.letterHints)
         configureSwitch(fuzzySwitch, action: #selector(toggleFuzzy(_:)))
-        addRow(to: search, title: "Type-to-filter search",
-               subtitle: "Press / in the switcher to filter by app or window name.",
+        addRow(to: search, title: String(localized: "Type-to-filter search"),
+               subtitle: String(localized: "Press / in the switcher to filter by app or window name."),
                accessory: fuzzySwitch, searchItemID: SearchID.fuzzy)
         configureSwitch(launcherSwitch, action: #selector(toggleLauncher(_:)))
-        addRow(to: search, title: "Launch apps from search",
-               subtitle: "Also show matching apps that aren't running yet.",
+        addRow(to: search, title: String(localized: "Launch apps from search"),
+               subtitle: String(localized: "Also show matching apps that aren't running yet."),
                accessory: launcherSwitch, searchItemID: SearchID.launcher)
 
         searchModePopup.controlSize = .small
@@ -113,44 +113,44 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         searchModePopup.addItems(withTitles: searchDismissModes.map(\.displayName))
         searchModePopup.target = self
         searchModePopup.action = #selector(searchModeChanged)
-        addRow(to: search, title: "When searching",
-               subtitle: "Hold ⌘: release to pick. Stay open: pick with Return or the mouse.",
+        addRow(to: search, title: String(localized: "When searching"),
+               subtitle: String(localized: "Hold ⌘: release to pick. Stay open: pick with Return or the mouse."),
                accessory: searchModePopup, searchItemID: SearchID.searchMode)
 
         // Navigation section — alternative ways to move the selection.
-        let navigation = addSection(title: "Navigation", anchor: SettingsAnchor.navigation)
+        let navigation = addSection(title: String(localized: "Navigation"), anchor: SettingsAnchor.navigation)
         configureSwitch(scrollSwitch, action: #selector(toggleScroll(_:)))
-        addRow(to: navigation, title: "Switch with mouse scroll",
-               subtitle: "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the three-finger swipe instead.",
+        addRow(to: navigation, title: String(localized: "Switch with mouse scroll"),
+               subtitle: String(localized: "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the three-finger swipe instead."),
                accessory: scrollSwitch, searchItemID: SearchID.scroll)
         configureSwitch(scrollReverseSwitch, action: #selector(toggleScrollReverse(_:)))
-        addRow(to: navigation, title: "Reverse scroll direction",
-               subtitle: "Scroll up to move forward instead of down.",
+        addRow(to: navigation, title: String(localized: "Reverse scroll direction"),
+               subtitle: String(localized: "Scroll up to move forward instead of down."),
                accessory: scrollReverseSwitch, searchItemID: SearchID.scrollReverse)
         configureSwitch(clickDismissSwitch, action: #selector(toggleClickDismiss(_:)))
-        addRow(to: navigation, title: "Click outside to dismiss",
-               subtitle: "Click anywhere outside the switcher to close it, leaving the current window focused.",
+        addRow(to: navigation, title: String(localized: "Click outside to dismiss"),
+               subtitle: String(localized: "Click anywhere outside the switcher to close it, leaving the current window focused."),
                accessory: clickDismissSwitch, searchItemID: SearchID.clickDismiss)
 
         // Hover actions section — buttons revealed on a row under the pointer.
-        let actions = addSection(title: "Hover actions", anchor: SettingsAnchor.actions)
+        let actions = addSection(title: String(localized: "Hover actions"), anchor: SettingsAnchor.actions)
         configureSwitch(hoverSwitch, action: #selector(toggleHover(_:)))
-        addRow(to: actions, title: "Action buttons on hover",
-               subtitle: "Reveal quick buttons on the row your pointer is over.",
+        addRow(to: actions, title: String(localized: "Action buttons on hover"),
+               subtitle: String(localized: "Reveal quick buttons on the row your pointer is over."),
                accessory: hoverSwitch, searchItemID: SearchID.hoverActions)
         configureSwitch(hoverCloseSwitch, action: #selector(toggleHoverClose(_:)))
-        addRow(to: actions, title: "Close window", accessory: hoverCloseSwitch)
+        addRow(to: actions, title: String(localized: "Close window"), accessory: hoverCloseSwitch)
         configureSwitch(hoverMinimizeSwitch, action: #selector(toggleHoverMinimize(_:)))
-        addRow(to: actions, title: "Minimize window", accessory: hoverMinimizeSwitch)
+        addRow(to: actions, title: String(localized: "Minimize window"), accessory: hoverMinimizeSwitch)
         configureSwitch(hoverMaximizeSwitch, action: #selector(toggleHoverMaximize(_:)))
-        addRow(to: actions, title: "Zoom window", accessory: hoverMaximizeSwitch)
+        addRow(to: actions, title: String(localized: "Zoom window"), accessory: hoverMaximizeSwitch)
         configureSwitch(hoverHideSwitch, action: #selector(toggleHoverHide(_:)))
-        addRow(to: actions, title: "Hide app", accessory: hoverHideSwitch)
+        addRow(to: actions, title: String(localized: "Hide app"), accessory: hoverHideSwitch)
         configureSwitch(hoverQuitSwitch, action: #selector(toggleHoverQuit(_:)))
-        addRow(to: actions, title: "Quit app", accessory: hoverQuitSwitch)
+        addRow(to: actions, title: String(localized: "Quit app"), accessory: hoverQuitSwitch)
         configureSwitch(hoverForceQuitSwitch, action: #selector(toggleHoverForceQuit(_:)))
-        addRow(to: actions, title: "Force quit app",
-               subtitle: "Sends SIGKILL — for hung apps that ignore Quit. ⌘+⌥+Q always works regardless.",
+        addRow(to: actions, title: String(localized: "Force quit app"),
+               subtitle: String(localized: "Sends SIGKILL — for hung apps that ignore Quit. ⌘+⌥+Q always works regardless."),
                accessory: hoverForceQuitSwitch)
 
         // Per-app rules (hide / ⌘Tab) and pinned apps now live in the Apps tab.

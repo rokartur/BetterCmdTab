@@ -38,7 +38,7 @@ final class SwitcherView: NSView, TabStripDelegate {
     private let listContainer = NSView()
     private let searchBar = SwitcherSearchBarView()
     private let tabStrip = TabStripView()
-    private let noResultsLabel = NSTextField(labelWithString: "No matches")
+    private let noResultsLabel = NSTextField(labelWithString: String(localized: "No matches"))
     private var itemViews: [SwitcherItemViewProtocol] = []
     private var rows: [SwitcherRow] = []
     private(set) var labels: [String] = []
@@ -727,7 +727,7 @@ final class SwitcherView: NSView, TabStripDelegate {
 private final class SwitcherSearchBarView: NSView {
     private let icon = NSImageView()
     private let field = NSTextField(labelWithString: "")
-    private let placeholder = "Type to filter apps & windows…"
+    private let placeholder = String(localized: "Type to filter apps & windows…")
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)

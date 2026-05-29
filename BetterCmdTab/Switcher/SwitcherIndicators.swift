@@ -53,13 +53,13 @@ enum SwitcherIndicator: CaseIterable {
 
     var accessibilityDescription: String {
         switch self {
-        case .audio: return "Playing audio"
-        case .launch: return "Launch app"
-        case .reopen: return "Reopen recently closed"
-        case .hidden: return "Hidden app"
-        case .minimized: return "Minimized window"
-        case .noWindow: return "No open window"
-        case .fullscreen: return "Full-screen window"
+        case .audio: return String(localized: "Playing audio")
+        case .launch: return String(localized: "Launch app")
+        case .reopen: return String(localized: "Reopen recently closed")
+        case .hidden: return String(localized: "Hidden app")
+        case .minimized: return String(localized: "Minimized window")
+        case .noWindow: return String(localized: "No open window")
+        case .fullscreen: return String(localized: "Full-screen window")
         }
     }
 

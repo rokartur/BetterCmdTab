@@ -1741,8 +1741,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// are unaffected; auto-dismisses.
     private func showTabDrillHint(forApp app: NSRunningApplication) {
         guard phase == .visible, !tabDrillActive else { return }
-        let name = app.localizedName ?? "this browser"
-        tabDrillHint = "Grant Automation access to \(name) in System Settings ▸ Privacy"
+        let name = app.localizedName ?? String(localized: "this browser")
+        tabDrillHint = String(format: String(localized: "Grant Automation access to %@ in System Settings ▸ Privacy"), name)
         refreshDisplay()
         let gen = revealGeneration
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
