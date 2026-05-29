@@ -46,6 +46,7 @@ extension BetterShortcuts.Name {
     static let panelMinimize = Self("panelMinimize", default: .init(.m, modifiers: .command))
     static let panelHide = Self("panelHide", default: .init(.h, modifiers: .command))
     static let panelQuit = Self("panelQuit", default: .init(.q, modifiers: .command))
+    static let panelFullscreen = Self("panelFullscreen", default: .init(.f, modifiers: .command))
 
     /// All in-panel action-key names, paired with a stable label.
     static let panelActionKeys: [(name: Self, title: String)] = [
@@ -53,6 +54,7 @@ extension BetterShortcuts.Name {
         (.panelMinimize, "Minimize window"),
         (.panelHide, "Hide app"),
         (.panelQuit, "Quit app"),
+        (.panelFullscreen, "Full screen"),
     ]
 
     // MARK: Window-management hotkeys (global + in-switcher)

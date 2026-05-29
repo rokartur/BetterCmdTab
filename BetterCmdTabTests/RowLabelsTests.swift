@@ -51,6 +51,15 @@ struct RowLabelsTests {
         #expect(labels == ["a", "o"])
     }
 
+    @Test("f is reserved (⌘F full screen) and never a letter-chain target")
+    func fReservedSkipped() {
+        let labels = RowLabels.labels(forInputs: [
+            input("Figma"),  // f is reserved → falls through to "i"
+            input("Notes")   // n
+        ])
+        #expect(labels == ["i", "n"])
+    }
+
     @Test("diacritics fold to ASCII counterparts")
     func diacriticFolding() {
         // .diacriticInsensitive strips combining marks but not ligatures or

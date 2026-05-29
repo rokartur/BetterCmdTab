@@ -485,6 +485,26 @@ enum Activator {
         }
     }
 
+    /// Toggle native (green-button) full screen on the row's window via the AX
+    /// `AXFullScreen` attribute — the same attribute the window scan reads.
+    /// Direction comes from `row.isFullscreen` (captured at scan time). Our own
+    /// window mutates on the main thread (window-management constraint, same as
+    /// close/minimize); other apps stay off-main so a slow cross-process AX write
+    /// never blocks ours. No-op for rows without a window (placeholder /
+    /// launchable) or apps that don't expose the attribute.
+    static func toggleFullscreen(_ row: SwitcherRow) {
+        guard let window = row.window, let app = row.app else { return }
+        let target: CFBoolean = row.isFullscreen ? kCFBooleanFalse : kCFBooleanTrue
+        let apply = {
+            _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, target)
+        }
+        if app.processIdentifier == getpid() {
+            DispatchQueue.main.async(execute: apply)
+        } else {
+            DispatchQueue.global(qos: .userInitiated).async(execute: apply)
+        }
+    }
+
     static func hideApp(_ row: SwitcherRow) {
         guard let app = row.app else { return }
         if app.isHidden {

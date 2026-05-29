@@ -356,6 +356,10 @@ final class SwitcherController: SwitcherViewDelegate {
             guard let nsEvent = NSEvent(cgEvent: cgEvent) else { return }
             NSApp.postEvent(nsEvent, atStart: true)
         }
+        // Mirror the tap's reserved-letter set (in-panel action keys + ⌘F,
+        // recomputed on every binding/layout change) into RowLabels so hint
+        // generation never assigns a letter that's bound to an action.
+        hotkey.onReservedLettersChanged = { letters in RowLabels.setReserved(letters) }
         // The Carbon fallback drives the same handler as the tap.
         carbonTrigger.onEvent = { [weak self] event in self?.handle(event) }
         // Scoped-shortcut triggers open the switcher pre-filtered (#3).
@@ -540,6 +544,7 @@ final class SwitcherController: SwitcherViewDelegate {
             (.panelMinimize, .minimize),
             (.panelHide, .hide),
             (.panelQuit, .quit),
+            (.panelFullscreen, .fullscreen),
         ]
         for (name, action) in pairs {
             guard let shortcut = BetterShortcuts.getShortcut(for: name) else { continue }
@@ -996,6 +1001,8 @@ final class SwitcherController: SwitcherViewDelegate {
             performCloseAction()
         case .minimizeWindow:
             performOnVisibleTarget { Activator.minimizeWindow($0) }
+        case .fullscreen:
+            performOnVisibleTarget { Activator.toggleFullscreen($0) }
         case .hideApp:
             performOnVisibleTarget { Activator.hideApp($0) }
         case .quitApp:

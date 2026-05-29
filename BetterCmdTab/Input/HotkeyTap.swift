@@ -45,6 +45,9 @@ final class HotkeyTap {
         case toggleSearch
         case searchInput(Character)
         case searchBackspace
+        /// ⌘F while the switcher is open: toggle native full screen on the
+        /// highlighted row's window.
+        case fullscreen
     }
 
     var onEvent: (Event) -> Void = { _ in }
@@ -124,7 +127,7 @@ final class HotkeyTap {
     /// bound key suppresses letter-jumping (same as the old hardcoded W/M/H/Q).
     /// `.quit` escalates to force-quit when Option is held (preserved behavior).
     /// Pushed from main via `setPanelKeyBindings`, derived from BetterShortcuts.
-    enum PanelActionKey { case close, minimize, hide, quit }
+    enum PanelActionKey { case close, minimize, hide, quit, fullscreen }
     /// Populated entirely from BetterShortcuts at launch via
     /// `SwitcherController.pushPanelKeyBindings` (and on every shortcut change) —
     /// BetterShortcuts' `panelClose/Minimize/Hide/Quit` are the single source of
@@ -182,11 +185,22 @@ final class HotkeyTap {
     /// highlighted row when the experimental pref is enabled.
     private static let backslashKey: Int64 = 42
 
-    /// Letters reserved for hotkey actions (close/minimize/hide/quit). UCKey-
-    /// Translate may emit one of these on a non-QWERTY layout for a different
-    /// physical key — filter so a Dvorak user pressing the "w" physical key
-    /// doesn't trigger Close instead of letter-jumping to "w"-labeled row.
-    private static let reservedLetters: Set<Character> = ["w", "m", "h", "q"]
+    /// Letters reserved from letter-jump because they drive an in-panel action.
+    /// Recomputed from the live `panelKeyMap` bindings (translated to the current
+    /// layout) plus the fixed ⌘F full-screen key — so it tracks whatever the user
+    /// assigns in the in-panel keys section instead of a hardcoded W/M/H/Q. The
+    /// same set is mirrored to `RowLabels` via `onReservedLettersChanged` so hint
+    /// generation and letter-jump stay in agreement. Read on the tap thread,
+    /// written on main / the layout-change observer. Defaults to the shipped
+    /// bindings (w/m/h/q) + f until the first push.
+    private let reservedLetters = OSAllocatedUnfairLock<Set<Character>>(
+        initialState: ["w", "m", "h", "q", "f"]
+    )
+
+    /// Fired (on the caller's thread — currently always main) whenever the
+    /// reserved-letter set is recomputed, so `SwitcherController` can mirror it
+    /// into `RowLabels`. Set before the first `setPanelKeyBindings` push.
+    var onReservedLettersChanged: ((Set<Character>) -> Void)?
 
     func install() -> Bool {
         // Always-on tap: only the events we must catch from idle — the trigger
@@ -390,6 +404,25 @@ final class HotkeyTap {
     /// from main on launch and on every preference change; read on the tap thread.
     func setPanelKeyBindings(_ map: [Int64: PanelActionKey]) {
         panelKeyMap.withLock { $0 = map }
+        recomputeReservedLetters()
+    }
+
+    /// Re-derive the reserved-letter set from the current `panelKeyMap` (each
+    /// bound keycode — close/minimize/hide/quit/full-screen — translated to the
+    /// active layout), then store it and notify `onReservedLettersChanged`. Called
+    /// on every binding push and whenever the keyboard layout changes, so reserved
+    /// letters always match what the user actually assigned.
+    private func recomputeReservedLetters() {
+        let map = panelKeyMap.withLock { $0 }
+        var collected: Set<Character> = []
+        for keyCode in map.keys {
+            guard let ch = translate(keyCode: UInt16(keyCode)) else { continue }
+            let lower = Character(ch.lowercased())
+            if lower.isLetter { collected.insert(lower) }
+        }
+        let letters = collected
+        reservedLetters.withLock { $0 = letters }
+        onReservedLettersChanged?(letters)
     }
 
     /// Replace the rebindable window-management chord map (packed chord → Event).
@@ -424,6 +457,9 @@ final class HotkeyTap {
         let cfData = Unmanaged<CFData>.fromOpaque(prop).takeUnretainedValue()
         let data = cfData as Data
         layoutData.withLock { $0 = data }
+        // Reserved letters are layout-dependent (a bound keycode maps to a
+        // different letter per layout) — re-derive them on every layout change.
+        recomputeReservedLetters()
     }
 
     private func translate(keyCode: UInt16) -> Character? {
@@ -678,13 +714,15 @@ final class HotkeyTap {
                         // Rebindable in-panel action keys (#5). Checked before the
                         // letter-jump fallback so a bound key suppresses jumping,
                         // exactly as the old hardcoded W/M/H/Q did. ⌘+⌥+Q still
-                        // escalates Quit to force-quit (SIGKILL).
+                        // escalates Quit to force-quit (SIGKILL). Full screen is
+                        // bound here too (default ⌘F) — rebindable like the rest.
                         if let action = panelKeyMap.withLock({ $0[keyCode] }) {
                             switch action {
                             case .close: deliver(.closeWindow)
                             case .minimize: deliver(.minimizeWindow)
                             case .hide: deliver(.hideApp)
                             case .quit: deliver(optionHeld ? .forceQuitApp : .quitApp)
+                            case .fullscreen: deliver(.fullscreen)
                             }
                             return nil
                         }
@@ -701,7 +739,7 @@ final class HotkeyTap {
                             if lower.isLetter,
                                let ascii = lower.asciiValue,
                                ascii >= 0x61 && ascii <= 0x7A,
-                               !Self.reservedLetters.contains(lower) {
+                               !reservedLetters.withLock({ $0.contains(lower) }) {
                                 deliver(.letterInput(lower))
                                 return nil
                             }
