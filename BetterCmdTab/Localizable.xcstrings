@@ -787,7 +787,32 @@
       }
     },
     "Browser tab access" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser-Tab-Zugriff"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceso a las pestañas del navegador"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès aux onglets du navigateur"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do kart przeglądarki"
+          }
+        }
+      }
     },
     "Browser tab drill-in" : {
       "extractionState" : "stale",
@@ -819,7 +844,32 @@
       }
     },
     "Browsers need Apple Events consent to list their tabs. Click to prompt for each running browser (Safari, Chrome, Arc, Brave, Edge…). Must be done with this window open." : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser benötigen die Apple-Events-Zustimmung, um ihre Tabs aufzulisten. Klicke, um jeden laufenden Browser (Safari, Chrome, Arc, Brave, Edge…) abzufragen. Muss bei geöffnetem Fenster erfolgen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los navegadores necesitan el consentimiento de Apple Events para listar sus pestañas. Haz clic para solicitarlo a cada navegador en ejecución (Safari, Chrome, Arc, Brave, Edge…). Debe hacerse con esta ventana abierta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les navigateurs ont besoin du consentement Apple Events pour lister leurs onglets. Cliquez pour le demander à chaque navigateur en cours d’exécution (Safari, Chrome, Arc, Brave, Edge…). À faire avec cette fenêtre ouverte."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeglądarki potrzebują zgody Apple Events, aby wyświetlić listę swoich kart. Kliknij, aby poprosić o nią każdą uruchomioną przeglądarkę (Safari, Chrome, Arc, Brave, Edge…). Trzeba to zrobić przy otwartym tym oknie."
+          }
+        }
+      }
     },
     "Browsers require Apple Events consent to enumerate tabs. Click to trigger a prompt for each running browser (Safari, Chrome, Helium, Arc, Brave, Edge…). Must be done with this Settings window open." : {
       "extractionState" : "stale",
@@ -2672,7 +2722,32 @@
       }
     },
     "How long a typed letter sequence stays active. When it expires, the highlight clears and the list returns to its original order." : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie lange eine getippte Buchstabenfolge aktiv bleibt. Nach Ablauf wird die Hervorhebung entfernt und die Liste kehrt zur ursprünglichen Reihenfolge zurück."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuánto tiempo permanece activa una secuencia de letras escrita. Al expirar, se borra el resaltado y la lista vuelve a su orden original."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durée pendant laquelle une séquence de lettres saisie reste active. À son expiration, la surbrillance disparaît et la liste retrouve son ordre d’origine."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jak długo wpisana sekwencja liter pozostaje aktywna. Po wygaśnięciu wyróżnienie znika, a lista wraca do pierwotnej kolejności."
+          }
+        }
+      }
     },
     "How many recently closed items to list." : {
       "localizations" : {
@@ -3263,7 +3338,32 @@
       }
     },
     "Letter chain timeout" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeitlimit der Buchstabenfolge"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiempo de espera de la secuencia de letras"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai de la séquence de lettres"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limit czasu sekwencji liter"
+          }
+        }
+      }
     },
     "Letter hints" : {
       "localizations" : {
@@ -3350,10 +3450,60 @@
       }
     },
     "List each tab of a browser window (Safari, Chrome, Arc, Brave, Edge, …) as its own row alongside the other windows, instead of one collapsed window. Needs Apple Events access (below); off keeps one row per window — peek its tabs with \\." : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listet jeden Tab eines Browserfensters (Safari, Chrome, Arc, Brave, Edge, …) als eigene Zeile neben den anderen Fenstern auf, statt eines zusammengefassten Fensters. Erfordert Apple-Events-Zugriff (unten); aus zeigt eine Zeile pro Fenster — Tabs mit \\ einblenden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra cada pestaña de una ventana del navegador (Safari, Chrome, Arc, Brave, Edge, …) como su propia fila junto a las demás ventanas, en lugar de una ventana contraída. Necesita acceso a Apple Events (abajo); desactivado mantiene una fila por ventana — muestra sus pestañas con \\."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche chaque onglet d’une fenêtre de navigateur (Safari, Chrome, Arc, Brave, Edge, …) sur sa propre ligne, aux côtés des autres fenêtres, au lieu d’une seule fenêtre regroupée. Nécessite l’accès Apple Events (ci-dessous) ; désactivé, garde une ligne par fenêtre — affichez ses onglets avec \\."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje każdą kartę okna przeglądarki (Safari, Chrome, Arc, Brave, Edge, …) jako osobny wiersz obok pozostałych okien, zamiast jednego zwiniętego okna. Wymaga dostępu Apple Events (poniżej); wyłączone zachowuje jeden wiersz na okno — podejrzyj jego karty klawiszem \\."
+          }
+        }
+      }
     },
     "List each tab of a native-tab window (Finder, Terminal, TextEdit, …) as its own row instead of one collapsed window. Off keeps one row per window — peek its tabs with \\." : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listet jeden Tab eines Fensters mit nativen Tabs (Finder, Terminal, TextEdit, …) als eigene Zeile auf, statt eines zusammengefassten Fensters. Aus zeigt eine Zeile pro Fenster — Tabs mit \\ einblenden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra cada pestaña de una ventana con pestañas nativas (Finder, Terminal, TextEdit, …) como su propia fila, en lugar de una ventana contraída. Desactivado mantiene una fila por ventana — muestra sus pestañas con \\."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche chaque onglet d’une fenêtre à onglets natifs (Finder, Terminal, TextEdit, …) sur sa propre ligne, au lieu d’une seule fenêtre regroupée. Désactivé, garde une ligne par fenêtre — affichez ses onglets avec \\."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje każdą kartę okna z natywnymi kartami (Finder, Terminal, TextEdit, …) jako osobny wiersz, zamiast jednego zwiniętego okna. Wyłączone zachowuje jeden wiersz na okno — podejrzyj jego karty klawiszem \\."
+          }
+        }
+      }
     },
     "Lists apps and windows you just closed so you can reopen them." : {
       "localizations" : {
@@ -4141,7 +4291,32 @@
       }
     },
     "Peek tabs with \\" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tabs mit \\ einblenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver pestañas con \\"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les onglets avec \\"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podejrzyj karty klawiszem \\"
+          }
+        }
+      }
     },
     "Permissions" : {
       "localizations" : {
@@ -4425,7 +4600,32 @@
       }
     },
     "Press \\ on a window that has tabs to reveal a strip below the switcher and pick a tab. Native tabs use Accessibility; browsers use Apple Events." : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drücke \\ bei einem Fenster mit Tabs, um eine Leiste unter dem Umschalter einzublenden und einen Tab auszuwählen. Native Tabs nutzen die Bedienungshilfen, Browser nutzen Apple Events."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa \\ en una ventana con pestañas para mostrar una franja bajo el selector y elegir una pestaña. Las pestañas nativas usan Accesibilidad; los navegadores usan Apple Events."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez sur \\ sur une fenêtre comportant des onglets pour afficher une bande sous le sélecteur et choisir un onglet. Les onglets natifs utilisent l’Accessibilité ; les navigateurs utilisent Apple Events."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij \\ na oknie z kartami, aby wyświetlić pasek pod przełącznikiem i wybrać kartę. Natywne karty używają Dostępności, a przeglądarki — Apple Events."
+          }
+        }
+      }
     },
     "Press Tile left / Tile right again to step the window through ½ → ⅔ → ⅓ of the screen on that side." : {
       "localizations" : {
@@ -5632,10 +5832,60 @@
       }
     },
     "Show browser tabs as separate entries" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser-Tabs als separate Einträge anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar las pestañas del navegador como entradas separadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les onglets du navigateur comme entrées distinctes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj karty przeglądarki jako osobne pozycje"
+          }
+        }
+      }
     },
     "Show tabs as separate entries" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tabs als separate Einträge anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar las pestañas como entradas separadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les onglets comme entrées distinctes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj karty jako osobne pozycje"
+          }
+        }
+      }
     },
     "Show unread badges" : {
       "localizations" : {
@@ -5835,7 +6085,32 @@
       }
     },
     "Slot %lld" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slot %lld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranura %lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emplacement %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slot %lld"
+          }
+        }
+      }
     },
     "Small" : {
       "localizations" : {
@@ -6314,7 +6589,32 @@
       }
     },
     "Tabs" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tabs"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pestañas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onglets"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karty"
+          }
+        }
+      }
     },
     "Tap to switch instantly; hold longer to open the switcher." : {
       "localizations" : {
