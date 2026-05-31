@@ -24,6 +24,9 @@ final class HotkeyTap {
         case tileBottomRight
         case maximizeWindow
         case centerWindow
+        /// Restore the window to the frame captured before the last arrange/move
+        /// (default ⌃⌘⌫). See `Activator.restoreFrame`.
+        case restoreWindowFrame
         case releaseCmd
         case commit
         case escape

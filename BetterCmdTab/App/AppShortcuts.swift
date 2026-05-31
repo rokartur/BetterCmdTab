@@ -77,6 +77,12 @@ extension BetterShortcuts.Name {
     static let windowTileBottomLeft = Self("windowTileBottomLeft", default: .init(.semicolon, modifiers: [.control, .command]))
     static let windowTileBottomRight = Self("windowTileBottomRight", default: .init(.quote, modifiers: [.control, .command]))
 
+    /// Restore the focused/highlighted window to the frame it had BEFORE the last
+    /// tile / maximize / move-to-display — e.g. maximize → tile-left → this returns
+    /// the maximized frame. Re-enters native full screen if the window was
+    /// full-screen before the arrange. Default ⌃⌘⌫.
+    static let windowRestorePrevious = Self("windowRestorePrevious", default: .init(.delete, modifiers: [.control, .command]))
+
     /// All window-management names, paired with a stable label.
     static let windowMgmt: [(name: Self, title: String)] = [
         (.windowTileLeft, "Tile left half"),
@@ -87,6 +93,7 @@ extension BetterShortcuts.Name {
         (.windowTileBottomRight, "Tile bottom-right corner"),
         (.windowMaximize, "Maximize"),
         (.windowCenter, "Center"),
+        (.windowRestorePrevious, "Restore previous size"),
     ]
 }
 

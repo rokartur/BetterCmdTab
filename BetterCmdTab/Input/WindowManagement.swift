@@ -38,6 +38,13 @@ enum WindowManagement {
                 }
             }
         }
+        // Restore-previous-size isn't a computed `WindowArrangement` (it replays a
+        // stored frame), so it's wired separately from `arrangementByName`.
+        BetterShortcuts.onKeyDown(for: .windowRestorePrevious) {
+            MainActor.assumeIsolated {
+                Activator.restoreFrontmostWindowFrame()
+            }
+        }
     }
 
     /// Map each window-management shortcut name to the arrangement it performs.

@@ -702,6 +702,7 @@ final class SwitcherController: SwitcherViewDelegate {
             (.windowTileBottomRight, .tileBottomRight),
             (.windowMaximize, .maximizeWindow),
             (.windowCenter, .centerWindow),
+            (.windowRestorePrevious, .restoreWindowFrame),
         ]
         for (name, event) in pairs {
             guard let shortcut = BetterShortcuts.getShortcut(for: name) else { continue }
@@ -1292,6 +1293,8 @@ final class SwitcherController: SwitcherViewDelegate {
             arrangeFrontmost(.maximize)
         case .centerWindow:
             arrangeFrontmost(.center)
+        case .restoreWindowFrame:
+            performRestoreFrame()
         case .releaseCmd:
             handleModifierRelease()
         case .commit:
@@ -2398,6 +2401,19 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    /// Restore the current window to the frame captured before its last arrange /
+    /// move (⌃⌘⌫ by default). Open: acts on the window captured at open and keeps
+    /// the panel up so it can be repeated; closed: the live frontmost window.
+    private func performRestoreFrame() {
+        if phase == .visible {
+            guard let window = openFocusedWindow else { return }
+            Activator.restoreFrame(window: window)
+            scheduleVisibleRefresh(after: 0.25)
+        } else {
+            Activator.restoreFrontmostWindowFrame()
+        }
+    }
+
     private func performQuitAction() {
         quitVisibleTarget(force: false)
     }
@@ -2832,6 +2848,22 @@ final class SwitcherController: SwitcherViewDelegate {
             baseRows.remove(at: bi)
         }
 
+        // Windows-only mode (⌘`): the panel lists ONE app's windows, so a close
+        // must not demote the app to a windowless row or reveal a "no window"
+        // glyph — those are multi-app-list concepts. Just drop the closed window
+        // and re-refresh scoped to this app (the refresh stays filtered to
+        // `windowsOnlyPid`); the last window closing cancels via the refresh.
+        if windowsOnlyMode {
+            if baseRows.isEmpty {
+                cancel()
+                return
+            }
+            baseLabels = RowLabels.labels(for: baseRows)
+            refreshDisplay()
+            scheduleVisibleRefresh(after: 0.25)
+            return
+        }
+
         // If this was the only window for a regular app, demote the app to a
         // windowless row right now. Otherwise the app visibly vanishes for
         // ~250ms (until the cache refresh + tombstone filter substitute one) —
@@ -2935,6 +2967,17 @@ final class SwitcherController: SwitcherViewDelegate {
             cache.scheduleFullRefresh { [weak self] in
                 guard let self, gen == self.revealGeneration, self.phase == .visible else { return }
                 let fresh = self.filterQuitting(self.filterClosedTombstones(self.cache.rows(orderedBy: self.mru.order)))
+                // Windows-only mode (⌘`) is scoped to a single app's windows. A
+                // post-action refresh must stay filtered to `windowsOnlyPid` —
+                // otherwise it rebuilds from the full multi-app catalog and the
+                // panel suddenly shows every app's windows (e.g. after closing a
+                // window). `applyWindowsOnlySnapshot` re-sorts and cancels if the
+                // app has no windows left.
+                if self.windowsOnlyMode {
+                    let scoped = self.windowsOnlyPid.map { pid in fresh.filter { $0.pid == pid } } ?? fresh
+                    self.applyWindowsOnlySnapshot(scoped)
+                    return
+                }
                 if fresh.isEmpty {
                     self.cancel()
                     return

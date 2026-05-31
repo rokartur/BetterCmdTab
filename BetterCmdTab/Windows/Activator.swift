@@ -116,6 +116,41 @@ enum TileCycler {
     }
 }
 
+/// Remembers each window's frame from BEFORE its most recent arrange / move so a
+/// "restore previous size" chord (⌃⌘⌫ by default) can put it back — e.g.
+/// maximize → tile-left → restore returns the maximized frame. Keyed by
+/// `CGWindowID` (stable across AX calls, the same key `TileCycler` uses).
+/// `wasFullscreen` is captured too, so restoring a window that was in native full
+/// screen re-enters full screen instead of merely resizing. Pure state container
+/// so the save/restore decision is unit-testable.
+@MainActor
+enum PreviousFrameStore {
+    struct Saved: Equatable {
+        let cocoaRect: CGRect
+        let wasFullscreen: Bool
+    }
+    private static var frames: [CGWindowID: Saved] = [:]
+    /// Cap so a long session can't grow the table unbounded. Window ids are
+    /// recycled by the WindowServer, so an evicted entry only costs one missed
+    /// restore; eviction is arbitrary-key (a stale id is as good as any to drop).
+    static let maxEntries = 64
+
+    static func save(windowId: CGWindowID, cocoaRect: CGRect, wasFullscreen: Bool) {
+        guard windowId != 0 else { return }
+        if frames[windowId] == nil, frames.count >= maxEntries, let victim = frames.keys.first {
+            frames.removeValue(forKey: victim)
+        }
+        frames[windowId] = Saved(cocoaRect: cocoaRect, wasFullscreen: wasFullscreen)
+    }
+
+    static func saved(for windowId: CGWindowID) -> Saved? {
+        windowId == 0 ? nil : frames[windowId]
+    }
+
+    /// Test seam / cleanup.
+    static func reset() { frames.removeAll() }
+}
+
 enum Activator {
     private static let finderBundleID = "com.apple.finder"
 
@@ -604,6 +639,22 @@ enum Activator {
         moveToDisplay(window: window, direction: direction)
     }
 
+    /// Restore an explicit window to the frame snapshotted before its last
+    /// arrange/move (see `PreviousFrameStore`). No-op if nothing was saved for it.
+    /// On main for the same `NSScreen.screens` reason as `arrange(window:)`.
+    static func restoreFrame(window: AXUIElement) {
+        DispatchQueue.main.async {
+            Self.applyRestore(window: window)
+        }
+    }
+
+    /// Restore the frontmost app's focused window. Global (switcher-closed)
+    /// counterpart of `restoreFrame(window:)`.
+    static func restoreFrontmostWindowFrame() {
+        guard let window = frontmostFocusedWindow() else { return }
+        restoreFrame(window: window)
+    }
+
     private static func applyArrangement(window: AXUIElement, arrangement: WindowArrangement) {
         guard !NSScreen.screens.isEmpty else { return }
         let mainHeight = NSScreen.screens[0].frame.maxY
@@ -626,6 +677,14 @@ enum Activator {
             height: axSize.height
         )
         guard let screen = screenContaining(rect: cocoaRect) else { return }
+        // Snapshot the pre-arrange frame so ⌃⌘⌫ can restore it (see
+        // `PreviousFrameStore` / `restoreFrame`). Captured here — after we know an
+        // arrange will actually run — keyed by the window's CGWindowID.
+        let preArrangeId = PrivateAPI.cgWindowId(of: window)
+        let wasFullscreen = isFullscreen(window: window)
+        MainActor.assumeIsolated {
+            PreviousFrameStore.save(windowId: preArrangeId, cocoaRect: cocoaRect, wasFullscreen: wasFullscreen)
+        }
         let v = screen.visibleFrame
         // Left/right halves width-cycle (½→⅔→⅓) on repeated presses when the
         // user enabled it; corners/maximize/center always use their fixed frame.
@@ -636,7 +695,7 @@ enum Activator {
         let target: CGRect
         if let side = arrangement.cyclingSide,
            MainActor.assumeIsolated({ Preferences.shared.cycleTileWidths }) {
-            let wid = PrivateAPI.cgWindowId(of: window)
+            let wid = preArrangeId
             let fraction = MainActor.assumeIsolated { TileCycler.nextFraction(windowId: wid, side: side) }
             target = WindowArrangement.tileFrame(side: side, fraction: fraction, visibleFrame: v)
         } else {
@@ -690,6 +749,14 @@ enum Activator {
         guard let current = screenContaining(rect: cocoaRect),
               let target = adjacentScreen(to: current, direction: direction) else { return }
 
+        // Snapshot the pre-move frame so ⌃⌘⌫ can return the window to the display
+        // it came from (see `PreviousFrameStore`).
+        let preMoveId = PrivateAPI.cgWindowId(of: window)
+        let wasFullscreen = isFullscreen(window: window)
+        MainActor.assumeIsolated {
+            PreviousFrameStore.save(windowId: preMoveId, cocoaRect: cocoaRect, wasFullscreen: wasFullscreen)
+        }
+
         let cv = current.visibleFrame
         let tv = target.visibleFrame
         let relX = cv.width > 0 ? (cocoaRect.minX - cv.minX) / cv.width : 0
@@ -703,6 +770,55 @@ enum Activator {
         var newAXPos = CGPoint(x: newX, y: mainHeight - (newY + axSize.height))
         guard let value = AXValueCreate(.cgPoint, &newAXPos) else { return }
         AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value)
+    }
+
+    /// Read a window's native full-screen state. Best-effort: any AX failure or a
+    /// window that doesn't expose `AXFullScreen` reads as not-full-screen.
+    private static func isFullscreen(window: AXUIElement) -> Bool {
+        var ref: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(window, "AXFullScreen" as CFString, &ref) == .success,
+              let flag = ref as? Bool else { return false }
+        return flag
+    }
+
+    /// Put `window` back to its `PreviousFrameStore` snapshot. Re-enters full
+    /// screen if it was full-screen before; otherwise exits full screen (if it's
+    /// in it now) and writes the saved position + size. Same size-first ordering
+    /// and Cocoa↔AX flip as `applyArrangement`.
+    private static func applyRestore(window: AXUIElement) {
+        guard !NSScreen.screens.isEmpty else { return }
+        let wid = PrivateAPI.cgWindowId(of: window)
+        guard let saved = MainActor.assumeIsolated({ PreviousFrameStore.saved(for: wid) }) else { return }
+
+        if saved.wasFullscreen {
+            if !isFullscreen(window: window) {
+                _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, kCFBooleanTrue)
+            }
+            return
+        }
+        // A full-screen window ignores frame writes — drop out of it first. The
+        // exit animates, so the position/size below is best-effort on that frame;
+        // the common restore (un-maximize, un-tile) isn't full-screen and lands
+        // immediately.
+        if isFullscreen(window: window) {
+            _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, kCFBooleanFalse)
+        }
+
+        let mainHeight = NSScreen.screens[0].frame.maxY
+        let target = saved.cocoaRect
+        var newSize = CGSize(width: target.width, height: target.height)
+        if let sizeValue = AXValueCreate(.cgSize, &newSize) {
+            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+        }
+        var newAXPos = CGPoint(x: target.minX, y: mainHeight - (target.minY + target.height))
+        if let posValue = AXValueCreate(.cgPoint, &newAXPos) {
+            AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, posValue)
+        }
+        // Re-assert size (apps that clamped against the old origin often accept it
+        // now), mirroring `applyArrangement`.
+        if let sizeValue = AXValueCreate(.cgSize, &newSize) {
+            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+        }
     }
 
     private static func screenContaining(rect: CGRect) -> NSScreen? {
