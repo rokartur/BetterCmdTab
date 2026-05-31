@@ -166,13 +166,21 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         placeholderIcon = icon
         iconView.image = icon
         // "Window title under icon" preference: when off, keep the app icon but
-        // drop the title text so the tile is just the thumbnail + icon.
-        nameLabel.stringValue = Preferences.shared.showWindowTitleLabel ? row.displayTitle : ""
+        // drop the title text so the tile is just the thumbnail + icon. Browser
+        // tabs always show their title — it's the only thing distinguishing one
+        // tab tile from another (they share the parent window).
+        nameLabel.stringValue = (Preferences.shared.showWindowTitleLabel || row.browserTab != nil) ? row.displayTitle : ""
 
         // Resolve the window id and ask for (or reuse) its live thumbnail. Rows
         // without a real window (windowless apps, launchables, recents) keep the
         // app icon as their preview.
-        windowID = row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
+        //
+        // Browser tabs aren't separate windows: every tab of a browser window
+        // shares the parent window's id, and a window screenshot only ever shows
+        // the *active* tab — so requesting it would paint every tab tile with the
+        // same, misleading thumbnail. Force the app-icon placeholder (id 0)
+        // instead; the distinct tab title under the icon identifies each tab.
+        windowID = (row.browserTab == nil) ? (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0) : 0
         if windowID != 0 {
             let scale = window?.backingScaleFactor ?? 2
             WindowThumbnailCache.shared.request(wid: windowID, pixelHeight: metrics.previewThumbHeight * scale)
