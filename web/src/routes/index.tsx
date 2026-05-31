@@ -34,40 +34,96 @@ const shots: Array<[string, string]> = [
   ["/screenshots/list.jpg", "Classic vertical list"],
 ];
 
-const features: Array<[string, string]> = [
-  ["Three layouts", "classic list, grid of icons, or live window previews"],
-  ["Window titles", "show each window's title under its icon in Grid and Previews"],
-  ["Letter-prefix jump", "type a name to jump to it"],
-  ["Search & launch", "press / to fuzzy-find, or launch any installed app"],
-  ["Window switching", "Cmd+` cycles windows of the front app"],
-  ["Scoped shortcuts", "a global hotkey opens the switcher filtered to all windows, this Space, the current app, or minimized only"],
-  ["Tap or hold", "tap to switch instantly, hold to open the switcher"],
-  ["Scroll to switch", "spin the mouse wheel to move through apps"],
-  ["Sort order", "order apps by recents, alphabetically, or launch order"],
-  ["Recently closed", "reopen an app you just quit"],
-  ["Minimized & hidden", "include minimized windows, hidden and windowless apps"],
-  ["Pin & filter", "keep favorites up top, hide the rest"],
-  ["Per-app rules", "hide an app, or have it ignore Cmd+Tab always or only when fullscreen"],
-  ["Quick actions", "quit, close, minimize, maximize, hide inline"],
-  ["Hover actions", "quick-action buttons appear on hover: close, minimize, zoom, hide, quit, force-quit"],
-  ["Force quit", "Cmd+Option+Q SIGKILLs hung apps when graceful Quit hangs"],
-  ["Tab drill-in", "press \\ to pick a tab from Safari, Chrome, Arc, Finder, Terminal, …"],
-  ["Tabs as rows", "optionally surface each native or browser tab as its own row, not just behind the \\ peek"],
-  ["Window management", "tile to halves or corners, maximize, or center with Ctrl+Cmd arrows; cycle ½ → ⅔ → ⅓ widths"],
-  ["Move windows", "send the highlighted window to the next display"],
-  ["App hotkeys", "assign a global shortcut to focus or launch a chosen app (9 slots)"],
-  ["Unread badges", "Dock badge counts, in the switcher"],
-  ["Audio indicator", "flags apps playing sound"],
-  ["Instant Spaces", "switch Spaces with no animation"],
-  ["Current Space only", "show just the windows on the Space you're on"],
-  ["Secure-input survivor", "Cmd+Tab keeps working even while a password field holds Secure Event Input"],
-  ["Liquid Glass", "system material on macOS 26"],
-  ["Theming", "panel opacity, corner radius, background material, and a custom accent color"],
-  ["Multi-monitor", "opens on the screen under the cursor"],
-  ["Trackpad & haptics", "three-finger swipe to open the switcher or switch Spaces, with optional haptic and click feedback"],
-  ["Hide from screen sharing", "keep the switcher out of screen recordings and shared screens. Needs macOS 14.6+"],
-  ["Export & import", "back up and move your whole setup as a versioned .cmdtab file"],
-  ["Configurable", "custom hotkey, size, scale, layout, grid columns, and reveal delay"],
+const featureGroups: Array<{ label: string; rows: Array<[string, string]> }> = [
+  {
+    label: "Switch & launch",
+    rows: [
+      ["Letter-prefix jump", "type a name to jump to it"],
+      ["Search & launch", "press / to fuzzy-find, or launch any installed app"],
+      ["Window switching", "Cmd+` cycles windows of the front app"],
+      [
+        "Scoped shortcuts",
+        "a global hotkey opens the switcher filtered to all windows, this Space, the current app, or minimized only",
+      ],
+      ["Tap or hold", "tap to switch instantly, hold to open the switcher"],
+      ["Scroll to switch", "spin the mouse wheel to move through apps"],
+      ["App hotkeys", "assign a global shortcut to focus or launch a chosen app (9 slots)"],
+    ],
+  },
+  {
+    label: "Layouts & looks",
+    rows: [
+      ["Three layouts", "classic list, grid of icons, or live window previews"],
+      ["Window titles", "show each window's title under its icon in Grid and Previews"],
+      ["Liquid Glass", "system material on macOS 26"],
+      ["Theming", "panel opacity, corner radius, background material, and a custom accent color"],
+      ["Multi-monitor", "opens on the screen under the cursor"],
+    ],
+  },
+  {
+    label: "Tabs",
+    rows: [
+      ["Tab drill-in", "press \\ to pick a tab from Safari, Chrome, Arc, Finder, Terminal, …"],
+      [
+        "Tabs as rows",
+        "optionally surface each native or browser tab as its own row, not just behind the \\ peek",
+      ],
+    ],
+  },
+  {
+    label: "Window actions",
+    rows: [
+      ["Quick actions", "quit, close, minimize, maximize, hide inline"],
+      [
+        "Hover actions",
+        "quick-action buttons appear on hover: close, minimize, zoom, hide, quit, force-quit",
+      ],
+      ["Force quit", "Cmd+Option+Q SIGKILLs hung apps when graceful Quit hangs"],
+      [
+        "Window management",
+        "tile to halves or corners, maximize, or center with Ctrl+Cmd arrows; cycle ½ → ⅔ → ⅓ widths",
+      ],
+      ["Move windows", "send the highlighted window to the next display"],
+      ["Recently closed", "reopen an app you just quit"],
+    ],
+  },
+  {
+    label: "Filter & organize",
+    rows: [
+      ["Sort order", "order apps by recents, alphabetically, or launch order"],
+      ["Minimized & hidden", "include minimized windows, hidden and windowless apps"],
+      ["Pin & filter", "keep favorites up top, hide the rest"],
+      ["Per-app rules", "hide an app, or have it ignore Cmd+Tab always or only when fullscreen"],
+    ],
+  },
+  {
+    label: "Spaces & indicators",
+    rows: [
+      ["Instant Spaces", "switch Spaces with no animation"],
+      ["Current Space only", "show just the windows on the Space you're on"],
+      ["Unread badges", "Dock badge counts, in the switcher"],
+      ["Audio indicator", "flags apps playing sound"],
+    ],
+  },
+  {
+    label: "System & input",
+    rows: [
+      [
+        "Secure-input survivor",
+        "Cmd+Tab keeps working even while a password field holds Secure Event Input",
+      ],
+      [
+        "Trackpad & haptics",
+        "three-finger swipe to open the switcher or switch Spaces, with optional haptic and click feedback",
+      ],
+      [
+        "Hide from screen sharing",
+        "keep the switcher out of screen recordings and shared screens. Needs macOS 14.6+",
+      ],
+      ["Export & import", "back up and move your whole setup as a versioned .cmdtab file"],
+      ["Configurable", "custom hotkey, size, scale, layout, grid columns, and reveal delay"],
+    ],
+  },
 ];
 
 const shortcuts: Array<[string, string]> = [
@@ -97,6 +153,32 @@ const windowShortcuts: Array<[string, string]> = [
   ["Ctrl Cmd '", "Tile to the bottom-right corner"],
   ["Ctrl Cmd ↑", "Maximize"],
   ["Ctrl Cmd ↓", "Center"],
+];
+
+// Answer strings are kept byte-for-byte identical to the FAQPage JSON-LD in
+// index.html — Google only grants the FAQ rich result when the on-page text
+// matches the structured data, so edit both sides together.
+const faqs: Array<[string, string]> = [
+  [
+    "Is BetterCmdTab free?",
+    "Yes. BetterCmdTab is free forever and open-source under GPL v3, with zero telemetry and no subscription.",
+  ],
+  [
+    "Which macOS versions and Macs does it support?",
+    "macOS 13.0 or later, on both Apple Silicon and Intel. The Liquid Glass material lights up on macOS 26.",
+  ],
+  [
+    "How is it different from AltTab or the built-in Cmd+Tab?",
+    "It is a native AppKit menu-bar app — no Electron, no Dock icon. You get list, grid, and live-preview layouts, fuzzy search and launch, window cycling, tab drill-in, and window tiling the stock switcher cannot do.",
+  ],
+  [
+    "Does Cmd+Tab still work in password fields?",
+    "Yes. A Carbon survivor trigger keeps the switcher working even while a password field holds Secure Event Input.",
+  ],
+  [
+    "Does it collect any data?",
+    "No. There is no telemetry, analytics, or background network. The only network call is an opt-in check for updates on GitHub Releases.",
+  ],
 ];
 
 interface GhAsset {
@@ -192,7 +274,9 @@ function Shots() {
             <motion.img
               src={src}
               alt={caption}
-              loading="lazy"
+              loading={i === 0 ? "eager" : "lazy"}
+              fetchPriority={i === 0 ? "high" : "auto"}
+              decoding="async"
               role="button"
               tabIndex={0}
               aria-label={`Enlarge: ${caption}`}
@@ -270,6 +354,41 @@ function Rows({ rows, combo }: { rows: Array<[string, string]>; combo?: boolean 
         </motion.li>
       ))}
     </motion.ul>
+  );
+}
+
+// Controlled accordion: the answer stays mounted (height-clipped when closed)
+// so its text ships in the prerendered HTML and keeps matching the FAQPage
+// JSON-LD — AnimatePresence would unmount it and break the rich result.
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <motion.div className="faq-item" variants={reveal}>
+      <button
+        type="button"
+        className="faq-q"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <motion.span
+          className="faq-marker"
+          aria-hidden
+          animate={{ rotate: open ? 45 : 0 }}
+          transition={{ duration: 0.25, ease: EASE }}
+        >
+          +
+        </motion.span>
+        <span>{q}</span>
+      </button>
+      <motion.div
+        className="faq-a"
+        initial={false}
+        animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }}
+        transition={{ duration: 0.3, ease: EASE }}
+      >
+        <p>{a}</p>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -436,7 +555,14 @@ export function Home() {
 
         <motion.section {...inView}>
           <motion.h2 variants={reveal}>Features</motion.h2>
-          <Rows rows={features} />
+          <motion.div className="feature-groups" variants={stagger}>
+            {featureGroups.map((group) => (
+              <motion.div key={group.label} className="feature-group" variants={reveal}>
+                <h3 className="cat">{group.label}</h3>
+                <Rows rows={group.rows} />
+              </motion.div>
+            ))}
+          </motion.div>
         </motion.section>
 
         <motion.section {...inView}>
@@ -451,9 +577,18 @@ export function Home() {
           <motion.h2 variants={reveal}>Window management</motion.h2>
           <Rows rows={windowShortcuts} combo />
           <motion.p className="muted note" variants={reveal}>
-            Global — fire anywhere, no switcher. Defaults shown, all rebindable. With cycle
-            widths on, press a tile key again to step ½ → ⅔ → ⅓.
+            Global — fire anywhere, no switcher. Defaults shown, all rebindable. With cycle widths
+            on, press a tile key again to step ½ → ⅔ → ⅓.
           </motion.p>
+        </motion.section>
+
+        <motion.section {...inView}>
+          <motion.h2 variants={reveal}>FAQ</motion.h2>
+          <motion.div className="faq" variants={stagger}>
+            {faqs.map(([q, a]) => (
+              <FaqItem key={q} q={q} a={a} />
+            ))}
+          </motion.div>
         </motion.section>
 
         <motion.section {...inView}>

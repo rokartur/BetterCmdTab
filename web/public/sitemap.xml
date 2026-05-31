@@ -5,11 +5,16 @@
 >
   <url>
     <loc>https://bettercmdtab.app/</loc>
+    <lastmod>2026-05-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://bettercmdtab.app/og.png</image:loc>
       <image:title>BetterCmdTab — a window switcher and app launcher for macOS</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://bettercmdtab.app/screenshots/preview.jpg</image:loc>
+      <image:title>BetterCmdTab live window previews layout</image:title>
     </image:image>
     <image:image>
       <image:loc>https://bettercmdtab.app/screenshots/list.jpg</image:loc>

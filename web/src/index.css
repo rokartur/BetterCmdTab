@@ -250,6 +250,37 @@ h2 {
   font-size: 12px;
 }
 
+.feature-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.feature-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--dim);
+}
+
+.cat::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 .grid {
   list-style: none;
   margin: 0;
@@ -336,6 +367,57 @@ h2 {
 
 .note {
   margin-top: 4px;
+}
+
+.faq {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.faq-q {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.faq-q:hover {
+  color: var(--accent);
+}
+
+.faq-marker {
+  flex: none;
+  display: inline-block;
+  color: var(--muted);
+  font-variant-ligatures: none;
+  transition: color 0.15s ease;
+}
+
+.faq-q[aria-expanded="true"] .faq-marker {
+  color: var(--accent);
+}
+
+.faq-a {
+  overflow: hidden;
+}
+
+.faq-a p {
+  margin: 0 0 12px 20px;
+  color: var(--muted);
 }
 
 .links {

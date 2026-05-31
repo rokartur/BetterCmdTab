@@ -16,6 +16,12 @@
     <meta name="author" content="rokartur" />
     <meta name="application-name" content="BetterCmdTab" />
     <link rel="canonical" href="https://bettercmdtab.app/" />
+    <link rel="alternate" hreflang="en" href="https://bettercmdtab.app/" />
+    <link rel="alternate" hreflang="x-default" href="https://bettercmdtab.app/" />
+
+    <!-- LCP: the featured first screenshot renders above the fold, so preload it
+         and let the <img> mark itself fetchpriority=high. -->
+    <link rel="preload" as="image" href="/screenshots/preview.jpg" fetchpriority="high" />
 
     <meta
       name="robots"
@@ -99,8 +105,10 @@
             "description": "A fast, native Cmd+Tab replacement for macOS: a window switcher and app launcher with grid & list layouts, fuzzy search, window cycling, and zero telemetry.",
             "url": "https://bettercmdtab.app/",
             "applicationCategory": "UtilitiesApplication",
+            "applicationSubCategory": "Window Manager",
             "operatingSystem": "macOS 13.0 or later (Apple Silicon & Intel)",
             "softwareRequirements": "macOS 13.0+",
+            "keywords": "macOS window switcher, Cmd+Tab replacement, app switcher, alt-tab for mac, app launcher, window manager, AltTab alternative",
             "downloadUrl": "https://github.com/rokartur/BetterCmdTab/releases/latest",
             "installUrl": "https://github.com/rokartur/BetterCmdTab/releases/latest",
             "softwareHelp": "https://github.com/rokartur/BetterCmdTab",
@@ -111,20 +119,33 @@
               "https://bettercmdtab.app/screenshots/grid.jpg"
             ],
             "featureList": [
-              "Classic list and grid-of-icons layouts",
+              "List, grid-of-icons, and live window-preview layouts",
+              "Window titles under each icon in grid and preview",
               "Letter-prefix jump to any app",
               "Fuzzy search and launch any installed app",
               "Cycle windows of the front app with Cmd+`",
+              "Scoped shortcuts — all windows, this Space, current app, or minimized",
+              "Tap to switch instantly or hold to open the switcher",
+              "Scroll the mouse wheel to move through apps",
+              "Per-app global hotkeys to focus or launch",
+              "Tab drill-in for Safari, Chrome, Arc, Finder, and Terminal",
+              "Surface native and browser tabs as their own rows",
+              "Window tiling to halves and corners, maximize, and center",
+              "Move the highlighted window to the next display",
+              "Inline quit, close, minimize, maximize, hide, and force-quit",
               "Reopen recently closed apps",
-              "Pin favorites and filter the rest",
-              "Inline quit, close, minimize, hide",
+              "Pin favorites, filter the rest, and per-app Cmd+Tab rules",
+              "Sort by recents, alphabetically, or launch order",
               "Unread Dock badge counts in the switcher",
               "Audio-playing app indicator",
-              "Instant Spaces switching",
-              "Liquid Glass material on macOS 26",
-              "Multi-monitor aware",
-              "Trackpad gestures and haptics",
-              "Menu-bar agent — no Dock icon, no Electron"
+              "Instant Spaces switching and current-Space-only filtering",
+              "Cmd+Tab survives Secure Event Input in password fields",
+              "Hide the switcher from screen sharing and recordings",
+              "Liquid Glass material on macOS 26, with theming and accent color",
+              "Multi-monitor aware — opens under the cursor",
+              "Three-finger trackpad gestures with haptics",
+              "Export and import your whole setup as a .cmdtab file",
+              "Menu-bar agent — no Dock icon, no Electron, zero telemetry"
             ],
             "offers": {
               "@type": "Offer",
@@ -150,6 +171,53 @@
             "inLanguage": "en",
             "description": "A fast, native Cmd+Tab window switcher and app launcher for macOS.",
             "publisher": { "@id": "https://bettercmdtab.app/#author" }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://bettercmdtab.app/#faq",
+            "isPartOf": { "@id": "https://bettercmdtab.app/#website" },
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is BetterCmdTab free?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. BetterCmdTab is free forever and open-source under GPL v3, with zero telemetry and no subscription."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which macOS versions and Macs does it support?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "macOS 13.0 or later, on both Apple Silicon and Intel. The Liquid Glass material lights up on macOS 26."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How is it different from AltTab or the built-in Cmd+Tab?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "It is a native AppKit menu-bar app — no Electron, no Dock icon. You get list, grid, and live-preview layouts, fuzzy search and launch, window cycling, tab drill-in, and window tiling the stock switcher cannot do."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does Cmd+Tab still work in password fields?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. A Carbon survivor trigger keeps the switcher working even while a password field holds Secure Event Input."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does it collect any data?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. There is no telemetry, analytics, or background network. The only network call is an opt-in check for updates on GitHub Releases."
+                }
+              }
+            ]
           }
         ]
       }
