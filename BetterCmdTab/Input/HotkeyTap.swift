@@ -109,6 +109,19 @@ final class HotkeyTap {
     private var layoutObserver: NSObjectProtocol?
 
     private let switchingFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// True only while the switcher panel is actually on screen (`phase ==
+    /// .visible`). Distinct from `switchingFlag`, which is also true during the
+    /// brief, panel-less `.primed` phase. The in-panel action keys
+    /// (close/quit/minimize/hide/fullscreen) and letter-jump are gated on THIS
+    /// flag: in `.primed` there is no panel to act on, so the controller no-ops
+    /// them anyway — but swallowing the keystroke there would still sink
+    /// ⌘W/⌘Q/⌘M/⌘H/⌘F (and bare letters) from the focused app. A `.primed`
+    /// stranded by a lost reveal/commit would do so *persistently*, which is the
+    /// "Cmd+Q/W stop working after a while" failure (issue #16). Gating on a
+    /// genuinely-visible panel makes those keys pass straight through whenever no
+    /// panel is up, independent of any timer firing. Pushed from main via
+    /// `setPanelPresented`.
+    private let panelPresentedFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let shiftWasHeld = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let layoutData = OSAllocatedUnfairLock<Data?>(initialState: nil)
     /// When true the tap consumes every keyDown (blocking system shortcuts) and
@@ -382,6 +395,13 @@ final class HotkeyTap {
         }
     }
 
+    /// Mirror `phase == .visible` onto the tap. Read by the in-panel action-key
+    /// and letter-jump branches so they only swallow a keystroke when a panel is
+    /// actually on screen (see `panelPresentedFlag`). Safe to call from main.
+    func setPanelPresented(_ value: Bool) {
+        panelPresentedFlag.withLock { $0 = value }
+    }
+
     /// Enter/leave recording mode. While recording, keyDowns are consumed and
     /// forwarded to `onRecordingKeyDown` instead of driving the switcher.
     func setRecording(_ value: Bool) {
@@ -474,6 +494,10 @@ final class HotkeyTap {
 
     private func isSwitchingNow() -> Bool {
         switchingFlag.withLock { $0 }
+    }
+
+    private func isPanelPresented() -> Bool {
+        panelPresentedFlag.withLock { $0 }
     }
 
     private func isSearchingNow() -> Bool {
@@ -755,32 +779,44 @@ final class HotkeyTap {
                         // exactly as the old hardcoded W/M/H/Q did. ⌘+⌥+Q still
                         // escalates Quit to force-quit (SIGKILL). Full screen is
                         // bound here too (default ⌘F) — rebindable like the rest.
-                        if let action = panelKeyMap.withLock({ $0[keyCode] }) {
-                            switch action {
-                            case .close: deliver(.closeWindow)
-                            case .minimize: deliver(.minimizeWindow)
-                            case .hide: deliver(.hideApp)
-                            case .quit: deliver(optionHeld ? .forceQuitApp : .quitApp)
-                            case .fullscreen: deliver(.fullscreen)
-                            }
-                            return nil
-                        }
-                        if let letter = translate(keyCode: UInt16(keyCode)) {
-                            // Layout-agnostic drill-in trigger: regardless of
-                            // where `\` lives on the physical keyboard (US,
-                            // Polish, ISO/JIS), any key that types `\` enters
-                            // tab drill-in.
-                            if letter == "\\" {
-                                deliver(.enterTabDrill)
+                        // Only swallow the in-panel action keys + letter-jump
+                        // while a panel is actually on screen. During `.primed`
+                        // (switching, but panel not yet presented) the controller
+                        // no-ops all of these anyway — yet consuming the keystroke
+                        // here would still sink ⌘W/⌘Q/⌘M/⌘H/⌘F and bare letters
+                        // from the focused app. A `.primed` stranded by a lost
+                        // reveal/commit would do so persistently — the
+                        // "Cmd+Q/W stop working after a while" bug (issue #16).
+                        // Gating on a visible panel makes them pass through with
+                        // no panel up, independent of any timer.
+                        if isPanelPresented() {
+                            if let action = panelKeyMap.withLock({ $0[keyCode] }) {
+                                switch action {
+                                case .close: deliver(.closeWindow)
+                                case .minimize: deliver(.minimizeWindow)
+                                case .hide: deliver(.hideApp)
+                                case .quit: deliver(optionHeld ? .forceQuitApp : .quitApp)
+                                case .fullscreen: deliver(.fullscreen)
+                                }
                                 return nil
                             }
-                            let lower = Character(letter.lowercased())
-                            if lower.isLetter,
-                               let ascii = lower.asciiValue,
-                               ascii >= 0x61 && ascii <= 0x7A,
-                               !reservedLetters.withLock({ $0.contains(lower) }) {
-                                deliver(.letterInput(lower))
-                                return nil
+                            if let letter = translate(keyCode: UInt16(keyCode)) {
+                                // Layout-agnostic drill-in trigger: regardless of
+                                // where `\` lives on the physical keyboard (US,
+                                // Polish, ISO/JIS), any key that types `\` enters
+                                // tab drill-in.
+                                if letter == "\\" {
+                                    deliver(.enterTabDrill)
+                                    return nil
+                                }
+                                let lower = Character(letter.lowercased())
+                                if lower.isLetter,
+                                   let ascii = lower.asciiValue,
+                                   ascii >= 0x61 && ascii <= 0x7A,
+                                   !reservedLetters.withLock({ $0.contains(lower) }) {
+                                    deliver(.letterInput(lower))
+                                    return nil
+                                }
                             }
                         }
                         break

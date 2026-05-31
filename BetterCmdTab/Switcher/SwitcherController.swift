@@ -11,6 +11,19 @@ final class SwitcherController: SwitcherViewDelegate {
         case idle
         case primed
         case visible
+
+        /// The tap suppresses the trigger chord and routes navigation whenever
+        /// the switcher is non-idle — both `.primed` and `.visible`.
+        var isSwitching: Bool { self != .idle }
+        /// The in-panel action keys (close/quit/minimize/hide/fullscreen) and
+        /// letter-jump act only against a panel that is actually on screen. They
+        /// must NOT fire during the panel-less `.primed` phase — doing so would
+        /// silently sink ⌘W/⌘Q/⌘M/⌘H/⌘F (and bare letters) from the focused app
+        /// (issue #16). Only `.visible` presents a panel.
+        var presentsPanel: Bool { self == .visible }
+        /// `.primed` is the only non-idle phase that shows no panel; the liveness
+        /// watchdog force-cancels if `phase` is ever stranded here.
+        var isPrimed: Bool { self == .primed }
     }
 
     private let hotkey = HotkeyTap()
@@ -94,6 +107,20 @@ final class SwitcherController: SwitcherViewDelegate {
     /// instead. Nil when the previous app was us (Settings window) or unknown.
     private var previousFrontmostApp: NSRunningApplication?
     private var revealTimer: Timer?
+    /// Liveness ceiling on the `.primed` phase. `.primed` is non-idle but shows no
+    /// panel; its only exits are `reveal()` (driven by `revealTimer` or an off-main
+    /// catalog scan landing), a ⌘-release commit, or Esc/Return — every one a
+    /// fragile single async/user event. If one is lost (a dropped reveal under a
+    /// starved runloop, a ⌘-up never delivered to a deaf tap under Secure Event
+    /// Input), `phase` welds to `.primed`: `switchingFlag` stays set, the next
+    /// ⌘Tab can't re-open, and the switcher is wedged. This watchdog force-cancels
+    /// back to `.idle` if `.primed` ever outlives a hard ceiling. Armed/disarmed on
+    /// the `.primed` edge from the single `phase` chokepoint (issue #16).
+    private var primedWatchdog: Timer?
+    /// Hard ceiling for the `.primed` phase — comfortably above the configurable
+    /// `revealDelay` (clamped to 40…500 ms) and any off-main first-scan, so it
+    /// only ever fires on a genuine strand, never on a legitimately slow open.
+    private static let primedWatchdogTimeout: TimeInterval = 1.5
     private var currentMetrics: SwitcherMetrics = .baseline
     private var letterBuffer: String = ""
     private var letterBufferTimer: Timer?
@@ -1058,7 +1085,21 @@ final class SwitcherController: SwitcherViewDelegate {
         set {
             let wasIdle = _phase == .idle
             _phase = newValue
-            hotkey.setSwitching(newValue != .idle)
+            hotkey.setSwitching(newValue.isSwitching)
+            // Mirror the *visible* edge separately: the tap gates the in-panel
+            // action keys + letter-jump on this so a panel-less `.primed` never
+            // swallows ⌘W/⌘Q/etc. from the focused app (issue #16).
+            hotkey.setPanelPresented(newValue.presentsPanel)
+            // Liveness ceiling on `.primed` (see `primedWatchdog`). Arm on entry,
+            // tear down on every other edge — `reveal()` → `.visible` and any
+            // commit/cancel → `.idle` both pass through here, so the normal fast
+            // path disarms it well before it could fire.
+            if newValue.isPrimed {
+                armPrimedWatchdog()
+            } else {
+                primedWatchdog?.invalidate()
+                primedWatchdog = nil
+            }
             // Returning to idle ends any scoped-shortcut open so the next plain
             // ⌘Tab is unfiltered. Single chokepoint — every exit path (commit,
             // cancel, dismiss) flows through here.
@@ -1540,6 +1581,24 @@ final class SwitcherController: SwitcherViewDelegate {
         let newRow = min(currentRow, itemsInNewCol - 1)
         index = firstInNewCol + newRow
         view.setSelectedIndex(index)
+    }
+
+    /// Arm the `.primed` liveness watchdog (see `primedWatchdog`). A classic
+    /// run-loop timer in `.common` modes, mirroring `revealTimer`'s scheduling;
+    /// the MainActor hop keeps the force-cancel on the main thread. Re-checks
+    /// `phase` on fire, so a normal primed→visible/idle transition that already
+    /// disarmed it — or a later re-armed `.primed` — makes the stale fire a no-op.
+    private func armPrimedWatchdog() {
+        primedWatchdog?.invalidate()
+        let timer = Timer(timeInterval: Self.primedWatchdogTimeout, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.phase.isPrimed else { return }
+                Log.switcher.warning("primed phase exceeded watchdog ceiling — forcing idle")
+                self.cancel()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        primedWatchdog = timer
     }
 
     private func schedulePrimedReveal() {
