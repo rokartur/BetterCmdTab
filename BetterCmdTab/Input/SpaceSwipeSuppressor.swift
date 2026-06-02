@@ -15,10 +15,23 @@ import os
 /// why this lives behind the off-by-default Experimental swipe toggle.
 final class SpaceSwipeSuppressor {
 
-    private var tap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
-    private var tapThread: Thread?
-    private var tapRunLoop: CFRunLoop?
+    /// CGEvent-tap lifecycle handles. The tap callback runs on its own thread and
+    /// reads `tap` (the disabled-tap re-enable path in `handle`), while
+    /// `uninstall()` nils them from main (via `setEnabled` on the experimental
+    /// toggle, or `deinit`). `CFRunLoopStop` is async, so the callback can be
+    /// mid-`handle` during tear-down — an unsynchronized read/write data race.
+    /// Guard every field with the same `OSAllocatedUnfairLock` discipline
+    /// `HotkeyTap` uses: copy a ref into a local under the lock, release, then
+    /// touch CGEvent/CFRunLoop on the local — never hold the lock across
+    /// `CFRunLoopRun`/`CFRunLoopStop`. CF ports and `Thread` are thread-safe
+    /// reference types, so `TapPorts` is `@unchecked Sendable`.
+    private struct TapPorts: @unchecked Sendable {
+        var tap: CFMachPort?
+        var runLoopSource: CFRunLoopSource?
+        var tapThread: Thread?
+        var tapRunLoop: CFRunLoop?
+    }
+    private let ports = OSAllocatedUnfairLock<TapPorts>(initialState: TapPorts())
 
     /// Undocumented CGS gesture event types and fields (from the IOHID/CGS
     /// private headers; same constants InstantSpaceSwitcher uses).
@@ -36,7 +49,7 @@ final class SpaceSwipeSuppressor {
     }
 
     private func install() {
-        guard tap == nil else { return }
+        guard ports.withLock({ $0.tap }) == nil else { return }
 
         let mask: CGEventMask =
             (1 << UInt64(CGS.eventGesture)) | (1 << UInt64(CGS.eventDockControl))
@@ -61,8 +74,12 @@ final class SpaceSwipeSuppressor {
         }
 
         let src = CFMachPortCreateRunLoopSource(nil, port, 0)
-        tap = port
-        runLoopSource = src
+        // Publish tap/source before starting the worker so the callback's
+        // re-enable path sees them on first dispatch.
+        ports.withLock {
+            $0.tap = port
+            $0.runLoopSource = src
+        }
         CGEvent.tapEnable(tap: port, enable: true)
 
         // Run on a dedicated thread so main-thread stalls can't trip the tap's
@@ -71,7 +88,7 @@ final class SpaceSwipeSuppressor {
         let thread = Thread { [weak self] in
             let loop = CFRunLoopGetCurrent()!
             CFRunLoopAddSource(loop, src, .commonModes)
-            self?.tapRunLoop = loop
+            self?.ports.withLock { $0.tapRunLoop = loop }
             started.signal()
             CFRunLoopRun()
         }
@@ -79,13 +96,18 @@ final class SpaceSwipeSuppressor {
         thread.qualityOfService = .userInteractive
         thread.start()
         started.wait()
-        tapThread = thread
+        // `withLockUnchecked`: the closure captures the non-Sendable `Thread`,
+        // which the `@Sendable`-bodied `withLock` would reject. Still serialized
+        // by the same lock.
+        ports.withLockUnchecked { $0.tapThread = thread }
     }
 
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         // Re-enable if the watchdog or a user-input burst disabled the tap.
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            if let tap = ports.withLock({ $0.tap }) {
+                CGEvent.tapEnable(tap: tap, enable: true)
+            }
             return Unmanaged.passUnretained(event)
         }
 
@@ -116,17 +138,24 @@ final class SpaceSwipeSuppressor {
     }
 
     func uninstall() {
-        if let tap { CGEvent.tapEnable(tap: tap, enable: false) }
-        if let loop = tapRunLoop {
-            if let runLoopSource {
+        // Snapshot the handles under the lock, then nil them out in the SAME
+        // critical section so the callback thread never observes a torn state.
+        // Every CGEvent/CFRunLoop call below runs on the locals outside the lock
+        // — `CFRunLoopStop` is async and must never be held across the lock.
+        let snapshot = ports.withLock { current -> TapPorts in
+            let copy = current
+            current = TapPorts()
+            return copy
+        }
+        if let tap = snapshot.tap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+        }
+        if let loop = snapshot.tapRunLoop {
+            if let runLoopSource = snapshot.runLoopSource {
                 CFRunLoopRemoveSource(loop, runLoopSource, .commonModes)
             }
             CFRunLoopStop(loop)
         }
-        tap = nil
-        runLoopSource = nil
-        tapRunLoop = nil
-        tapThread = nil
     }
 
     deinit {
