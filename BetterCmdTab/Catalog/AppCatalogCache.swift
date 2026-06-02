@@ -332,6 +332,13 @@ final class AppCatalogCache {
 
     private func uninstallAXObserver(forPid pid: pid_t) {
         guard let observer = axObservers.removeValue(forKey: pid) else { return }
+        // Drop the AX-server subscriptions before detaching the run-loop source,
+        // mirroring the add side in `buildAXObserver` (same names, same element).
+        // Removing only the source leaves the notifications dangling.
+        let axApp = AXUIElementCreateApplication(pid)
+        for name in Self.axNotifications {
+            _ = AXObserverRemoveNotification(observer, axApp, name as CFString)
+        }
         CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
     }
 

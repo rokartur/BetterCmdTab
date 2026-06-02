@@ -282,11 +282,15 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func gridChanged() {
-        Preferences.shared.gridMaxColumns = gridValues[gridPopup.indexOfSelectedItem]
+        let i = gridPopup.indexOfSelectedItem
+        guard gridValues.indices.contains(i) else { return }
+        Preferences.shared.gridMaxColumns = gridValues[i]
     }
 
     @objc private func accentChanged() {
-        let choice = accents[accentPopup.indexOfSelectedItem]
+        let i = accentPopup.indexOfSelectedItem
+        guard accents.indices.contains(i) else { return }
+        let choice = accents[i]
         Preferences.shared.accentChoice = choice
         if choice == .custom { presentColorPanel() }
     }
