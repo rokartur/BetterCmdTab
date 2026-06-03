@@ -563,7 +563,7 @@
 			repositoryURL = "https://github.com/rokartur/BetterSettings.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.2.1;
+				minimumVersion = 0.2.4;
 			};
 		};
 		BU0000000000000000000001 /* XCRemoteSwiftPackageReference "BetterUpdater" */ = {
