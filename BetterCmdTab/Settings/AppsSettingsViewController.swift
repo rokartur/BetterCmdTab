@@ -182,6 +182,7 @@ final class AppsSettingsViewController: SettingsTabViewController {
         }
         controller.onDidDismiss = { [weak self] in self?.addSheet = nil }
         addSheet = controller
+        trackForRelease(controller)
         controller.present(asSheetFor: window)
     }
 
@@ -229,6 +230,7 @@ final class AppsSettingsViewController: SettingsTabViewController {
             self?.updatePinnedCount()
         }
         appsSheet = controller
+        trackForRelease(controller)
         controller.present(asSheetFor: window)
     }
 
