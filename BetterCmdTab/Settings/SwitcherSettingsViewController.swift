@@ -18,7 +18,9 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     private let recentlyClosedLimitPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let recentlyClosedLimits: [Int] = [3, 5, 10, 15, 20]
     private let sortOrderPopup = NSPopUpButton(frame: .zero, pullsDown: false)
-    private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
+    // `.mruWindows` is hidden here while it lives behind the Experimental pane;
+    // it graduates into this popup once stable (see the plan's graduation path).
+    private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases.filter { $0 != .mruWindows }
 
     // Tabs
     private let tabDrillSwitch = NSSwitch()
@@ -297,7 +299,23 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     }
 
     private func selectSortOrder(_ order: SwitcherSortOrder) {
-        if let i = sortOrders.firstIndex(of: order) { sortOrderPopup.selectItem(at: i) }
+        // Drop any transient item added for an unlisted (Experimental) order on
+        // a previous appearance so the popup matches `sortOrders` again.
+        while sortOrderPopup.numberOfItems > sortOrders.count {
+            sortOrderPopup.removeItem(at: sortOrderPopup.numberOfItems - 1)
+        }
+        if let i = sortOrders.firstIndex(of: order) {
+            sortOrderPopup.selectItem(at: i)
+            sortOrderPopup.isEnabled = true
+        } else {
+            // The active order (e.g. `.mruWindows`) is controlled from the
+            // Experimental pane and isn't offered here. Show it as a read-only
+            // entry so the popup can't mislabel the current state or let a stray
+            // click silently overwrite that choice.
+            sortOrderPopup.addItem(withTitle: order.displayName)
+            sortOrderPopup.selectItem(at: sortOrderPopup.numberOfItems - 1)
+            sortOrderPopup.isEnabled = false
+        }
     }
 
     @objc private func toggleTabDrill(_ sender: NSSwitch) {

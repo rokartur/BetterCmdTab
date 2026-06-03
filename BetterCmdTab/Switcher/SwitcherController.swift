@@ -1705,7 +1705,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let targetPid = snapshotApps.indices.contains(targetIdx)
             ? snapshotApps[targetIdx].processIdentifier : nil
 
-        let cachedRows = cache.rows(orderedBy: mru.order)
+        let cachedRows = applyWindowMRUSort(cache.rows(orderedBy: mru.order))
         let hadCachedRows = !cachedRows.isEmpty
         if hadCachedRows {
             baseRows = cachedRows
@@ -1877,6 +1877,20 @@ final class SwitcherController: SwitcherViewDelegate {
         refreshDisplay()
     }
 
+    /// Apply the flat cross-app window-recency sort when `.mruWindows` is the
+    /// active order; a no-op otherwise so the default ⌘Tab path stays untouched.
+    /// Runs after hide/scope filtering and before browser-tab expansion, so tabs
+    /// inherit their parent window's global rank and move together as a block.
+    ///
+    /// The recency sort reorders the whole list, discarding the pin-to-front
+    /// ordering `filteredRows` applied upstream, so re-pin afterwards: pinned
+    /// apps stay at the front and their windows keep recency order within the
+    /// pin block (the partition is stable on offset).
+    private func applyWindowMRUSort(_ rows: [SwitcherRow]) -> [SwitcherRow] {
+        guard Preferences.shared.sortOrder == .mruWindows else { return rows }
+        return CatalogFilter.pinnedToFront(windowMRU.sortRowsGlobally(rows), Preferences.shared.pinnedBundleIDs)
+    }
+
     private func applyFullSnapshot(_ fresh: [SwitcherRow], anchorPid: pid_t?) {
         guard phase == .visible else { return }
         if fresh.isEmpty { cancel(); return }
@@ -1899,7 +1913,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // Re-expand inline browser-tab rows from the (warm) per-session cache so a
         // background refresh doesn't visibly collapse them back to one row; then
         // scan any browser window that newly appeared.
-        baseRows = expandBrowserTabs(next)
+        baseRows = expandBrowserTabs(applyWindowMRUSort(next))
         baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay(anchorPid: anchorPid)
         scheduleBrowserTabExpansion()

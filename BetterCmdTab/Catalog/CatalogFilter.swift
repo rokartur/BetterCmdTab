@@ -60,11 +60,7 @@ enum CatalogFilter {
         if cfg.sortOrder != .mru {
             filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.appName }, pid: { $0.pid })
         }
-        if !cfg.pinned.isEmpty {
-            filtered = stablePartition(filtered) { row in
-                row.isPlaceholder ? nil : row.bundleIdentifier.flatMap { cfg.pinned.firstIndex(of: $0) }
-            }
-        }
+        filtered = pinnedToFront(filtered, cfg.pinned)
         if cfg.currentSpaceOnly {
             filtered = filterToCurrentSpace(filtered)
         }
@@ -133,13 +129,16 @@ enum CatalogFilter {
     }
 
     /// Reorder by the user's global sort preference. `.mru` returns the input
-    /// untouched (the caller skips calling it then). Alphabetical sorts by app
-    /// name (case-insensitive); launch order by pid ascending (older process
-    /// first). Both are stable on the incoming offset, so equal keys keep their
-    /// order — that preserves each app's window grouping/status ordering.
+    /// untouched (the caller skips calling it then). `.mruWindows` also returns
+    /// the input here — the cross-app window sort is applied later in
+    /// `SwitcherController`, which owns the `WindowMRUTracker` it needs.
+    /// Alphabetical sorts by app name (case-insensitive); launch order by pid
+    /// ascending (older process first). Both are stable on the incoming offset,
+    /// so equal keys keep their order — that preserves each app's window
+    /// grouping/status ordering.
     static func applySortOrder<T>(_ items: [T], _ order: SwitcherSortOrder, name: (T) -> String, pid: (T) -> pid_t?) -> [T] {
         switch order {
-        case .mru:
+        case .mru, .mruWindows:
             return items
         case .alphabetical:
             return sortedStably(items) { name($0).lowercased() }
@@ -155,6 +154,19 @@ enum CatalogFilter {
             .map { (offset: $0.offset, key: key($0.element), item: $0.element) }
             .sorted { $0.key != $1.key ? $0.key < $1.key : $0.offset < $1.offset }
             .map(\.item)
+    }
+
+    /// Lift rows whose app is pinned to the front, in pin order; non-pinned rows
+    /// keep their relative order behind them. Placeholders are never pinned.
+    /// Stable on offset, so each pinned app's internal window ordering is
+    /// preserved. No-op when nothing is pinned. Shared by `filteredRows` and the
+    /// `.mruWindows` re-pin in `SwitcherController` (the window-recency sort
+    /// reorders the whole list and must restore pins afterwards).
+    static func pinnedToFront(_ rows: [SwitcherRow], _ pinnedIDs: [String]) -> [SwitcherRow] {
+        guard !pinnedIDs.isEmpty else { return rows }
+        return stablePartition(rows) { row in
+            row.isPlaceholder ? nil : row.bundleIdentifier.flatMap { pinnedIDs.firstIndex(of: $0) }
+        }
     }
 
     /// Move items with a non-nil rank to the front, ordered by (rank, original
