@@ -4097,6 +4097,62 @@
         }
       }
     },
+    "Most recent (windows)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt verwendet (Fenster)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más reciente (ventanas)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récemment utilisé (fenêtres)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ostatnio używane (okna)"
+          }
+        }
+      }
+    },
+    "Most recent (windows) sort order" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sortierung „Zuletzt verwendet (Fenster)“"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orden «Más reciente (ventanas)»"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tri « Récemment utilisé (fenêtres) »"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolejność „Ostatnio używane (okna)“"
+          }
+        }
+      }
+    },
     "Most recent keeps the classic ⌘Tab order; the others stay put as you switch." : {
       "localizations" : {
         "de" : {
@@ -4345,6 +4401,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "Orders the list by when you last focused each window, across all apps." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordnet die Liste danach, wann du jedes Fenster zuletzt fokussiert hast – über alle Apps hinweg."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordena la lista según cuándo enfocaste por última vez cada ventana, en todas las apps."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trie la liste selon le moment où vous avez activé chaque fenêtre pour la dernière fois, toutes apps confondues."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porządkuje listę według tego, kiedy ostatnio aktywowano każde okno, we wszystkich aplikacjach."
           }
         }
       }

@@ -29,6 +29,9 @@ struct CatalogFilterTests {
         #expect(!config(showWindowless: false).isIdentity)
         #expect(!config(sortOrder: .alphabetical).isIdentity)
         #expect(!config(sortOrder: .launchOrder).isIdentity)
+        // .mruWindows is not identity: the full filter path must run so the
+        // cross-app window sort can be applied downstream in SwitcherController.
+        #expect(!config(sortOrder: .mruWindows).isIdentity)
     }
 
     // MARK: - includes
@@ -114,6 +117,40 @@ struct CatalogFilterTests {
         #expect(result == [2, 4, 1, 3, 5])
     }
 
+    // MARK: - pinnedToFront (used by filteredRows and the .mruWindows re-pin)
+
+    /// A launchable row carries an arbitrary bundle id with `isPlaceholder == false`,
+    /// which is all `pinnedToFront` keys on — lets us test pin ordering without
+    /// constructing live `NSRunningApplication`s.
+    private func launchRow(_ bundleID: String, name: String? = nil) -> SwitcherRow {
+        SwitcherRow(launchable: InstalledApp(name: name ?? bundleID, bundleID: bundleID, url: URL(fileURLWithPath: "/Applications/\(bundleID).app")))
+    }
+
+    @Test("pinnedToFront with no pins returns rows unchanged")
+    func pinnedToFrontNoPins() {
+        let rows = [launchRow("com.a"), launchRow("com.b")]
+        let result = CatalogFilter.pinnedToFront(rows, [])
+        #expect(result.map(\.bundleIdentifier) == ["com.a", "com.b"])
+    }
+
+    @Test("pinnedToFront lifts pinned apps to the front in pin order")
+    func pinnedToFrontOrdersByPin() {
+        let rows = [launchRow("com.a"), launchRow("com.b"), launchRow("com.c")]
+        // Pin c then a; the unpinned b trails behind them.
+        let result = CatalogFilter.pinnedToFront(rows, ["com.c", "com.a"])
+        #expect(result.map(\.bundleIdentifier) == ["com.c", "com.a", "com.b"])
+    }
+
+    @Test("pinnedToFront keeps a pinned app's windows in incoming order")
+    func pinnedToFrontStableWithinApp() {
+        // The .mruWindows re-pin relies on this: two windows of the pinned app
+        // arrive recency-ordered (w1 before w2) with an unpinned app between
+        // them; after re-pinning they stay w1, w2 at the front.
+        let rows = [launchRow("com.a", name: "w1"), launchRow("com.b"), launchRow("com.a", name: "w2")]
+        let result = CatalogFilter.pinnedToFront(rows, ["com.a"])
+        #expect(result.map(\.appName) == ["w1", "w2", "com.b"])
+    }
+
     // MARK: - sort order
 
     @Test("stable sort keeps equal-key order")
@@ -127,6 +164,15 @@ struct CatalogFilterTests {
     func mruSortIsIdentity() {
         let items = [(name: "z", pid: pid_t(9)), (name: "a", pid: pid_t(1))]
         let result = CatalogFilter.applySortOrder(items, .mru, name: { $0.name }, pid: { $0.pid })
+        #expect(result.map(\.pid) == [9, 1])
+    }
+
+    @Test("mruWindows sort returns input unchanged (sorted downstream)")
+    func mruWindowsSortIsIdentity() {
+        // The flat window sort is applied in SwitcherController from
+        // WindowMRUTracker, not here — applySortOrder leaves the input as-is.
+        let items = [(name: "z", pid: pid_t(9)), (name: "a", pid: pid_t(1))]
+        let result = CatalogFilter.applySortOrder(items, .mruWindows, name: { $0.name }, pid: { $0.pid })
         #expect(result.map(\.pid) == [9, 1])
     }
 

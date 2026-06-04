@@ -13,6 +13,13 @@ import CoreGraphics
 @MainActor
 final class WindowMRUTracker {
     private var order: [pid_t: [CGWindowID]] = [:]
+    /// Flat cross-app window recency, newest first, backing the `.mruWindows`
+    /// sort order. Maintained alongside the per-app `order` map by `bump`.
+    /// Dead ids are pruned against the live window set on every use in
+    /// `sortRowsGlobally`; `globalCap` bounds growth for windows the sort
+    /// never gets a chance to prune (e.g. the user never opens the switcher).
+    private var globalOrder: [CGWindowID] = []
+    private let globalCap = 200
     private var termObserver: NSObjectProtocol?
     /// Hard ceiling on remembered windows per app. `bump` only ever prepends, so
     /// without a cap a long-running app that opens and closes many windows would
@@ -49,6 +56,10 @@ final class WindowMRUTracker {
         list.insert(wid, at: 0)
         if list.count > perAppCap { list.removeLast(list.count - perAppCap) }
         order[pid] = list
+
+        globalOrder.removeAll { $0 == wid }
+        globalOrder.insert(wid, at: 0)
+        if globalOrder.count > globalCap { globalOrder.removeLast(globalOrder.count - globalCap) }
     }
 
     /// Promote the app's currently focused window to MRU front by querying AX
@@ -78,30 +89,49 @@ final class WindowMRUTracker {
     /// windows (or windowless placeholder rows) follow in their original
     /// position. Caller passes rows already filtered to a single pid.
     func sortRows(_ rows: [SwitcherRow], forPid pid: pid_t) -> [SwitcherRow] {
-        guard let mruList = order[pid], !mruList.isEmpty, rows.count > 1 else { return rows }
+        guard var list = order[pid], !list.isEmpty, rows.count > 1 else { return rows }
+        let sorted = sortRows(rows, by: &list)
+        // The list only ever grew (bump prepends, nothing removes dead ids), so
+        // the in-use prune above is the primary bound on per-pid growth; drop
+        // the key entirely once it empties.
+        order[pid] = list.isEmpty ? nil : list
+        return sorted
+    }
 
+    /// Re-orders `rows` by flat cross-app window recency (the `.mruWindows`
+    /// sort): each window sorts by its rank in `globalOrder`, newest first,
+    /// interleaving windows of different apps. Windowless rows (`cgWindowID == 0`)
+    /// and windows never seen by the tracker fall to the back at `rank = Int.max`,
+    /// keeping their incoming relative (app-MRU) order via the offset tiebreak.
+    func sortRowsGlobally(_ rows: [SwitcherRow]) -> [SwitcherRow] {
+        guard !globalOrder.isEmpty, rows.count > 1 else { return rows }
+        return sortRows(rows, by: &globalOrder)
+    }
+
+    /// Shared core for the per-app and global sorts: rank `rows` by each
+    /// window's position in `order` (newest first), pruning ids whose windows
+    /// have since closed back into `order`. Rows whose window is unknown or
+    /// windowless (`cgWindowID == 0`) fall to the back at `rank = Int.max`,
+    /// stable on their incoming offset. Callers guarantee `order` is non-empty
+    /// and `rows.count > 1`.
+    private func sortRows(_ rows: [SwitcherRow], by order: inout [CGWindowID]) -> [SwitcherRow] {
         // Resolve each row's CGWindowID once; reused for both the dead-id prune
-        // and the rank lookup below.
+        // and the rank lookup below. Prefer the id resolved during the window
+        // scan; only fall back to a live `_AXUIElementGetWindow` for rows that
+        // lack one.
         let rowWids = rows.enumerated().map { offset, row -> (wid: CGWindowID, offset: Int, row: SwitcherRow) in
-            // Prefer the id resolved during the window scan; only fall back to a
-            // live `_AXUIElementGetWindow` for rows that lack one.
             let wid = row.cgWindowID != 0 ? row.cgWindowID : (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0)
             return (wid, offset, row)
         }
 
-        // Drop ids whose windows have since closed. The list only ever grew
-        // (bump prepends, nothing removed dead ids), so realign it to the live
-        // window set on every use — this is the primary bound on per-pid growth.
         let liveWids = Set(rowWids.compactMap { $0.wid != 0 ? $0.wid : nil })
-        let prunedList = mruList.filter { liveWids.contains($0) }
-        if prunedList.count != mruList.count {
-            order[pid] = prunedList.isEmpty ? nil : prunedList
-        }
-        guard !prunedList.isEmpty else { return rows }
+        let pruned = order.filter { liveWids.contains($0) }
+        if pruned.count != order.count { order = pruned }
+        guard !pruned.isEmpty else { return rows }
 
         var rank: [CGWindowID: Int] = [:]
-        rank.reserveCapacity(prunedList.count)
-        for (i, wid) in prunedList.enumerated() { rank[wid] = i }
+        rank.reserveCapacity(pruned.count)
+        for (i, wid) in pruned.enumerated() { rank[wid] = i }
 
         let indexed = rowWids.map { wid, offset, row -> (rank: Int, original: Int, row: SwitcherRow) in
             let r = (wid != 0 ? rank[wid] : nil) ?? Int.max

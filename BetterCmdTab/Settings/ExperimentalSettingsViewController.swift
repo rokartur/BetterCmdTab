@@ -15,6 +15,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let sensitivitySlider = NSSlider()
     private let sensitivityValueLabel = NSTextField(labelWithString: "")
     private let instantSpaceSwitch = NSSwitch()
+    private let mruWindowsSortSwitch = NSSwitch()
 
     override func setupContent() {
         // Experimental section — off by default, clearly flagged as unstable.
@@ -58,6 +59,12 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: experimental, title: String(localized: "Switch Spaces without animation"),
                subtitle: String(localized: "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too."),
                accessory: instantSpaceSwitch, searchItemID: SearchID.instantSpace)
+
+        addDivider(to: experimental)
+        configureSwitch(mruWindowsSortSwitch, action: #selector(toggleMRUWindowsSort(_:)))
+        addRow(to: experimental, title: String(localized: "Most recent (windows) sort order"),
+               subtitle: String(localized: "Orders the list by when you last focused each window, across all apps."),
+               accessory: mruWindowsSortSwitch, searchItemID: SearchID.mruWindowsSort)
         // Tab drill-in (the `\` peek) + tab expansion graduated to the Switcher
         // tab's "Tabs" section — they are stable, on by default, and belong with
         // the other content options.
@@ -107,6 +114,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         commitSwitch.state = prefs.swipeCommitOnRelease ? .on : .off
         applySensitivity(prefs.swipeSensitivity)
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
+        mruWindowsSortSwitch.state = prefs.sortOrder == .mruWindows ? .on : .off
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
 
@@ -143,6 +151,16 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleInstantSpace(_ sender: NSSwitch) {
         Preferences.shared.experimentalInstantSpaceSwitch = (sender.state == .on)
+    }
+
+    @objc private func toggleMRUWindowsSort(_ sender: NSSwitch) {
+        if sender.state == .on {
+            Preferences.shared.sortOrder = .mruWindows
+        } else if Preferences.shared.sortOrder == .mruWindows {
+            // Only revert if we own the current value — leave any other order
+            // the user picked in the Switcher popup untouched.
+            Preferences.shared.sortOrder = .mru
+        }
     }
 
     /// The reverse/commit/sensitivity controls only make sense while the swipe

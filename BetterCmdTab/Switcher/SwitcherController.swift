@@ -66,6 +66,13 @@ final class SwitcherController: SwitcherViewDelegate {
     private var _phase: Phase = .idle
     private var primedApps: [NSRunningApplication] = []
     private var primedIndex: Int = 0
+    /// Net number of primed ⌘Tab steps (forward positive, backward negative).
+    /// `primedIndex` walks the app list, which is the right model for the
+    /// app-grouped orders but not for `.mruWindows`, where the list is
+    /// window-level: there a forward tap must land on the second-most-recent
+    /// *window*, not the second app's first window. This raw step count maps
+    /// onto the window rows in `reveal()` / `commit()` for that mode.
+    private var primedStepDelta: Int = 0
     /// Canonical catalog set for the current reveal. `rows`/`labels` are the
     /// *displayed* derivation (fuzzy-filtered or letter-prefix-reordered);
     /// `baseRows`/`baseLabels` are the unfiltered source so the search query
@@ -632,6 +639,7 @@ final class SwitcherController: SwitcherViewDelegate {
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
             guard !primedApps.isEmpty else { return }
             primedIndex = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : primedApps.count - 1)
+            primedStepDelta = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
             phase = .primed
             reveal()
             // After reveal lands the panel in `.visible`, detach from any
@@ -1163,6 +1171,7 @@ final class SwitcherController: SwitcherViewDelegate {
         activeScope = scope
         primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
         primedIndex = 0
+        primedStepDelta = 0
         phase = .primed
         reveal()
         // reveal() may cancel back to idle (nothing matched the scope); only
@@ -1482,6 +1491,7 @@ final class SwitcherController: SwitcherViewDelegate {
             windowsOnlyPrimedDelta = delta
             primedApps = [front]
             primedIndex = 0
+            primedStepDelta = 0
             schedulePrimedReveal()
         case .primed:
             windowsOnlyPrimedDelta += delta
@@ -1505,10 +1515,13 @@ final class SwitcherController: SwitcherViewDelegate {
             guard !primedApps.isEmpty else { return }
             if primedApps.count == 1 {
                 primedIndex = 0
+                primedStepDelta = 0
             } else if delta > 0 {
                 primedIndex = 1
+                primedStepDelta = 1
             } else {
                 primedIndex = primedApps.count - 1
+                primedStepDelta = -1
             }
             schedulePrimedReveal()
         case .primed:
@@ -1518,6 +1531,7 @@ final class SwitcherController: SwitcherViewDelegate {
             } else {
                 primedIndex = max(0, min(primedApps.count - 1, primedIndex + delta))
             }
+            primedStepDelta += delta
         case .visible:
             advanceLinearVisible(by: delta, wrap: wrap)
         }
@@ -1751,14 +1765,21 @@ final class SwitcherController: SwitcherViewDelegate {
         let targetPid = snapshotApps.indices.contains(targetIdx)
             ? snapshotApps[targetIdx].processIdentifier : nil
 
-        let cachedRows = Log.reveal.withIntervalSignpost("catalog.rows") { cache.rows(orderedBy: mru.order) }
+        let cachedRows = applyWindowMRUSort(
+            Log.reveal.withIntervalSignpost("catalog.rows") { cache.rows(orderedBy: mru.order) }
+        )
         let hadCachedRows = !cachedRows.isEmpty
         if hadCachedRows {
             baseRows = cachedRows
             baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
             labels = baseLabels
-            if let pid = targetPid, let match = rows.firstIndex(where: { $0.pid == pid }) {
+            if Preferences.shared.sortOrder == .mruWindows {
+                // Window-level list: step over rows by window recency, not apps.
+                // `primedStepDelta` taps from row 0 (the current window), so a
+                // single forward tap lands on the second-most-recent window.
+                index = ((primedStepDelta % rows.count) + rows.count) % rows.count
+            } else if let pid = targetPid, let match = rows.firstIndex(where: { $0.pid == pid }) {
                 index = match
             } else {
                 index = 0
@@ -1794,12 +1815,18 @@ final class SwitcherController: SwitcherViewDelegate {
         // background re-scan re-derives its collapsed source from `baseRows`.
         let expandedAtReveal = expandBrowserTabs(baseRows)
         if expandedAtReveal.count != baseRows.count {
+            // Window-level mode anchors on the selected *window*; matching by pid
+            // would snap a non-first window back to its app's first row. Preserve
+            // it by row identity instead. App-grouped modes keep the pid anchor.
+            let windowKey = Preferences.shared.sortOrder == .mruWindows ? selectionKey() : nil
             let selectedPid = rows.indices.contains(index) ? rows[index].pid : targetPid
             baseRows = expandedAtReveal
             baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
             labels = baseLabels
-            if let pid = selectedPid, let match = rows.firstIndex(where: { $0.pid == pid }) {
+            if let windowKey, let match = rows.firstIndex(where: { keyMatches($0, windowKey) }) {
+                index = match
+            } else if let pid = selectedPid, let match = rows.firstIndex(where: { $0.pid == pid }) {
                 index = match
             } else {
                 index = max(0, min(index, rows.count - 1))
@@ -1923,6 +1950,33 @@ final class SwitcherController: SwitcherViewDelegate {
         refreshDisplay()
     }
 
+    /// Apply the flat cross-app window-recency sort when `.mruWindows` is the
+    /// active order; a no-op otherwise so the default ⌘Tab path stays untouched.
+    /// Runs after hide/scope filtering and before browser-tab expansion, so tabs
+    /// inherit their parent window's global rank and move together as a block.
+    ///
+    /// The recency sort reorders the whole list, discarding the pin-to-front
+    /// ordering `filteredRows` applied upstream, so re-pin afterwards: pinned
+    /// apps stay at the front and their windows keep recency order within the
+    /// pin block (the partition is stable on offset).
+    private func applyWindowMRUSort(_ rows: [SwitcherRow]) -> [SwitcherRow] {
+        guard Preferences.shared.sortOrder == .mruWindows else { return rows }
+        // Re-base onto a frontmost-independent order before the recency sort.
+        // The incoming rows are app-MRU ordered, so the *currently active* app's
+        // windows lead the list; windows the tracker has never seen would then
+        // inherit that lead and reshuffle every time you switch apps — switching
+        // to a window of a different app would lift all of that app's other
+        // windows above the windows you never touched. Group by pid (stable for
+        // an app's lifetime) so never-focused windows keep a fixed home; only the
+        // windows you actually focus move, floated to the top by recency in
+        // `sortRowsGlobally` independent of this baseline.
+        let stable = rows.enumerated().sorted {
+            let l = $0.element.pid ?? 0, r = $1.element.pid ?? 0
+            return l != r ? l < r : $0.offset < $1.offset
+        }.map(\.element)
+        return CatalogFilter.pinnedToFront(windowMRU.sortRowsGlobally(stable), Preferences.shared.pinnedBundleIDs)
+    }
+
     private func applyFullSnapshot(_ fresh: [SwitcherRow], anchorPid: pid_t?) {
         guard phase == .visible else { return }
         if fresh.isEmpty { cancel(); return }
@@ -1945,7 +1999,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // Re-expand inline browser-tab rows from the (warm) per-session cache so a
         // background refresh doesn't visibly collapse them back to one row; then
         // scan any browser window that newly appeared.
-        baseRows = expandBrowserTabs(next)
+        baseRows = expandBrowserTabs(applyWindowMRUSort(next))
         baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay(anchorPid: anchorPid)
         scheduleBrowserTabExpansion()
@@ -2267,6 +2321,23 @@ final class SwitcherController: SwitcherViewDelegate {
         return AppCatalog.snapshot(orderedBy: mru.order).first(where: { $0.pid == pid && $0.window != nil })
     }
 
+    /// The window row a `.mruWindows` fast tap-release should activate: the
+    /// globally window-MRU-sorted rows stepped by `primedStepDelta` from row 0
+    /// (the current window), mirroring the default selection `reveal()` lands on
+    /// when the panel actually shows. nil if no windowed rows are catalogued yet.
+    private func primedWindowMRUTargetRow() -> SwitcherRow? {
+        // Signposted so the fast tap-release sort cost can be read in Instruments
+        // (Points of Interest, category "reveal"); near-zero when not recording.
+        // Reuses `applyWindowMRUSort` deliberately so the row a fast tap activates
+        // is byte-identical to the one a held-open panel would select.
+        let sorted = Log.reveal.withIntervalSignpost("primed.windowMRU") {
+            applyWindowMRUSort(cache.rows(orderedBy: mru.order))
+        }
+        guard !sorted.isEmpty else { return nil }
+        let idx = ((primedStepDelta % sorted.count) + sorted.count) % sorted.count
+        return sorted[idx]
+    }
+
     private func bumpWindowMRUIfPossible(for row: SwitcherRow) {
         guard let win = row.window, let pid = row.pid else { return }
         let wid = PrivateAPI.cgWindowId(of: win)
@@ -2312,6 +2383,14 @@ final class SwitcherController: SwitcherViewDelegate {
         case .primed:
             if windowsOnlyMode, let pid = windowsOnlyPid,
                let row = pickWindowsOnlyTarget(pid: pid, delta: windowsOnlyPrimedDelta) {
+                if let p = row.pid { mru.bump(p) }
+                bumpWindowMRUIfPossible(for: row)
+                pendingActivation = { Activator.activate(row, instantSpace: instantSpace) }
+            } else if Preferences.shared.sortOrder == .mruWindows,
+                      let row = primedWindowMRUTargetRow() {
+                // Window-level fast tap-release: activate the window the visible
+                // switcher would have selected (stepped by recency, not by app),
+                // so a quick ⌘⇥ toggles windows exactly like the panel would.
                 if let p = row.pid { mru.bump(p) }
                 bumpWindowMRUIfPossible(for: row)
                 pendingActivation = { Activator.activate(row, instantSpace: instantSpace) }

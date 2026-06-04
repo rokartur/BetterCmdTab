@@ -137,6 +137,10 @@ enum BackdropMaterial: String, CaseIterable {
 enum SwitcherSortOrder: String, CaseIterable {
     /// Most-recently-used first, with the usual status buckets. Default.
     case mru
+    /// Flat cross-app window recency — each window ordered by when it was last
+    /// focused, regardless of app, so windows of different apps interleave.
+    /// Sorted in `SwitcherController` from `WindowMRUTracker`'s global order.
+    case mruWindows
     /// Apps A→Z by name; an app's windows stay grouped together.
     case alphabetical
     /// By launch order — oldest running process first.
@@ -145,6 +149,7 @@ enum SwitcherSortOrder: String, CaseIterable {
     var displayName: String {
         switch self {
         case .mru: return String(localized: "Most recent")
+        case .mruWindows: return String(localized: "Most recent (windows)")
         case .alphabetical: return String(localized: "Alphabetical")
         case .launchOrder: return String(localized: "Launch order")
         }
