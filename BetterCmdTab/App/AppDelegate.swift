@@ -36,6 +36,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Re-enable any native symbolic hotkey a previous run left disabled
+        // (crash / SIGKILL / power loss) and arm the crash-restore guard for this
+        // session. Done here — before the Accessibility-gated controller boot —
+        // because the WindowServer IPC needs no Accessibility: a crash-then-revoke
+        // must still restore the user's native ⌘Tab even while AX is untrusted.
+        SymbolicHotkeyGuard.install()
+        SwitcherController.healStaleSymbolicHotkeyDisable()
+
         BetterShortcuts.installDisplayNames()
         DirectActivation.installHandlers()
         ScopedSwitch.installHandlers()
@@ -137,8 +145,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 bootController()
             } else {
                 controller?.reinstallHotkeyTap()
+                // Re-assert the native-shortcut override we dropped on revoke so
+                // the always-armed symbolic-⌘Tab suppression comes back.
+                controller?.reassertNativeOverrideAfterRegrant()
             }
         } else {
+            // Re-enable the native symbolic ⌘Tab before anything else: with AX
+            // gone our tap is dead and Activator can't raise windows, so the
+            // user's only working switcher is macOS's own — which stays disabled
+            // unless we restore it here (the IPC needs no AX).
+            controller?.handleAccessibilityRevoked()
             notifyAccessibilityRevoked()
         }
     }
