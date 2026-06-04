@@ -142,12 +142,63 @@ enum WindowEnumerator {
         return CGWindowSnapshot(ids: ids, zOrder: zOrder)
     }
 
+    /// Back-compat entry point for the cold full-catalog paths (`AppCatalog`,
+    /// `AppCatalogCache.computeEntries`) that don't carry a per-pid coverage
+    /// memo. Discards the uncoverable-wid set `enumerate` returns. The hot
+    /// incremental path (`AppCatalogCache.bumpApps`) calls `enumerate` directly
+    /// to thread the memo that suppresses the repeat brute scan.
     static func windows(
         forPid pid: pid_t,
         isRegularApp: Bool = true,
         expectedCGWindowIDs: Set<CGWindowID> = [],
         cgZOrder: [CGWindowID] = []
     ) -> [WindowInfo] {
+        enumerate(
+            forPid: pid,
+            isRegularApp: isRegularApp,
+            expectedCGWindowIDs: expectedCGWindowIDs,
+            cgZOrder: cgZOrder
+        ).windows
+    }
+
+    /// Whether the brute-force AX token scan is worth running. True only for a
+    /// regular app whose CG hint still has a *coverable* window the AX
+    /// windows-list pass missed: wids already proven AX-unresolvable
+    /// (`knownUncoverable`, memoized by a prior full sweep) are subtracted
+    /// first, so a permanently-unresolvable surface (HUD/NSPanel/sheet sized
+    /// like a window) can no longer force a fresh 256-id sweep on every refresh.
+    /// Pure — the testable decision seam. Empty hint ⇒ false (nothing to find).
+    static func needsBruteScan(
+        isRegularApp: Bool,
+        expectedCGWindowIDs: Set<CGWindowID>,
+        coveredWids: Set<CGWindowID>,
+        knownUncoverable: Set<CGWindowID>
+    ) -> Bool {
+        guard isRegularApp else { return false }
+        return !expectedCGWindowIDs.subtracting(knownUncoverable).isSubset(of: coveredWids)
+    }
+
+    /// CG-hint wids a full sweep could not resolve to an accepted AX window —
+    /// the set memoized so the next refresh skips re-discovering the same gap.
+    /// Self-pruning: a wid that leaves the CG hint (surface closed) or that AX
+    /// later does resolve simply drops out next time this is recomputed.
+    static func uncoverableWids(
+        expectedCGWindowIDs: Set<CGWindowID>,
+        coveredWids: Set<CGWindowID>
+    ) -> Set<CGWindowID> {
+        expectedCGWindowIDs.subtracting(coveredWids)
+    }
+
+    /// Full per-pid window enumeration. Returns the windows plus the
+    /// `uncoverableWids` the caller should memoize (keyed on this same
+    /// `expectedCGWindowIDs`) to short-circuit `needsBruteScan` next time.
+    static func enumerate(
+        forPid pid: pid_t,
+        isRegularApp: Bool = true,
+        expectedCGWindowIDs: Set<CGWindowID> = [],
+        cgZOrder: [CGWindowID] = [],
+        knownUncoverable: Set<CGWindowID> = []
+    ) -> (windows: [WindowInfo], uncoverable: Set<CGWindowID>) {
         let axApp = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(axApp, Self.confirmedTimeout)
 
@@ -205,12 +256,12 @@ enum WindowEnumerator {
         // nothing for it to find — skip it instead of probing 1024 ids for
         // nothing. Brute-scan stays gated to the real case: a CG hint the AX
         // window list didn't fully cover.
-        let needBruteScan: Bool
-        if expectedCGWindowIDs.isEmpty {
-            needBruteScan = false
-        } else {
-            needBruteScan = isRegularApp && !expectedCGWindowIDs.isSubset(of: seenByWid)
-        }
+        let needBruteScan = needsBruteScan(
+            isRegularApp: isRegularApp,
+            expectedCGWindowIDs: expectedCGWindowIDs,
+            coveredWids: seenByWid,
+            knownUncoverable: knownUncoverable
+        )
 
         if needBruteScan {
             let acceptedSubroles: Set<String> = [
@@ -223,8 +274,12 @@ enum WindowEnumerator {
             // CG hint then still falls back to the full `bruteForceLimit` scan).
             var lastAcceptedAxId: UInt64?
             for axId: UInt64 in 0..<bruteForceLimit {
-                // Early exit once CG hint fully covered.
-                if !expectedCGWindowIDs.isEmpty, expectedCGWindowIDs.isSubset(of: seenByWid) {
+                // Early exit once every *coverable* CG-hint window is found.
+                // Known-uncoverable wids are excluded so a memoized unresolvable
+                // surface can't keep the loop spinning to the stale budget on the
+                // one re-sweep an expected-set change still triggers.
+                if !expectedCGWindowIDs.isEmpty,
+                   expectedCGWindowIDs.subtracting(knownUncoverable).isSubset(of: seenByWid) {
                     break
                 }
                 // Wasted-work bound: once we have accepted at least one window
@@ -385,7 +440,10 @@ enum WindowEnumerator {
             ))
         }
 
-        return sortedByZOrder(infos, cgZOrder: cgZOrder)
+        // Wids the CG hint listed but no accepted AX window covered — memoize so
+        // the next refresh with the same hint skips the brute sweep entirely.
+        let uncoverable = uncoverableWids(expectedCGWindowIDs: expectedCGWindowIDs, coveredWids: seenByWid)
+        return (sortedByZOrder(infos, cgZOrder: cgZOrder), uncoverable)
     }
 
     /// Result of grouping a pid's windows into native tab stacks.

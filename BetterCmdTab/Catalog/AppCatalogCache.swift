@@ -14,6 +14,15 @@ final class AppCatalogCache {
         let windows: [WindowInfo]
     }
 
+    /// One pid's result from the off-main snapshot pass: the windows plus the
+    /// coverage memo (`expected` CG hint seen, `uncoverable` wids within it) to
+    /// fold back into `pidCoverage` on the main completion.
+    private struct BumpScan {
+        var windows: [WindowInfo] = []
+        var expected: Set<CGWindowID> = []
+        var uncoverable: Set<CGWindowID> = []
+    }
+
     private(set) var entries: [pid_t: AppCacheEntry] = [:]
     /// Whether the switcher panel is on screen. Title-change notifications are
     /// only acted on while this is true. Set via `setPanelVisible`.
@@ -30,6 +39,14 @@ final class AppCatalogCache {
     /// current one finishes, so we always converge on the latest state.
     private var pidBumpInFlight: Set<pid_t> = []
     private var pidBumpPending: Set<pid_t> = []
+    /// Per-pid memo of the last brute-scan coverage result: the CG hint set seen
+    /// and the wids within it that no AX window could cover. Reused on the next
+    /// bump *only while the hint set is unchanged* — a chatty app re-firing AX
+    /// notifications without a real window change keeps the same hint, so the
+    /// memo lets `WindowEnumerator.needsBruteScan` skip the otherwise-repeated
+    /// 256-id sweep. Any real window open/close changes the hint and re-arms a
+    /// full sweep. Evicted with the pid's entry and on observer teardown.
+    private var pidCoverage: [pid_t: (expected: Set<CGWindowID>, uncoverable: Set<CGWindowID>)] = [:]
     private weak var mru: MRUTracker?
     private var observers: [NSObjectProtocol] = []
     private var axObservers: [pid_t: AXObserver] = [:]
@@ -155,6 +172,12 @@ final class AppCatalogCache {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.entries = fresh
+                // Drop coverage memos for pids the full refresh no longer lists
+                // (terminated apps a missed observer teardown left behind); the
+                // memo stays valid across refresh otherwise — it's keyed on the
+                // CG hint, which a refresh doesn't change — so live uncoverable
+                // pids don't pay a needless re-sweep.
+                self.pidCoverage = self.pidCoverage.filter { fresh.keys.contains($0.key) }
                 self.pendingRefresh = false
                 IconCache.prewarm(pids: Array(fresh.keys))
                 let pending = self.pendingOneShotCompletions
@@ -331,6 +354,10 @@ final class AppCatalogCache {
     }
 
     private func uninstallAXObserver(forPid pid: pid_t) {
+        // Tearing down tracking for this pid (app terminated) — drop its coverage
+        // memo too, before the observer guard so it clears even if no observer
+        // was installed.
+        pidCoverage.removeValue(forKey: pid)
         guard let observer = axObservers.removeValue(forKey: pid) else { return }
         // Drop the AX-server subscriptions before detaching the run-loop source,
         // mirroring the add side in `buildAXObserver` (same names, same element).
@@ -402,7 +429,10 @@ final class AppCatalogCache {
         // flight collapse into the pending set and re-run when the current scan
         // lands. Value-type `plan` crosses to the snapshot queue; the
         // `apps`/`accessoryPids` lookups stay main-only (read in the completion).
-        var plan: [(pid: pid_t, isRegular: Bool)] = []
+        // Each plan item carries the pid's prior coverage memo so the off-main
+        // pass can decide (against the fresh CG hint) whether the brute scan can
+        // be skipped — read here on main, where `pidCoverage` lives.
+        var plan: [(pid: pid_t, isRegular: Bool, priorCoverage: (expected: Set<CGWindowID>, uncoverable: Set<CGWindowID>)?)] = []
         plan.reserveCapacity(pids.count)
         var apps: [pid_t: NSRunningApplication] = [:]
         var accessoryPids = Set<pid_t>()
@@ -416,45 +446,50 @@ final class AppCatalogCache {
             // reflects the current process table.
             guard let app = NSRunningApplication(processIdentifier: pid) else {
                 entries.removeValue(forKey: pid)
+                pidCoverage.removeValue(forKey: pid)
                 continue
             }
             let policy = app.activationPolicy
             guard policy == .regular || policy == .accessory else {
                 entries.removeValue(forKey: pid)
+                pidCoverage.removeValue(forKey: pid)
                 continue
             }
             pidBumpInFlight.insert(pid)
             apps[pid] = app
             if policy == .accessory { accessoryPids.insert(pid) }
-            plan.append((pid, policy == .regular))
+            plan.append((pid, policy == .regular, pidCoverage[pid]))
         }
         guard !plan.isEmpty else { return }
 
         snapshotQueue.async { [weak self] in
             let cgSnapshot = WindowEnumerator.snapshotCGWindowMap()
             let count = plan.count
-            var windowsBuffer = [[WindowInfo]](repeating: [], count: count)
-            if count == 1 {
-                let item = plan[0]
-                windowsBuffer[0] = WindowEnumerator.windows(
+            // Reuse the memoized uncoverable wids only while the CG hint is
+            // unchanged from the bump that produced them; any hint change (a real
+            // window opened/closed) drops back to a full sweep that re-memoizes.
+            func scan(_ item: (pid: pid_t, isRegular: Bool, priorCoverage: (expected: Set<CGWindowID>, uncoverable: Set<CGWindowID>)?)) -> BumpScan {
+                let expected = cgSnapshot.ids(for: item.pid)
+                let known = (item.priorCoverage?.expected == expected) ? (item.priorCoverage?.uncoverable ?? []) : []
+                let result = WindowEnumerator.enumerate(
                     forPid: item.pid,
                     isRegularApp: item.isRegular,
-                    expectedCGWindowIDs: cgSnapshot.ids(for: item.pid),
-                    cgZOrder: cgSnapshot.zOrder(for: item.pid)
+                    expectedCGWindowIDs: expected,
+                    cgZOrder: cgSnapshot.zOrder(for: item.pid),
+                    knownUncoverable: known
                 )
+                return BumpScan(windows: result.windows, expected: expected, uncoverable: result.uncoverable)
+            }
+            var scanBuffer = [BumpScan](repeating: BumpScan(), count: count)
+            if count == 1 {
+                scanBuffer[0] = scan(plan[0])
             } else {
                 // Parallelize the per-pid AX scans (each blocks on AX timeouts)
                 // while still sharing the single CG snapshot above.
-                windowsBuffer.withUnsafeMutableBufferPointer { buffer in
+                scanBuffer.withUnsafeMutableBufferPointer { buffer in
                     nonisolated(unsafe) let bufferRef = buffer
                     DispatchQueue.concurrentPerform(iterations: count) { i in
-                        let item = plan[i]
-                        bufferRef[i] = WindowEnumerator.windows(
-                            forPid: item.pid,
-                            isRegularApp: item.isRegular,
-                            expectedCGWindowIDs: cgSnapshot.ids(for: item.pid),
-                            cgZOrder: cgSnapshot.zOrder(for: item.pid)
-                        )
+                        bufferRef[i] = scan(plan[i])
                     }
                 }
             }
@@ -463,15 +498,18 @@ final class AppCatalogCache {
                 var rebump = Set<pid_t>()
                 for i in 0..<count {
                     let pid = plan[i].pid
-                    let windows = windowsBuffer[i]
+                    let scan = scanBuffer[i]
                     self.pidBumpInFlight.remove(pid)
                     if let app = apps[pid] {
                         if plan[i].isRegular {
-                            self.entries[pid] = AppCacheEntry(app: app, windows: windows)
-                        } else if accessoryPids.contains(pid), !windows.isEmpty {
-                            self.entries[pid] = AppCacheEntry(app: app, windows: windows)
+                            self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows)
+                            self.pidCoverage[pid] = (scan.expected, scan.uncoverable)
+                        } else if accessoryPids.contains(pid), !scan.windows.isEmpty {
+                            self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows)
+                            self.pidCoverage[pid] = (scan.expected, scan.uncoverable)
                         } else {
                             self.entries.removeValue(forKey: pid)
+                            self.pidCoverage.removeValue(forKey: pid)
                         }
                     }
                     // Re-bump if another request landed while in flight —
