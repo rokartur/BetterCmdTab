@@ -154,6 +154,33 @@ enum PreviousFrameStore {
 enum Activator {
     private static let finderBundleID = "com.apple.finder"
 
+    /// The app that was frontmost when `hideAllApps()` last ran, so `showAllApps()`
+    /// can raise it back on top (the window the user hid everything from). Pid for
+    /// the same-session fast path, bundleID as a fallback if the app was relaunched.
+    /// Nil once consumed or when nothing qualified.
+    private static var lastHideFrontmost: (pid: pid_t, bundleID: String?)?
+
+    /// Pure: choose which running pid `showAllApps()` should raise last, given the
+    /// remembered hide-time identity and the live running set. Match by pid first
+    /// (same session — but only if the bundleID still agrees, guarding pid reuse),
+    /// then by bundleID (app relaunched under a new pid). Returns nil when nothing
+    /// was remembered or it's gone, so the caller leaves focus as-is. Operates on
+    /// plain tuples so it's unit-testable without `NSRunningApplication`.
+    static func showAllRaisePid(
+        remembered: (pid: pid_t, bundleID: String?)?,
+        running: [(pid: pid_t, bundleID: String?, terminated: Bool)]
+    ) -> pid_t? {
+        guard let remembered else { return nil }
+        if let hit = running.first(where: { $0.pid == remembered.pid && !$0.terminated }),
+           remembered.bundleID == nil || hit.bundleID == remembered.bundleID {
+            return hit.pid
+        }
+        if let bid = remembered.bundleID {
+            return running.first(where: { $0.bundleID == bid && !$0.terminated })?.pid
+        }
+        return nil
+    }
+
     /// Focus the app with the given bundle ID, launching it if it isn't running.
     /// Backs the direct-activation hotkeys (jump straight to a chosen app).
     static func activateOrLaunch(bundleID: String) {
@@ -572,7 +599,22 @@ enum Activator {
     static func hideAllApps() {
         let excluded = Set(UserDefaults.standard.stringArray(forKey: "Switcher.hideAllExcludedBundleIDs") ?? [])
         let selfPid = getpid()
-        let frontPid = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let frontApp = NSWorkspace.shared.frontmostApplication
+        let frontPid = frontApp?.processIdentifier
+        // Remember the hide-time frontmost app so `showAllApps()` can raise it back
+        // on top (the window the user hid everything from). Skip self; otherwise
+        // record it even if it's in the keep-visible set — it stays the app the
+        // user wants to return to. Require a bundleID (real user apps always have
+        // one): it lets the show-side pid match confirm identity, so a recycled pid
+        // belonging to a different process can't be raised by mistake. Always
+        // assign (value or nil) so a stale entry from a previous hide can't be reused.
+        if let frontApp, frontApp.activationPolicy == .regular,
+           frontApp.processIdentifier != selfPid,
+           let bid = frontApp.bundleIdentifier {
+            lastHideFrontmost = (frontApp.processIdentifier, bid)
+        } else {
+            lastHideFrontmost = nil
+        }
         let running = NSWorkspace.shared.runningApplications
         let targets = running.filter { app in
             app.activationPolicy == .regular
@@ -595,18 +637,36 @@ enum Activator {
 
     /// Unhide every regular app currently hidden (by `hideAllApps()` or a manual
     /// ⌘H) and un-minimize Finder's windows (the counterpart to hideAllApps()'s
-    /// Finder minimize). Deliberately does NOT activate the unhidden apps —
-    /// activating each would thrash focus; the frontmost app stays put and the
-    /// rest simply reappear. Stateless, so it pairs with any hide source.
+    /// Finder minimize). Raises the app that was frontmost when `hideAllApps()`
+    /// last ran *last*, so the window the user hid everything from returns on top.
+    /// When there's no remembered hide-time app (show-all without a prior shortcut
+    /// hide, or after a relaunch), it activates nothing — the apps just reappear
+    /// and focus stays put, the old stateless behaviour.
     static func showAllApps() {
         let running = NSWorkspace.shared.runningApplications
-        for app in running where app.activationPolicy == .regular && app.isHidden {
+        let runningIDs = running.map {
+            (pid: $0.processIdentifier, bundleID: $0.bundleIdentifier, terminated: $0.isTerminated)
+        }
+        let targetPid = showAllRaisePid(remembered: lastHideFrontmost, running: runningIDs)
+        lastHideFrontmost = nil
+        let raiseTarget = targetPid.flatMap { pid in running.first { $0.processIdentifier == pid } }
+        // Unhide everything except the raise target first, so the target's
+        // activation below is the final, on-top transition (no focus thrash).
+        for app in running
+        where app.activationPolicy == .regular && app.isHidden && app.processIdentifier != targetPid {
             app.unhide()
         }
         if let finderPid = running.first(where: { $0.bundleIdentifier == finderBundleID })?.processIdentifier {
             DispatchQueue.global(qos: .userInitiated).async {
                 setFinderWindowsMinimized(false, pid: finderPid)
             }
+        }
+        // Raise the hide-time source app last so it ends frontmost. Unhide it first
+        // if it was hidden. activateProcess() is the same app-level raise the rest
+        // of the file uses.
+        if let raiseTarget {
+            if raiseTarget.isHidden { raiseTarget.unhide() }
+            activateProcess(raiseTarget)
         }
     }
 
