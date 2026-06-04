@@ -1,3 +1,4 @@
+import CoreGraphics
 import Testing
 @testable import BetterCmdTab
 
@@ -36,5 +37,36 @@ struct SwitcherPhaseTests {
         #expect(forceIdle(.primed))
         #expect(!forceIdle(.visible))
         #expect(!forceIdle(.idle))
+    }
+}
+
+/// Pure-logic coverage for the fast-tap rescue: when the ⌘-release was dropped by
+/// the tap (it gates `.releaseCmd` on `isSwitchingNow()`, set only once the main
+/// thread reaches `.primed`), the controller re-reads the live modifier state and
+/// commits instead of stranding the panel. This isolates the "release already
+/// missed?" decision from the impure `CGEventSource` read.
+@Suite("Switcher fast-tap rescue")
+struct SwitcherReleaseMissedTests {
+    @Test func missed_whenNeitherHoldModifierDown() {
+        // ⌘Tab / ⌘` defaults: both triggers use Command. No modifier down → the
+        // user already let go, so the release was missed and we must commit.
+        #expect(SwitcherController.releaseAlreadyMissed(flags: [], appMask: .maskCommand, windowMask: .maskCommand))
+    }
+
+    @Test func notMissed_whileHoldModifierStillDown() {
+        // ⌘ still physically held → normal hold-to-browse, reveal the panel.
+        #expect(!SwitcherController.releaseAlreadyMissed(flags: [.maskCommand], appMask: .maskCommand, windowMask: .maskCommand))
+        // Extra modifiers alongside the hold modifier don't count as released.
+        #expect(!SwitcherController.releaseAlreadyMissed(flags: [.maskCommand, .maskShift], appMask: .maskCommand, windowMask: .maskCommand))
+    }
+
+    @Test func notMissed_whenEitherTriggerModifierDown() {
+        // Distinct app/window hold modifiers (e.g. ⌘ for apps, ⌥ for windows):
+        // either one still down means the switch is live.
+        #expect(!SwitcherController.releaseAlreadyMissed(flags: [.maskAlternate], appMask: .maskCommand, windowMask: .maskAlternate))
+        #expect(!SwitcherController.releaseAlreadyMissed(flags: [.maskCommand], appMask: .maskCommand, windowMask: .maskAlternate))
+        // Neither of the two trigger modifiers down → missed (a stray Shift is not
+        // a hold modifier).
+        #expect(SwitcherController.releaseAlreadyMissed(flags: [.maskShift], appMask: .maskCommand, windowMask: .maskAlternate))
     }
 }

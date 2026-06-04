@@ -874,6 +874,32 @@ final class SwitcherController: SwitcherViewDelegate {
         return .maskCommand
     }
 
+    /// Pure: by the time the main thread reached `.primed` (where `switchingFlag`
+    /// is set), was the hold-modifier release already missed? True when neither
+    /// trigger's hold modifier is down in `flags`. On a very fast ⌘⇥ tap the ⌘-up
+    /// `flagsChanged` can reach the tap
+    /// thread *before* the main thread set `switchingFlag` (the tap gates
+    /// `.releaseCmd` on `isSwitchingNow()`), so the release is dropped and the panel
+    /// would open with nothing left to dismiss it. Re-reading the live modifier
+    /// state on the main thread recovers that dropped release; this isolates the
+    /// decision so it stays unit-testable.
+    nonisolated static func releaseAlreadyMissed(flags: CGEventFlags, appMask: CGEventFlags, windowMask: CGEventFlags) -> Bool {
+        !(HoldModifierMonitor.holdState(flags: flags, mask: appMask)
+            || HoldModifierMonitor.holdState(flags: flags, mask: windowMask))
+    }
+
+    /// Live check of `releaseAlreadyMissed` against the current physical modifier
+    /// state (`CGEventSource.flagsState` keeps reporting under Secure Event Input).
+    private func holdReleaseAlreadyMissed() -> Bool {
+        let appTrigger = Self.carbonTrigger(for: .switchApps, defaultKey: 48)
+        let windowTrigger = Self.carbonTrigger(for: .switchWindows, defaultKey: 50)
+        return Self.releaseAlreadyMissed(
+            flags: CGEventSource.flagsState(.combinedSessionState),
+            appMask: Self.holdMask(for: appTrigger.carbonModifiers),
+            windowMask: Self.holdMask(for: windowTrigger.carbonModifiers)
+        )
+    }
+
     private func applyOverridePlan(_ plan: NativeOverridePlan) {
         let toDisable = plan.symbolicKeysToDisable.compactMap { PrivateAPI.SymbolicHotKey(rawValue: $0) }
         // Disable the symbolic hotkeys *before* registering: macOS reserves ⌘Tab
@@ -1606,6 +1632,18 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func schedulePrimedReveal() {
         phase = .primed
+        // Fast-tap rescue: a very fast ⌘⇥ can land the ⌘-up `flagsChanged` on the
+        // tap thread before this `.primed` transition set `switchingFlag`, so the
+        // tap dropped `.releaseCmd` (it gates on `isSwitchingNow()`) and the panel
+        // would open with nothing left to dismiss it. We just set `.primed`, so the
+        // tap now catches any *later* release — but a release that already happened
+        // is only recoverable here: re-read the live modifier state and, if neither
+        // hold modifier is still down, commit the primed pick now instead of
+        // revealing a stranded panel.
+        if holdReleaseAlreadyMissed() {
+            commit()
+            return
+        }
         // Resolve the user's current window off-main now, while we wait out the
         // tap-vs-hold delay, so reveal() doesn't stall its critical path on a
         // synchronous AX read (up to 0.25s when the frontmost app is busy).
@@ -1656,6 +1694,14 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func reveal() {
         guard phase == .primed else { return }
+        // Backstop for the dropped-release race (see schedulePrimedReveal): if the
+        // hold modifier came up during the primed delay and the tap missed it,
+        // commit the primed pick instead of presenting a panel nothing would
+        // dismiss. Cheap — one flags read on the cold reveal path.
+        if holdReleaseAlreadyMissed() {
+            commit()
+            return
+        }
         tabDrillHint = nil
         mru.syncFrontmost()
         // Remember who was frontmost so `cancel()` can restore them — captured
