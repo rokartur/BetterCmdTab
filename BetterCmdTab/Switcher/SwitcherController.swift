@@ -60,6 +60,9 @@ final class SwitcherController: SwitcherViewDelegate {
     private let mru = MRUTracker()
     private let windowMRU = WindowMRUTracker()
     private let cache = AppCatalogCache()
+    /// Live-refreshes Dock badges (unread counts) while the panel is open. Armed
+    /// only between reveal and close, so it costs nothing when the switcher is shut.
+    private let dockBadgeObserver = DockBadgeObserver()
     private let panel = SwitcherPanel()
     private let view: SwitcherView
 
@@ -438,6 +441,11 @@ final class SwitcherController: SwitcherViewDelegate {
         // finishing load while the user scans rows.
         cache.onVisibleTitleChanged = { [weak self] in
             self?.scheduleVisibleTitleRefresh()
+        }
+        // A Dock badge (unread count) changed while the panel is open — re-read
+        // the badges and repaint so counts stay live without reopening.
+        dockBadgeObserver.onBadgesChanged = { [weak self] in
+            self?.scheduleVisibleBadgeRefresh()
         }
         RecentlyClosedStore.shared.start()
         if !hotkey.install() {
@@ -1864,6 +1872,7 @@ final class SwitcherController: SwitcherViewDelegate {
         panel.present()
         phase = .visible
         cache.setPanelVisible(true)
+        dockBadgeObserver.start(enabled: Preferences.shared.showUnreadBadges)
         // Inline browser-tab mode: start scanning the visible browser windows'
         // tabs now so the rows expand as soon as Apple Events answers. Self-
         // guards on the pref; a no-op on the cold (placeholder) branch since
@@ -1956,6 +1965,7 @@ final class SwitcherController: SwitcherViewDelegate {
         panel.present()
         phase = .visible
         cache.setPanelVisible(true)
+        dockBadgeObserver.start(enabled: Preferences.shared.showUnreadBadges)
     }
 
     private func scheduleWindowsOnlyRefresh(pid: pid_t, gen: UInt64) {
@@ -2106,6 +2116,28 @@ final class SwitcherController: SwitcherViewDelegate {
                     guard changed else { return }
                     self.baseRows = patched
                     self.baseLabels = RowLabels.labels(for: self.baseRows)
+                    self.refreshDisplay()
+                }
+            }
+        }
+    }
+
+    /// A Dock badge changed while the panel is open (signalled by
+    /// `DockBadgeObserver`, already debounced). Re-read the badge map off-main —
+    /// the read AX-scrapes the Dock tree — then repaint: the item views pull the
+    /// fresh count from `DockBadgeReader.shared.badge(forBundleID:)` on each
+    /// `configure`, so no row-model change is needed. Generation- and
+    /// visibility-guarded so a scan landing after the panel closed is dropped.
+    private func scheduleVisibleBadgeRefresh() {
+        guard phase == .visible, Preferences.shared.showUnreadBadges else { return }
+        let gen = revealGeneration
+        DispatchQueue.global(qos: .userInteractive).async { [weak self] in
+            let badges = DockBadgeReader.snapshot()
+            DispatchQueue.main.async {
+                guard let self, gen == self.revealGeneration, self.phase == .visible else { return }
+                // Only repaint when a badge actually changed — the live poll calls
+                // this on an interval, so an unchanged scan must not re-render rows.
+                if DockBadgeReader.shared.apply(badges) {
                     self.refreshDisplay()
                 }
             }
@@ -2450,6 +2482,7 @@ final class SwitcherController: SwitcherViewDelegate {
         revealGeneration &+= 1
         phase = .idle
         cache.setPanelVisible(false)
+        dockBadgeObserver.stop()
         // Activate BEFORE dismissing the panel: `panel.dismiss()` calls
         // `orderOut(nil)`, surrendering our window/focus to the WindowServer.
         // If that ran first, the synchronous AX focus writes inside the
@@ -2486,6 +2519,7 @@ final class SwitcherController: SwitcherViewDelegate {
         revealGeneration &+= 1
         phase = .idle
         cache.setPanelVisible(false)
+        dockBadgeObserver.stop()
         panel.dismiss()
         primedApps = []
         rows = []
@@ -2906,6 +2940,7 @@ final class SwitcherController: SwitcherViewDelegate {
         revealGeneration &+= 1
         phase = .idle
         cache.setPanelVisible(false)
+        dockBadgeObserver.stop()
         CommitFeedback.play()
         // Activate BEFORE dismissing the panel (same reason as commit()):
         // panel.dismiss() surrenders our key window, so a synchronous activate

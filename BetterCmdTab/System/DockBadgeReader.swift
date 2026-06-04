@@ -49,9 +49,14 @@ final class DockBadgeReader {
         readDockBadges()
     }
 
-    func apply(_ badges: [String: String]) {
+    /// Returns whether the badge map actually changed, so a live poll can skip a
+    /// needless row repaint when nothing moved.
+    @discardableResult
+    func apply(_ badges: [String: String]) -> Bool {
+        let changed = badges != badgesByBundleID
         badgesByBundleID = badges
         lastRefresh = Date()
+        return changed
     }
 
     nonisolated private static let statusLabelAttribute = "AXStatusLabel"
@@ -97,7 +102,8 @@ final class DockBadgeReader {
     }
 
     /// The Dock app's children include a single `AXList` holding the dock items.
-    nonisolated private static func firstAXList(of element: AXUIElement) -> AXUIElement? {
+    /// Internal (not private) so `DockBadgeObserver` reuses the same tree walk.
+    nonisolated static func firstAXList(of element: AXUIElement) -> AXUIElement? {
         for child in children(of: element) {
             if string(child, attribute: kAXRoleAttribute as CFString) == (kAXListRole as String) {
                 return child
@@ -106,7 +112,8 @@ final class DockBadgeReader {
         return nil
     }
 
-    nonisolated private static func children(of element: AXUIElement) -> [AXUIElement] {
+    /// Internal (not private) so `DockBadgeObserver` reuses the same tree walk.
+    nonisolated static func children(of element: AXUIElement) -> [AXUIElement] {
         var value: AnyObject?
         guard AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &value) == .success,
               let array = value as? [AXUIElement] else { return [] }
