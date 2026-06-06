@@ -285,4 +285,50 @@ struct NativeOverridePlanTests {
             #expect(unique.count == pairs.count)
         }
     }
+
+    // MARK: Disabled trigger (Issue #21 — a cleared shortcut must free the chord)
+
+    /// ⌘Tab app cleared, ⌘` window still native.
+    static func appDisabled() -> TriggerSpec {
+        TriggerSpec(appEnabled: false, appKeyCode: 48, appCarbonModifiers: cmd, appIsCommandOnly: true,
+                    windowEnabled: true, windowKeyCode: 50, windowCarbonModifiers: cmd, windowIsCommandOnly: true)
+    }
+    /// ⌘` window cleared, ⌘Tab app still native.
+    static func windowDisabled() -> TriggerSpec {
+        TriggerSpec(appEnabled: true, appKeyCode: 48, appCarbonModifiers: cmd, appIsCommandOnly: true,
+                    windowEnabled: false, windowKeyCode: 50, windowCarbonModifiers: cmd, windowIsCommandOnly: true)
+    }
+
+    @Test func appDisabled_freesNativeCommandTab_keepsWindow() {
+        let plan = computeNativeOverridePlan(trigger: Self.appDisabled(), secureInputActive: false,
+                                             panelOpen: false, holdModifierDown: false)
+        // The native ⌘Tab / ⌘⇧Tab symbolic hotkeys are NOT disabled — they go back
+        // to the OS. The window chord (⌘`, id 6) is still claimed.
+        #expect(plan.symbolicKeysToDisable == [6])
+        // No app switching chords; the window pair survives.
+        #expect(!plan.carbonChords.contains { $0.kind == .nextApp || $0.kind == .prevApp })
+        #expect(plan.carbonChords.contains { $0.kind == .nextWindow })
+        #expect(plan.carbonChords.contains { $0.kind == .prevWindow })
+    }
+
+    @Test func windowDisabled_freesNativeBacktick_keepsApp() {
+        let plan = computeNativeOverridePlan(trigger: Self.windowDisabled(), secureInputActive: false,
+                                             panelOpen: false, holdModifierDown: false)
+        #expect(plan.symbolicKeysToDisable == [1, 2])
+        #expect(plan.carbonChords.contains { $0.kind == .nextApp })
+        #expect(plan.carbonChords.contains { $0.kind == .prevApp })
+        #expect(!plan.carbonChords.contains { $0.kind == .nextWindow || $0.kind == .prevWindow })
+    }
+
+    @Test func bothDisabled_emptyPlan_evenUnderSecureInputWithPanelOpen() {
+        // Nothing reserved, nothing registered — the native switcher is fully
+        // restored, and no in-panel parity chords leak in under secure input.
+        let trigger = TriggerSpec(appEnabled: false, appKeyCode: 48, appCarbonModifiers: Self.cmd, appIsCommandOnly: true,
+                                  windowEnabled: false, windowKeyCode: 50, windowCarbonModifiers: Self.cmd, windowIsCommandOnly: true)
+        let plan = computeNativeOverridePlan(trigger: trigger, secureInputActive: true,
+                                             panelOpen: true, holdModifierDown: true,
+                                             panelActions: Self.panelActions)
+        #expect(plan.symbolicKeysToDisable.isEmpty)
+        #expect(plan.carbonChords.isEmpty)
+    }
 }

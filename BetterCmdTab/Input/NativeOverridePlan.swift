@@ -31,10 +31,18 @@ import Carbon.HIToolbox
 /// delivered for it under secure input — see `HoldModifierMonitor`) and commits.
 
 /// The configured trigger, in the Carbon terms the override decision needs.
+///
+/// `appEnabled` / `windowEnabled` are `false` when the user has *cleared* that
+/// shortcut (BetterShortcuts' explicit "disabled" marker). A disabled trigger
+/// reserves no native chord: its symbolic-hotkey disable and Carbon chords are
+/// both dropped, so the native macOS ⌘Tab (or ⌘`) keeps working. They default
+/// to `true` so existing call sites and tests describe an enabled trigger.
 struct TriggerSpec: Equatable {
+    var appEnabled: Bool = true
     var appKeyCode: UInt32
     var appCarbonModifiers: UInt32
     var appIsCommandOnly: Bool
+    var windowEnabled: Bool = true
     var windowKeyCode: UInt32
     var windowCarbonModifiers: UInt32
     var windowIsCommandOnly: Bool
@@ -154,13 +162,14 @@ func computeNativeOverridePlan(
 
     // Symbolic hotkeys to free so RegisterEventHotKey can claim the reserved
     // native chord. Only when the trigger IS that reserved chord (⌘Tab / ⌘`);
-    // a remapped trigger reserves nothing, so nothing is disabled.
+    // a remapped trigger reserves nothing, so nothing is disabled. A *disabled*
+    // trigger likewise frees nothing — the user wants the native chord back.
     var symbolic: [Int32] = []
-    if trigger.appIsCommandOnly && trigger.appKeyCode == 48 {
+    if trigger.appEnabled && trigger.appIsCommandOnly && trigger.appKeyCode == 48 {
         symbolic.append(PrivateAPI.SymbolicHotKey.commandTab.rawValue)      // 1
         symbolic.append(PrivateAPI.SymbolicHotKey.commandShiftTab.rawValue) // 2
     }
-    if trigger.windowIsCommandOnly && trigger.windowKeyCode == 50 {
+    if trigger.windowEnabled && trigger.windowIsCommandOnly && trigger.windowKeyCode == 50 {
         symbolic.append(PrivateAPI.SymbolicHotKey.commandKeyAboveTab.rawValue) // 6
     }
 
@@ -170,12 +179,18 @@ func computeNativeOverridePlan(
     // rejected by RegisterEventHotKey). Always registered so the panel can be
     // *opened* the instant the tap goes deaf.
     let shift = UInt32(shiftKey)
-    var chords: [ChordSpec] = [
-        ChordSpec(keyCode: trigger.appKeyCode, modifiers: trigger.appCarbonModifiers, kind: .nextApp),
-        ChordSpec(keyCode: trigger.appKeyCode, modifiers: trigger.appCarbonModifiers | shift, kind: .prevApp),
-    ]
-    if trigger.windowKeyCode != trigger.appKeyCode
-        || trigger.windowCarbonModifiers != trigger.appCarbonModifiers {
+    var chords: [ChordSpec] = []
+    if trigger.appEnabled {
+        chords.append(ChordSpec(keyCode: trigger.appKeyCode, modifiers: trigger.appCarbonModifiers, kind: .nextApp))
+        chords.append(ChordSpec(keyCode: trigger.appKeyCode, modifiers: trigger.appCarbonModifiers | shift, kind: .prevApp))
+    }
+    // Register the window chord when it's enabled and isn't a duplicate of the
+    // app chord (RegisterEventHotKey rejects duplicates). With the app chord
+    // disabled there's nothing to duplicate, so the window chord always stands.
+    if trigger.windowEnabled
+        && (!trigger.appEnabled
+            || trigger.windowKeyCode != trigger.appKeyCode
+            || trigger.windowCarbonModifiers != trigger.appCarbonModifiers) {
         chords.append(ChordSpec(keyCode: trigger.windowKeyCode, modifiers: trigger.windowCarbonModifiers, kind: .nextWindow))
         chords.append(ChordSpec(keyCode: trigger.windowKeyCode, modifiers: trigger.windowCarbonModifiers | shift, kind: .prevWindow))
     }
@@ -186,8 +201,10 @@ func computeNativeOverridePlan(
     // key from the focused password field. The remaining true limit under secure
     // input: once the modifier is released in stay-open/sticky mode, no key can
     // reach a background app — only the mouse works (documented).
-    if secureInputActive && panelOpen && holdModifierDown {
-        let mod = trigger.appCarbonModifiers
+    if secureInputActive && panelOpen && holdModifierDown && (trigger.appEnabled || trigger.windowEnabled) {
+        // Qualify the in-panel chords with the hold modifier of whichever trigger
+        // is live (they share ⌘ by default); the app trigger wins when both exist.
+        let mod = trigger.appEnabled ? trigger.appCarbonModifiers : trigger.windowCarbonModifiers
         // Control/navigation chords first so they win the (keyCode, modifiers)
         // dedupe over the generic letter/search block below.
         if tabDrillActive {

@@ -79,9 +79,12 @@ final class HotkeyTap {
     /// recorders are independent), so each has its own modifier mask.
     struct Config {
         var appModifier: CGEventFlags
-        var appKey: Int64
+        /// `nil` when the user cleared the app-switch shortcut — the chord then
+        /// matches nothing and the event falls through to the OS (native ⌘Tab).
+        var appKey: Int64?
         var windowModifier: CGEventFlags
-        var windowKey: Int64
+        /// `nil` when the user cleared the window-switch shortcut. See `appKey`.
+        var windowKey: Int64?
     }
 
     /// The CGEvent-tap lifecycle handles. The tap callback runs on its own
@@ -664,8 +667,10 @@ final class HotkeyTap {
 
         let cfg = config.withLock { $0 }
         let flags = event.flags
-        let appModHeld = flags.contains(cfg.appModifier)
-        let windowModHeld = flags.contains(cfg.windowModifier)
+        // A disabled trigger (nil key) holds nothing — so it never contributes to
+        // `anyModHeld` (which keeps the panel open / drives Esc) and never matches.
+        let appModHeld = cfg.appKey != nil && flags.contains(cfg.appModifier)
+        let windowModHeld = cfg.windowKey != nil && flags.contains(cfg.windowModifier)
         // The switcher stays open while either trigger's hold modifier is down.
         let anyModHeld = appModHeld || windowModHeld
         let shiftHeld = flags.contains(.maskShift)
@@ -686,7 +691,7 @@ final class HotkeyTap {
             // through the tab strip instead of the app list. Esc exits the
             // drill (one level up — the panel stays open).
             if tabDrillNow && isSwitchingNow() {
-                if anyModHeld && keyCode == cfg.appKey {
+                if anyModHeld, let appKey = cfg.appKey, keyCode == appKey {
                     deliver(shiftHeld ? .tabPrev : .tabNext); return nil
                 }
                 if keyCode == Self.escKey {
@@ -717,13 +722,13 @@ final class HotkeyTap {
             // fall through to the focused app instead of opening the switcher.
             // Only when not already switching — an open switcher still navigates.
             let suppressTrigger = !isSwitchingNow() && suppressTriggerFlag.withLock { $0 }
-            if appModHeld && keyCode == cfg.appKey {
+            if appModHeld, let appKey = cfg.appKey, keyCode == appKey {
                 if suppressTrigger { return Unmanaged.passUnretained(event) }
                 let dir: Event = shiftHeld ? .prevApp : .nextApp
                 deliver(dir)
                 return nil
             }
-            if windowModHeld && keyCode == cfg.windowKey {
+            if windowModHeld, let windowKey = cfg.windowKey, keyCode == windowKey {
                 if suppressTrigger { return Unmanaged.passUnretained(event) }
                 let dir: Event = shiftHeld ? .prevWindow : .nextWindow
                 deliver(dir)
