@@ -62,6 +62,36 @@ struct SettingsPortabilityTests {
         #expect(prefs.pinnedBundleIDs == ["com.apple.finder", "com.apple.Safari"])
     }
 
+    @Test("round-trip: switcherDisplayMode survives export/import")
+    func displayModeRoundTrip() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.switcherDisplayMode
+        defer {
+            try? prefs.importSettings(from: envelope([
+                Preferences.Keys.switcherDisplayMode: saved.rawValue
+            ]))
+        }
+        // Set a non-default value, export, flip live, then import the export back.
+        prefs.switcherDisplayMode = .activeWindow
+        let data = try prefs.exportedJSONData()
+        prefs.switcherDisplayMode = .mainDisplay
+        try prefs.importSettings(from: data)
+        #expect(prefs.switcherDisplayMode == .activeWindow)
+    }
+
+    @Test("import missing switcherDisplayMode leaves the current value untouched")
+    func displayModePartialImport() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.switcherDisplayMode
+        defer { prefs.switcherDisplayMode = saved }
+        prefs.switcherDisplayMode = .activeWindow
+        // Envelope without the display-mode key (partial-import contract).
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.panelOpacity: 100
+        ]))
+        #expect(prefs.switcherDisplayMode == .activeWindow)
+    }
+
     @Test("malformed JSON is rejected")
     func malformedRejected() {
         let prefs = Preferences.shared
