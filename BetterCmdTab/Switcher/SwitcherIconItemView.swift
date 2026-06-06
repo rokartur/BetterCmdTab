@@ -204,28 +204,51 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         // just the window title with the System Settings icon — no status
         // glyphs — since their host process name/icon are meaningless.
         let isDialog = row.isSystemDialog
+        let showNames = Preferences.shared.showApplicationNames
+        let showTitles = Preferences.shared.showWindowTitleLabel
 
-        let nameText = isDialog
-            ? (row.windowTitle.isEmpty ? row.appName : row.windowTitle)
-            : row.appNameSlot(showAppNames: Preferences.shared.showApplicationNames)
-        nameLabel.stringValue = nameText
-        // Drop the name label out of the layout entirely when there's nothing to
-        // show (app names hidden) so the tile doesn't reserve an empty top row —
-        // the secondary line slides up into its slot in `layout()`.
-        nameLabel.isHidden = nameText.isEmpty
-
-        // Status glyphs ride with the secondary text instead of crowding the
-        // icon. Audio is orthogonal, so it shows alongside the window-state
-        // glyph (e.g. a windowless app playing sound gets both speaker + no-
-        // window). Launch/reopen rows return their single cue, never a stacked
-        // no-window glyph.
+        // Status glyphs ride with the secondary text instead of crowding the icon.
+        // Audio is orthogonal, so it shows alongside the window-state glyph (e.g. a
+        // windowless app playing sound gets both speaker + no-window). Launch/reopen
+        // rows return their single cue, never a stacked no-window glyph.
         let indicators = isDialog ? [] : Self.indicators(for: row)
-        let secondary = isDialog ? "" : Self.secondaryText(for: row, showTitle: Preferences.shared.showWindowTitleLabel)
-        if indicators.isEmpty, secondary.isEmpty {
+
+        // The label area stacks the app name over a secondary line (glyphs + window
+        // title) only when BOTH labels are shown. Hiding either one collapses the
+        // tile to a single compact line — the metrics drop the freed line's height —
+        // and the surviving label rides the secondary line together with the glyphs,
+        // so no information is lost and the tile shrinks by exactly the hidden line.
+        let secondaryLine: String
+        if showNames && showTitles {
+            // Two lines: app name on top, glyphs + window title below.
+            let nameText = isDialog
+                ? (row.windowTitle.isEmpty ? row.appName : row.windowTitle)
+                : row.appName
+            nameLabel.stringValue = nameText
+            nameLabel.isHidden = nameText.isEmpty
+            secondaryLine = isDialog ? "" : Self.secondaryText(for: row, showTitle: true)
+        } else {
+            // One compact line: drop the app-name line. The surviving label is the
+            // window title when titles are shown, otherwise the app name; dialog rows
+            // keep their own title.
+            nameLabel.stringValue = ""
+            nameLabel.isHidden = true
+            if isDialog {
+                secondaryLine = row.windowTitle.isEmpty ? row.appName : row.windowTitle
+            } else if showTitles {
+                secondaryLine = Self.secondaryText(for: row, showTitle: true)
+            } else if showNames {
+                secondaryLine = row.appName
+            } else {
+                secondaryLine = Self.secondaryText(for: row, showTitle: false)
+            }
+        }
+
+        if indicators.isEmpty, secondaryLine.isEmpty {
             titleLabel.attributedStringValue = NSAttributedString(string: "")
             titleLabel.isHidden = true
         } else {
-            titleLabel.attributedStringValue = makeTitle(indicators: indicators, text: secondary)
+            titleLabel.attributedStringValue = makeTitle(indicators: indicators, text: secondaryLine)
             titleLabel.isHidden = false
         }
 

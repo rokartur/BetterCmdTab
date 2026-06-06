@@ -36,19 +36,18 @@ struct SwitcherMetricsTests {
         #expect(shown.tileSize == hidden.tileSize)
     }
 
-    @Test("grid tile label area collapses whenever the app name is hidden")
+    @Test("grid tile label area collapses whenever either label is hidden")
     func gridCompactLabelArea() {
         let full = SwitcherMetrics.forScale(1.0, layoutMode: .gridView, showAppNames: true, showWindowTitles: true)
         let nameOff = SwitcherMetrics.forScale(1.0, layoutMode: .gridView, showAppNames: false, showWindowTitles: true)
         let titleOff = SwitcherMetrics.forScale(1.0, layoutMode: .gridView, showAppNames: true, showWindowTitles: false)
         let bothOff = SwitcherMetrics.forScale(1.0, layoutMode: .gridView, showAppNames: false, showWindowTitles: false)
+        // Two stacked lines only when both labels are shown.
         #expect(full.tileLabelArea == SwitcherMetrics.baseTileLabelArea)
-        // App name hidden → drop the name line; the secondary line (window title
-        // and/or status glyphs) rides a single slim row, even with the title shown.
+        // Hiding either label drops a line; the surviving label + status glyphs ride
+        // a single slim row, so the tile shrinks by the hidden line's height.
         #expect(nameOff.tileLabelArea == SwitcherMetrics.baseTileCompactLabelArea)
-        // Title hidden but name shown → the secondary line still carries glyphs, so
-        // the full two-line area is kept.
-        #expect(titleOff.tileLabelArea == SwitcherMetrics.baseTileLabelArea)
+        #expect(titleOff.tileLabelArea == SwitcherMetrics.baseTileCompactLabelArea)
         #expect(bothOff.tileLabelArea == SwitcherMetrics.baseTileCompactLabelArea)
     }
 

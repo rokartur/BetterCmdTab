@@ -147,15 +147,12 @@ struct SwitcherMetrics: Equatable {
             ? round(baseRowWidth * scale) - (fullAppNameW - appNameW) - (appNameW == 0 ? round(baseInterGap * scale) : 0)
             : round(baseRowWidth * scale)
 
-        // Collapse the grid tile's label area to a single slim row whenever the app
-        // name is hidden. The tile stacks the app name over a secondary line that
-        // carries the window title *and* status glyphs (minimized / audio / Launch /
-        // Reopen); the secondary line is always needed, so the app-name line is the
-        // one that can be reclaimed. Dropping it shrinks the tile by exactly the name
-        // line's height while the surviving secondary line still fits glyphs and the
-        // window title. (Hiding only the title can't shrink the tile — the secondary
-        // line stays for the glyphs — so that case keeps the full two-line area.)
-        let tileLabelAreaH = (layoutMode == .gridView && !showAppNames)
+        // The grid tile stacks the app name over a secondary line (window title +
+        // status glyphs). Both lines are needed only when both labels are shown;
+        // hiding either one collapses the label area to a single slim row, dropping
+        // the freed line's height. The item view rides the surviving label (title or
+        // app name) on the secondary line with the glyphs, so nothing is lost.
+        let tileLabelAreaH = (layoutMode == .gridView && !(showAppNames && showWindowTitles))
             ? round(baseTileCompactLabelArea * scale)
             : round(baseTileLabelArea * scale)
 
