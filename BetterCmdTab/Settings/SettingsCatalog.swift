@@ -95,6 +95,7 @@ enum SearchID {
     static let scroll = "switcher.scroll"
     static let scrollReverse = "switcher.scrollReverse"
     static let clickDismiss = "switcher.clickDismiss"
+    static let vimNavigation = "switcher.vimNavigation"
     static let hoverActions = "switcher.hoverActions"
     static let exceptions = "switcher.exceptions"
     static let pinnedApps = "switcher.pinnedApps"
@@ -297,6 +298,8 @@ enum SettingsCatalog {
              String(localized: "Reverse scroll direction"), ["scroll", "reverse", "invert"]),
         item(SearchID.clickDismiss, .switcher, SettingsAnchor.navigation, "Switcher", "Navigation",
              String(localized: "Click outside to dismiss"), ["click", "outside", "dismiss", "cancel", "spotlight"]),
+        item(SearchID.vimNavigation, .switcher, SettingsAnchor.navigation, "Switcher", "Navigation",
+             String(localized: "Vim keys (h j k l)"), ["vim", "hjkl", "h j k l", "keyboard", "arrows", "navigation"]),
         // Switcher · Actions
         item(SearchID.hoverActions, .switcher, SettingsAnchor.actions, "Switcher", "Hover actions",
              String(localized: "Action buttons on hover"), ["hover", "buttons", "close", "minimize", "maximize", "hide", "quit", "actions"]),

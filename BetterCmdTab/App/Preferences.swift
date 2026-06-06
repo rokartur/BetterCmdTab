@@ -452,6 +452,7 @@ final class Preferences: ObservableObject {
         static let hoverShowQuit = "Switcher.hoverShowQuit"
         static let hoverShowForceQuit = "Switcher.hoverShowForceQuit"
         static let hideFromScreenSharing = "Switcher.hideFromScreenSharing"
+        static let vimNavigationEnabled = "Switcher.vimNavigationEnabled"
     }
 
     @Published var switcherLayoutMode: SwitcherLayoutMode {
@@ -737,6 +738,19 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != clickOutsideToDismiss else { return }
             UserDefaults.standard.set(clickOutsideToDismiss, forKey: Keys.clickOutsideToDismiss)
+        }
+    }
+
+    /// Treat the vim motion keys h/j/k/l as navigation while the switcher is
+    /// open: h/l step horizontally (grid columns or list columns), j/k step
+    /// vertically. Mirrors the bare arrow keys exactly — no modifier, opt-in
+    /// because h overlaps the default "hide app" panel binding and j/k overlap
+    /// letter-jump. Default off; ignored while search mode is active so a
+    /// typed query can still contain those letters.
+    @Published var vimNavigationEnabled: Bool {
+        didSet {
+            guard oldValue != vimNavigationEnabled else { return }
+            UserDefaults.standard.set(vimNavigationEnabled, forKey: Keys.vimNavigationEnabled)
         }
     }
 
@@ -1094,6 +1108,7 @@ final class Preferences: ObservableObject {
         self.scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
         self.scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         self.clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
+        self.vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
         self.cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         self.experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
@@ -1179,6 +1194,7 @@ final class Preferences: ObservableObject {
         scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
         scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
+        vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
         cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true

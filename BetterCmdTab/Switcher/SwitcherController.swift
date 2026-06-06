@@ -603,6 +603,14 @@ final class SwitcherController: SwitcherViewDelegate {
             .sink { [weak self] enabled in self?.hotkey.setClickOutsideDismiss(enabled) }
             .store(in: &cancellables)
 
+        // h/j/k/l vim navigation: opt-in, mirrors bare arrow keys while the
+        // switcher panel is on screen and search mode is inactive.
+        hotkey.setVimNavigationEnabled(Preferences.shared.vimNavigationEnabled)
+        Preferences.shared.$vimNavigationEnabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in self?.hotkey.setVimNavigationEnabled(enabled) }
+            .store(in: &cancellables)
+
         // "Ignore shortcuts" exceptions: seed the suppression flag for the
         // current frontmost app and re-derive it when the exceptions change.
         updateTriggerSuppression()

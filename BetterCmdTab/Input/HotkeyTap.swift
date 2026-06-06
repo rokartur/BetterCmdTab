@@ -159,6 +159,10 @@ final class HotkeyTap {
     /// here; only consulted while the switcher is idle (an already-open switcher
     /// keeps navigating normally).
     private let suppressTriggerFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// When true, the switcher treats h/j/k/l like the bare arrow keys so a
+    /// vim user can navigate without leaving the home row. Consulted on the tap
+    /// thread, written from main via `setVimNavigationEnabled`. Default off.
+    private let vimNavigationFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
     /// Rebindable in-panel action keys (#5): physical keycode → action. Consulted
     /// in the non-search switching branch before the letter-jump fallback, so a
     /// bound key suppresses letter-jumping (same as the old hardcoded W/M/H/Q).
@@ -443,6 +447,27 @@ final class HotkeyTap {
     /// active-Space changes.
     func setSuppressTrigger(_ value: Bool) {
         suppressTriggerFlag.withLock { $0 = value }
+    }
+
+    /// Enable h/j/k/l vim-style navigation while the switcher is open. Pushed
+    /// from main when the preference changes.
+    func setVimNavigationEnabled(_ value: Bool) {
+        vimNavigationFlag.withLock { $0 = value }
+    }
+
+    /// Pure mapping from a typed character to the corresponding nav `Event`,
+    /// matching the bare arrow keys (h↔←, l↔→, k↔↑, j↔↓). Returns `nil` for
+    /// any non-vim character so the caller can fall back to the existing
+    /// panel-action / letter-jump branches. Stateless and `nonisolated` so the
+    /// tests can exercise it directly.
+    static func vimNavigationEvent(for character: Character) -> Event? {
+        switch character {
+        case "h": return .spatialLeft
+        case "l": return .spatialRight
+        case "k": return .prevRow
+        case "j": return .nextRow
+        default:  return nil
+        }
     }
 
     /// Publish the open switcher panel's frame in CGEvent global (top-left
@@ -793,6 +818,22 @@ final class HotkeyTap {
                         // Gating on a visible panel makes them pass through with
                         // no panel up, independent of any timer.
                         if isPanelPresented() {
+                            // Vim navigation: h/j/k/l mirror the bare arrows.
+                            // Gated by the opt-in preference because h overlaps
+                            // the default Hide panel binding and j/k overlap
+                            // letter-jump. Checked before `panelKeyMap` so an
+                            // enabled vim toggle wins over the bound action;
+                            // only consulted when no modifiers are held so
+                            // ⌘H / ⌥H etc. still pass through. Search mode is
+                            // already handled in the `isSearchingNow()` branch
+                            // above, so the query swallows these letters there.
+                            if vimNavigationFlag.withLock({ $0 }),
+                               !shiftHeld, !optionHeld, !controlHeld,
+                               let ch = translate(keyCode: UInt16(keyCode)),
+                               let vimEvent = Self.vimNavigationEvent(for: Character(ch.lowercased())) {
+                                deliver(vimEvent)
+                                return nil
+                            }
                             if let action = panelKeyMap.withLock({ $0[keyCode] }) {
                                 switch action {
                                 case .close: deliver(.closeWindow)
