@@ -280,7 +280,13 @@ struct SwitcherRow {
     /// names" = off path. Windowless rows and placeholders still return "".
     var windowTitleText: String {
         if isPlaceholder { return "" }
-        if case .recentlyClosed(let entry) = subject { return entry.title }
+        // Mirror `displayTitle`'s fallback: a recently-closed entry with a blank
+        // title (e.g. an app-level reopen recorded on ⌘Q) keeps the app name so the
+        // Previews layout — which renders this verbatim with no "Reopen" fallback —
+        // never shows a fully blank tile.
+        if case .recentlyClosed(let entry) = subject {
+            return entry.title.isEmpty ? appName : entry.title
+        }
         if window == nil { return "" }
         return windowTitle.isEmpty ? appName : windowTitle
     }
