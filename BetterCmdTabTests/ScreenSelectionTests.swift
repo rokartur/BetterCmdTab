@@ -45,4 +45,20 @@ struct ScreenSelectionTests {
         let offset = CGRect(x: 10, y: 10, width: 1000, height: 1000)
         #expect(ScreenSelection.mainDisplayIndex(screenFrames: [screenB, offset]) == nil)
     }
+
+    @Test("equal overlap on two screens picks the first one")
+    func equalOverlapPicksFirstScreen() {
+        // 600 wide window from x=700: 300pt on A (700..1000), 300pt on B (1000..1300).
+        // Equal area → the strict `>` keeps the earliest max, so A (index 0) wins.
+        let win = CGRect(x: 700, y: 200, width: 600, height: 300)
+        #expect(ScreenSelection.indexOfMaxOverlap(rect: win, screenFrames: [screenA, screenB]) == 0)
+    }
+
+    @Test("a screen touched only on its edge with zero area is not chosen")
+    func edgeTouchingScreenIsNotChosen() {
+        // Window lies entirely on B (1000..1500); its left edge touches A at x=1000
+        // with a zero-width intersection. A's zero-area touch is skipped, B wins.
+        let win = CGRect(x: 1000, y: 200, width: 500, height: 300)
+        #expect(ScreenSelection.indexOfMaxOverlap(rect: win, screenFrames: [screenA, screenB]) == 1)
+    }
 }
