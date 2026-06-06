@@ -1,6 +1,21 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Choose which monitor the switcher opens on when you have more than one display." : {
+
+    },
+    "Main display" : {
+
+    },
+    "Monitor with the active window" : {
+
+    },
+    "Monitor with the cursor" : {
+
+    },
+    "Show switcher on" : {
+
+    },
     "Apps kept visible: %lld." : {
       "localizations" : {
         "de" : {
