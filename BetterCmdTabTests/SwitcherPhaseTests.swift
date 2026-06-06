@@ -69,4 +69,14 @@ struct SwitcherReleaseMissedTests {
         // a hold modifier).
         #expect(SwitcherController.releaseAlreadyMissed(flags: [.maskShift], appMask: .maskCommand, windowMask: .maskAlternate))
     }
+
+    @Test func disabledTrigger_contributesNoHold() {
+        // A cleared shortcut passes a nil mask: it must never count as held, so an
+        // incidentally-held ⌘ can't mask the real (Control) window hold modifier.
+        #expect(SwitcherController.releaseAlreadyMissed(flags: [.maskCommand], appMask: nil, windowMask: .maskControl))
+        // The live window modifier still down → not missed.
+        #expect(!SwitcherController.releaseAlreadyMissed(flags: [.maskControl], appMask: nil, windowMask: .maskControl))
+        // Both triggers disabled → nothing to hold, so the release is always missed.
+        #expect(SwitcherController.releaseAlreadyMissed(flags: [.maskCommand], appMask: nil, windowMask: nil))
+    }
 }

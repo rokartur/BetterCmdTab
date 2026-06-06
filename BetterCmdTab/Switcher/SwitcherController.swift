@@ -845,9 +845,10 @@ final class SwitcherController: SwitcherViewDelegate {
         let panelOpen = phase != .idle
         // The hold-modifier poller detects ⌘-release (no event is delivered for
         // it under secure input) and supplies the live hold state that gates the
-        // in-panel chords. Needed only while the panel is open under secure input.
-        // Poll whichever trigger is live (app wins when both exist).
-        if secureInputActive && panelOpen {
+        // in-panel chords. Needed only while the panel is open under secure input
+        // with at least one live trigger — both cleared reserves no chord, so
+        // there is nothing to poll for. Poll whichever trigger is live (app wins).
+        if secureInputActive && panelOpen && (app != nil || window != nil) {
             if !holdMonitorRunning {
                 let holdMods = app?.carbonModifiers ?? window?.carbonModifiers ?? UInt32(cmdKey)
                 holdMonitor.start(mask: Self.holdMask(for: holdMods), assumeHeld: true)
@@ -905,21 +906,25 @@ final class SwitcherController: SwitcherViewDelegate {
     /// would open with nothing left to dismiss it. Re-reading the live modifier
     /// state on the main thread recovers that dropped release; this isolates the
     /// decision so it stays unit-testable.
-    nonisolated static func releaseAlreadyMissed(flags: CGEventFlags, appMask: CGEventFlags, windowMask: CGEventFlags) -> Bool {
-        !(HoldModifierMonitor.holdState(flags: flags, mask: appMask)
-            || HoldModifierMonitor.holdState(flags: flags, mask: windowMask))
+    /// A `nil` mask is a disabled trigger (the user cleared that shortcut): it
+    /// contributes nothing and never counts as held — otherwise a phantom mask
+    /// would let an incidentally-held modifier mask a real release.
+    nonisolated static func releaseAlreadyMissed(flags: CGEventFlags, appMask: CGEventFlags?, windowMask: CGEventFlags?) -> Bool {
+        let appHeld = appMask.map { HoldModifierMonitor.holdState(flags: flags, mask: $0) } ?? false
+        let windowHeld = windowMask.map { HoldModifierMonitor.holdState(flags: flags, mask: $0) } ?? false
+        return !(appHeld || windowHeld)
     }
 
     /// Live check of `releaseAlreadyMissed` against the current physical modifier
     /// state (`CGEventSource.flagsState` keeps reporting under Secure Event Input).
     private func holdReleaseAlreadyMissed() -> Bool {
-        // A disabled trigger contributes an empty mask (holds nothing).
+        // A disabled trigger (nil) contributes no mask, so it never counts as held.
         let appTrigger = Self.carbonTrigger(for: .switchApps)
         let windowTrigger = Self.carbonTrigger(for: .switchWindows)
         return Self.releaseAlreadyMissed(
             flags: CGEventSource.flagsState(.combinedSessionState),
-            appMask: Self.holdMask(for: appTrigger?.carbonModifiers ?? 0),
-            windowMask: Self.holdMask(for: windowTrigger?.carbonModifiers ?? 0)
+            appMask: appTrigger.map { Self.holdMask(for: $0.carbonModifiers) },
+            windowMask: windowTrigger.map { Self.holdMask(for: $0.carbonModifiers) }
         )
     }
 
