@@ -735,6 +735,25 @@ enum Activator {
         return (windowValue as! AXUIElement)
     }
 
+    /// The window's bounds in **Accessibility coordinates** (top-left origin of
+    /// the primary display, y-down) read synchronously via the AX API. Returns
+    /// nil if the attributes are missing/typed wrong. Call OFF the main thread —
+    /// `AXUIElementCopyAttributeValue` can block up to the messaging timeout on a
+    /// busy app. The caller converts to Cocoa coordinates and picks a screen.
+    static func axBounds(of window: AXUIElement) -> CGRect? {
+        var posRef: AnyObject?
+        var sizeRef: AnyObject?
+        guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &posRef) == .success,
+              AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeRef) == .success,
+              CFGetTypeID(posRef as CFTypeRef) == AXValueGetTypeID(),
+              CFGetTypeID(sizeRef as CFTypeRef) == AXValueGetTypeID() else { return nil }
+        var pos = CGPoint.zero
+        var size = CGSize.zero
+        AXValueGetValue(posRef as! AXValue, .cgPoint, &pos)
+        AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
+        return CGRect(origin: pos, size: size)
+    }
+
     /// Arrange an explicit window on its current screen. Used by the switcher
     /// for the window it captured at open time (see `openFocusedWindow`).
     /// Always on main: `applyArrangement` reads `NSScreen.screens` (documented
