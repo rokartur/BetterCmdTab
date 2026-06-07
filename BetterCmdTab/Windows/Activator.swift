@@ -806,7 +806,12 @@ enum Activator {
 
     private static func applyArrangement(window: AXUIElement, arrangement: WindowArrangement) {
         guard !NSScreen.screens.isEmpty else { return }
-        let mainHeight = NSScreen.screens[0].frame.maxY
+        // Anchor the AX↔Cocoa flip to the origin-zero "Main display": NSScreen
+        // .screens order is not guaranteed primary-first, so picking screens[0]
+        // would flip against the wrong height when displays are reordered. (The
+        // empty case is already excluded by the guard above.)
+        let mainHeight = (NSScreen.screens.first(where: { $0.frame.origin == .zero })
+            ?? NSScreen.screens[0]).frame.maxY
 
         var posRef: AnyObject?
         var sizeRef: AnyObject?
@@ -876,7 +881,12 @@ enum Activator {
         guard !NSScreen.screens.isEmpty else { return }
         // AX coordinates are top-left origin (y down) anchored at the main screen;
         // Cocoa screen frames are bottom-left origin. `mainHeight` bridges them.
-        let mainHeight = NSScreen.screens[0].frame.maxY
+        // Anchor the AX↔Cocoa flip to the origin-zero "Main display": NSScreen
+        // .screens order is not guaranteed primary-first, so picking screens[0]
+        // would flip against the wrong height when displays are reordered. (The
+        // empty case is already excluded by the guard above.)
+        let mainHeight = (NSScreen.screens.first(where: { $0.frame.origin == .zero })
+            ?? NSScreen.screens[0]).frame.maxY
 
         var posRef: AnyObject?
         var sizeRef: AnyObject?
@@ -953,7 +963,12 @@ enum Activator {
             _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, kCFBooleanFalse)
         }
 
-        let mainHeight = NSScreen.screens[0].frame.maxY
+        // Anchor the AX↔Cocoa flip to the origin-zero "Main display": NSScreen
+        // .screens order is not guaranteed primary-first, so picking screens[0]
+        // would flip against the wrong height when displays are reordered. (The
+        // empty case is already excluded by the guard above.)
+        let mainHeight = (NSScreen.screens.first(where: { $0.frame.origin == .zero })
+            ?? NSScreen.screens[0]).frame.maxY
         let target = saved.cocoaRect
         var newSize = CGSize(width: target.width, height: target.height)
         if let sizeValue = AXValueCreate(.cgSize, &newSize) {
