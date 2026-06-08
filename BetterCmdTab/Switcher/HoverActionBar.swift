@@ -16,8 +16,8 @@ final class HoverActionBar: NSView {
     /// Base dot diameter at scale 1.0; the live diameter scales with the
     /// switcher's current size so the buttons read at the same relative
     /// weight on every panel size.
-    static let baseDotSize: CGFloat = 14
-    private static let baseSpacing: CGFloat = 5
+    nonisolated static let baseDotSize: CGFloat = 14
+    nonisolated private static let baseSpacing: CGFloat = 5
 
     /// Live scale factor; set by the host item view from `metrics.scale`.
     private var scaleFactor: CGFloat = 1.0
