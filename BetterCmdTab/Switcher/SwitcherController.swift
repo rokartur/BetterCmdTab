@@ -2122,6 +2122,19 @@ final class SwitcherController: SwitcherViewDelegate {
             } else {
                 index = 0
             }
+        } else if cache.hasCompletedFullScan {
+            // Zero rows out of an already-scanned cache means the filters
+            // legitimately hide everything — e.g. only a windowless Finder is
+            // running and its default when-no-windows exception drops it.
+            // Present the empty state directly (#31): placeholder rows would
+            // only flash, since the background snapshot comes back just as
+            // empty and clears them a few frames later. A genuinely cold
+            // cache (no scan yet) still takes the placeholder path below.
+            baseRows = []
+            baseLabels = []
+            rows = []
+            labels = []
+            index = 0
         } else {
             baseRows = snapshotApps.map { app in
                 SwitcherRow(
@@ -2170,7 +2183,9 @@ final class SwitcherController: SwitcherViewDelegate {
                 index = max(0, min(index, rows.count - 1))
             }
         }
-        guard !rows.isEmpty else { cancel(); return }
+        // Empty rows no longer cancel: the panel presents with the view's
+        // "No open windows" empty state instead of flashing away (#31). This
+        // also covers a scoped open whose filter matches nothing.
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
@@ -2336,7 +2351,23 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func applyFullSnapshot(_ fresh: [SwitcherRow], anchorPid: pid_t?) {
         guard phase == .visible else { return }
-        if fresh.isEmpty { cancel(); return }
+        if fresh.isEmpty {
+            // Distinguish "opened onto nothing" from "had windows, lost the
+            // last one". If the panel is still showing placeholder rows (a cold
+            // reveal whose background scan just resolved to empty), settle into
+            // the empty state instead of flashing away (#31). If it was showing
+            // real rows, the user/window-server just closed the last window —
+            // dismiss the panel. refreshDisplay still appends recently-closed
+            // rows, so those remain reopenable from the empty panel.
+            if rows.allSatisfy(\.isPlaceholder) {
+                baseRows = []
+                baseLabels = []
+                refreshDisplay(anchorPid: anchorPid)
+            } else {
+                cancel()
+            }
+            return
+        }
 
         // Drop apps being quit so a background refresh doesn't re-add one as a
         // windowless row during its death gap (see `quittingPids`).
@@ -2835,7 +2866,12 @@ final class SwitcherController: SwitcherViewDelegate {
         prefetchedFocusedWindow = nil
         prefetchedTargetScreen = nil
         // We picked a target — `pendingActivation` activates it, so there's
-        // nothing to restore. Drop the captured previous app.
+        // nothing to restore. Without a pick (committing out of the empty
+        // state, or a primed commit that resolved no app) undo present()'s
+        // self-activation like cancel() does, then drop the captured app.
+        if pendingActivation == nil {
+            restorePreviousFrontmostApp()
+        }
         previousFrontmostApp = nil
         resetLetterBuffer()
         resetSearch()
@@ -3404,6 +3440,27 @@ final class SwitcherController: SwitcherViewDelegate {
             return
         }
 
+        // Closing this window left no other open window anywhere — the user
+        // closed the last one, so dismiss instead of lingering on a demoted
+        // windowless row or the empty state. Consult the canonical per-window
+        // cache (minus the window just closed, which the pending refresh hasn't
+        // dropped yet) rather than `baseRows`: in "Applications only" mode
+        // baseRows is collapsed to one row per app and would miss an app's
+        // other windows, dismissing while windows remain. Windowless rows don't
+        // count — with no window to switch to, the panel has no purpose.
+        // Checked before the demotion below so the app isn't inserted as a
+        // windowless row only to be torn down a line later.
+        let closedWindow = row.window
+        let anyWindowRemains = cache.rows(orderedBy: mru.order).contains { r in
+            guard let w = r.window else { return false }
+            if let cw = closedWindow { return !CFEqual(w, cw) }
+            return true
+        }
+        if !anyWindowRemains {
+            cancel()
+            return
+        }
+
         // If this was the only window for a regular app, demote the app to a
         // windowless row right now. Otherwise the app visibly vanishes for
         // ~250ms (until the cache refresh + tombstone filter substitute one) —
@@ -3448,10 +3505,12 @@ final class SwitcherController: SwitcherViewDelegate {
             )
         }
 
-        if baseRows.isEmpty {
-            cancel()
-            return
-        }
+        // A window still exists somewhere (checked above), so the panel stays
+        // open. `baseRows` itself can still be empty here in "Applications only"
+        // mode — the closed app's other windows live in the cache but aren't
+        // separate rows, and the demotion above is filter-gated — in which case
+        // `refreshDisplay()` shows the empty state until the 250ms refresh
+        // re-collapses the remaining window back in. Safe either way.
         baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay()
 

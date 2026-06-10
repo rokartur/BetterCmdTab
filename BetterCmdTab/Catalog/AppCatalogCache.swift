@@ -24,6 +24,10 @@ final class AppCatalogCache {
     }
 
     private(set) var entries: [pid_t: AppCacheEntry] = [:]
+    /// True once at least one full off-main scan has landed in `entries`.
+    /// Lets the reveal path tell "cache cold, never scanned" apart from
+    /// "scanned, and the filters legitimately yield zero rows".
+    private(set) var hasCompletedFullScan = false
     /// Whether the switcher panel is on screen. Title-change notifications are
     /// only acted on while this is true. Set via `setPanelVisible`.
     private var panelVisible = false
@@ -181,6 +185,7 @@ final class AppCatalogCache {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.entries = fresh
+                self.hasCompletedFullScan = true
                 // Drop coverage memos for pids the full refresh no longer lists
                 // (terminated apps a missed observer teardown left behind); the
                 // memo stays valid across refresh otherwise — it's keyed on the

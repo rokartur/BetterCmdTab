@@ -38,7 +38,11 @@ final class SwitcherView: NSView, TabStripDelegate {
     private let listContainer = NSView()
     private let searchBar = SwitcherSearchBarView()
     private let tabStrip = TabStripView()
-    private let noResultsLabel = NSTextField(labelWithString: String(localized: "No matches"))
+    /// Empty-state glyph + caption, shown centered when there are no rows
+    /// (no open windows, or a search/scope that matched nothing — #31). Framed
+    /// as a centered icon-over-title group in `layout()` via `emptyLayout()`.
+    private let emptyIcon = NSImageView()
+    private let emptyTitle = NSTextField(labelWithString: "")
     private var itemViews: [SwitcherItemViewProtocol] = []
     private var rows: [SwitcherRow] = []
     private(set) var labels: [String] = []
@@ -93,11 +97,15 @@ final class SwitcherView: NSView, TabStripDelegate {
         tabStrip.isHidden = true
         tabStrip.delegate = self
         contentContainer.addSubview(tabStrip)
-        noResultsLabel.isHidden = true
-        noResultsLabel.alignment = .center
-        noResultsLabel.textColor = .secondaryLabelColor
-        noResultsLabel.font = .systemFont(ofSize: 13, weight: .medium)
-        contentContainer.addSubview(noResultsLabel)
+        emptyIcon.isHidden = true
+        emptyIcon.imageScaling = .scaleProportionallyUpOrDown
+        emptyIcon.contentTintColor = .tertiaryLabelColor
+        contentContainer.addSubview(emptyIcon)
+        emptyTitle.isHidden = true
+        emptyTitle.alignment = .center
+        emptyTitle.textColor = .secondaryLabelColor
+        emptyTitle.font = .systemFont(ofSize: 14, weight: .semibold)
+        contentContainer.addSubview(emptyTitle)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
@@ -143,7 +151,22 @@ final class SwitcherView: NSView, TabStripDelegate {
         } else {
             tabStrip.isHidden = true
         }
-        noResultsLabel.isHidden = !(searchActive && rows.isEmpty)
+        // Empty state (#31): no rows means either nothing is open (filters left
+        // the catalog empty) or a live search/scope matched nothing. Present a
+        // centered glyph + caption instead of flashing the panel away. The
+        // glyph and copy switch on whether the user is searching.
+        if rows.isEmpty {
+            let symbol = searchActive ? "magnifyingglass" : "macwindow"
+            let conf = NSImage.SymbolConfiguration(pointSize: round(34 * metrics.scale), weight: .regular)
+            emptyIcon.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+                .withSymbolConfiguration(conf)
+            emptyTitle.stringValue = searchActive
+                ? String(localized: "No matches")
+                : String(localized: "No open windows")
+            emptyTitle.font = .systemFont(ofSize: round(14 * metrics.scale), weight: .semibold)
+        }
+        emptyIcon.isHidden = !rows.isEmpty
+        emptyTitle.isHidden = !rows.isEmpty
         let layoutModeChanged = metrics.layoutMode != self.metrics.layoutMode
         if metrics != self.metrics {
             self.metrics = metrics
@@ -229,7 +252,8 @@ final class SwitcherView: NSView, TabStripDelegate {
         tabStripActive = false
         tabStrip.isHidden = true
         searchBar.isHidden = true
-        noResultsLabel.isHidden = true
+        emptyIcon.isHidden = true
+        emptyTitle.isHidden = true
         WindowThumbnailCache.shared.onReady = nil
     }
 
@@ -500,7 +524,27 @@ final class SwitcherView: NSView, TabStripDelegate {
             y: listOriginY
         )
         listContainer.frame = NSRect(origin: listOrigin, size: info.listSize)
-        noResultsLabel.frame = NSRect(x: 0, y: reservedTabStripHeight, width: bounds.width, height: listAreaHeight)
+
+        // Empty state: stack the glyph over the caption and center the group in
+        // the list area. Sized off the active scale so it tracks panel size.
+        if rows.isEmpty {
+            let g = emptyStateGeometry()
+            let groupH = g.icon + g.spacing + g.title
+            let midY = reservedTabStripHeight + listAreaHeight / 2
+            let topY = midY + groupH / 2
+            emptyIcon.frame = NSRect(
+                x: (bounds.width - g.icon) / 2,
+                y: topY - g.icon,
+                width: g.icon,
+                height: g.icon
+            )
+            emptyTitle.frame = NSRect(
+                x: 0,
+                y: topY - g.icon - g.spacing - g.title,
+                width: bounds.width,
+                height: g.title
+            )
+        }
 
         if tabStripActive {
             tabStrip.frame = NSRect(
@@ -575,16 +619,49 @@ final class SwitcherView: NSView, TabStripDelegate {
     private func computeLayout() -> ListLayout {
         if let cachedLayout { return cachedLayout }
         let layout: ListLayout
-        switch metrics.layoutMode {
-        case .list:
-            layout = computeListLayout()
-        case .gridView:
-            layout = computeIconDockLayout()
-        case .windowPreview:
-            layout = computePreviewLayout()
+        if rows.isEmpty {
+            layout = emptyLayout()
+        } else {
+            switch metrics.layoutMode {
+            case .list:
+                layout = computeListLayout()
+            case .gridView:
+                layout = computeIconDockLayout()
+            case .windowPreview:
+                layout = computePreviewLayout()
+            }
         }
         cachedLayout = layout
         return layout
+    }
+
+    /// Pixel sizes of the empty-state group's three parts at the current scale.
+    /// Shared by `emptyLayout()` (panel sizing) and `layout()` (positioning) so
+    /// the reserved box and the placed views always agree.
+    private func emptyStateGeometry() -> (icon: CGFloat, spacing: CGFloat, title: CGFloat) {
+        let s = metrics.scale
+        return (icon: round(40 * s), spacing: round(12 * s), title: round(22 * s))
+    }
+
+    /// A compact, balanced panel for the no-rows case — wide enough for the
+    /// caption with margins, tall enough for the glyph-over-title group plus
+    /// breathing room — rather than the one-row sliver the list/grid layouts
+    /// produce from a zero count.
+    private func emptyLayout() -> ListLayout {
+        let g = emptyStateGeometry()
+        let outer = metrics.outerPadding
+        let s = metrics.scale
+        let titleW = ceil(emptyTitle.intrinsicContentSize.width)
+        let contentW = max(round(260 * s), titleW + round(64 * s))
+        let contentH = g.icon + g.spacing + g.title + round(44 * s)
+        let listSize = NSSize(width: contentW, height: contentH)
+        return ListLayout(
+            frames: [],
+            listSize: listSize,
+            total: NSSize(width: contentW + outer * 2, height: contentH + outer * 2),
+            rowsPerCol: 0,
+            cols: 1
+        )
     }
 
     /// Returns the visible frame of the screen to size the panel for. Uses
