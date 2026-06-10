@@ -110,3 +110,88 @@ struct WindowMRUTrackerTests {
         #expect(sorted.map(\.cgWindowID) == [10, 0])
     }
 }
+
+/// Covers the per-app within-group ordering (`sortWindowsWithinApps`) that backs
+/// the app-grouped sort orders — the fix for #30, where switching away from an
+/// app and back forgot which window you last used. Exercised through the pure
+/// index core `windowOrderWithinApps`, which takes `(pid, wid)` arrays so it can
+/// span multiple apps without constructing `NSRunningApplication`s.
+@Suite("WindowMRUTracker within-app sort")
+struct WindowMRUTrackerWithinAppTests {
+    private func order(_ pairs: [pid_t: [CGWindowID]]) -> [pid_t: [CGWindowID]] { pairs }
+
+    @Test("floats each app's most-recent window to its group head")
+    func floatsRecentWindowToHead() {
+        // App 1 last focused window 11 (after 10); app 2 last focused 20.
+        let o = order([1: [11, 10], 2: [20, 21]])
+        // Incoming catalog order has 10 ahead of 11 (z-order lag).
+        let pids: [pid_t?] = [1, 1, 2, 2]
+        let wids: [CGWindowID] = [10, 11, 21, 20]
+        let result = WindowMRUTracker.windowOrderWithinApps(pids: pids, wids: wids, order: o)
+        // App order preserved (app 1 then app 2); within each, MRU window leads.
+        #expect(result == [1, 0, 3, 2])
+    }
+
+    @Test("preserves app order even when a later app was focused more recently")
+    func keepsAppOrder() {
+        // App 2's window was focused most recently, but app order must not change
+        // — only windows within an app reorder.
+        let o = order([1: [10], 2: [20]])
+        let pids: [pid_t?] = [1, 2]
+        let wids: [CGWindowID] = [10, 20]
+        let result = WindowMRUTracker.windowOrderWithinApps(pids: pids, wids: wids, order: o)
+        #expect(result == [0, 1])
+    }
+
+    @Test("unseen windows sink to the back of their group, stable on offset")
+    func unseenWindowsToBackOfGroup() {
+        // Only 11 is tracked for app 1; 10 and 12 were never focused.
+        let o = order([1: [11]])
+        let pids: [pid_t?] = [1, 1, 1]
+        let wids: [CGWindowID] = [10, 11, 12]
+        let result = WindowMRUTracker.windowOrderWithinApps(pids: pids, wids: wids, order: o)
+        // 11 leads; 10 and 12 keep their incoming relative order behind it.
+        #expect(result == [1, 0, 2])
+    }
+
+    @Test("windowless rows fall to the back of their app group")
+    func windowlessToBackOfGroup() {
+        let o = order([1: [10]])
+        let pids: [pid_t?] = [1, 1]
+        let wids: [CGWindowID] = [0, 10] // windowless row first in catalog
+        let result = WindowMRUTracker.windowOrderWithinApps(pids: pids, wids: wids, order: o)
+        #expect(result == [1, 0])
+    }
+
+    @Test("pid-less rows (launchables / recents) hold their slot")
+    func pidlessRowsHoldSlot() {
+        let o = order([1: [11, 10]])
+        let pids: [pid_t?] = [1, 1, nil, nil]
+        let wids: [CGWindowID] = [10, 11, 0, 0]
+        let result = WindowMRUTracker.windowOrderWithinApps(pids: pids, wids: wids, order: o)
+        // App 1's windows reorder by MRU; the two pid-less rows stay in place.
+        #expect(result == [1, 0, 2, 3])
+    }
+
+    @Test("empty order leaves the indices in their incoming order")
+    func emptyOrderIsIdentity() {
+        let result = WindowMRUTracker.windowOrderWithinApps(
+            pids: [1, 1, 2], wids: [10, 11, 20], order: [:]
+        )
+        #expect(result == [0, 1, 2])
+    }
+
+    @Test("non-contiguous rows of one app are not merged across status buckets")
+    func nonContiguousRunsStayPut() {
+        // Incoming rows are status-bucketed (normal → minimized): app 1's normal
+        // window (10) leads, then app 2 (20), then app 1's minimized window (11).
+        // 11 is the most recently focused, but it must NOT be pulled up next to
+        // 10 — that would break the global normal-before-minimized layout. Each
+        // is its own contiguous run, so the layout is preserved.
+        let o = order([1: [11, 10], 2: [20]])
+        let pids: [pid_t?] = [1, 2, 1]
+        let wids: [CGWindowID] = [10, 20, 11]
+        let result = WindowMRUTracker.windowOrderWithinApps(pids: pids, wids: wids, order: o)
+        #expect(result == [0, 1, 2])
+    }
+}

@@ -2294,17 +2294,23 @@ final class SwitcherController: SwitcherViewDelegate {
         refreshDisplay()
     }
 
-    /// Apply the flat cross-app window-recency sort when `.mruWindows` is the
-    /// active order; a no-op otherwise so the default ⌘Tab path stays untouched.
+    /// Apply window-recency ordering. In `.mruWindows` the whole list is sorted
+    /// by flat cross-app window recency; in the app-grouped orders (`.mru`,
+    /// `.alphabetical`, `.launchOrder`) the app order is left alone but each
+    /// app's windows are floated into most-recently-used order, so the window
+    /// that collapses to the app's row — or that a per-window list opens on —
+    /// is the one last focused in that app, not its catalog z-order head (#30).
     /// Runs after hide/scope filtering and before browser-tab expansion, so tabs
-    /// inherit their parent window's global rank and move together as a block.
+    /// inherit their parent window's rank and move together as a block.
     ///
     /// The recency sort reorders the whole list, discarding the pin-to-front
     /// ordering `filteredRows` applied upstream, so re-pin afterwards: pinned
     /// apps stay at the front and their windows keep recency order within the
     /// pin block (the partition is stable on offset).
     private func applyWindowMRUSort(_ rows: [SwitcherRow]) -> [SwitcherRow] {
-        guard Preferences.shared.sortOrder == .mruWindows else { return rows }
+        guard Preferences.shared.sortOrder == .mruWindows else {
+            return windowMRU.sortWindowsWithinApps(rows)
+        }
         // Re-base onto a frontmost-independent order before the recency sort.
         // The incoming rows are app-MRU ordered, so the *currently active* app's
         // windows lead the list; windows the tracker has never seen would then
@@ -2691,18 +2697,21 @@ final class SwitcherController: SwitcherViewDelegate {
         return candidates[target]
     }
 
-    /// The row the visible switcher would activate for `app`: its frontmost
-    /// catalogued window. The catalog gives an app either one windowless row or
-    /// one row per window (windowed rows sort first), so the first windowed row
-    /// for the pid is the frontmost — matching reveal()'s `firstIndex(by: pid)`
-    /// pick. Reads the warm cache ONLY: this runs inside commit() on the main
-    /// actor (the hottest path), so it must never trigger a synchronous
-    /// cross-process AppCatalog.snapshot(). nil — a windowless app, or the brief
-    /// cold-cache window at boot/AX-regrant — makes the caller fall back to the
-    /// cheap, main-safe `activateApp`.
+    /// The row the visible switcher would activate for `app`: its most-recently-
+    /// used window. The catalog orders an app's windows by z-order, which lags
+    /// real focus recency, so picking the first windowed row forgot which window
+    /// you last used when you switched away and back (#30). Sort the pid's
+    /// windowed rows through the window-MRU tracker (the same pick reveal() lands
+    /// on after `applyWindowMRUSort`) and take its head. Reads the warm cache
+    /// ONLY: this runs inside commit() on the main actor (the hottest path), so
+    /// it must never trigger a synchronous cross-process AppCatalog.snapshot().
+    /// nil — a windowless app, or the brief cold-cache window at boot/AX-regrant
+    /// — makes the caller fall back to the cheap, main-safe `activateApp`.
     private func primedAppTargetRow(for app: NSRunningApplication) -> SwitcherRow? {
         let pid = app.processIdentifier
-        return cache.rows(orderedBy: mru.order).first(where: { $0.pid == pid && $0.window != nil })
+        let candidates = cache.rows(orderedBy: mru.order).filter { $0.pid == pid && $0.window != nil }
+        guard !candidates.isEmpty else { return nil }
+        return windowMRU.sortRows(candidates, forPid: pid).first
     }
 
     /// The window row a `.mruWindows` fast tap-release should activate: the
@@ -3537,7 +3546,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // Collapse to one row per app when "Applications only" is on — the
                 // reveal paths do this; without it the first in-panel window action's
                 // refresh would re-expand the panel to one row per window.
-                self.baseRows = self.expandBrowserTabs(self.applyApplicationsOnly(fresh))
+                self.baseRows = self.expandBrowserTabs(self.applyApplicationsOnly(self.applyWindowMRUSort(fresh)))
                 self.baseLabels = RowLabels.labels(for: self.baseRows)
                 self.refreshDisplay()
                 self.scheduleBrowserTabExpansion()

@@ -98,6 +98,77 @@ final class WindowMRUTracker {
         return sorted
     }
 
+    /// Reorder `rows` so each app's windows lead in most-recently-used order
+    /// while the apps themselves — and any windowless / pid-less rows — keep
+    /// their incoming relative position. The app-grouped sort orders (`.mru`,
+    /// `.alphabetical`, `.launchOrder`) leave an app's windows in catalog
+    /// z-order, which lags real focus recency, so the window that collapses to
+    /// the app's row (and the window a per-window list opens on) was the wrong
+    /// one — switching away from an app and back forgot the last window you used
+    /// (#30). Float each app's last-focused window to the head of its group so
+    /// that pick is correct. Windows the tracker has never seen keep their
+    /// incoming order, so untouched apps are never disturbed.
+    func sortWindowsWithinApps(_ rows: [SwitcherRow]) -> [SwitcherRow] {
+        guard !order.isEmpty, rows.count > 1 else { return rows }
+        let pids = rows.map(\.pid)
+        let wids = rows.map { row -> CGWindowID in
+            row.cgWindowID != 0 ? row.cgWindowID : (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0)
+        }
+        return Self.windowOrderWithinApps(pids: pids, wids: wids, order: order).map { rows[$0] }
+    }
+
+    /// Pure index-level core of `sortWindowsWithinApps`, split out so it can be
+    /// unit-tested without constructing `NSRunningApplication`s. Returns the row
+    /// indices in their reordered position. Reordering happens ONLY within a
+    /// *contiguous* run of same-pid rows: within a run windows lead by their rank
+    /// in `order[pid]` (windowless / unseen windows fall to the run's back at
+    /// `Int.max`, stable on offset); the runs themselves stay put. Restricting to
+    /// contiguous runs preserves the caller's global status bucketing — incoming
+    /// rows arrive grouped as normal → minimized → hidden, so an app's normal and
+    /// minimized windows sit in separate runs and never merge — while still
+    /// floating the most-recently-used window to the head of the run that the
+    /// app's row collapses from. pid-less rows (launchables / recently-closed)
+    /// are each their own one-element run and hold their slot.
+    static func windowOrderWithinApps(
+        pids: [pid_t?],
+        wids: [CGWindowID],
+        order: [pid_t: [CGWindowID]]
+    ) -> [Int] {
+        let n = pids.count
+        // Group key = start offset of the contiguous run this row belongs to. A
+        // run continues only while the pid is the same non-nil value as the row
+        // before it, so non-contiguous occurrences of a pid (split across status
+        // buckets) and every pid-less row start fresh runs.
+        var runStart = [Int](repeating: 0, count: n)
+        var start = 0
+        for i in 0..<n {
+            if i == 0 || pids[i] == nil || pids[i] != pids[i - 1] { start = i }
+            runStart[i] = start
+        }
+        // Per-pid wid→rank lookup, built lazily the first time a pid is seen.
+        var rankByPid: [pid_t: [CGWindowID: Int]] = [:]
+        func winRank(pid: pid_t, wid: CGWindowID) -> Int {
+            guard wid != 0 else { return Int.max }
+            if rankByPid[pid] == nil {
+                var ranks: [CGWindowID: Int] = [:]
+                if let list = order[pid] {
+                    for (idx, w) in list.enumerated() { ranks[w] = idx }
+                }
+                rankByPid[pid] = ranks
+            }
+            return rankByPid[pid]?[wid] ?? Int.max
+        }
+        let ranks = (0..<n).map { i -> Int in
+            guard let pid = pids[i] else { return Int.max }
+            return winRank(pid: pid, wid: wids[i])
+        }
+        return (0..<n).sorted { a, b in
+            if runStart[a] != runStart[b] { return runStart[a] < runStart[b] }
+            if ranks[a] != ranks[b] { return ranks[a] < ranks[b] }
+            return a < b
+        }
+    }
+
     /// Re-orders `rows` by flat cross-app window recency (the `.mruWindows`
     /// sort): each window sorts by its rank in `globalOrder`, newest first,
     /// interleaving windows of different apps. Windowless rows (`cgWindowID == 0`)
