@@ -129,7 +129,7 @@ final class WindowMRUTracker {
     /// floating the most-recently-used window to the head of the run that the
     /// app's row collapses from. pid-less rows (launchables / recently-closed)
     /// are each their own one-element run and hold their slot.
-    static func windowOrderWithinApps(
+    nonisolated static func windowOrderWithinApps(
         pids: [pid_t?],
         wids: [CGWindowID],
         order: [pid_t: [CGWindowID]]
