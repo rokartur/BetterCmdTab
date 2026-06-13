@@ -396,9 +396,20 @@ if [[ $skip_build_bump -eq 0 ]]; then
   NEW_BUILD_NUMBER=$(date +%Y%m%d%H%M%S)
   echo "   Build number: ${BUILD_NUMBER} → ${NEW_BUILD_NUMBER}"
 
-  sed -i '' \
-    "s/CURRENT_PROJECT_VERSION = ${BUILD_NUMBER};/CURRENT_PROJECT_VERSION = ${NEW_BUILD_NUMBER};/g" \
-    "${PROJECT_PATH}/project.pbxproj"
+  # Scope the rewrite to the app target's build configurations: the test
+  # target seeds the same value, and a global sed would stamp it too
+  # (the contract is that the test target keeps its own version).
+  _app_config_ids=$(sed -n "/Build configuration list for PBXNativeTarget \"${APP_NAME}\" \*\/ = {$/,/);/p" \
+    "${PROJECT_PATH}/project.pbxproj" | grep -E '\*/,$' | grep -oE '[A-F0-9]{24}')
+  if [[ -z "$_app_config_ids" ]]; then
+    echo "❌ Could not locate the ${APP_NAME} target's build configurations in project.pbxproj"
+    exit 1
+  fi
+  for _cfg_id in $_app_config_ids; do
+    sed -i '' \
+      "/${_cfg_id} .*= {$/,/};/ s/CURRENT_PROJECT_VERSION = ${BUILD_NUMBER};/CURRENT_PROJECT_VERSION = ${NEW_BUILD_NUMBER};/" \
+      "${PROJECT_PATH}/project.pbxproj"
+  done
 
   _actual=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME" -showBuildSettings 2>/dev/null \
     | grep 'CURRENT_PROJECT_VERSION' | head -1 | awk '{print $NF}')

@@ -141,9 +141,20 @@ if [[ $bump_build -eq 1 ]]; then
   new_build="$(date +%Y%m%d%H%M%S)"
   echo "   Build number: ${old_build} → ${new_build}"
 
-  sed -i '' \
-    "s/CURRENT_PROJECT_VERSION = ${old_build};/CURRENT_PROJECT_VERSION = ${new_build};/g" \
-    "$PBXPROJ"
+  # Scope the rewrite to the app target's build configurations: the test
+  # target seeds the same value, and a global sed would stamp it too
+  # (the contract is that the test target keeps its own version).
+  app_config_ids="$(sed -n "/Build configuration list for PBXNativeTarget \"${APP_NAME}\" \*\/ = {$/,/);/p" \
+    "$PBXPROJ" | grep -E '\*/,$' | grep -oE '[A-F0-9]{24}')"
+  if [[ -z "$app_config_ids" ]]; then
+    echo "❌ Could not locate the ${APP_NAME} target's build configurations in project.pbxproj" >&2
+    exit 1
+  fi
+  for cfg_id in $app_config_ids; do
+    sed -i '' \
+      "/${cfg_id} .*= {$/,/};/ s/CURRENT_PROJECT_VERSION = ${old_build};/CURRENT_PROJECT_VERSION = ${new_build};/" \
+      "$PBXPROJ"
+  done
 
   actual_build="$(current_setting CURRENT_PROJECT_VERSION)"
   if [[ "$actual_build" != "$new_build" ]]; then
