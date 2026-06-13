@@ -73,11 +73,19 @@ struct AXRef: Hashable {
 struct CGWindowSnapshot {
     let ids: [pid_t: Set<CGWindowID>]
     let zOrder: [pid_t: [CGWindowID]]
+    /// Wids WindowServer reports at a non-switchable window level — Dock level
+    /// (20) and above (menus, status items, pop-ups, overlays, HUDs, notification
+    /// panels, screensaver) plus the sub-normal desktop band (< 0). Dropped during
+    /// enumeration so they never become switcher rows even though AX lists them as
+    /// standard windows. Floating/modal/utility windows (levels 1–19) are NOT here
+    /// — they are legitimate user windows and stay in the switcher.
+    let nonNormalLayer: [pid_t: Set<CGWindowID>]
 
-    static let empty = CGWindowSnapshot(ids: [:], zOrder: [:])
+    static let empty = CGWindowSnapshot(ids: [:], zOrder: [:], nonNormalLayer: [:])
 
     func ids(for pid: pid_t) -> Set<CGWindowID> { ids[pid] ?? [] }
     func zOrder(for pid: pid_t) -> [CGWindowID] { zOrder[pid] ?? [] }
+    func nonNormalLayer(for pid: pid_t) -> Set<CGWindowID> { nonNormalLayer[pid] ?? [] }
 }
 
 enum WindowEnumerator {
@@ -98,6 +106,36 @@ enum WindowEnumerator {
     private static let bruteForceStaleBudget: UInt64 = 256
     private static let preFilterTimeout: Float = 0.025
     private static let confirmedTimeout: Float = 0.2
+
+    /// Lowest CGWindow level we treat as a non-switchable overlay: Dock level
+    /// (20). Windows at this level and above are system surfaces (Dock, menus,
+    /// status items, pop-ups, overlays, HUDs, notification panels, screensaver);
+    /// levels 1–19 (floating "keep on top", modal panel, utility) are legitimate
+    /// user windows kept in the switcher.
+    static let dockWindowLevel = Int(CGWindowLevelForKey(.dockWindow))
+
+    /// Classification of a `CGWindowListCopyWindowInfo` entry for snapshot
+    /// bucketing. `.normal` windows feed the id/z-order hint; `.nonNormalLayer`
+    /// windows (Dock-level-and-above overlays plus the sub-normal desktop band)
+    /// are recorded so enumeration can drop them; `.excluded` covers invisible or
+    /// sub-100px surfaces ignored entirely. Layer takes precedence: a
+    /// non-switchable-layer window is `.nonNormalLayer` even if also tiny/transparent.
+    enum CGWindowBucket: Equatable {
+        case normal
+        case nonNormalLayer
+        case excluded
+    }
+
+    static func cgWindowBucket(layer: Int, alpha: Double, width: Double, height: Double) -> CGWindowBucket {
+        // Drop only non-switchable surfaces: Dock level (20) and above, plus the
+        // sub-normal desktop band (< 0). Levels 1–19 — floating ("keep on top"),
+        // modal panels, utility windows — are real user windows and stay. The
+        // Teams notification phantom sits at level 20 (Dock), so it's still caught.
+        if layer >= Self.dockWindowLevel || layer < 0 { return .nonNormalLayer }
+        if alpha <= 0 { return .excluded }
+        if width < 100 || height < 100 { return .excluded }
+        return .normal
+    }
 
     /// Snapshot of every window grouped by owner pid via the public
     /// `CGWindowListCopyWindowInfo` API. Uses `.optionAll` (not
@@ -122,24 +160,34 @@ enum WindowEnumerator {
         }
         var ids: [pid_t: Set<CGWindowID>] = [:]
         var zOrder: [pid_t: [CGWindowID]] = [:]
+        var nonNormalLayer: [pid_t: Set<CGWindowID>] = [:]
         for entry in cfArray {
             guard let ownerPID = entry[kCGWindowOwnerPID as String] as? pid_t else { continue }
-            let layer = (entry[kCGWindowLayer as String] as? Int) ?? 0
-            if layer != 0 { continue }
-            let alpha = (entry[kCGWindowAlpha as String] as? Double) ?? 1.0
-            if alpha <= 0 { continue }
             guard let widNum = entry[kCGWindowNumber as String] as? Int else { continue }
             let wid = CGWindowID(widNum)
+            let layer = (entry[kCGWindowLayer as String] as? Int) ?? 0
+            let alpha = (entry[kCGWindowAlpha as String] as? Double) ?? 1.0
+            // Missing bounds key => treat as large enough, preserving the prior
+            // "no bounds -> keep" behavior. A present-but-empty bounds dict yields
+            // 0 and is correctly excluded by the size gate inside cgWindowBucket.
+            var width = Double.greatestFiniteMagnitude
+            var height = Double.greatestFiniteMagnitude
             if let bounds = entry[kCGWindowBounds as String] as? NSDictionary {
-                let w = (bounds["Width"] as? Double) ?? 0
-                let h = (bounds["Height"] as? Double) ?? 0
-                if w < 100 || h < 100 { continue }
+                width = (bounds["Width"] as? Double) ?? 0
+                height = (bounds["Height"] as? Double) ?? 0
             }
-            if ids[ownerPID, default: []].insert(wid).inserted {
-                zOrder[ownerPID, default: []].append(wid)
+            switch cgWindowBucket(layer: layer, alpha: alpha, width: width, height: height) {
+            case .normal:
+                if ids[ownerPID, default: []].insert(wid).inserted {
+                    zOrder[ownerPID, default: []].append(wid)
+                }
+            case .nonNormalLayer:
+                nonNormalLayer[ownerPID, default: []].insert(wid)
+            case .excluded:
+                break
             }
         }
-        return CGWindowSnapshot(ids: ids, zOrder: zOrder)
+        return CGWindowSnapshot(ids: ids, zOrder: zOrder, nonNormalLayer: nonNormalLayer)
     }
 
     /// Back-compat entry point for the cold full-catalog paths (`AppCatalog`,
@@ -151,13 +199,15 @@ enum WindowEnumerator {
         forPid pid: pid_t,
         isRegularApp: Bool = true,
         expectedCGWindowIDs: Set<CGWindowID> = [],
-        cgZOrder: [CGWindowID] = []
+        cgZOrder: [CGWindowID] = [],
+        nonNormalLayerWids: Set<CGWindowID> = []
     ) -> [WindowInfo] {
         enumerate(
             forPid: pid,
             isRegularApp: isRegularApp,
             expectedCGWindowIDs: expectedCGWindowIDs,
-            cgZOrder: cgZOrder
+            cgZOrder: cgZOrder,
+            nonNormalLayerWids: nonNormalLayerWids
         ).windows
     }
 
@@ -197,7 +247,8 @@ enum WindowEnumerator {
         isRegularApp: Bool = true,
         expectedCGWindowIDs: Set<CGWindowID> = [],
         cgZOrder: [CGWindowID] = [],
-        knownUncoverable: Set<CGWindowID> = []
+        knownUncoverable: Set<CGWindowID> = [],
+        nonNormalLayerWids: Set<CGWindowID> = []
     ) -> (windows: [WindowInfo], uncoverable: Set<CGWindowID>) {
         let axApp = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(axApp, Self.confirmedTimeout)
@@ -225,6 +276,11 @@ enum WindowEnumerator {
             // AX-windows-list path silently didn't, which is the asymmetry
             // that allowed the flicker. Keep both paths consistent.
             guard wid != 0 else { return }
+            // Drop windows WindowServer reports at a non-normal window level
+            // (notification panels/HUDs/overlays). These are AX-listed as
+            // standard windows but are not user-switchable — e.g. the Teams
+            // Notification Center helper's off-screen "Window" at layer 20.
+            if nonNormalLayerWids.contains(wid) { return }
             if seenByWid.contains(wid) { return }
             seenByWid.insert(wid)
             seenByElement.insert(ref)

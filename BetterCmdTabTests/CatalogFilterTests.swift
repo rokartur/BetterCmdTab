@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 @testable import BetterCmdTab
@@ -215,5 +216,69 @@ struct CatalogFilterTests {
         let items = [(name: "a", pid: pid_t(3)), (name: "b", pid: pid_t(1)), (name: "c", pid: pid_t(2))]
         let result = CatalogFilter.applySortOrder(items, .launchOrder, name: { $0.name }, pid: { $0.pid })
         #expect(result.map(\.pid) == [1, 2, 3])
+    }
+
+    // MARK: - phantom-window filtering
+
+    private func win(_ offset: Int, _ pid: pid_t, _ wid: CGWindowID, onScreen: Bool)
+        -> (offset: Int, pid: pid_t, wid: CGWindowID, onScreen: Bool) {
+        (offset, pid, wid, onScreen)
+    }
+
+    @Test("phantom dropped when its app has an on-screen sibling")
+    func phantomDroppedWithOnScreenSibling() {
+        // The Teams case: pid 7's real chat window (9168) is on screen, its
+        // never-shown BrowserWindow (49502) is off screen and resolves to no
+        // Space → only the phantom is dropped.
+        let rows = [win(0, 7, 9168, onScreen: true), win(1, 7, 49502, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [])
+        #expect(drop == [1])
+    }
+
+    @Test("phantom dropped when its app has an off-screen sibling that resolved")
+    func phantomDroppedWithResolvedSibling() {
+        // Neither window is on screen, but the real one (9168) resolves to a
+        // Space (e.g. it's on another desktop); the phantom (49502) does not.
+        let rows = [win(0, 7, 9168, onScreen: false), win(1, 7, 49502, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [9168])
+        #expect(drop == [1])
+    }
+
+    @Test("off-screen spaceless window kept when it's the app's only window")
+    func soleUnresolvedWindowKept() {
+        // No on-screen window and nothing resolved for pid 5 → its app has no
+        // window known to occupy a Space, so a transient query miss must NOT
+        // drop the user's only window.
+        let rows = [win(0, 5, 100, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [])
+        #expect(drop.isEmpty)
+    }
+
+    @Test("on-screen windows are never dropped")
+    func onScreenWindowsNeverDropped() {
+        let rows = [win(0, 1, 200, onScreen: true), win(1, 2, 201, onScreen: true)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [])
+        #expect(drop.isEmpty)
+    }
+
+    @Test("phantom decision is per-app, not global")
+    func phantomDecisionIsPerApp() {
+        // pid 7 has a real on-screen window + a phantom; pid 9 has a single
+        // off-screen unresolved window. Only pid 7's phantom is dropped — pid 9's
+        // lone window is kept because pid 9 occupies no known Space.
+        let rows = [
+            win(0, 7, 9168, onScreen: true),
+            win(1, 7, 49502, onScreen: false),
+            win(2, 9, 300, onScreen: false),
+        ]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [])
+        #expect(drop == [1])
+    }
+
+    @Test("all windows kept when every off-screen window resolves")
+    func allResolvedKeepsEverything() {
+        let rows = [win(0, 1, 100, onScreen: false), win(1, 1, 200, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [100, 200])
+        #expect(drop.isEmpty)
     }
 }

@@ -47,7 +47,8 @@ enum AppCatalog {
                     forPid: pid,
                     isRegularApp: app.activationPolicy == .regular,
                     expectedCGWindowIDs: cgSnapshot.ids(for: pid),
-                    cgZOrder: cgSnapshot.zOrder(for: pid)
+                    cgZOrder: cgSnapshot.zOrder(for: pid),
+                    nonNormalLayerWids: cgSnapshot.nonNormalLayer(for: pid)
                 )
             }
         }

@@ -272,7 +272,8 @@ final class AppCatalogCache {
                     forPid: pid,
                     isRegularApp: app.activationPolicy == .regular,
                     expectedCGWindowIDs: cgSnapshot.ids(for: pid),
-                    cgZOrder: cgSnapshot.zOrder(for: pid)
+                    cgZOrder: cgSnapshot.zOrder(for: pid),
+                    nonNormalLayerWids: cgSnapshot.nonNormalLayer(for: pid)
                 )
             }
         }
@@ -563,7 +564,8 @@ final class AppCatalogCache {
                     isRegularApp: item.isRegular,
                     expectedCGWindowIDs: expected,
                     cgZOrder: cgSnapshot.zOrder(for: item.pid),
-                    knownUncoverable: known
+                    knownUncoverable: known,
+                    nonNormalLayerWids: cgSnapshot.nonNormalLayer(for: item.pid)
                 )
                 return BumpScan(windows: result.windows, expected: expected, uncoverable: result.uncoverable)
             }
