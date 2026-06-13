@@ -101,6 +101,20 @@ enum BrowserTabs {
         AXUIElementPerformAction(window, kAXRaiseAction as CFString)
     }
 
+    /// Last-ditch commit fallback when the tab-activation script fails: bring
+    /// the row's window forward without Apple Events. Unlike `raiseInBrowser`
+    /// this raises unconditionally (the ≤1-window skip would drop the only
+    /// window when the AX read fails) and activates the process — an AX raise
+    /// alone only reorders windows inside the still-inactive browser.
+    private static func bringForward(_ window: AXUIElement, app: NSRunningApplication) {
+        AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+        if #available(macOS 14.0, *) {
+            _ = app.activate(from: NSRunningApplication.current, options: [])
+        } else {
+            app.activate(options: [.activateIgnoringOtherApps])
+        }
+    }
+
     /// Run an AppleScript. In-process `NSAppleScript` fails silently with
     /// -1743 on LSUIElement agents under macOS Tahoe (no TCC prompt ever
     /// appears, no entry shows up in System Settings → Privacy → Automation).
@@ -196,9 +210,18 @@ enum BrowserTabs {
 
         var stat: Int32 = 0
         waitpid(pid, &stat, 0)
-        let exitCode = (stat & 0xff00) >> 8
         let stdout = String(data: outData, encoding: .utf8) ?? ""
         let stderr = String(data: errData, encoding: .utf8) ?? ""
+        // WIFEXITED/WEXITSTATUS are C macros Swift can't import: the low 7
+        // status bits are 0 only on a clean exit. A signaled child — typically
+        // the watchdog's SIGKILL on a wedged browser — has 0 in the exit-code
+        // byte and must not be mistaken for success.
+        let termSignal = stat & 0x7f
+        guard termSignal == 0 else {
+            Log.activator.error("BrowserTabs: osascript killed by signal \(termSignal) stderr=\(stderr)")
+            return nil
+        }
+        let exitCode = (stat & 0xff00) >> 8
         if exitCode != 0 || !stderr.isEmpty {
             Log.activator.error("BrowserTabs: osascript exit=\(exitCode) stderr=\(stderr)")
         }
@@ -305,6 +328,9 @@ enum BrowserTabs {
     /// Only when the title is empty/ambiguous do we fall back to the legacy
     /// raise + `window 1` path.
     static func tabTitles(for app: NSRunningApplication, window: AXUIElement, title: String) -> TabsOutcome {
+        // Sending an Apple Event to a quit app relaunches it — bail if the
+        // browser terminated in the race before its rows are pruned.
+        if app.isTerminated { return .tabs([]) }
         guard let family = Family.from(bundleID: app.bundleIdentifier),
               let bid = app.bundleIdentifier else { return .notSupported }
         let appLit = appLiteral(bid)
@@ -392,7 +418,9 @@ enum BrowserTabs {
     /// GS (29) between windows, RS (30) between a window's title, its active-tab
     /// title, and its tab list, US (31) between tabs. Run off-main.
     static func allWindowTabs(for app: NSRunningApplication) -> [(title: String, activeTab: String, tabs: [String])] {
-        guard let family = Family.from(bundleID: app.bundleIdentifier),
+        // Sending an Apple Event to a quit app relaunches it — bail if terminated.
+        guard !app.isTerminated,
+              let family = Family.from(bundleID: app.bundleIdentifier),
               let bid = app.bundleIdentifier else { return [] }
         let appLit = appLiteral(bid)
         let attr: String = (family == .safari) ? "name" : "title"
@@ -447,7 +475,9 @@ enum BrowserTabs {
     /// title is empty/ambiguous. The `activate` (bring the app forward) stays —
     /// this is the deliberate commit, so the window coming front is expected.
     static func activateTab(at tabIndex: Int, in app: NSRunningApplication, window: AXUIElement, title: String) -> Bool {
-        guard let family = Family.from(bundleID: app.bundleIdentifier),
+        // Sending an Apple Event to a quit app relaunches it — bail if terminated.
+        guard !app.isTerminated,
+              let family = Family.from(bundleID: app.bundleIdentifier),
               let bid = app.bundleIdentifier else { return false }
         let appLit = appLiteral(bid)
         let attr: String = (family == .safari) ? "name" : "title"
@@ -502,12 +532,12 @@ enum BrowserTabs {
                 if raw != "FALLBACK" { return raw == "true" }
                 // "FALLBACK" → title didn't uniquely match; use the raise path.
             } else {
-                // Script errored (permission denied / timeout). Still raise the
-                // row's window via AX — it works without Automation and costs no
-                // spawn, so the right browser window at least comes forward — but
-                // skip the second osascript: re-spawning against a denied/wedged
-                // browser only doubles the give-up latency for no gain.
-                raiseInBrowser(window, pid: app.processIdentifier)
+                // Script errored (permission denied / timeout). Still bring the
+                // row's window forward — AX raise + process activation work
+                // without Automation and cost no spawn — but skip the second
+                // osascript: re-spawning against a denied/wedged browser only
+                // doubles the give-up latency for no gain.
+                bringForward(window, app: app)
                 return false
             }
         }
@@ -522,7 +552,11 @@ enum BrowserTabs {
             end timeout
         end tell
         """
-        guard let raw = runScript(source) else { return false }
+        guard let raw = runScript(source) else {
+            // Same commit-must-do-something fallback as the match path above.
+            bringForward(window, app: app)
+            return false
+        }
         return raw == "true"
     }
 
@@ -533,7 +567,9 @@ enum BrowserTabs {
     /// the ambiguous-title fallback raises (the sole way to disambiguate the
     /// window), mirroring `activateTab`.
     static func closeTab(at tabIndex: Int, in app: NSRunningApplication, window: AXUIElement, title: String) -> Bool {
-        guard let family = Family.from(bundleID: app.bundleIdentifier),
+        // Sending an Apple Event to a quit app relaunches it — bail if terminated.
+        guard !app.isTerminated,
+              let family = Family.from(bundleID: app.bundleIdentifier),
               let bid = app.bundleIdentifier else { return false }
         let appLit = appLiteral(bid)
         let attr: String = (family == .safari) ? "name" : "title"
