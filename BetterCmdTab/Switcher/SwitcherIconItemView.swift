@@ -313,8 +313,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     /// icon" preference) while leaving launch/reopen cues — which aren't window
     /// titles — intact so those rows still read clearly.
     private static func secondaryText(for row: SwitcherRow, showTitle: Bool) -> String {
-        if row.isLaunchable { return "Launch" }
-        if row.isRecentlyClosed { return (showTitle && !row.windowTitle.isEmpty) ? row.windowTitle : "Reopen" }
+        if row.isLaunchable { return String(localized: "Launch") }
+        if row.isRecentlyClosed { return (showTitle && !row.windowTitle.isEmpty) ? row.windowTitle : String(localized: "Reopen") }
         if row.isPlaceholder || row.window == nil { return "" }
         return showTitle ? row.windowTitle : ""
     }
@@ -533,9 +533,17 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
             // past the hit-test bounds and made them unclickable.
             actionBar.fitWidth(tile - 8)
             let size = actionBar.contentSize
+            // Center the bar on the letter strip, but clamp it inside the tile:
+            // with letter hints off the strip is zero-height, and a centered bar
+            // would straddle the tile's top edge — drawing over the row above
+            // and losing clicks (SwitcherView only routes points inside a tile).
+            let barY = min(
+                round(bounds.height - letterArea / 2 - size.height / 2),
+                bounds.height - size.height
+            )
             actionBar.frame = NSRect(
                 x: round((w - size.width) / 2),
-                y: round(bounds.height - letterArea / 2 - size.height / 2),
+                y: barY,
                 width: size.width,
                 height: size.height
             )

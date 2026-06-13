@@ -105,6 +105,25 @@ final class TabStripView: NSView {
         scrollSelectedIntoView()
     }
 
+    /// The cell index containing `windowPoint` (in window coordinates), or nil.
+    /// Used by `SwitcherView`'s manual hit testing — its `hitTest` override
+    /// keeps mouse events at the panel level, so cells never receive their own
+    /// `mouseDown`. Mirrors `HoverActionBar.action(atWindowPoint:)`.
+    func index(atWindowPoint windowPoint: NSPoint) -> Int? {
+        for (i, cell) in cells.enumerated() {
+            let p = cell.convert(windowPoint, from: nil)
+            if cell.bounds.contains(p) { return i }
+        }
+        return nil
+    }
+
+    /// Routes a scroll event (delivered to `SwitcherView` by its `hitTest`
+    /// override) into the horizontal scroll view so an overflowing strip stays
+    /// reachable with the wheel/trackpad.
+    func handleScrollWheel(_ event: NSEvent) {
+        scrollView.scrollWheel(with: event)
+    }
+
     private func scrollSelectedIntoView() {
         guard cells.indices.contains(selectedIndex), let doc = scrollView.documentView else { return }
         let cell = cells[selectedIndex]

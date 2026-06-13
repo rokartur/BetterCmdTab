@@ -388,6 +388,16 @@ final class SwitcherView: NSView, TabStripDelegate {
     }
 
     override func mouseDown(with event: NSEvent) {
+        // The hitTest override pins every mouse event to this view, so clicks
+        // over the drill-in tab strip are routed to its cells manually (the
+        // same way hover-action dots are hit-tested below).
+        if tabStripActive, !tabStrip.isHidden,
+           tabStrip.bounds.contains(tabStrip.convert(event.locationInWindow, from: nil)) {
+            if let tabIdx = tabStrip.index(atWindowPoint: event.locationInWindow) {
+                delegate?.switcherViewDidSelectTab(tabIdx)
+            }
+            return
+        }
         guard let idx = indexAtWindowPoint(event.locationInWindow), itemViews.indices.contains(idx) else { return }
         // A click on a hover-action dot runs that action instead of committing.
         // The dots can't receive events themselves (glass-hosted subtree), so
@@ -399,6 +409,23 @@ final class SwitcherView: NSView, TabStripDelegate {
         delegate?.switcherViewDidClick(index: idx)
     }
 
+    /// Re-entrancy guard: when the strip's scroll view can't use a wheel event
+    /// (e.g. vertical-only deltas) it forwards it up the responder chain, which
+    /// lands back here — without the guard that would loop forever.
+    private var routingScrollToTabStrip = false
+
+    override func scrollWheel(with event: NSEvent) {
+        // hitTest keeps scroll events at the panel level too; hand events over
+        // the drill-in tab strip to its scroll view so overflow stays reachable.
+        if !routingScrollToTabStrip, tabStripActive, !tabStrip.isHidden,
+           tabStrip.bounds.contains(tabStrip.convert(event.locationInWindow, from: nil)) {
+            routingScrollToTabStrip = true
+            tabStrip.handleScrollWheel(event)
+            routingScrollToTabStrip = false
+            return
+        }
+        super.scrollWheel(with: event)
+    }
 
     private func indexAtWindowPoint(_ pointInWindow: NSPoint) -> Int? {
         let local = convert(pointInWindow, from: nil)
@@ -664,14 +691,18 @@ final class SwitcherView: NSView, TabStripDelegate {
         )
     }
 
-    /// Returns the visible frame of the screen to size the panel for. Uses
-    /// `window?.screen` while visible (reflects actual placement); falls back to
-    /// `preferredScreen()` when ordered out, because `NSWindow.screen` is
-    /// frame-based and would otherwise return the screen from the previous open.
+    /// Returns the visible frame of the screen to size the panel for. Prefers
+    /// the controller-resolved session screen (`targetScreen`, set before every
+    /// configure and cleared on dismiss): when a visible panel is being moved
+    /// to another display, `window?.screen` still reports the OLD one until the
+    /// frame actually moves, which would size the layout against the wrong
+    /// display. Falls back to the live screen while visible, then
+    /// `preferredScreen()`, because `NSWindow.screen` is frame-based and would
+    /// otherwise return the screen from the previous open.
     private func layoutScreenFrame() -> NSRect {
         let panelTarget = (window as? SwitcherPanel)?.targetScreen
-        let screen = (window?.isVisible == true ? window?.screen : nil)
-            ?? panelTarget
+        let screen = panelTarget
+            ?? (window?.isVisible == true ? window?.screen : nil)
             ?? SwitcherPanel.preferredScreen()
         return screen.visibleFrame
     }
