@@ -285,6 +285,13 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Token bumped per primed chord so a stale off-main focused-window capture
     /// from an earlier chord can't land on a newer one.
     private var focusedWindowCaptureGen: UInt64 = 0
+    /// Whether the current open session was started by a held trigger chord
+    /// (⌘Tab/⌘`), i.e. relies on release-to-commit. Gesture and scoped opens
+    /// set this false: no modifier is held during a trackpad swipe (and a
+    /// scoped chord may omit the trigger modifier), so the missed-release
+    /// backstop in `reveal()` must not fire for them — it would commit
+    /// instantly instead of presenting the panel.
+    private var primedByHeldChord = false
 
     init() {
         view = SwitcherView(frame: .zero)
@@ -412,9 +419,10 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func handleScreenParametersChange() {
-        // `baseRows`, not `rows`: in fuzzy-search mode an empty filtered result
-        // is still a visible panel that must track screen changes.
-        guard phase == .visible, !baseRows.isEmpty else { return }
+        // Any visible panel tracks screen changes — including an empty fuzzy
+        // search result and the zero-row "No open windows" state (#31), which
+        // would otherwise keep the old screen's frame and metrics.
+        guard phase == .visible else { return }
         applySessionScreen(resolveSessionScreen())
     }
 
@@ -475,17 +483,10 @@ final class SwitcherController: SwitcherViewDelegate {
             self?.scheduleVisibleBadgeRefresh()
         }
         RecentlyClosedStore.shared.start()
-        if !hotkey.install() {
-            // A failed tap install (e.g. Accessibility lost in the TOCTOU window
-            // between the waiter's trust check and here, or a transient
-            // WindowServer hiccup) must NOT abort the rest of `start()`. Bailing
-            // skipped the Carbon fallback wiring below — the very trigger that
-            // survives Secure Event Input — leaving the app dead with no retry.
-            // Wire everything anyway (the tap setters just stage state the tap
-            // reads once it comes up) and retry the tap on a short backoff.
-            Log.switcher.error("CGEventTap installation failed — Accessibility not trusted? Wiring Carbon fallback and retrying the tap.")
-            scheduleHotkeyTapRetry()
-        }
+        // Wire the tap callbacks BEFORE install(): the tap thread reads these
+        // plain closure vars unsynchronized, and install() returns with the tap
+        // already consuming events — assigning after would race a chord held at
+        // boot (same ordering discipline as spaceSwipeSuppressor below).
         hotkey.onEvent = { [weak self] event in
             guard let self else { return }
             self.handle(event)
@@ -507,6 +508,17 @@ final class SwitcherController: SwitcherViewDelegate {
         // Recover on main so the spinning tap thread can't keep freezing the
         // whole system on WindowServer IPC.
         hotkey.onTapDisabledStorm = { [weak self] in self?.handleTapDisabledStorm() }
+        if !hotkey.install() {
+            // A failed tap install (e.g. Accessibility lost in the TOCTOU window
+            // between the waiter's trust check and here, or a transient
+            // WindowServer hiccup) must NOT abort the rest of `start()`. Bailing
+            // skipped the Carbon fallback wiring below — the very trigger that
+            // survives Secure Event Input — leaving the app dead with no retry.
+            // Wire everything anyway (the tap setters just stage state the tap
+            // reads once it comes up) and retry the tap on a short backoff.
+            Log.switcher.error("CGEventTap installation failed — Accessibility not trusted? Wiring Carbon fallback and retrying the tap.")
+            scheduleHotkeyTapRetry()
+        }
         // The Carbon fallback drives the same handler as the tap.
         carbonTrigger.onEvent = { [weak self] event in self?.handle(event) }
         // Scoped-shortcut triggers open the switcher pre-filtered (#3).
@@ -590,19 +602,19 @@ final class SwitcherController: SwitcherViewDelegate {
         // storm callback before installing the tap so a disable burst (e.g. on AX
         // revoke) tears it down instead of freezing the system.
         spaceSwipeSuppressor.onTapDisabledStorm = { [weak self] in self?.handleSwipeSuppressorStorm() }
-        spaceSwipeSuppressor.setEnabled(Preferences.shared.experimentalSwipeTrigger)
+        // Gate on swipeTrigger.isInstalled (set by setEnabled above), AX trust, and
+        // the pref — see updateSwipeSuppressor.
+        updateSwipeSuppressor()
         Preferences.shared.$experimentalSwipeTrigger
             .receive(on: DispatchQueue.main)
             .sink { [weak self] enabled in
-                self?.swipeTrigger.setEnabled(enabled)
-                // Never install the suppressor's active session tap while AX is
-                // untrusted (it can't be durably enabled and would storm). The
+                guard let self else { return }
+                self.swipeTrigger.setEnabled(enabled)
+                // Arm the suppressor only when the swipe is on, AX is trusted (an
+                // active session tap can't be durably enabled while untrusted — it
+                // would storm), and a multitouch device is actually present. The
                 // persisted pref is re-applied by reinstallHotkeyTap on re-grant.
-                if enabled && AccessibilityCheck.isTrusted {
-                    self?.spaceSwipeSuppressor.setEnabled(true)
-                } else {
-                    self?.spaceSwipeSuppressor.setEnabled(false)
-                }
+                self.updateSwipeSuppressor()
             }
             .store(in: &cancellables)
         Preferences.shared.$swipeReverseDirection
@@ -701,11 +713,14 @@ final class SwitcherController: SwitcherViewDelegate {
             guard !primedApps.isEmpty else { return }
             primedIndex = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : primedApps.count - 1)
             primedStepDelta = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
+            primedByHeldChord = false
             phase = .primed
             reveal()
             // After reveal lands the panel in `.visible`, detach from any
             // modifier so releasing one never commits a gesture-opened switcher.
-            stickyOpen = true
+            // Guarded like openScoped: a reveal that didn't present must not
+            // strand stickyOpen=true into the next session.
+            if phase == .visible { stickyOpen = true }
         }
     }
 
@@ -848,6 +863,9 @@ final class SwitcherController: SwitcherViewDelegate {
               let windowValue = focused,
               CFGetTypeID(windowValue) == AXUIElementGetTypeID() else { return false }
         let window = windowValue as! AXUIElement
+        // AX messaging timeouts are per-element — clamp the window element too,
+        // or this read falls back to the ~6s global default.
+        AXUIElementSetMessagingTimeout(window, 0.25)
         var fullscreen: CFTypeRef?
         guard AXUIElementCopyAttributeValue(window, "AXFullScreen" as CFString, &fullscreen) == .success else { return false }
         return (fullscreen as? Bool) ?? false
@@ -1059,8 +1077,9 @@ final class SwitcherController: SwitcherViewDelegate {
         swipeSuppressorReArmRetries = 0
         hotkey.uninstall()
         // Re-arm the space-swipe suppressor too (torn down on revoke), gated on
-        // the swipe pref so it only comes back if the experimental swipe is on.
-        spaceSwipeSuppressor.setEnabled(Preferences.shared.experimentalSwipeTrigger)
+        // the swipe pref, AX trust, and a present multitouch device so it only
+        // comes back if there's actually a gesture to suppress.
+        updateSwipeSuppressor()
         if hotkey.install() {
             hotkeyTapRetries = 0
             tapStormRecovering = false
@@ -1143,6 +1162,19 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    /// Arm the space-swipe suppressor only when there's actually a swipe gesture
+    /// to suppress: the experimental swipe is on AND `SwipeTrigger` registered a
+    /// callback on a live multitouch device. With no trackpad (Mac with only a
+    /// mouse) `SwipeTrigger.install()` registers nothing, so there is no gesture
+    /// to take over — installing the suppressor tap would only spend energy (and
+    /// risk a storm) while needlessly swallowing the native three-finger swipe.
+    private func updateSwipeSuppressor() {
+        let shouldArm = Preferences.shared.experimentalSwipeTrigger
+            && AccessibilityCheck.isTrusted
+            && swipeTrigger.isInstalled
+        spaceSwipeSuppressor.setEnabled(shouldArm)
+    }
+
     /// The space-swipe suppressor tap signalled a re-enable storm. Runs on main.
     /// The tap is non-essential, so just tear it down (its thread stops spinning
     /// in WindowServer IPC). It re-arms on Accessibility re-grant via
@@ -1165,8 +1197,9 @@ final class SwitcherController: SwitcherViewDelegate {
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.swipeSuppressorReArmWork = nil
-            guard AccessibilityCheck.isTrusted, Preferences.shared.experimentalSwipeTrigger else { return }
-            self.spaceSwipeSuppressor.setEnabled(true)
+            // updateSwipeSuppressor re-checks pref + AX trust + device presence and
+            // only arms when all hold (no-op teardown otherwise).
+            self.updateSwipeSuppressor()
         }
         swipeSuppressorReArmWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: work)
@@ -1221,9 +1254,10 @@ final class SwitcherController: SwitcherViewDelegate {
                 self.accessibilityRevoked = false
                 // A shared-WindowServer storm takes BOTH session taps down
                 // together, but only the hotkey tap has a retry — re-arm the
-                // suppressor alongside on success, gated on the swipe pref.
+                // suppressor alongside on success, gated on the swipe pref, AX
+                // trust, and a present multitouch device.
                 self.swipeSuppressorReArmRetries = 0
-                self.spaceSwipeSuppressor.setEnabled(Preferences.shared.experimentalSwipeTrigger)
+                self.updateSwipeSuppressor()
                 Log.switcher.log("CGEventTap installed on retry \(attempt)")
             } else {
                 self.scheduleHotkeyTapRetry()
@@ -1410,6 +1444,10 @@ final class SwitcherController: SwitcherViewDelegate {
         primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
         primedIndex = 0
         primedStepDelta = 0
+        // Scoped opens are sticky and never release-to-commit; the bound chord
+        // may not include the trigger's hold modifier, so the missed-release
+        // backstop must not run.
+        primedByHeldChord = false
         phase = .primed
         reveal()
         // reveal() may cancel back to idle (nothing matched the scope); only
@@ -1477,7 +1515,10 @@ final class SwitcherController: SwitcherViewDelegate {
         panel.setFrame(NSRect(x: -20000, y: -20000, width: 200, height: 80), display: false)
         panel.orderFrontRegardless()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            self?.panel.orderOut(nil)
+            // A chord fired during boot with a short reveal delay can present
+            // the real panel inside this 50ms window — never hide a live one.
+            guard let self, self.phase == .idle else { return }
+            self.panel.orderOut(nil)
         }
     }
 
@@ -1543,13 +1584,16 @@ final class SwitcherController: SwitcherViewDelegate {
     private func handle(_ event: HotkeyTap.Event) {
         switch event {
         case .nextApp:
-            advance(by: 1, wrap: true)
+            // Secure-input Carbon parity with the tap's drill branch: while
+            // drilled, the trigger chord steps the tab strip — never the app
+            // list underneath, which would desync the highlight from the strip.
+            if tabDrillActive { advanceTab(by: 1) } else { advance(by: 1, wrap: true) }
         case .prevApp:
-            advance(by: -1, wrap: true)
+            if tabDrillActive { advanceTab(by: -1) } else { advance(by: -1, wrap: true) }
         case .nextWindow:
-            advanceWindowsOnly(by: 1)
+            if tabDrillActive { advanceTab(by: 1) } else { advanceWindowsOnly(by: 1) }
         case .prevWindow:
-            advanceWindowsOnly(by: -1)
+            if tabDrillActive { advanceTab(by: -1) } else { advanceWindowsOnly(by: -1) }
         case .nextRow:
             advanceVerticalOrLinear(by: 1)
         case .prevRow:
@@ -1653,7 +1697,11 @@ final class SwitcherController: SwitcherViewDelegate {
             }
             index = idx
             view.setSelectedIndex(idx)
-            resetLetterBuffer()
+            // No resetLetterBuffer() before commit: its refreshDisplay()
+            // restores selection by (pid, title) key, which collides for
+            // same-titled windows and would snap `index` back onto the first
+            // duplicate before commit() reads rows[index]. commit() clears the
+            // buffer (and its timer) on teardown, with the refresh skipped.
             commit()
             return
         }
@@ -1676,7 +1724,11 @@ final class SwitcherController: SwitcherViewDelegate {
             }
             index = idx
             view.setSelectedIndex(idx)
-            resetLetterBuffer()
+            // No resetLetterBuffer() before commit: its refreshDisplay()
+            // restores selection by (pid, title) key, which collides for
+            // same-titled windows and would snap `index` back onto the first
+            // duplicate before commit() reads rows[index]. commit() clears the
+            // buffer (and its timer) on teardown, with the refresh skipped.
             commit()
             return
         }
@@ -1899,6 +1951,7 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func schedulePrimedReveal() {
+        primedByHeldChord = true
         phase = .primed
         // Fast-tap rescue: a very fast ⌘⇥ can land the ⌘-up `flagsChanged` on the
         // tap thread before this `.primed` transition set `switchingFlag`, so the
@@ -2023,8 +2076,11 @@ final class SwitcherController: SwitcherViewDelegate {
         // Backstop for the dropped-release race (see schedulePrimedReveal): if the
         // hold modifier came up during the primed delay and the tap missed it,
         // commit the primed pick instead of presenting a panel nothing would
-        // dismiss. Cheap — one flags read on the cold reveal path.
-        if holdReleaseAlreadyMissed() {
+        // dismiss. Cheap — one flags read on the cold reveal path. Chord opens
+        // only: gesture/scoped sessions hold no modifier, so the live flags
+        // read would always look like a missed release and commit instantly
+        // instead of presenting (they open sticky and never release-commit).
+        if primedByHeldChord, holdReleaseAlreadyMissed() {
             commit()
             return
         }
@@ -2103,16 +2159,32 @@ final class SwitcherController: SwitcherViewDelegate {
         let targetPid = snapshotApps.indices.contains(targetIdx)
             ? snapshotApps[targetIdx].processIdentifier : nil
 
-        let cachedRows = applyApplicationsOnly(applyWindowMRUSort(
+        // Scoped-shortcut open: narrow BEFORE the applications-only collapse —
+        // matching `applyFullSnapshot` — so each app's representative row is
+        // elected from the scoped set. Collapsing first could pick an off-scope
+        // window (e.g. another Space's) that the scope filter then drops,
+        // hiding the app until the 250ms refresh re-added it. Warm rows only —
+        // cold placeholder rows have no windows yet, so `applyFullSnapshot`
+        // applies the scope once the real scan lands. nil scope (normal ⌘Tab)
+        // leaves rows untouched.
+        var sortedRows = applyWindowMRUSort(
             Log.reveal.withIntervalSignpost("catalog.rows") { cache.rows(orderedBy: mru.order) }
-        ))
-        let hadCachedRows = !cachedRows.isEmpty
-        if hadCachedRows {
+        )
+        let hadCachedRows = !sortedRows.isEmpty
+        if let scope = activeScope, hadCachedRows {
+            sortedRows = scopeFiltered(sortedRows, scope: scope)
+        }
+        let cachedRows = applyApplicationsOnly(sortedRows)
+        if !cachedRows.isEmpty {
             baseRows = cachedRows
             baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
             labels = baseLabels
-            if Preferences.shared.sortOrder == .mruWindows {
+            if activeScope != nil {
+                // Scoped opens start at the top: the MRU/pid anchors below were
+                // computed pre-scope and don't map onto the narrowed set.
+                index = 0
+            } else if Preferences.shared.sortOrder == .mruWindows {
                 // Window-level list: step over rows by window recency, not apps.
                 // `primedStepDelta` taps from row 0 (the current window), so a
                 // single forward tap lands on the second-most-recent window.
@@ -2122,10 +2194,11 @@ final class SwitcherController: SwitcherViewDelegate {
             } else {
                 index = 0
             }
-        } else if cache.hasCompletedFullScan {
+        } else if hadCachedRows || cache.hasCompletedFullScan {
             // Zero rows out of an already-scanned cache means the filters
             // legitimately hide everything — e.g. only a windowless Finder is
-            // running and its default when-no-windows exception drops it.
+            // running and its default when-no-windows exception drops it, or
+            // an active scope matched nothing windowed in a warm cache.
             // Present the empty state directly (#31): placeholder rows would
             // only flash, since the background snapshot comes back just as
             // empty and clears them a few frames later. A genuinely cold
@@ -2149,17 +2222,6 @@ final class SwitcherController: SwitcherViewDelegate {
             rows = baseRows
             labels = baseLabels
             index = max(0, min(targetIdx, rows.count - 1))
-        }
-        // Scoped-shortcut open: narrow the row set to the chosen subset. Only on
-        // the warm (real-row) branch — cold placeholder rows have no windows yet,
-        // so the background `applyFullSnapshot` below applies the scope once the
-        // real scan lands. nil scope (normal ⌘Tab) leaves rows untouched.
-        if let scope = activeScope, hadCachedRows {
-            baseRows = scopeFiltered(baseRows, scope: scope)
-            baseLabels = RowLabels.labels(for: baseRows)
-            rows = baseRows
-            labels = baseLabels
-            index = 0
         }
         // Expand inline browser-tab rows from the persisted per-session cache so a
         // re-open shows tabs immediately instead of windows-then-flicker. The
@@ -2358,8 +2420,11 @@ final class SwitcherController: SwitcherViewDelegate {
             // the empty state instead of flashing away (#31). If it was showing
             // real rows, the user/window-server just closed the last window —
             // dismiss the panel. refreshDisplay still appends recently-closed
-            // rows, so those remain reopenable from the empty panel.
-            if rows.allSatisfy(\.isPlaceholder) {
+            // rows, so those remain reopenable from the empty panel — and a
+            // panel showing only reopen rows IS the empty state, so it must
+            // not count as "had real rows" and self-cancel on the next
+            // empty refresh.
+            if rows.allSatisfy({ $0.isPlaceholder || $0.isRecentlyClosed }) {
                 baseRows = []
                 baseLabels = []
                 refreshDisplay(anchorPid: anchorPid)
@@ -2650,7 +2715,10 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Reveal-time / post-action browser-tab scan over the currently displayed
     /// rows. `force` is set for event-driven syncs (a title change).
     private func scheduleBrowserTabExpansion(force: Bool = false) {
-        guard Preferences.shared.expandBrowserTabsAsWindows, phase == .visible else { return }
+        // Mirror expandBrowserTabs' applications-only guard: with it on, the
+        // expansion no-ops, so spawning the osascript scan is pure waste.
+        guard Preferences.shared.expandBrowserTabsAsWindows,
+              !Preferences.shared.applicationsOnly, phase == .visible else { return }
         scanBrowserTabs(rows: collapsedBrowserSource(), force: force) { [weak self] in
             self?.reExpandBrowserTabs()
         }
@@ -2664,7 +2732,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// panel is already visible by the time it lands (otherwise `reveal()` picks
     /// up the now-warm cache itself).
     private func prewarmBrowserTabs() {
-        guard Preferences.shared.expandBrowserTabsAsWindows else { return }
+        guard Preferences.shared.expandBrowserTabsAsWindows,
+              !Preferences.shared.applicationsOnly else { return }
         scanBrowserTabs(rows: cache.rows(orderedBy: mru.order), force: false) { [weak self] in
             self?.reExpandBrowserTabs()
         }
@@ -2770,6 +2839,8 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         revealTimer?.invalidate()
         revealTimer = nil
+        tabPrefetchTimer?.invalidate()
+        tabPrefetchTimer = nil
         let currentPhase = phase
         let instantSpace = Preferences.shared.experimentalInstantSpaceSwitch
         var pendingActivation: (() -> Void)? = nil
@@ -3227,7 +3298,11 @@ final class SwitcherController: SwitcherViewDelegate {
         let timer = Timer(timeInterval: 0.18, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                guard self.tabPrefetchCache[key] == nil,
+                // Phase guard: a commit can land inside the 0.18s window; its
+                // baseRows reset clears the cache/in-flight sets, so without
+                // this the orphaned fire would AX-walk a dismissed session.
+                guard self.phase == .visible,
+                      self.tabPrefetchCache[key] == nil,
                       !self.tabPrefetchInFlight.contains(key) else { return }
                 self.tabPrefetchInFlight.insert(key)
                 let gen = self.revealGeneration
@@ -3338,10 +3413,18 @@ final class SwitcherController: SwitcherViewDelegate {
         tabIndex = 0
         drillWindow = nil
         hotkey.setTabDrillActive(false)
+        tabPrefetchTimer?.invalidate()
+        tabPrefetchTimer = nil
         primedApps = []
         rows = []
         baseRows = []
         baseLabels = []
+        // Match commit()/cancel(): a drill committed out of the ⌘` panel must
+        // not leave the windows-only state armed, or the next plain ⌘Tab
+        // re-opens (or fast-tap commits) the stale app's windows-only session.
+        windowsOnlyMode = false
+        windowsOnlyPid = nil
+        windowsOnlyPrimedDelta = 0
         closedTombstones.removeAll()
         quittingPids.removeAll()
         clearBrowserTabExpansion()
@@ -3578,7 +3661,18 @@ final class SwitcherController: SwitcherViewDelegate {
                     return
                 }
                 if fresh.isEmpty {
-                    self.cancel()
+                    // Mirror applyFullSnapshot (#31): a panel already in the
+                    // empty state (placeholder or reopen rows only) stays up —
+                    // e.g. a window-action key on a reopen row schedules this
+                    // refresh, which resolves empty. Real rows emptying means
+                    // the last window closed — dismiss.
+                    if self.rows.allSatisfy({ $0.isPlaceholder || $0.isRecentlyClosed }) {
+                        self.baseRows = []
+                        self.baseLabels = []
+                        self.refreshDisplay()
+                    } else {
+                        self.cancel()
+                    }
                     return
                 }
                 // `refreshDisplay` preserves selection by row identity (pid +
@@ -3751,8 +3845,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Recently closed windows/apps to surface for reopening. `forSearchQuery`
     /// non-nil filters by fuzzy match; nil yields the newest entries. Returns
     /// nothing when the feature is off or in window-only mode. App-only entries
-    /// (no document) already represented in `alreadyShown` are skipped to avoid
-    /// a redundant duplicate row.
+    /// (no document) are skipped when the app is already represented in
+    /// `alreadyShown` or is currently running at all — `alreadyShown` comes
+    /// from the *filtered* display set, which hides running apps behind hide
+    /// rules or Space filters, and a "Reopen X" row must never claim a running
+    /// app is quit. Apps the user always-hides are excluded entirely.
     private func recentlyClosedRows(forSearchQuery query: String?, alreadyShown: Set<String>) -> [SwitcherRow] {
         guard Preferences.shared.showRecentlyClosed, !windowsOnlyMode else { return [] }
         let limit = Preferences.shared.recentlyClosedLimit
@@ -3763,8 +3860,20 @@ final class SwitcherController: SwitcherViewDelegate {
             entries = RecentlyClosedStore.shared.recent(limit: limit)
         }
         var result: [SwitcherRow] = []
+        let exceptions = Preferences.shared.appExceptions
+        // Resolved lazily, once, and only when an app-level entry needs it.
+        var runningBundleIDs: Set<String>?
         for entry in entries {
-            if entry.documentPath == nil, alreadyShown.contains(entry.bundleID) { continue }
+            // The user excluded this app from the switcher entirely — its
+            // reopen rows must not resurface it.
+            if exceptions.first(where: { $0.bundleID == entry.bundleID })?.hide == .always { continue }
+            if entry.documentPath == nil {
+                if alreadyShown.contains(entry.bundleID) { continue }
+                if runningBundleIDs == nil {
+                    runningBundleIDs = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
+                }
+                if runningBundleIDs?.contains(entry.bundleID) == true { continue }
+            }
             result.append(SwitcherRow(recentlyClosed: entry))
         }
         return result

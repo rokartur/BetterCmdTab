@@ -1,5 +1,9 @@
 import AppKit
-import ApplicationServices
+// AXObserver / AXUIElement are non-Sendable CF types from this pre-concurrency
+// framework; the teardown hands them to a serial buildQueue closure (safe — the
+// generation bump + serial queue order it against any rebuild). `@preconcurrency`
+// silences the spurious Sendable-capture warnings without weakening real checks.
+@preconcurrency import ApplicationServices
 import os
 
 /// Collapses a burst of Dock AX notifications into a single scheduled action.
@@ -158,13 +162,19 @@ final class DockBadgeObserver {
         // Invalidate any in-flight off-main build so it can't attach after us.
         buildGeneration &+= 1
         if let observer {
-            // Drop the AX-server subscriptions before detaching the run-loop
-            // source (mirrors the add side); removing only the source leaves the
-            // notifications dangling.
-            for sub in subscriptions {
-                _ = AXObserverRemoveNotification(observer, sub.element, sub.name as CFString)
-            }
+            // Detach the run-loop source here (cheap, local), then drop the
+            // AX-server subscriptions on buildQueue — each remove is a
+            // synchronous IPC to the Dock and must not stall the dismiss path,
+            // mirroring the add side. The closure keeps the observer alive
+            // until the removes finish, and the serial buildQueue orders them
+            // before any subscriptions a racing rebuild adds.
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
+            let subs = subscriptions
+            buildQueue.async {
+                for sub in subs {
+                    _ = AXObserverRemoveNotification(observer, sub.element, sub.name as CFString)
+                }
+            }
         }
         subscriptions.removeAll()
         observer = nil

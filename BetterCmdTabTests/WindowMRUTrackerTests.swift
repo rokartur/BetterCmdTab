@@ -85,6 +85,32 @@ struct WindowMRUTrackerTests {
         #expect(sorted.map(\.cgWindowID) == [30, 10])
     }
 
+    @Test("sorting a filtered row set does not erase recency of hidden live windows")
+    func filteredSortKeepsHiddenWindowRecency() {
+        let tracker = WindowMRUTracker()
+        tracker.bump(pid: 1, wid: 10)
+        tracker.bump(pid: 1, wid: 20)
+        tracker.bump(pid: 1, wid: 30)
+        // globalOrder [30, 20, 10]. A Current-Space-only (or hide-minimized)
+        // pass filters 20's live window out of the rows for this sort.
+        _ = tracker.sortRowsGlobally([row(10), row(30)])
+        // Back in view: 20's recency must have survived the filtered sort.
+        let sorted = tracker.sortRowsGlobally([row(10), row(20), row(30)])
+        #expect(sorted.map(\.cgWindowID) == [30, 20, 10])
+    }
+
+    @Test("per-app sort keeps recency of windows filtered from the row set")
+    func perAppFilteredSortKeepsRecency() {
+        let tracker = WindowMRUTracker()
+        tracker.bump(pid: 1, wid: 10)
+        tracker.bump(pid: 1, wid: 20)
+        tracker.bump(pid: 1, wid: 30)
+        // order[1] == [30, 20, 10]; 20 is hidden from this Cmd+` pass.
+        _ = tracker.sortRows([row(10), row(30)], forPid: 1)
+        let sorted = tracker.sortRows([row(10), row(20), row(30)], forPid: 1)
+        #expect(sorted.map(\.cgWindowID) == [30, 20, 10])
+    }
+
     @Test("empty order leaves rows untouched")
     func emptyOrderIsIdentity() {
         let tracker = WindowMRUTracker()

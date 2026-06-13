@@ -18,6 +18,16 @@ extension Preferences {
     /// Every persisted setting lives under this `UserDefaults` key prefix.
     static let exportKeyPrefix = "Switcher."
 
+    /// `Switcher.*` keys that are machine-local state, not preferences —
+    /// excluded from both export and import. `disabledSymbolicHotKeys` is the
+    /// crash-heal record of which native hotkeys THIS machine has disabled
+    /// (importing another Mac's record could leave native ⌘Tab dead after a
+    /// crash); `recentlyClosed` is session history.
+    static let exportExcludedKeys: Set<String> = [
+        "Switcher.disabledSymbolicHotKeys",
+        "Switcher.recentlyClosed",
+    ]
+
     /// File extension for exported settings documents.
     static let exportFileExtension = "cmdtab"
 
@@ -56,7 +66,8 @@ extension Preferences {
     func exportedSettings() -> [String: Any] {
         let defaults = UserDefaults.standard
         var values: [String: Any] = [:]
-        for (key, value) in defaults.dictionaryRepresentation() where key.hasPrefix(Self.exportKeyPrefix) {
+        for (key, value) in defaults.dictionaryRepresentation()
+        where key.hasPrefix(Self.exportKeyPrefix) && !Self.exportExcludedKeys.contains(key) {
             // Guard against any non-JSON value sneaking in (shouldn't happen for
             // our plist-typed keys, but keep the export robust).
             if JSONSerialization.isValidJSONObject([value]) {
@@ -97,7 +108,8 @@ extension Preferences {
         }
 
         let defaults = UserDefaults.standard
-        for (key, value) in values where key.hasPrefix(Self.exportKeyPrefix) {
+        for (key, value) in values
+        where key.hasPrefix(Self.exportKeyPrefix) && !Self.exportExcludedKeys.contains(key) {
             // Only write valid property-list values. A hand-crafted or corrupted
             // file can carry a JSON `null` (bridged to `NSNull`) or some other
             // non-plist object; `UserDefaults.set` raises an uncatchable

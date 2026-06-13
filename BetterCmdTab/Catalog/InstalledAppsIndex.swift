@@ -7,6 +7,16 @@ struct InstalledApp: Sendable, Hashable {
     let name: String
     let bundleID: String
     let url: URL
+    /// `name` pre-folded for fuzzy matching, computed once at scan time (off
+    /// main) so the per-keystroke launcher search never re-folds every name.
+    let foldedName: String
+
+    init(name: String, bundleID: String, url: URL) {
+        self.name = name
+        self.bundleID = bundleID
+        self.url = url
+        foldedName = FuzzyMatch.fold(name)
+    }
 
     var icon: NSImage? { NSWorkspace.shared.icon(forFile: url.path) }
 }
@@ -49,12 +59,13 @@ final class InstalledAppsIndex {
     /// active search).
     func matches(query: String, excludingRunning runningBundleIDs: Set<String>, limit: Int) -> [InstalledApp] {
         guard !query.isEmpty else { return [] }
+        let foldedQuery = FuzzyMatch.fold(query)
         var result: [InstalledApp] = []
         var seen = Set<String>()
         for app in apps {
             if runningBundleIDs.contains(app.bundleID) { continue }
             if seen.contains(app.bundleID) { continue }
-            if FuzzyMatch.matches(query: query, appName: app.name, windowTitle: "") {
+            if FuzzyMatch.matchesFolded(foldedQuery: foldedQuery, foldedAppName: app.foldedName, foldedWindowTitle: "") {
                 result.append(app)
                 seen.insert(app.bundleID)
                 if result.count >= limit { break }

@@ -114,7 +114,7 @@ final class WindowThumbnailCache {
                 return image
             }
         }
-        return captureCG(wid: wid)
+        return captureCG(wid: wid, pixelHeight: pixelHeight)
     }
 
     @available(macOS 14.0, *)
@@ -126,8 +126,11 @@ final class WindowThumbnailCache {
         let filter = SCContentFilter(desktopIndependentWindow: scWindow)
         let config = SCStreamConfiguration()
         // Match the window's aspect ratio, capped to the on-screen tile height.
+        // `frame` is in points while `pixelHeight` is pixels; assume Retina 2x
+        // for the window's native pixel height (the min() with `pixelHeight`
+        // keeps the capture from over-allocating on 1x displays anyway).
         let aspect = frame.width / frame.height
-        let h = max(1, min(frame.height, pixelHeight))
+        let h = max(1, min(frame.height * 2, pixelHeight))
         config.height = Int(h.rounded())
         config.width = max(1, Int((h * aspect).rounded()))
         config.showsCursor = false
@@ -142,14 +145,45 @@ final class WindowThumbnailCache {
         }
     }
 
-    nonisolated private static func captureCG(wid: CGWindowID) -> NSImage? {
+    nonisolated private static func captureCG(wid: CGWindowID, pixelHeight: CGFloat) -> NSImage? {
         guard let cg = CGWindowListCreateImage(
             .null,
             .optionIncludingWindow,
             wid,
             [.boundsIgnoreFraming, .bestResolution]
         ), cg.width > 1, cg.height > 1 else { return nil }
-        return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        // `.bestResolution` returns the window at native Retina size — a large
+        // window costs tens of MB, blowing the whole cache budget on one entry.
+        // Downscale to the tile's pixel height so it costs one cache slot.
+        return downscaled(cg, toPixelHeight: pixelHeight)
+    }
+
+    /// Returns `cg` redrawn at `pixelHeight` (aspect preserved) when it is
+    /// taller than the target, or wrapped as-is when it already fits.
+    nonisolated private static func downscaled(_ cg: CGImage, toPixelHeight pixelHeight: CGFloat) -> NSImage? {
+        let targetH = max(1, Int(pixelHeight.rounded()))
+        guard cg.height > targetH else {
+            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        }
+        let targetW = max(1, Int((CGFloat(cg.width) * CGFloat(targetH) / CGFloat(cg.height)).rounded()))
+        let space = cg.colorSpace.flatMap { $0.model == .rgb ? $0 : nil } ?? CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil,
+            width: targetW,
+            height: targetH,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: space,
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        ) else {
+            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        }
+        ctx.interpolationQuality = .medium
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: targetW, height: targetH))
+        guard let scaled = ctx.makeImage() else {
+            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        }
+        return NSImage(cgImage: scaled, size: NSSize(width: scaled.width, height: scaled.height))
     }
 }
 
@@ -162,19 +196,30 @@ private actor SCWindowProvider {
 
     private var windowsByID: [CGWindowID: SCWindow] = [:]
     private var fetchedAt: Date = .distantPast
+    private var lastFailureAt: Date = .distantPast
     private let ttl: TimeInterval = 1.5
+    /// After a failed enumeration (typically Screen Recording denied — a state
+    /// the app tolerates indefinitely), skip further attempts for this long so
+    /// a denied permission doesn't fire XPC round trips per tile per repaint.
+    private let failureBackoff: TimeInterval = 5.0
 
     func window(for wid: CGWindowID) async -> SCWindow? {
-        if Date().timeIntervalSince(fetchedAt) >= ttl {
+        let entered = Date()
+        if entered.timeIntervalSince(fetchedAt) >= ttl {
             await refresh()
         }
         if let cached = windowsByID[wid] { return cached }
-        // Miss on a freshly opened window — refetch once before giving up.
-        await refresh()
+        // Miss on a freshly opened window — refetch once before giving up,
+        // but only when the map predates this call (a refresh that already
+        // completed above wouldn't find it the second time either).
+        if fetchedAt < entered {
+            await refresh()
+        }
         return windowsByID[wid]
     }
 
     private func refresh() async {
+        guard Date().timeIntervalSince(lastFailureAt) >= failureBackoff else { return }
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(
                 false,
@@ -189,6 +234,7 @@ private actor SCWindowProvider {
             // Permission missing or transient failure — leave the previous map
             // (possibly empty); the CG fallback path still gets a chance.
             fetchedAt = .distantPast
+            lastFailureAt = Date()
         }
     }
 }

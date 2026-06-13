@@ -562,35 +562,6 @@
         }
       }
     },
-    "Apple Events permission" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple-Events-Berechtigung"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permiso de Apple Events"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autorisation d’Apple Events"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uprawnienie Apple Events"
-          }
-        }
-      }
-    },
     "Applications only" : {
       "localizations" : {
         "de" : {
@@ -956,35 +927,6 @@
         }
       }
     },
-    "Browser tab drill-in" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Browser-Tabs aufschlüsseln"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Acceso a pestañas del navegador"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accès aux onglets du navigateur"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zagłębianie w karty przeglądarki"
-          }
-        }
-      }
-    },
     "Browsers need Apple Events consent to list their tabs. Click to prompt for each running browser (Safari, Chrome, Arc, Brave, Edge…). Must be done with this window open." : {
       "localizations" : {
         "de" : {
@@ -1009,35 +951,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przeglądarki potrzebują zgody Apple Events, aby wyświetlić listę swoich kart. Kliknij, aby poprosić o nią każdą uruchomioną przeglądarkę (Safari, Chrome, Arc, Brave, Edge…). Trzeba to zrobić przy otwartym tym oknie."
-          }
-        }
-      }
-    },
-    "Browsers require Apple Events consent to enumerate tabs. Click to trigger a prompt for each running browser (Safari, Chrome, Helium, Arc, Brave, Edge…). Must be done with this Settings window open." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Browser benötigen die Zustimmung zu Apple-Events, um Tabs aufzulisten. Klicke, um für jeden laufenden Browser eine Abfrage auszulösen (Safari, Chrome, Helium, Arc, Brave, Edge…). Muss bei geöffnetem Einstellungsfenster erfolgen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Los navegadores requieren el consentimiento de Apple Events para enumerar las pestañas. Haz clic para activar una solicitud por cada navegador en ejecución (Safari, Chrome, Helium, Arc, Brave, Edge…). Debe hacerse con esta ventana de Ajustes abierta."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les navigateurs requièrent le consentement Apple Events pour énumérer les onglets. Cliquez pour déclencher une invite pour chaque navigateur en cours d’exécution (Safari, Chrome, Helium, Arc, Brave, Edge…). À effectuer avec cette fenêtre Réglages ouverte."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przeglądarki wymagają zgody Apple Events, aby wyliczyć karty. Kliknij, aby wywołać monit dla każdej uruchomionej przeglądarki (Safari, Chrome, Helium, Arc, Brave, Edge…). Musi to być wykonane przy otwartym oknie Ustawień."
           }
         }
       }
@@ -1071,7 +984,6 @@
       }
     },
     "Center" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1855,6 +1767,34 @@
         }
       }
     },
+    "Direct activation %lld" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direktaktivierung %lld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activación directa %lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activation directe %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezpośrednia aktywacja %lld"
+          }
+        }
+      }
+    },
     "Direct activation hotkeys" : {
       "localizations" : {
         "de" : {
@@ -2220,6 +2160,34 @@
       }
     },
     "Full Screen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vollbild"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantalla completa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plein écran"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny ekran"
+          }
+        }
+      }
+    },
+    "Full screen" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3957,7 +3925,6 @@
       }
     },
     "Maximize" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4658,35 +4625,6 @@
         }
       }
     },
-    "Open Settings" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einstellungen öffnen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir Ajustes"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir les réglages"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz Ustawienia"
-          }
-        }
-      }
-    },
     "Open switcher" : {
       "localizations" : {
         "de" : {
@@ -5159,35 +5097,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Naciśnij / w przełączniku, aby filtrować według nazwy aplikacji lub okna."
-          }
-        }
-      }
-    },
-    "Press \\ on a row whose window has tabs to pick a specific tab from a strip below the switcher. Reliability varies across browsers — uses Accessibility AXTabs." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Drücke \\ auf einer Zeile, deren Fenster Tabs hat, um einen bestimmten Tab aus einer Leiste unter dem Umschalter auszuwählen. Die Zuverlässigkeit variiert je nach Browser — verwendet die Bedienungshilfen-Funktion AXTabs."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pulsa \\ en una fila cuya ventana tenga pestañas para elegir una pestaña concreta de una tira situada bajo el selector. La fiabilidad varía según el navegador; usa AXTabs de Accesibilidad."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appuyez sur \\ sur une ligne dont la fenêtre comporte des onglets pour sélectionner un onglet précis dans une bande située sous le sélecteur. La fiabilité varie selon les navigateurs — utilise AXTabs de l’Accessibilité."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Naciśnij \\ na wierszu, którego okno ma karty, aby wybrać konkretną kartę z paska pod przełącznikiem. Niezawodność różni się w zależności od przeglądarki — korzysta z funkcji Dostępność AXTabs."
           }
         }
       }
@@ -5868,6 +5777,34 @@
         }
       }
     },
+    "Restore previous size" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorherige Größe wiederherstellen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurar el tamaño anterior"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurer la taille précédente"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć poprzedni rozmiar"
+          }
+        }
+      }
+    },
     "Reveal quick buttons on the row your pointer is over." : {
       "localizations" : {
         "de" : {
@@ -6032,6 +5969,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zapisz wszystkie ustawienia do pliku, który możesz zarchiwizować lub przenieść na innego Maca."
+          }
+        }
+      }
+    },
+    "Scoped shortcut %lld" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingegrenzter Kurzbefehl %lld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atajo con ámbito %lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccourci ciblé %lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skrót zakresowy %lld"
           }
         }
       }
@@ -6932,35 +6897,6 @@
         }
       }
     },
-    "Slot" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Platz"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ranura"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Emplacement"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gniazdo"
-          }
-        }
-      }
-    },
     "Slot %lld" : {
       "localizations" : {
         "de" : {
@@ -7689,8 +7625,63 @@
         }
       }
     },
+    "Tile bottom-left corner" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untere linke Ecke"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esquina inferior izquierda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coin inférieur gauche"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lewy dolny róg"
+          }
+        }
+      }
+    },
+    "Tile bottom-right corner" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untere rechte Ecke"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esquina inferior derecha"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coin inférieur droit"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prawy dolny róg"
+          }
+        }
+      }
+    },
     "Tile left half" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7719,7 +7710,6 @@
       }
     },
     "Tile right half" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7771,6 +7761,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przyciągnij do połowy lub narożnika, zmaksymalizuj albo wyśrodkuj okno na pierwszym planie. Działa w całym systemie."
+          }
+        }
+      }
+    },
+    "Tile top-left corner" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obere linke Ecke"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esquina superior izquierda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coin supérieur gauche"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lewy górny róg"
+          }
+        }
+      }
+    },
+    "Tile top-right corner" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obere rechte Ecke"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esquina superior derecha"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coin supérieur droit"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prawy górny róg"
           }
         }
       }
@@ -7995,6 +8041,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Używaj h / j / k / l jak klawiszy strzałek, gdy przełącznik jest otwarty. h zastępuje przypisanie Ukryj, a j / k / l zastępują skok literowy; tryb wyszukiwania nadal wpisuje te litery."
+          }
+        }
+      }
+    },
+    "v%@  ·  Build %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@  ·  Build %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@  ·  Compilación %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@  ·  Build %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@  ·  Kompilacja %@"
           }
         }
       }

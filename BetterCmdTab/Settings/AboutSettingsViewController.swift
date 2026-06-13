@@ -225,7 +225,7 @@ final class AboutSettingsViewController: SettingsTabViewController {
     // MARK: - Version line
 
     private func refreshVersionLine() {
-        let text = "v\(AppInfo.appVersion)  ·  Build \(AppInfo.appBuildNumber)"
+        let text = String(localized: "v\(AppInfo.appVersion)  ·  Build \(AppInfo.appBuildNumber)")
         versionInfoLine.configure(
             text: text,
             iconName: copiedVersion ? "checkmark" : "doc.on.doc",

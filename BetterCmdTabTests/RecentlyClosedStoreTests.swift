@@ -46,6 +46,22 @@ struct RecentlyClosedStoreTests {
         store.clear()
     }
 
+    @Test("matches folds diacritics/case and stays in sync after dedupe reorders entries")
+    func matchesFoldsAndTracksMutations() {
+        let store = freshStore()
+        store.record(bundleID: "com.cafe", appName: "Café", title: "Menù", documentPath: nil)
+        store.record(bundleID: "com.beta", appName: "Beta", title: "", documentPath: nil)
+        // Pre-folded entry matches an unaccented query by name and by title.
+        #expect(store.matches(query: "CAFE", limit: 5).first?.bundleID == "com.cafe")
+        #expect(store.matches(query: "menu", limit: 5).first?.bundleID == "com.cafe")
+        // Re-recording moves the entry to the front; the folded cache must
+        // follow or matches would test against the wrong entry's strings.
+        store.record(bundleID: "com.cafe", appName: "Café", title: "Menù", documentPath: nil)
+        #expect(store.matches(query: "cafe", limit: 5).map(\.bundleID) == ["com.cafe"])
+        #expect(store.matches(query: "beta", limit: 5).map(\.bundleID) == ["com.beta"])
+        store.clear()
+    }
+
     @Test("recent returns newest entries capped at the limit")
     func recentNewestCapped() {
         let store = freshStore()

@@ -18,6 +18,10 @@ final class SettingsWindowPresenter {
     /// fresh window each time.
     private var closeObserver: NSObjectProtocol?
 
+    /// Window the close observer is attached to, so a `show()` while the window
+    /// is already open doesn't re-register (weak — the window is freed on close).
+    private weak var observedWindow: NSWindow?
+
     private init() {}
 
     func show() {
@@ -30,9 +34,12 @@ final class SettingsWindowPresenter {
         NSApp.setActivationPolicy(.regular)
         presenter.show()
 
-        let window = NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first {
-            $0.isVisible && $0.styleMask.contains(.titled)
-        }
+        // Resolve the settings window by class, not `NSApp.keyWindow`: on a
+        // reopen with an attached sheet (apps picker) or the color panel key,
+        // the key window is *not* the settings window, and a sheet never posts
+        // `willClose` (dismissed via `endSheet`) — the revert would be lost and
+        // the Dock icon would linger for the session.
+        let window = NSApp.windows.first { $0 is SettingsWindow }
         observeCloseForPolicyRevert(window)
 
         // Activate on the next runloop tick. A just-promoted accessory app can't
@@ -55,10 +62,12 @@ final class SettingsWindowPresenter {
     /// `.accessory`. Keyed off that specific window so a stray close of some
     /// other window (e.g. an apps-picker sheet) doesn't demote us early.
     private func observeCloseForPolicyRevert(_ window: NSWindow?) {
+        if let window, window === observedWindow, closeObserver != nil { return }
         if let closeObserver {
             NotificationCenter.default.removeObserver(closeObserver)
             self.closeObserver = nil
         }
+        observedWindow = window
         guard let window else { return }
         closeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
@@ -71,6 +80,7 @@ final class SettingsWindowPresenter {
                     NotificationCenter.default.removeObserver(token)
                     self?.closeObserver = nil
                 }
+                self?.observedWindow = nil
             }
         }
     }

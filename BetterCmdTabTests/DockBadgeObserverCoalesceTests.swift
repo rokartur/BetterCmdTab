@@ -42,3 +42,31 @@ struct DockBadgeObserverCoalesceTests {
         #expect(latch.scheduled == false)
     }
 }
+
+/// `DockBadgeReader.snapshot()` refuses to start a second Dock scan while one is
+/// still blocked (the panel-open poll ticks faster than a stalled Dock answers)
+/// and hands refused callers the last completed map instead. These cover that
+/// pure begin/end/last seam in `DockBadgeScanLatch`.
+@Suite("Dock badge scan latch")
+struct DockBadgeScanLatchTests {
+
+    @Test("only one scan owns the latch; end re-opens it")
+    func singleScanInFlight() {
+        let latch = DockBadgeScanLatch()
+        #expect(latch.begin() == true)    // owner of the scan
+        #expect(latch.begin() == false)   // poll tick while the scan is blocked
+        latch.end(["com.apple.mail": "3"])
+        #expect(latch.begin() == true)    // next tick scans again
+    }
+
+    @Test("a refused tick reads the last completed result")
+    func refusedTickGetsLastResult() {
+        let latch = DockBadgeScanLatch()
+        #expect(latch.lastResult().isEmpty) // cold start: nothing scanned yet
+        #expect(latch.begin() == true)
+        latch.end(["com.apple.mail": "3"])  // first scan completes
+        #expect(latch.begin() == true)      // second scan starts…
+        #expect(latch.begin() == false)     // …and a tick during it is refused
+        #expect(latch.lastResult() == ["com.apple.mail": "3"])
+    }
+}

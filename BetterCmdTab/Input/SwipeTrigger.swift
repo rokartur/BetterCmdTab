@@ -37,6 +37,12 @@ final class SwipeTrigger {
     /// plus any Magic Trackpads connected when the feature was enabled).
     private var devices: [UnsafeMutableRawPointer] = []
 
+    /// `true` once a callback is live on at least one multitouch device. Stays
+    /// `false` when no trackpad is present (or MultitouchSupport is unavailable),
+    /// so the controller can skip arming the space-swipe suppressor — there is no
+    /// gesture to suppress, and the native three-finger swipe keeps working.
+    var isInstalled: Bool { !devices.isEmpty }
+
     func setEnabled(_ enabled: Bool) {
         if enabled { install() } else { uninstall() }
     }
@@ -231,11 +237,28 @@ private enum MTGesture {
     /// Normalized horizontal travel needed to trigger a one-shot Space switch.
     static let oneShotThreshold: Float = 0.08
 
+    /// Device the current gesture is latched to (`-1` = none). All registered
+    /// devices share one callback thread, so without this a resting finger on a
+    /// second trackpad would interleave its frames into the gesture state.
+    nonisolated(unsafe) static var latchedDevice: Int32 = -1
+
+    /// Contact-frame timestamp of the latched device's most recent frame. Lets a
+    /// stalled latch (device disconnected/slept mid-gesture, or a dropped
+    /// zero-contact lift frame) be seized by another device instead of pinning
+    /// the latch — and swallowing every gesture on every trackpad — forever.
+    nonisolated(unsafe) static var latchedAt: Double = 0
+    /// Silence from the latched device beyond this (seconds) lets another device
+    /// take over. Gesture frames arrive at ≥60 Hz, so this is far longer than any
+    /// real inter-frame gap — only a truly dead device crosses it.
+    static let latchStaleWindow: Double = 0.5
+
     static func reset() {
         active = false
         tracking = false
         accumulator = 0
         fired = false
+        latchedDevice = -1
+        latchedAt = 0
     }
 }
 
@@ -269,6 +292,29 @@ private func multitouchSwipeCallback(
     _ timestamp: Double,
     _ frame: Int32
 ) -> Int32 {
+    // One gesture at a time: latch onto the device that first reaches three
+    // contacts and ignore every other device until the latched one fully lifts,
+    // so a resting finger on a second trackpad can't stall or end the gesture.
+    if MTGesture.latchedDevice != -1 && device != MTGesture.latchedDevice {
+        // Stale-latch escape: if the latched device went silent (disconnect /
+        // sleep / a dropped zero-contact lift frame), a held latch would
+        // otherwise swallow every gesture on every trackpad until the pref is
+        // toggled. Let a different device that reaches three contacts seize the
+        // gesture once the latched one hasn't delivered a frame for a short
+        // window; keep ignoring it otherwise (one gesture at a time).
+        guard numContacts >= 3, timestamp - MTGesture.latchedAt > MTGesture.latchStaleWindow else {
+            return 0
+        }
+        MTGesture.latchedDevice = -1
+        MTGesture.tracking = false
+        MTGesture.active = false
+        MTGesture.accumulator = 0
+        MTGesture.fired = false
+    }
+    // This frame belongs to (or will establish) the gesture device — refresh the
+    // latch's liveness so a genuine ongoing gesture is never seized.
+    MTGesture.latchedAt = timestamp
+
     if let contacts, numContacts >= 3 {
         // Average the normalized x of the first three contacts. Vertical motion
         // is ignored, so a pure three-finger up/down swipe banks no travel and
@@ -280,6 +326,7 @@ private func multitouchSwipeCallback(
         }
         let avgX = sumX / 3
 
+        MTGesture.latchedDevice = device
         MTGesture.active = true
         // (Re)anchor on a fresh gesture or when resuming after a brief flicker
         // below three fingers, so the gap doesn't bank a spurious jump.
@@ -333,6 +380,7 @@ private func multitouchSwipeCallback(
         MTGesture.accumulator = 0
         // Re-arm one-shot mode so the next swipe can switch another Space.
         MTGesture.fired = false
+        MTGesture.latchedDevice = -1
     }
     return 0
 }

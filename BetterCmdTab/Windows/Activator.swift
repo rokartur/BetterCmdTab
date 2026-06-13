@@ -1,5 +1,7 @@
 import AppKit
 import ApplicationServices
+import Carbon.HIToolbox
+import os
 
 /// Direction for moving a window between displays or Spaces.
 enum MoveDirection {
@@ -151,6 +153,54 @@ enum PreviousFrameStore {
     static func reset() { frames.removeAll() }
 }
 
+/// Layout-correct virtual keycode for the character "w", backing the synthetic
+/// ⌘W close fallback in `Activator`. Hardware keycode 13 types 'w' only on
+/// QWERTY/QWERTZ — on French AZERTY it types 'z' (so a posted ⌘13 performs Undo
+/// in the target app) and on Dvorak ',' — so the keycode is resolved against
+/// the current layout via `KeyboardLayout` and cached until the user switches
+/// layouts. The cache is lock-guarded, but resolution reads Text Input Source
+/// APIs that are main-thread only, so `current()` forces itself onto the main
+/// thread; callers sit behind 50–450 ms sleeps, far off the ⌘Tab hot path.
+private enum CloseKeycode {
+    private static let cached = OSAllocatedUnfairLock<CGKeyCode?>(initialState: nil)
+    private static let observerInstalled = OSAllocatedUnfairLock<Bool>(initialState: false)
+
+    static func current() -> CGKeyCode {
+        // `KeyboardLayout` / `installObserverIfNeeded` touch Text Input Source
+        // APIs (TISCopyCurrentKeyboardInputSource), which abort under the Main
+        // Thread Checker when run off-main. The close fallback can reach here
+        // from a detached task, so hop to main to resolve. Normally already on
+        // main (Activator.closeWindow resolves before dispatching), so the
+        // common path takes no hop.
+        if Thread.isMainThread { return resolve() }
+        return DispatchQueue.main.sync { resolve() }
+    }
+
+    private static func resolve() -> CGKeyCode {
+        installObserverIfNeeded()
+        if let hit = cached.withLock({ $0 }) { return hit }
+        // Scan the layout for the key that types an unmodified 'w'; fall back
+        // to ANSI W (13) when none does (e.g. an IME with no key-layout data).
+        let resolved = ((0 as CGKeyCode)..<128).first { KeyboardLayout.character(for: $0) == "w" } ?? 13
+        cached.withLock { $0 = resolved }
+        return resolved
+    }
+
+    private static func installObserverIfNeeded() {
+        let shouldInstall = observerInstalled.withLock { installed -> Bool in
+            if installed { return false }
+            installed = true
+            return true
+        }
+        guard shouldInstall else { return }
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
+            object: nil,
+            queue: .main
+        ) { _ in cached.withLock { $0 = nil } }
+    }
+}
+
 enum Activator {
     private static let finderBundleID = "com.apple.finder"
 
@@ -208,13 +258,23 @@ enum Activator {
             openFreshWindow(for: app)
             return
         }
+        // Native activation never un-minimizes, so only restore a window when
+        // the app has nothing visible to focus (the all-minimized case).
+        var firstMinimized: AXUIElement?
+        var hasVisibleWindow = false
         for window in windows {
+            AXUIElementSetMessagingTimeout(window, 0.25)
             var minimizedValue: AnyObject?
             AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minimizedValue)
             if (minimizedValue as? Bool) == true {
-                AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+                if firstMinimized == nil { firstMinimized = window }
+            } else {
+                hasVisibleWindow = true
                 break
             }
+        }
+        if !hasVisibleWindow, let firstMinimized {
+            AXUIElementSetAttributeValue(firstMinimized, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
         }
         bringToFront(app)
     }
@@ -241,13 +301,14 @@ enum Activator {
         NSWorkspace.shared.openApplication(at: installed.url, configuration: config) { _, _ in }
     }
 
-    /// Reopen a recently closed (i.e. quit) app: relaunch it, or just activate
-    /// it if it's somehow already running again. Recently-closed entries are
-    /// app-level only, so there's no per-document/window restore here.
+    /// Reopen a recently closed (i.e. quit) app: relaunch it, or activate it if
+    /// it's somehow already running again (opening a fresh window when it has
+    /// none, so the "Reopen" verb always produces a window). Recently-closed
+    /// entries are app-level only, so there's no per-document/window restore here.
     private static func reopen(_ entry: RecentEntry) {
         if let running = NSRunningApplication
             .runningApplications(withBundleIdentifier: entry.bundleID).first {
-            activateProcess(running)
+            activateApp(running)
             return
         }
         if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: entry.bundleID) {
@@ -430,6 +491,15 @@ enum Activator {
             return
         }
 
+        // Resolve the ⌘W-fallback keycode HERE, on the caller's main thread.
+        // `CloseKeycode.current()` reads the keyboard layout through Text Input
+        // Source APIs (TISCopyCurrentKeyboardInputSource), which are main-thread
+        // only — calling it from the detached task below trips the Main Thread
+        // Checker and aborts the whole app (the exact crash seen when a window
+        // with no usable AX close button fell through to the ⌘W path). Captured
+        // into the task so the off-main close never touches TIS.
+        let closeKeyCode = CloseKeycode.current()
+
         Task.detached(priority: .userInitiated) {
             if isFullscreen {
                 AXUIElementPerformAction(window, kAXRaiseAction as CFString)
@@ -440,15 +510,15 @@ enum Activator {
                 // Space transition typically ~400ms on Apple Silicon. 450ms
                 // gives headroom without blocking a worker thread.
                 try? await Task.sleep(nanoseconds: 450_000_000)
-                postKeyShortcut(pid: pid, keyCode: 13, axModifiers: 0)
+                postKeyShortcut(pid: pid, keyCode: closeKeyCode, axModifiers: 0) // ⌘W
                 return
             }
 
-            await pressCloseButton(window: window, pid: pid, attempts: 3)
+            await pressCloseButton(window: window, pid: pid, attempts: 3, closeKeyCode: closeKeyCode)
         }
     }
 
-    private static func pressCloseButton(window: AXUIElement, pid: pid_t, attempts: Int) async {
+    private static func pressCloseButton(window: AXUIElement, pid: pid_t, attempts: Int, closeKeyCode: CGKeyCode) async {
         for i in 0..<attempts {
             if performCloseButtonPress(window: window) { return }
             if i < attempts - 1 {
@@ -464,7 +534,7 @@ enum Activator {
             PrivateAPI.raiseWindow(pid: pid, wid: wid)
         }
         try? await Task.sleep(nanoseconds: 50_000_000)
-        postKeyShortcut(pid: pid, keyCode: 13, axModifiers: 0) // ⌘W
+        postKeyShortcut(pid: pid, keyCode: closeKeyCode, axModifiers: 0) // ⌘W
     }
 
     /// Single synchronous attempt to press a window's AX close button. Returns
@@ -806,6 +876,11 @@ enum Activator {
 
     private static func applyArrangement(window: AXUIElement, arrangement: WindowArrangement) {
         guard !NSScreen.screens.isEmpty else { return }
+        // Cap AX messaging: this runs on the main thread and makes several AX
+        // reads/writes, each of which would otherwise block up to the 6 s global
+        // default on a wedged target app. The timeout is per-element-instance —
+        // the cap set in `focusedWindow` applied to the app element only.
+        AXUIElementSetMessagingTimeout(window, 0.25)
         // Anchor the AX↔Cocoa flip to the origin-zero "Main display": NSScreen
         // .screens order is not guaranteed primary-first, so picking screens[0]
         // would flip against the wrong height when displays are reordered. (The
@@ -879,6 +954,8 @@ enum Activator {
 
     private static func repositionToAdjacentDisplay(window: AXUIElement, direction: MoveDirection) {
         guard !NSScreen.screens.isEmpty else { return }
+        // Same main-thread AX messaging cap as `applyArrangement`.
+        AXUIElementSetMessagingTimeout(window, 0.25)
         // AX coordinates are top-left origin (y down) anchored at the main screen;
         // Cocoa screen frames are bottom-left origin. `mainHeight` bridges them.
         // Anchor the AX↔Cocoa flip to the origin-zero "Main display": NSScreen
@@ -946,6 +1023,9 @@ enum Activator {
     /// and Cocoa↔AX flip as `applyArrangement`.
     private static func applyRestore(window: AXUIElement) {
         guard !NSScreen.screens.isEmpty else { return }
+        // Same main-thread AX messaging cap as `applyArrangement` (also covers
+        // the `isFullscreen` reads below — the cap rides the element instance).
+        AXUIElementSetMessagingTimeout(window, 0.25)
         let wid = PrivateAPI.cgWindowId(of: window)
         guard let saved = MainActor.assumeIsolated({ PreviousFrameStore.saved(for: wid) }) else { return }
 

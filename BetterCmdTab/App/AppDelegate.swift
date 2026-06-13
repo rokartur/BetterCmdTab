@@ -108,9 +108,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         Task { @MainActor in
             // Touch the singleton so it boots its scheduled auto-check task,
-            // then perform an opportunistic non-forced check at launch.
-            _ = GitHubUpdater.shared
-            await GitHubUpdater.shared.checkForUpdates(force: false)
+            // then perform an opportunistic non-forced check at launch — but
+            // only when automatic checks are enabled. The Manual cadence must
+            // mean zero update network traffic until the user checks from the
+            // About pane.
+            let updater = GitHubUpdater.shared
+            if updater.automaticChecksEnabled {
+                await updater.checkForUpdates(force: false)
+            }
         }
     }
 

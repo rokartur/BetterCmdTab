@@ -18,6 +18,12 @@ final class GeneralSettingsViewController: SettingsTabViewController {
 
     private var cancellables = Set<AnyCancellable>()
 
+    /// Cadences offered in the update popup. The package's `selectableCadences`
+    /// excludes `.manual`; it's appended here so update checks (and their
+    /// network traffic) can be turned off entirely — a manual check stays
+    /// available from the About pane.
+    private let updateCadences: [UpdateCheckInterval] = UpdateCheckInterval.selectableCadences + [.manual]
+
     override func setupContent() {
         // Startup section
         let startup = addSection(title: String(localized: "Startup"), anchor: SettingsAnchor.startup)
@@ -63,7 +69,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
         // Updates section
         let updates = addSection(title: String(localized: "Updates"), anchor: SettingsAnchor.updates)
 
-        for cadence in UpdateCheckInterval.selectableCadences {
+        for cadence in updateCadences {
             intervalPopUp.addItem(withTitle: cadence.title)
         }
         intervalPopUp.controlSize = .small
@@ -136,8 +142,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
         let updater = GitHubUpdater.shared
         betaSwitch.state = updater.includePreReleases ? .on : .off
 
-        let cadences = UpdateCheckInterval.selectableCadences
-        intervalPopUp.selectItem(at: cadences.firstIndex(of: updater.checkInterval) ?? 0)
+        intervalPopUp.selectItem(at: updateCadences.firstIndex(of: updater.checkInterval) ?? 0)
 
         LaunchAtLogin.shared.$isEnabled
             .receive(on: DispatchQueue.main)
@@ -147,6 +152,24 @@ final class GeneralSettingsViewController: SettingsTabViewController {
         updater.$includePreReleases
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.betaSwitch.state = $0 ? .on : .off }
+            .store(in: &cancellables)
+
+        // Keep the Preferences-backed switches in sync when the values change
+        // underneath us — a settings import calls reloadFromDefaults while
+        // this pane (which hosts the Import button) is still on screen.
+        prefs.$hideMenuBarIcon
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.hideMenuBarSwitch.state = $0 ? .on : .off }
+            .store(in: &cancellables)
+
+        prefs.$hapticOnCommit
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.hapticSwitch.state = $0 ? .on : .off }
+            .store(in: &cancellables)
+
+        prefs.$soundOnCommit
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.soundSwitch.state = $0 ? .on : .off }
             .store(in: &cancellables)
     }
 
@@ -169,10 +192,9 @@ final class GeneralSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func changeInterval(_ sender: NSPopUpButton) {
-        let cadences = UpdateCheckInterval.selectableCadences
         let idx = sender.indexOfSelectedItem
-        guard cadences.indices.contains(idx) else { return }
-        GitHubUpdater.shared.setCheckInterval(cadences[idx])
+        guard updateCadences.indices.contains(idx) else { return }
+        GitHubUpdater.shared.setCheckInterval(updateCadences[idx])
     }
 
     @objc private func toggleHideMenuBarIcon(_ sender: NSSwitch) {

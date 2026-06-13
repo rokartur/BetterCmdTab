@@ -43,6 +43,15 @@ final class AppCatalogCache {
     /// current one finishes, so we always converge on the latest state.
     private var pidBumpInFlight: Set<pid_t> = []
     private var pidBumpPending: Set<pid_t> = []
+    /// Monotonic generation stamped (on main) when a scan is dispatched or an
+    /// entry is removed directly; completions only write a pid whose last
+    /// write isn't newer. `pidBumpInFlight` serializes bump-vs-bump, but a
+    /// full refresh runs concurrently with bumps — without this, a slow full
+    /// scan landing late clobbers fresher per-pid bump results (e.g. re-adds
+    /// a window a destroy-notification bump just removed while the panel is
+    /// open). Stale records are purged in the full-refresh completion.
+    private var scanGeneration: UInt64 = 0
+    private var pidWriteGeneration: [pid_t: UInt64] = [:]
     /// Per-pid memo of the last brute-scan coverage result: the CG hint set seen
     /// and the wids within it that no AX window could cover. Reused on the next
     /// bump *only while the hint set is unchanged* — a chatty app re-firing AX
@@ -121,8 +130,16 @@ final class AppCatalogCache {
                 seen.insert(pid)
             }
         }
-        for entry in entries.values where !seen.contains(entry.app.processIdentifier) {
-            ordered.append(entry)
+        // Apps absent from MRU (launched in the background, never activated):
+        // dictionary order is nondeterministic and reshuffles on every cache
+        // mutation, so sort by pid — stable and deterministic across refreshes.
+        var remainder: [(pid: pid_t, entry: AppCacheEntry)] = []
+        for (pid, entry) in entries where !seen.contains(pid) {
+            remainder.append((pid, entry))
+        }
+        remainder.sort { $0.pid < $1.pid }
+        for item in remainder {
+            ordered.append(item.entry)
         }
 
         var result: [SwitcherRow] = []
@@ -180,18 +197,37 @@ final class AppCatalogCache {
         if let completion { pendingOneShotCompletions.append(completion) }
         guard !pendingRefresh else { return }
         pendingRefresh = true
+        scanGeneration += 1
+        let gen = scanGeneration
         snapshotQueue.async { [weak self] in
             let fresh = Self.computeEntries()
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.entries = fresh
+                // Merge per pid instead of replacing wholesale: skip any pid a
+                // newer-generation write (a bump dispatched after this scan)
+                // already updated or removed — its data is fresher than ours.
+                for (pid, entry) in fresh where (self.pidWriteGeneration[pid] ?? 0) <= gen {
+                    self.entries[pid] = entry
+                    self.pidWriteGeneration[pid] = gen
+                }
+                for (pid, _) in self.entries
+                where fresh[pid] == nil && (self.pidWriteGeneration[pid] ?? 0) <= gen {
+                    self.entries.removeValue(forKey: pid)
+                }
                 self.hasCompletedFullScan = true
-                // Drop coverage memos for pids the full refresh no longer lists
+                // Drop coverage memos for pids the merged cache no longer lists
                 // (terminated apps a missed observer teardown left behind); the
                 // memo stays valid across refresh otherwise — it's keyed on the
                 // CG hint, which a refresh doesn't change — so live uncoverable
                 // pids don't pay a needless re-sweep.
-                self.pidCoverage = self.pidCoverage.filter { fresh.keys.contains($0.key) }
+                self.pidCoverage = self.pidCoverage.filter { self.entries.keys.contains($0.key) }
+                // Purge generation records nothing in flight can still write:
+                // refreshes are serialized by `pendingRefresh`, bumps are
+                // tracked in `pidBumpInFlight`, and anything dispatched later
+                // gets a higher generation anyway.
+                self.pidWriteGeneration = self.pidWriteGeneration.filter {
+                    self.entries[$0.key] != nil || self.pidBumpInFlight.contains($0.key)
+                }
                 self.pendingRefresh = false
                 // Warm the most-recently-used app icons off the show path so the
                 // first reveal doesn't flatten them synchronously on main (see
@@ -277,8 +313,13 @@ final class AppCatalogCache {
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
             let pid = app.processIdentifier
             Task { @MainActor [weak self] in
-                self?.uninstallAXObserver(forPid: pid)
-                self?.entries.removeValue(forKey: pid)
+                guard let self else { return }
+                self.uninstallAXObserver(forPid: pid)
+                self.entries.removeValue(forKey: pid)
+                // Stamp the removal so an in-flight scan that saw the app
+                // alive can't resurrect its entry when it lands.
+                self.scanGeneration += 1
+                self.pidWriteGeneration[pid] = self.scanGeneration
                 IconCache.evict(pid)
             }
         }
@@ -335,6 +376,14 @@ final class AppCatalogCache {
                     return
                 }
                 guard self.axObservers[pid] == nil else { return }
+                // The app can terminate while the build was in flight on the
+                // background queue — didTerminate's uninstall runs first and
+                // finds nothing to remove. Installing anyway would retain the
+                // observer + run-loop source for process lifetime and block a
+                // future install if the OS recycles the pid. Dropping the
+                // observer here is the cleanup: no source was added, and the
+                // AX-server subscriptions died with the target process.
+                guard let app = NSRunningApplication(processIdentifier: pid), !app.isTerminated else { return }
                 CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
                 self.axObservers[pid] = observer
             }
@@ -459,6 +508,8 @@ final class AppCatalogCache {
     /// self bump just clears the entry again.
     func bumpApps(pids: Set<pid_t>) {
         guard !pids.isEmpty else { return }
+        scanGeneration += 1
+        let gen = scanGeneration
         // Resolve policy and reserve in-flight slots on main. Pids already in
         // flight collapse into the pending set and re-run when the current scan
         // lands. Value-type `plan` crosses to the snapshot queue; the
@@ -481,12 +532,14 @@ final class AppCatalogCache {
             guard let app = NSRunningApplication(processIdentifier: pid) else {
                 entries.removeValue(forKey: pid)
                 pidCoverage.removeValue(forKey: pid)
+                pidWriteGeneration[pid] = gen
                 continue
             }
             let policy = app.activationPolicy
             guard policy == .regular || policy == .accessory else {
                 entries.removeValue(forKey: pid)
                 pidCoverage.removeValue(forKey: pid)
+                pidWriteGeneration[pid] = gen
                 continue
             }
             pidBumpInFlight.insert(pid)
@@ -534,7 +587,8 @@ final class AppCatalogCache {
                     let pid = plan[i].pid
                     let scan = scanBuffer[i]
                     self.pidBumpInFlight.remove(pid)
-                    if let app = apps[pid] {
+                    if let app = apps[pid], (self.pidWriteGeneration[pid] ?? 0) <= gen {
+                        self.pidWriteGeneration[pid] = gen
                         if plan[i].isRegular {
                             self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows)
                             self.pidCoverage[pid] = (scan.expected, scan.uncoverable)

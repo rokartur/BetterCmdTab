@@ -219,10 +219,18 @@ final class AppsSettingsViewController: SettingsTabViewController {
             selectedBundleIDs: Set(Preferences.shared.pinnedBundleIDs),
             confirmTitle: String(localized: "Done")
         ) { selection in
-            // Preserve existing pin order; append newly-checked apps at the end.
+            // Preserve existing pin order; append newly-checked apps at the end,
+            // sorted by display name — `selection` is a Set, so its iteration
+            // order would otherwise persist an arbitrary, user-visible pin order.
             let current = Preferences.shared.pinnedBundleIDs
             var order = current.filter { selection.contains($0) }
-            for bid in selection where !order.contains(bid) { order.append(bid) }
+            let added = selection.filter { !order.contains($0) }
+                .map { (bid: $0, name: AppsSettingsViewController.appName(for: $0)) }
+                .sorted {
+                    let byName = $0.name.localizedCaseInsensitiveCompare($1.name)
+                    return byName == .orderedSame ? $0.bid < $1.bid : byName == .orderedAscending
+                }
+            order.append(contentsOf: added.map(\.bid))
             Preferences.shared.pinnedBundleIDs = order
         }
         controller.onDidDismiss = { [weak self] in
@@ -255,5 +263,14 @@ final class AppsSettingsViewController: SettingsTabViewController {
         }
         let fallback = NSImage(systemSymbolName: "app.dashed", accessibilityDescription: nil) ?? NSImage()
         return (bundleID, fallback)
+    }
+
+    /// Display name only — skips the icon disk-decode `appInfo` does, so the
+    /// pin-order sort doesn't pay for an `NSImage` it never reads.
+    nonisolated private static func appName(for bundleID: String) -> String {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            return bundleID
+        }
+        return url.deletingPathExtension().lastPathComponent
     }
 }

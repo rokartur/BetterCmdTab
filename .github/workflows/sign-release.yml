@@ -51,22 +51,29 @@ jobs:
           BETTERUPDATER_PRIVATE_KEY: ${{ secrets.BETTERUPDATER_PRIVATE_KEY }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          ASSETS=$(printf -- '--asset %s ' dist/*.dmg dist/*.zip 2>/dev/null)
-          [ -z "$ASSETS" ] && { echo "No .dmg/.zip assets on release"; exit 1; }
+          shopt -s nullglob
+          FILES=(dist/*.dmg dist/*.zip)
+          if [ ${#FILES[@]} -eq 0 ]; then echo "No .dmg/.zip assets on release"; exit 1; fi
+          ASSETS=()
+          for f in "${FILES[@]}"; do ASSETS+=(--asset "$f"); done
           "$BU" sign \
             --owner "$OWNER" --repo "$REPO" \
             --bundle-id "$BUNDLE_ID" --team-id "$TEAM_ID" \
             --version "$VERSION" \
-            $ASSETS \
+            "${ASSETS[@]}" \
             --out dist/betterupdater-manifest.json
 
       - name: Verify before upload (fail-closed guard)
         run: |
-          ASSETS=$(printf -- '--asset %s ' dist/*.dmg dist/*.zip 2>/dev/null)
+          shopt -s nullglob
+          FILES=(dist/*.dmg dist/*.zip)
+          if [ ${#FILES[@]} -eq 0 ]; then echo "No .dmg/.zip assets on release"; exit 1; fi
+          ASSETS=()
+          for f in "${FILES[@]}"; do ASSETS+=(--asset "$f"); done
           "$BU" verify \
             --public-key "$PINNED_PUBLIC_KEY" \
             --manifest dist/betterupdater-manifest.json \
-            $ASSETS
+            "${ASSETS[@]}"
 
       - name: Upload manifest + signature to release
         env:

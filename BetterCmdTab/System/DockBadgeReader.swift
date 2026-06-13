@@ -45,8 +45,17 @@ final class DockBadgeReader {
     /// AX traffic against another process — safe off the main thread, which is
     /// where the reveal path runs it (each call is timeout-bounded). Pair with
     /// `apply` on the main actor.
+    ///
+    /// In-flight guarded: the panel-open poll dispatches a snapshot per tick with
+    /// no awareness of a previous scan still blocked on a stalled Dock, so a tick
+    /// that finds one running returns the last completed map instead (a no-op
+    /// downstream — `apply` is change-gated) rather than stacking another blocked
+    /// worker thread.
     nonisolated static func snapshot() -> [String: String] {
-        readDockBadges()
+        guard scanLatch.begin() else { return scanLatch.lastResult() }
+        let result = readDockBadges()
+        scanLatch.end(result)
+        return result
     }
 
     /// Returns whether the badge map actually changed, so a live poll can skip a
@@ -60,6 +69,7 @@ final class DockBadgeReader {
     }
 
     nonisolated private static let statusLabelAttribute = "AXStatusLabel"
+    nonisolated private static let scanLatch = DockBadgeScanLatch()
 
     nonisolated private static func bundleID(for url: URL) -> String? {
         BundleIDURLCache.shared.lookup(url)
@@ -71,10 +81,14 @@ final class DockBadgeReader {
             .first?.processIdentifier else { return [:] }
 
         let axDock = AXUIElementCreateApplication(dockPid)
-        // Bound any single AX call so a busy Dock can't stall the main thread.
+        // Timeouts are per-element — one set on `axDock` does not carry to its
+        // children — so bound the list and every item below too, or a stalled
+        // Dock holds each call for the ~6s global default. Mirrors
+        // `DockBadgeObserver.buildObserver`.
         AXUIElementSetMessagingTimeout(axDock, 0.1)
 
         guard let list = firstAXList(of: axDock) else { return [:] }
+        AXUIElementSetMessagingTimeout(list, 0.1)
         let items = children(of: list)
 
         let attributes = [
@@ -86,6 +100,7 @@ final class DockBadgeReader {
 
         var result: [String: String] = [:]
         for item in items {
+            AXUIElementSetMessagingTimeout(item, 0.1)
             var raw: CFArray?
             guard AXUIElementCopyMultipleAttributeValues(item, attributes, AXCopyMultipleAttributeOptions(), &raw) == .success,
                   let values = raw as? [AnyObject], values.count == 4 else { continue }
@@ -105,6 +120,8 @@ final class DockBadgeReader {
     /// Internal (not private) so `DockBadgeObserver` reuses the same tree walk.
     nonisolated static func firstAXList(of element: AXUIElement) -> AXUIElement? {
         for child in children(of: element) {
+            // Timeouts are per-element; bound the role probe too.
+            AXUIElementSetMessagingTimeout(child, 0.1)
             if string(child, attribute: kAXRoleAttribute as CFString) == (kAXListRole as String) {
                 return child
             }
@@ -124,6 +141,39 @@ final class DockBadgeReader {
         var value: AnyObject?
         guard AXUIElementCopyAttributeValue(element, attribute, &value) == .success else { return nil }
         return value as? String
+    }
+}
+
+/// Thread-safe in-flight latch + last-result cache behind `DockBadgeReader.snapshot()`.
+/// `begin()` returns false while a scan is running, so concurrent callers (the
+/// panel-open poll ticking faster than a stalled Dock answers) reuse
+/// `lastResult()` instead of piling up blocked worker threads. Internal (not
+/// private) so the pure begin/end/last seam is testable.
+final class DockBadgeScanLatch: @unchecked Sendable {
+    private let lock = NSLock()
+    private var inFlight = false
+    private var last: [String: String] = [:]
+
+    /// True if the caller owns the scan; false if one is already in flight.
+    func begin() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        if inFlight { return false }
+        inFlight = true
+        return true
+    }
+
+    func end(_ result: [String: String]) {
+        lock.lock()
+        defer { lock.unlock() }
+        inFlight = false
+        last = result
+    }
+
+    func lastResult() -> [String: String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return last
     }
 }
 

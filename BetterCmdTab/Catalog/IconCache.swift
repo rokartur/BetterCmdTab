@@ -2,11 +2,17 @@ import AppKit
 
 @MainActor
 enum IconCache {
-    /// Hard cap on cached entries per cache. Halved from 64 → 32 once
+    /// Floor on cached entries per cache. Halved from 64 → 32 once
     /// `prewarm` was dropped: cache fills on demand, not all at launch, so
     /// the working set in steady state is closer to "apps the user actually
-    /// invokes" than "every running process".
+    /// invokes" than "every running process". The running-app cache grows
+    /// past this with the live catalog (see `sizeToCatalog`) so a panel
+    /// listing >32 apps doesn't evict its own working set every reveal.
     private static let capacity = 32
+    /// Ceiling when sizing to the live catalog — bounds the cost limit
+    /// (~33 MB at 128 × 262 KB) for pathological app counts; NSCache still
+    /// evicts under memory pressure below this.
+    private static let maxCapacity = 128
     /// Edge length (px) of the flattened raster we cache. Sized just above the
     /// largest *typical* on-screen tile: the default "Medium" panel scale
     /// renders icons at ~77pt → 154px on a 2x Mac, and "Large" pushes the
@@ -81,8 +87,8 @@ enum IconCache {
     /// Flatten the most-recent app icons OFF the switcher show path so the first
     /// reveal doesn't pay a synchronous `flattened()` per uncached app — the
     /// dominant cause of the intermittent "switcher shows late" spike on a cold
-    /// cache (first open after launch, after a layout-mode change, or after >32
-    /// apps evicted the cache). Runs on the main actor — the flatten cannot go
+    /// cache (first open after launch, after a layout-mode change, or after a
+    /// memory-pressure eviction). Runs on the main actor — the flatten cannot go
     /// off-main without tripping the AutoLayout-engine assertion that retired
     /// the original *eager* prewarm — but in small `.common`-mode chunks, so it
     /// never stalls the run loop and RSS rises gradually instead of spiking ~12
@@ -90,6 +96,10 @@ enum IconCache {
     /// completion, where the freshest MRU order is known; already-cached pids
     /// are skipped, so a warm cache makes this a near-no-op.
     static func prewarm(pids: [pid_t]) {
+        // `pids` is the full live catalog (MRU-first), so it doubles as the
+        // working-set size signal: keep the cache large enough to hold every
+        // app the panel can show, or each reveal re-flattens the overflow.
+        sizeToCatalog(pids.count)
         var targets: [pid_t] = []
         targets.reserveCapacity(prewarmLimit)
         for pid in pids {
@@ -98,6 +108,17 @@ enum IconCache {
         }
         guard !targets.isEmpty else { return }
         warmChunk(targets, from: 0)
+    }
+
+    /// Resize the running-app cache to the live catalog, clamped to
+    /// `capacity...maxCapacity`; the cost limit scales with it so it stays a
+    /// real memory ceiling. The +8 margin absorbs apps launched between
+    /// catalog refreshes without an immediate eviction.
+    private static func sizeToCatalog(_ count: Int) {
+        let limit = min(maxCapacity, max(capacity, count + 8))
+        guard limit != cache.countLimit else { return }
+        cache.countLimit = limit
+        cache.totalCostLimit = limit * bytesPerImage
     }
 
     /// Flatten one chunk of `pids` on the main actor, then yield the run loop

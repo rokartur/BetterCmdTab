@@ -50,11 +50,11 @@ extension BetterShortcuts.Name {
 
     /// All in-panel action-key names, paired with a stable label.
     static let panelActionKeys: [(name: Self, title: String)] = [
-        (.panelClose, "Close window"),
-        (.panelMinimize, "Minimize window"),
-        (.panelHide, "Hide app"),
-        (.panelQuit, "Quit app"),
-        (.panelFullscreen, "Full screen"),
+        (.panelClose, String(localized: "Close window")),
+        (.panelMinimize, String(localized: "Minimize window")),
+        (.panelHide, String(localized: "Hide app")),
+        (.panelQuit, String(localized: "Quit app")),
+        (.panelFullscreen, String(localized: "Full screen")),
     ]
 
     // MARK: Window-management hotkeys (global + in-switcher)
@@ -97,21 +97,21 @@ extension BetterShortcuts.Name {
 
     /// The global window-visibility names, paired with a stable label.
     static let globalWindowActions: [(name: Self, title: String)] = [
-        (.hideAllWindows, "Hide all windows"),
-        (.showAllWindows, "Show all windows"),
+        (.hideAllWindows, String(localized: "Hide all windows")),
+        (.showAllWindows, String(localized: "Show all windows")),
     ]
 
     /// All window-management names, paired with a stable label.
     static let windowMgmt: [(name: Self, title: String)] = [
-        (.windowTileLeft, "Tile left half"),
-        (.windowTileRight, "Tile right half"),
-        (.windowTileTopLeft, "Tile top-left corner"),
-        (.windowTileTopRight, "Tile top-right corner"),
-        (.windowTileBottomLeft, "Tile bottom-left corner"),
-        (.windowTileBottomRight, "Tile bottom-right corner"),
-        (.windowMaximize, "Maximize"),
-        (.windowCenter, "Center"),
-        (.windowRestorePrevious, "Restore previous size"),
+        (.windowTileLeft, String(localized: "Tile left half")),
+        (.windowTileRight, String(localized: "Tile right half")),
+        (.windowTileTopLeft, String(localized: "Tile top-left corner")),
+        (.windowTileTopRight, String(localized: "Tile top-right corner")),
+        (.windowTileBottomLeft, String(localized: "Tile bottom-left corner")),
+        (.windowTileBottomRight, String(localized: "Tile bottom-right corner")),
+        (.windowMaximize, String(localized: "Maximize")),
+        (.windowCenter, String(localized: "Center")),
+        (.windowRestorePrevious, String(localized: "Restore previous size")),
     ]
 }
 
@@ -128,16 +128,16 @@ extension BetterShortcuts.Name: @retroactive CaseIterable {
     /// Human-readable label used by the recorder's conflict alert.
     var displayName: String {
         switch self {
-        case .switchApps: return "Switch apps"
-        case .switchWindows: return "Switch windows"
+        case .switchApps: return String(localized: "Switch apps")
+        case .switchWindows: return String(localized: "Switch windows")
         default:
-            if rawValue.hasPrefix(Self.directActivatePrefix) {
-                let slot = rawValue.dropFirst(Self.directActivatePrefix.count)
-                return "Direct activation \(slot)"
+            if rawValue.hasPrefix(Self.directActivatePrefix),
+               let slot = Int(rawValue.dropFirst(Self.directActivatePrefix.count)) {
+                return String(localized: "Direct activation \(slot)")
             }
-            if rawValue.hasPrefix(Self.scopedSwitchPrefix) {
-                let slot = rawValue.dropFirst(Self.scopedSwitchPrefix.count)
-                return "Scoped shortcut \(slot)"
+            if rawValue.hasPrefix(Self.scopedSwitchPrefix),
+               let slot = Int(rawValue.dropFirst(Self.scopedSwitchPrefix.count)) {
+                return String(localized: "Scoped shortcut \(slot)")
             }
             if let panel = Self.panelActionKeys.first(where: { $0.name == self }) {
                 return panel.title

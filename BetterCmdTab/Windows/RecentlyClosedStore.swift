@@ -21,6 +21,10 @@ final class RecentlyClosedStore {
     static let shared = RecentlyClosedStore()
 
     private(set) var entries: [RecentEntry] = []
+    /// Pre-folded (appName, title) per entry, kept in lockstep with `entries`
+    /// (rebuilt on every mutation — at most `cap` folds, off the search path)
+    /// so each search keystroke folds only the query, not every stored entry.
+    private var folded: [(name: String, title: String)] = []
     private let cap = 20
     private let key = "Switcher.recentlyClosed"
     private var observers: [NSObjectProtocol] = []
@@ -117,6 +121,7 @@ final class RecentlyClosedStore {
             at: 0
         )
         if entries.count > cap { entries.removeLast(entries.count - cap) }
+        refold()
         save()
     }
 
@@ -130,9 +135,11 @@ final class RecentlyClosedStore {
     /// query returns nothing (callers fall back to `recent(limit:)`).
     func matches(query: String, limit: Int) -> [RecentEntry] {
         guard !query.isEmpty, limit > 0 else { return [] }
+        let foldedQuery = FuzzyMatch.fold(query)
         var result: [RecentEntry] = []
-        for entry in entries where FuzzyMatch.matches(query: query, appName: entry.appName, windowTitle: entry.title) {
-            result.append(entry)
+        for i in entries.indices
+        where FuzzyMatch.matchesFolded(foldedQuery: foldedQuery, foldedAppName: folded[i].name, foldedWindowTitle: folded[i].title) {
+            result.append(entries[i])
             if result.count >= limit { break }
         }
         return result
@@ -140,6 +147,7 @@ final class RecentlyClosedStore {
 
     func clear() {
         entries = []
+        folded = []
         save()
     }
 
@@ -147,6 +155,11 @@ final class RecentlyClosedStore {
         guard let data = UserDefaults.standard.data(forKey: key),
               let decoded = try? JSONDecoder().decode([RecentEntry].self, from: data) else { return }
         entries = decoded
+        refold()
+    }
+
+    private func refold() {
+        folded = entries.map { (FuzzyMatch.fold($0.appName), FuzzyMatch.fold($0.title)) }
     }
 
     private func save() {

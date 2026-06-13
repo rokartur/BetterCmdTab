@@ -749,8 +749,11 @@ final class HotkeyTap {
             // Magic Mouse produce *continuous* (precise) scrolls — pass those
             // straight through so two-finger scrolling stays free and the
             // trackpad keeps its three-finger swipe. Only acts while the
-            // switcher is already showing; never opens it from idle.
-            guard isSwitchingNow(), scrollEnabledFlag.withLock({ $0 }) else {
+            // switcher is already showing; never opens it from idle. Inert
+            // while drilled into a tab strip — an app-list step there would
+            // desync the highlight from the strip.
+            guard isSwitchingNow(), scrollEnabledFlag.withLock({ $0 }),
+                  !tabDrillFlag.withLock({ $0 }) else {
                 return Unmanaged.passUnretained(event)
             }
             let continuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
@@ -1036,7 +1039,12 @@ final class HotkeyTap {
                 current = shiftHeld
                 return prev
             }
-            if anyModHeld && shiftHeld && !wasShift && isSwitchingNow() {
+            // Not while drilled into a tab strip (an app step would desync the
+            // highlight from the strip) or typing in search (Shift for a
+            // capital must not move the selection). ⌘⇧Tab still steps
+            // explicitly through the keyDown path in both modes.
+            if anyModHeld && shiftHeld && !wasShift && !tabDrillNow
+                && isSwitchingNow() && !isSearchingNow() {
                 deliver(.prevApp)
             }
             // `.releaseCmd` only means anything while the switcher is open

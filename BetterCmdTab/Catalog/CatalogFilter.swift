@@ -106,9 +106,11 @@ enum CatalogFilter {
 
     /// Drop windows that live on a Space other than the one in focus. Rows
     /// without a real window (windowless apps, launchables, recents) and any
-    /// window whose Space can't be resolved are kept, so the filter only ever
-    /// hides windows it's certain are elsewhere. Degrades to a no-op when the
-    /// private Space APIs are unavailable.
+    /// window whose Space can't be resolved — including multi-Space (All
+    /// Desktops / sticky) windows, which `PrivateAPI.spaces(forWindows:)`
+    /// leaves unresolved — are kept, so the filter only ever hides windows
+    /// it's certain are elsewhere. Degrades to a no-op when the private Space
+    /// APIs are unavailable.
     static func filterToCurrentSpace(_ rows: [SwitcherRow]) -> [SwitcherRow] {
         guard let active = PrivateAPI.activeSpace() else { return rows }
         let widByOffset: [(offset: Int, wid: CGWindowID)] = rows.enumerated().compactMap { idx, row in

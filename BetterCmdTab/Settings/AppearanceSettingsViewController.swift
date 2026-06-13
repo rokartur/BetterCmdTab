@@ -280,7 +280,22 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     }
 
     private func selectGrid(_ value: Int) {
-        gridPopup.selectItem(at: gridValues.firstIndex(of: value) ?? 0)
+        // Drop any transient item added for an out-of-list value on a previous
+        // sync so the popup matches `gridValues` again.
+        while gridPopup.numberOfItems > gridValues.count {
+            gridPopup.removeItem(at: gridPopup.numberOfItems - 1)
+        }
+        if let i = gridValues.firstIndex(of: value) {
+            gridPopup.selectItem(at: i)
+        } else {
+            // An imported (hand-edited) cap like 7–12 is valid and actively caps
+            // the grid but isn't offered here. Show it as an extra entry so the
+            // popup can't mislabel it "Automatic"; re-picking it is a no-op
+            // (`gridChanged` ignores out-of-list indices) and any other pick is
+            // an informed overwrite.
+            gridPopup.addItem(withTitle: "\(value)")
+            gridPopup.selectItem(at: gridPopup.numberOfItems - 1)
+        }
     }
 
     private func applyDelay(_ ms: Int) {

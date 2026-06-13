@@ -137,6 +137,29 @@ struct SettingsPortabilityTests {
         #expect(UserDefaults.standard.object(forKey: "Switcher.bogusNull") == nil)
     }
 
+    @Test("machine-local keys are excluded from export and import")
+    func machineLocalKeysExcluded() throws {
+        let prefs = Preferences.shared
+        let defaults = UserDefaults.standard
+        let key = "Switcher.disabledSymbolicHotKeys"
+        let saved = defaults.object(forKey: key)
+        defer {
+            if let saved { defaults.set(saved, forKey: key) } else { defaults.removeObject(forKey: key) }
+        }
+        defaults.set([55], forKey: key)
+
+        // Export must not carry this machine's crash-heal record.
+        let data = try prefs.exportedJSONData()
+        let root = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let values = try #require(root["values"] as? [String: Any])
+        #expect(values[key] == nil)
+        #expect(values["Switcher.recentlyClosed"] == nil)
+
+        // Import must not overwrite this machine's record with the file's.
+        try prefs.importSettings(from: envelope([key: [1, 2]]))
+        #expect(defaults.array(forKey: key) as? [Int] == [55])
+    }
+
     @Test("keys outside the Switcher namespace are ignored on import")
     func foreignKeysIgnored() throws {
         let prefs = Preferences.shared

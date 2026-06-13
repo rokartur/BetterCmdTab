@@ -128,9 +128,12 @@ enum PrivateAPI {
         return space == 0 ? nil : space
     }
 
-    /// Maps each window id to the first Space it belongs to. Windows whose Space
-    /// can't be resolved are omitted; the result is empty when the private API is
-    /// unavailable (callers should then degrade to showing every window).
+    /// Maps each window id to its single Space. Windows that belong to more
+    /// than one Space (All Desktops / sticky windows) are omitted along with
+    /// windows whose Space can't be resolved — they're visible on the current
+    /// Space too, and the current-Space filter keeps whatever it can't pin
+    /// down. The result is empty when the private API is unavailable (callers
+    /// should then degrade to showing every window).
     static func spaces(forWindows wids: [CGWindowID]) -> [CGWindowID: UInt64] {
         guard !wids.isEmpty,
               let mainConnection = mainConnectionFn,
@@ -143,8 +146,10 @@ enum PrivateAPI {
             // union of Spaces for the whole input array, so a single call can't
             // be attributed back to individual windows.
             let list = [NSNumber(value: wid)] as CFArray
+            // == 1: a multi-Space window (All Desktops) is on the current Space
+            // by definition, so leave it unresolved and the filter keeps it.
             guard let spaces = copySpaces(cid, 0x7, list)?.takeRetainedValue(),
-                  CFArrayGetCount(spaces) > 0,
+                  CFArrayGetCount(spaces) == 1,
                   let raw = CFArrayGetValueAtIndex(spaces, 0) else { continue }
             let number = Unmanaged<CFNumber>.fromOpaque(raw).takeUnretainedValue()
             var space: UInt64 = 0
