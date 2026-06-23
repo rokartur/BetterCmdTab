@@ -453,6 +453,48 @@ function DownloadCta({ href }: { href: string }) {
   );
 }
 
+function CopyGlyph() {
+  return (
+    <svg
+      width="13"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="4.75" y="4.75" width="7.25" height="7.25" rx="1.5" />
+      <path d="M9.25 4.75 V3 A1.5 1.5 0 0 0 7.75 1.5 H3 A1.5 1.5 0 0 0 1.5 3 v4.75 A1.5 1.5 0 0 0 3 9.25 h1.75" />
+    </svg>
+  );
+}
+
+function CheckGlyph() {
+  return (
+    <svg
+      width="13"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <motion.path
+        d="M2.75 7.5 L5.75 10.5 L11.25 4"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.32, ease: EASE }}
+      />
+    </svg>
+  );
+}
+
 // Copyable Homebrew one-liner. clipboard access lives inside the click
 // handler, so this stays SSR-safe during the prerender (no top-level
 // navigator/window reference).
@@ -477,16 +519,34 @@ function BrewCmd() {
 
   return (
     <motion.div className="brew" variants={reveal}>
-      <code className="brew-code">{BREW}</code>
-      <motion.button
-        type="button"
-        className="brew-copy"
-        onClick={copy}
-        aria-label={copied ? "Copied to clipboard" : "Copy Homebrew command"}
-        whileTap={{ scale: 0.96 }}
+      <motion.div
+        className="brew-box"
+        animate={{ borderColor: copied ? "#3b82f6" : "#222222" }}
+        transition={{ duration: 0.3, ease: EASE }}
       >
-        {copied ? "Copied" : "Copy"}
-      </motion.button>
+        <code className="brew-code">{BREW}</code>
+        <motion.button
+          type="button"
+          className="brew-copy"
+          onClick={copy}
+          aria-label={copied ? "Copied to clipboard" : "Copy Homebrew command"}
+          whileTap={{ scale: 0.95 }}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={copied ? "done" : "idle"}
+              className="brew-copy-inner"
+              initial={{ opacity: 0, y: 9 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -9 }}
+              transition={{ duration: 0.18, ease: EASE }}
+            >
+              {copied ? <CheckGlyph /> : <CopyGlyph />}
+              {copied ? "Copied" : "Copy"}
+            </motion.span>
+          </AnimatePresence>
+        </motion.button>
+      </motion.div>
     </motion.div>
   );
 }
