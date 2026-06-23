@@ -183,6 +183,71 @@ h2 {
   transform-origin: center;
 }
 
+.brew {
+  margin-top: 14px;
+  max-width: 100%;
+}
+
+.brew-box {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #111;
+  overflow: hidden;
+}
+
+.brew-code {
+  display: block;
+  padding: 8px 14px;
+  color: var(--dim);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.brew-code::before {
+  content: "$ ";
+  color: var(--muted);
+}
+
+.brew-copy {
+  flex: none;
+  /* fixed width so the Copy → Copied swap doesn't reflow the box */
+  min-width: 98px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: #161616;
+  color: var(--muted);
+  font-family: var(--mono);
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    background 0.2s;
+}
+
+.brew-copy:hover,
+.brew-copy:focus-visible {
+  color: var(--accent);
+  background: #1b1b1b;
+}
+
+.brew-copy-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brew-copy-inner svg {
+  display: block;
+  flex: none;
+}
+
 .shots {
   display: grid;
   grid-template-columns: 1fr 1fr;
