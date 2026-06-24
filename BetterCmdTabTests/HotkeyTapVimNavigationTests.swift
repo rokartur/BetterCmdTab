@@ -56,6 +56,31 @@ struct HotkeyTapVimNavigationTests {
         }
     }
 
+    /// Type-to-search routing (letter hints off + fuzzy on): every a–z letter,
+    /// including the reserved action keys w/m/h/q/f, must feed the query so a
+    /// search like "whatsapp"/"figma" works instead of firing close/minimize/etc.
+    /// This is the pure decision behind the tap's opener branch.
+    @Test func typeToSearchRoutesEveryLetterIncludingReserved() {
+        // Reserved action letters must NOT be excluded (the bug: w/m/h/q/f hit
+        // panelKeyMap and closed/quit instead of opening search).
+        for c: Character in ["w", "m", "h", "q", "f"] {
+            #expect(HotkeyTap.typeToSearchLetter(for: c) == c)
+        }
+        // Ordinary letters route too; uppercase folds to lowercase (⇧ for capitals).
+        #expect(HotkeyTap.typeToSearchLetter(for: "g") == "g")
+        #expect(HotkeyTap.typeToSearchLetter(for: "W") == "w")
+        #expect(HotkeyTap.typeToSearchLetter(for: "Z") == "z")
+    }
+
+    /// Non-letters can't open a query, so they fall through (digits/space/symbols
+    /// keep their normal panel handling; only a–z starts type-to-search).
+    @Test func typeToSearchIgnoresNonLetters() {
+        for c: Character in ["0", "9", " ", "/", "\\", "\n", "-", ".", "é"] {
+            #expect(HotkeyTap.typeToSearchLetter(for: c) == nil,
+                    "\(c) should not open type-to-search")
+        }
+    }
+
     /// While vim is on, h/j/k/l must be reserved on top of the bound action
     /// letters so `RowLabels` never hands out a hint the tap would silently
     /// swallow as motion. With vim off the bound set passes through untouched.

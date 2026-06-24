@@ -859,6 +859,19 @@ final class SwitcherController: SwitcherViewDelegate {
             .sink { [weak self] enabled in self?.hotkey.setShiftTapStepsBackward(enabled) }
             .store(in: &cancellables)
 
+        // Type-to-search routing depends on two prefs (letter hints off + fuzzy
+        // search on), so re-derive and re-push on either change. With it on, the
+        // tap routes letters — including the reserved action keys — into search.
+        syncTypeToSearchEnabled()
+        Preferences.shared.$letterHintsEnabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncTypeToSearchEnabled() }
+            .store(in: &cancellables)
+        Preferences.shared.$fuzzySearchEnabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncTypeToSearchEnabled() }
+            .store(in: &cancellables)
+
         // "Ignore shortcuts" exceptions: seed the suppression flag for the
         // current frontmost app and re-derive it when the exceptions change.
         updateTriggerSuppression()
@@ -2207,8 +2220,19 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func handleLetter(_ ch: Character) {
-        guard effective.letterHintsEnabled else { return }
-        guard phase == .visible, !rows.isEmpty, !labels.isEmpty else { return }
+        guard phase == .visible, !rows.isEmpty else { return }
+        // Letter hints off (for this reveal — a per-shortcut override wins over
+        // the global): typing filters via fuzzy search instead of jumping to a
+        // hint. The first keystroke opens search; once the tap is in search
+        // mode the rest arrive as `.searchInput`, so handling the opener (and any
+        // stragglers, since searchActive is already true then) here is enough.
+        if !effective.letterHintsEnabled {
+            guard Preferences.shared.fuzzySearchEnabled else { return }
+            if !searchActive { enterSearch() }
+            handleSearchInput(ch)
+            return
+        }
+        guard !labels.isEmpty else { return }
 
         let attempt = letterBuffer + String(ch)
 
@@ -5019,6 +5043,14 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     // MARK: - Fuzzy search
+
+    /// Push the derived type-to-search flag (letter hints off + fuzzy on) to the
+    /// tap. Called on setup and whenever either preference changes.
+    private func syncTypeToSearchEnabled() {
+        hotkey.setTypeToSearchEnabled(
+            !Preferences.shared.letterHintsEnabled && Preferences.shared.fuzzySearchEnabled
+        )
+    }
 
     private func toggleSearch() {
         if searchActive { exitSearch() } else { enterSearch() }
