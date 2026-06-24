@@ -128,36 +128,44 @@ enum PrivateAPI {
         return space == 0 ? nil : space
     }
 
-    /// Maps each window id to its single Space. Windows that belong to more
-    /// than one Space (All Desktops / sticky windows) are omitted along with
-    /// windows whose Space can't be resolved — they're visible on the current
-    /// Space too, and the current-Space filter keeps whatever it can't pin
-    /// down. The result is empty when the private API is unavailable (callers
-    /// should then degrade to showing every window).
-    static func spaces(forWindows wids: [CGWindowID]) -> [CGWindowID: UInt64] {
+    /// Classify each window id by Space membership in a single CGS pass.
+    /// `resolved[wid]` is its Space when the window belongs to exactly one
+    /// (`count == 1`); `spaceless` holds the wids WindowServer *positively*
+    /// reports as belonging to zero Spaces (`count == 0`) — a never-mapped
+    /// window, the phantom signal. Multi-Space (All Desktops / sticky,
+    /// `count > 1`) windows and windows whose query fails are in NEITHER set: a
+    /// sticky window is on the current Space by definition and a failed query is
+    /// unknown, so callers keep both. Both sets are empty when the private API is
+    /// unavailable (callers degrade to showing every window).
+    static func spaceMembership(forWindows wids: [CGWindowID]) -> (resolved: [CGWindowID: UInt64], spaceless: Set<CGWindowID>) {
         guard !wids.isEmpty,
               let mainConnection = mainConnectionFn,
-              let copySpaces = copySpacesForWindowsFn else { return [:] }
+              let copySpaces = copySpacesForWindowsFn else { return ([:], []) }
         let cid = mainConnection()
-        var result: [CGWindowID: UInt64] = [:]
-        result.reserveCapacity(wids.count)
+        var resolved: [CGWindowID: UInt64] = [:]
+        var spaceless = Set<CGWindowID>()
+        resolved.reserveCapacity(wids.count)
         for wid in wids where wid != 0 {
             // Query one window at a time: `CGSCopySpacesForWindows` returns the
             // union of Spaces for the whole input array, so a single call can't
             // be attributed back to individual windows.
             let list = [NSNumber(value: wid)] as CFArray
-            // == 1: a multi-Space window (All Desktops) is on the current Space
-            // by definition, so leave it unresolved and the filter keeps it.
-            guard let spaces = copySpaces(cid, 0x7, list)?.takeRetainedValue(),
-                  CFArrayGetCount(spaces) == 1,
-                  let raw = CFArrayGetValueAtIndex(spaces, 0) else { continue }
-            let number = Unmanaged<CFNumber>.fromOpaque(raw).takeUnretainedValue()
-            var space: UInt64 = 0
-            if CFNumberGetValue(number, .sInt64Type, &space), space != 0 {
-                result[wid] = space
+            guard let spaces = copySpaces(cid, 0x7, list)?.takeRetainedValue() else { continue }
+            let count = CFArrayGetCount(spaces)
+            if count == 0 {
+                // Positively belongs to no Space — a never-mapped phantom window.
+                spaceless.insert(wid)
+            } else if count == 1, let raw = CFArrayGetValueAtIndex(spaces, 0) {
+                let number = Unmanaged<CFNumber>.fromOpaque(raw).takeUnretainedValue()
+                var space: UInt64 = 0
+                if CFNumberGetValue(number, .sInt64Type, &space), space != 0 {
+                    resolved[wid] = space
+                }
             }
+            // count > 1: a multi-Space (All Desktops) window is on the current
+            // Space by definition — leave it in neither set so the filter keeps it.
         }
-        return result
+        return (resolved, spaceless)
     }
 
     /// One-shot startup diagnostic. Returns the list of dlsym symbols that
