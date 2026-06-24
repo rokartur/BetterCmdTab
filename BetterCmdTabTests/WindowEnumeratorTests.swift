@@ -53,4 +53,17 @@ struct WindowEnumeratorTests {
     func layerPrecedence() {
         #expect(WindowEnumerator.cgWindowBucket(layer: 20, alpha: 0.0, width: 50, height: 50) == .nonNormalLayer)
     }
+
+    @Test("missing bounds defaults to large enough -> normal")
+    func missingBoundsKept() {
+        // snapshotCGWindowMap defaults an absent bounds key to greatestFiniteMagnitude
+        // so a window with no bounds is kept (the prior "no bounds -> keep" behavior).
+        #expect(WindowEnumerator.cgWindowBucket(layer: 0, alpha: 1.0, width: .greatestFiniteMagnitude, height: .greatestFiniteMagnitude) == .normal)
+    }
+
+    @Test("present-but-empty bounds (0x0) -> excluded")
+    func emptyBoundsExcluded() {
+        // A bounds dict missing Width/Height yields 0, which the size gate excludes.
+        #expect(WindowEnumerator.cgWindowBucket(layer: 0, alpha: 1.0, width: 0, height: 0) == .excluded)
+    }
 }
