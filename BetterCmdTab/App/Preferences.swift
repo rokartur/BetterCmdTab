@@ -791,6 +791,7 @@ final class Preferences: ObservableObject {
         static let stayOpenOnRelease = "Switcher.stayOpenOnRelease"
         static let stayOpenOnQuickTap = "Switcher.stayOpenOnQuickTap"
         static let searchIncludesLaunchableApps = "Switcher.searchIncludesLaunchableApps"
+        static let fuzzySearchRankBestMatchFirst = "Switcher.fuzzySearchRankBestMatchFirst"
         static let showRecentlyClosed = "Switcher.showRecentlyClosed"
         static let recentlyClosedLimit = "Switcher.recentlyClosedLimit"
         static let hapticOnCommit = "Switcher.hapticOnCommit"
@@ -1112,6 +1113,16 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != searchIncludesLaunchableApps else { return }
             UserDefaults.standard.set(searchIncludesLaunchableApps, forKey: Keys.searchIncludesLaunchableApps)
+        }
+    }
+
+    /// Experimental. Rank fuzzy-search results best-match-first (contiguous and
+    /// word-boundary matches in the app name win) instead of showing them in
+    /// catalog/MRU order. Default off.
+    @Published var fuzzySearchRankBestMatchFirst: Bool {
+        didSet {
+            guard oldValue != fuzzySearchRankBestMatchFirst else { return }
+            UserDefaults.standard.set(fuzzySearchRankBestMatchFirst, forKey: Keys.fuzzySearchRankBestMatchFirst)
         }
     }
 
@@ -1875,6 +1886,7 @@ final class Preferences: ObservableObject {
         self.stayOpenOnQuickTap = defaults.object(forKey: Keys.stayOpenOnQuickTap) as? Bool ?? false
 
         self.searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
+        self.fuzzySearchRankBestMatchFirst = defaults.object(forKey: Keys.fuzzySearchRankBestMatchFirst) as? Bool ?? false
         self.showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
         self.recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5
 
@@ -2011,6 +2023,7 @@ final class Preferences: ObservableObject {
         stayOpenOnRelease = defaults.object(forKey: Keys.stayOpenOnRelease) as? Bool ?? false
         stayOpenOnQuickTap = defaults.object(forKey: Keys.stayOpenOnQuickTap) as? Bool ?? false
         searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
+        fuzzySearchRankBestMatchFirst = defaults.object(forKey: Keys.fuzzySearchRankBestMatchFirst) as? Bool ?? false
         showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
         recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5
 

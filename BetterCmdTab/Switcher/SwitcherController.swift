@@ -4961,13 +4961,35 @@ final class SwitcherController: SwitcherViewDelegate {
         if searchActive, !searchQuery.isEmpty {
             ensureBaseFolded()
             let foldedQuery = FuzzyMatch.fold(searchQuery)
+            // Rank matches best-first (Rank search toggle) instead of catalog order.
+            let rankBest = Preferences.shared.fuzzySearchRankBestMatchFirst
+            // Strip + arrayize the query once per refresh (it's identical for
+            // every row) so scoring a whole row set doesn't re-allocate per row.
+            let preparedQuery = FuzzyMatch.prepareQuery(foldedQuery)
             var newRows: [SwitcherRow] = []
             var newLabels: [String] = []
             newRows.reserveCapacity(baseRows.count)
-            for i in baseRows.indices
-            where FuzzyMatch.matchesFolded(foldedQuery: foldedQuery, foldedAppName: baseFolded[i].app, foldedWindowTitle: baseFolded[i].title) {
-                newRows.append(baseRows[i])
-                newLabels.append(baseLabels[i])
+            if rankBest {
+                // Score every match, then present best-first; ties keep the
+                // original (MRU/catalog) order via the index tie-break.
+                var scored: [(idx: Int, score: Int)] = []
+                scored.reserveCapacity(baseRows.count)
+                for i in baseRows.indices {
+                    if let s = FuzzyMatch.scoreFolded(preparedQuery: preparedQuery, foldedAppName: baseFolded[i].app, foldedWindowTitle: baseFolded[i].title) {
+                        scored.append((idx: i, score: s))
+                    }
+                }
+                scored.sort { $0.score != $1.score ? $0.score > $1.score : $0.idx < $1.idx }
+                for entry in scored {
+                    newRows.append(baseRows[entry.idx])
+                    newLabels.append(baseLabels[entry.idx])
+                }
+            } else {
+                for i in baseRows.indices
+                where FuzzyMatch.matchesFolded(foldedQuery: foldedQuery, foldedAppName: baseFolded[i].app, foldedWindowTitle: baseFolded[i].title) {
+                    newRows.append(baseRows[i])
+                    newLabels.append(baseLabels[i])
+                }
             }
             // Launcher: append matching apps that aren't running yet so the user
             // can launch them from the same search. Labels are inert in search
@@ -4975,17 +4997,37 @@ final class SwitcherController: SwitcherViewDelegate {
             // aligned without affecting display.
             if Preferences.shared.searchIncludesLaunchableApps {
                 let runningBundleIDs = Set(baseRows.compactMap { $0.bundleIdentifier })
-                let launchable = InstalledAppsIndex.shared.matches(
+                var launchable = InstalledAppsIndex.shared.matches(
                     query: searchQuery,
                     excludingRunning: runningBundleIDs,
                     limit: 8
                 )
+                if rankBest {
+                    // Ranks within the (already capped at 8, scan-order) launchable
+                    // set — a stronger match past the cap can still be dropped, which
+                    // is acceptable since the launcher only augments the search.
+                    let scores = launchable.map {
+                        FuzzyMatch.scoreFolded(preparedQuery: preparedQuery, foldedAppName: $0.foldedName, foldedWindowTitle: "") ?? Int.min
+                    }
+                    launchable = launchable.indices.sorted {
+                        scores[$0] != scores[$1] ? scores[$0] > scores[$1] : $0 < $1
+                    }.map { launchable[$0] }
+                }
                 for app in launchable {
                     newRows.append(SwitcherRow(launchable: app))
                     newLabels.append("")
                 }
             }
-            for row in recentlyClosedRows(forSearchQuery: searchQuery, alreadyShown: Set(newRows.compactMap { $0.bundleIdentifier })) {
+            var closed = recentlyClosedRows(forSearchQuery: searchQuery, alreadyShown: Set(newRows.compactMap { $0.bundleIdentifier }))
+            if rankBest {
+                let scores = closed.map {
+                    FuzzyMatch.scoreFolded(preparedQuery: preparedQuery, foldedAppName: FuzzyMatch.fold($0.appName), foldedWindowTitle: FuzzyMatch.fold($0.windowTitle)) ?? Int.min
+                }
+                closed = closed.indices.sorted {
+                    scores[$0] != scores[$1] ? scores[$0] > scores[$1] : $0 < $1
+                }.map { closed[$0] }
+            }
+            for row in closed {
                 newRows.append(row)
                 newLabels.append("")
             }

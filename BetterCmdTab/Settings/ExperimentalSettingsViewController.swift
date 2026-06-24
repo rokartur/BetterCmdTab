@@ -17,6 +17,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let instantSpaceSwitch = NSSwitch()
     private let browserTabMRUSwitch = NSSwitch()
     private let livePreviewSwitch = NSSwitch()
+    private let rankResultsSwitch = NSSwitch()
 
     override func setupContent() {
         // Untitled intro card — the unstable warning applies to the whole tab,
@@ -70,6 +71,13 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: browserTabs, title: String(localized: "Track browser tabs in recency"),
                subtitle: String(localized: "With “Show browser tabs as separate entries” and the “Most recent (windows)” sort order on, ⌘Tab returns to the tab you last used, not just the last window. Needs always-on monitoring of your browsers, so it costs a little energy."),
                accessory: browserTabMRUSwitch, searchItemID: SearchID.browserTabMRU)
+
+        // Search section.
+        let searchSection = addSection(title: String(localized: "Search"), anchor: SettingsAnchor.experimentalSearch)
+        configureSwitch(rankResultsSwitch, action: #selector(toggleRankResults(_:)))
+        addRow(to: searchSection, title: String(localized: "Rank search"),
+               subtitle: String(localized: "Order results by how well they match instead of by recent use, so the closest match is selected first."),
+               accessory: rankResultsSwitch, searchItemID: SearchID.rankResults)
 
         // Previews section (the window-preview layout).
         let previews = addSection(title: String(localized: "Previews"), anchor: SettingsAnchor.experimentalPreviews)
@@ -128,6 +136,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
         browserTabMRUSwitch.state = prefs.experimentalBrowserTabMRU ? .on : .off
         livePreviewSwitch.state = prefs.experimentalLivePreviews ? .on : .off
+        rankResultsSwitch.state = prefs.fuzzySearchRankBestMatchFirst ? .on : .off
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
 
@@ -172,6 +181,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleLivePreviews(_ sender: NSSwitch) {
         Preferences.shared.experimentalLivePreviews = (sender.state == .on)
+    }
+
+    @objc private func toggleRankResults(_ sender: NSSwitch) {
+        Preferences.shared.fuzzySearchRankBestMatchFirst = (sender.state == .on)
     }
 
     /// The reverse/commit/sensitivity controls only make sense while the swipe
