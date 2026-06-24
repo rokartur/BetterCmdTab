@@ -109,8 +109,12 @@ final class SwitcherController: SwitcherViewDelegate {
             // Folded names/titles belong to the previous row snapshot. Release
             // their strings immediately (especially on dismiss after a very
             // large tab expansion) instead of retaining them until the next
-            // search keystroke rebuilds the cache.
+            // search keystroke rebuilds the cache. Same for the transient
+            // search-time tab expansion, which also holds AX window refs.
             baseFolded.removeAll(keepingCapacity: !baseRows.isEmpty)
+            searchExpandedValid = false
+            searchExpandedRows.removeAll(keepingCapacity: !baseRows.isEmpty)
+            searchExpandedFolded.removeAll(keepingCapacity: !baseRows.isEmpty)
             tabPrefetchGeneration &+= 1
             // Window AXUIElements churn across reveals; drop the prefetch
             // cache so we don't try to drill into a stale element.
@@ -124,6 +128,13 @@ final class SwitcherController: SwitcherViewDelegate {
     /// row-set change rather than re-folding every row on every keystroke.
     private var baseFolded: [(app: String, title: String)] = []
     private var baseFoldedValid = false
+    /// Transient browser-tab expansion used only while searching with the
+    /// `searchExpandsBrowserTabs` feature on. Browser windows are expanded into
+    /// per-tab rows *for the search filter only* — these rows never enter
+    /// `baseRows`. Rebuilt lazily (invalidated with `baseRows`) like `baseFolded`.
+    private var searchExpandedRows: [SwitcherRow] = []
+    private var searchExpandedFolded: [(app: String, title: String)] = []
+    private var searchExpandedValid = false
     private var rows: [SwitcherRow] = []
     private var labels: [String] = []
     /// Hint letters to render on tiles — empty when the user disabled letter
@@ -2651,7 +2662,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// in `handleScreenParametersChange()`; `refreshDisplay()` re-presents.
     private func applySessionScreen(_ screen: NSScreen) {
         panel.targetScreen = screen
-        currentMetrics = SwitcherMetrics.forScreen(screen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, fontScale: effective.fontScale.multiplier, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        currentMetrics = makeMetrics(for: screen)
         refreshDisplay()
     }
 
@@ -2962,7 +2973,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
-        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, fontScale: effective.fontScale.multiplier, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        currentMetrics = makeMetrics(for: sessionScreen)
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
@@ -3053,7 +3064,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
-        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, fontScale: effective.fontScale.multiplier, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        currentMetrics = makeMetrics(for: sessionScreen)
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
@@ -3440,9 +3451,20 @@ final class SwitcherController: SwitcherViewDelegate {
         // browser into per-tab rows would defeat it, so leave the rows untouched.
         guard effective.expandBrowserTabsAsWindows,
               !effective.applicationsOnly else { return source }
+        return expandBrowserTabsCore(source)
+    }
+
+    /// Pref-free expansion: replace each collapsed browser-window row with one
+    /// row per tab from `browserTabsCache`. Shared by the always-on
+    /// `expandBrowserTabs` path and the transient search expansion. Pure (no AX);
+    /// idempotent (already-expanded tab rows pass through untouched).
+    private func expandBrowserTabsCore(_ source: [SwitcherRow]) -> [SwitcherRow] {
         var out: [SwitcherRow] = []
         out.reserveCapacity(source.count)
         for row in source {
+            // Expand only a still-collapsed (`browserTab == nil`) browser window
+            // whose tabs are cached and number 2+. Anything else — already a tab
+            // row, non-browser, uncached, or single-tab — passes through as-is.
             guard row.browserTab == nil,
                   let window = row.window,
                   BrowserTabs.Family.from(bundleID: row.bundleIdentifier) != nil,
@@ -3451,6 +3473,27 @@ final class SwitcherController: SwitcherViewDelegate {
             out.append(contentsOf: row.browserTabRows(tabTitles: titles))
         }
         return out
+    }
+
+    /// Whether the search filter should run over a transiently tab-expanded row
+    /// set. Off when the always-expand pref is on (`baseRows` is already
+    /// expanded) or in applications-only mode (collapsed to one row per app).
+    private var searchUsesExpandedTabs: Bool {
+        Preferences.shared.searchExpandsBrowserTabs
+            && !effective.expandBrowserTabsAsWindows
+            && !effective.applicationsOnly
+    }
+
+    /// Rebuild the transient tab-expanded search set (rows + folded strings) from
+    /// `baseRows` if it went stale. Mirrors `ensureBaseFolded`: built once per
+    /// `baseRows` change, reused across keystrokes.
+    private func ensureSearchExpanded() {
+        guard !searchExpandedValid else { return }
+        searchExpandedRows = expandBrowserTabsCore(baseRows)
+        searchExpandedFolded = searchExpandedRows.map {
+            (FuzzyMatch.fold($0.appName), FuzzyMatch.fold($0.windowTitle))
+        }
+        searchExpandedValid = true
     }
 
     /// Kick a background Apple Events scan for every collapsed browser window in
@@ -3493,12 +3536,17 @@ final class SwitcherController: SwitcherViewDelegate {
     /// add/close/switch syncs immediately) but is rate-limited by
     /// `forcedBrowserScanMinInterval` so page-load title churn can't spam
     /// osascript. `onDone` runs on the main actor after the cache is updated.
+    /// `wantExpansion` lets the transient search-expansion path request a scan
+    /// while `expandBrowserTabsAsWindows` is off. It only opens this guard — the
+    /// `baseRows`-mutating completion (`reExpandBrowserTabs`) stays wired to the
+    /// two pref-guarded callers, never to the search scan.
     private func scanBrowserTabs(
         rows: [SwitcherRow],
         force: Bool,
+        wantExpansion: Bool = false,
         onDone: (@MainActor @Sendable () -> Void)? = nil
     ) {
-        guard effective.expandBrowserTabsAsWindows else { return }
+        guard effective.expandBrowserTabsAsWindows || wantExpansion else { return }
         let now = ProcessInfo.processInfo.systemUptime
         if force, now - lastForcedBrowserScanAt < Self.forcedBrowserScanMinInterval { return }
 
@@ -4959,36 +5007,62 @@ final class SwitcherController: SwitcherViewDelegate {
         let key = resetSelectionToTop ? nil : selectionKey()
 
         if searchActive, !searchQuery.isEmpty {
-            ensureBaseFolded()
+            // When the transient tab-expansion feature applies, filter over the
+            // expanded row set (browser windows → one row per tab) so a query can
+            // match background tabs; otherwise the canonical rows. The two arrays
+            // are always built together — never cross `srcFolded` with `baseFolded`.
+            let useExpanded = searchUsesExpandedTabs
+            let srcRows: [SwitcherRow]
+            let srcFolded: [(app: String, title: String)]
+            if useExpanded {
+                ensureSearchExpanded()
+                srcRows = searchExpandedRows
+                srcFolded = searchExpandedFolded
+            } else {
+                ensureBaseFolded()
+                srcRows = baseRows
+                srcFolded = baseFolded
+            }
             let foldedQuery = FuzzyMatch.fold(searchQuery)
             // Rank matches best-first (Rank search toggle) instead of catalog order.
             let rankBest = Preferences.shared.fuzzySearchRankBestMatchFirst
             // Strip + arrayize the query once per refresh (it's identical for
             // every row) so scoring a whole row set doesn't re-allocate per row.
             let preparedQuery = FuzzyMatch.prepareQuery(foldedQuery)
+            // Tab expansion can produce far more rows than there were windows. Cap
+            // the populated matches to the pre-existing slot count (`baseRows`,
+            // before expansion) so search never balloons the list — the best
+            // matches fill the slots that already existed. Unbounded otherwise.
+            let slotCap = useExpanded ? baseRows.count : Int.max
             var newRows: [SwitcherRow] = []
             var newLabels: [String] = []
-            newRows.reserveCapacity(baseRows.count)
+            newRows.reserveCapacity(srcRows.count)
+            // Labels are display-suppressed in search mode (see SwitcherView).
+            // The non-expanded path keeps its `baseLabels[idx]` (byte-identical
+            // to before); the expanded path can't index `baseLabels` (its rows
+            // don't map 1:1), so it uses "".
             if rankBest {
                 // Score every match, then present best-first; ties keep the
                 // original (MRU/catalog) order via the index tie-break.
                 var scored: [(idx: Int, score: Int)] = []
-                scored.reserveCapacity(baseRows.count)
-                for i in baseRows.indices {
-                    if let s = FuzzyMatch.scoreFolded(preparedQuery: preparedQuery, foldedAppName: baseFolded[i].app, foldedWindowTitle: baseFolded[i].title) {
+                scored.reserveCapacity(srcRows.count)
+                for i in srcRows.indices {
+                    if let s = FuzzyMatch.scoreFolded(preparedQuery: preparedQuery, foldedAppName: srcFolded[i].app, foldedWindowTitle: srcFolded[i].title) {
                         scored.append((idx: i, score: s))
                     }
                 }
                 scored.sort { $0.score != $1.score ? $0.score > $1.score : $0.idx < $1.idx }
                 for entry in scored {
-                    newRows.append(baseRows[entry.idx])
-                    newLabels.append(baseLabels[entry.idx])
+                    if newRows.count >= slotCap { break }
+                    newRows.append(srcRows[entry.idx])
+                    newLabels.append(useExpanded ? "" : baseLabels[entry.idx])
                 }
             } else {
-                for i in baseRows.indices
-                where FuzzyMatch.matchesFolded(foldedQuery: foldedQuery, foldedAppName: baseFolded[i].app, foldedWindowTitle: baseFolded[i].title) {
-                    newRows.append(baseRows[i])
-                    newLabels.append(baseLabels[i])
+                for i in srcRows.indices
+                where FuzzyMatch.matchesFolded(foldedQuery: foldedQuery, foldedAppName: srcFolded[i].app, foldedWindowTitle: srcFolded[i].title) {
+                    if newRows.count >= slotCap { break }
+                    newRows.append(srcRows[i])
+                    newLabels.append(useExpanded ? "" : baseLabels[i])
                 }
             }
             // Launcher: append matching apps that aren't running yet so the user
@@ -5094,6 +5168,43 @@ final class SwitcherController: SwitcherViewDelegate {
         )
     }
 
+    /// The `browserTabsExpanded` metrics input for the current state. Delegates
+    /// to `SwitcherMetrics.reserveTabBand`, the single predicate shared with the
+    /// view's shrink loop so the two can't drift.
+    private var browserTabsExpandedForMetrics: Bool {
+        SwitcherMetrics.reserveTabBand(
+            expandAsWindows: effective.expandBrowserTabsAsWindows,
+            applicationsOnly: effective.applicationsOnly,
+            searchActive: searchActive,
+            searchExpandsTabs: Preferences.shared.searchExpandsBrowserTabs)
+    }
+
+    /// Build the panel metrics for `screen` from the current reveal's effective
+    /// settings. Single funnel so the `browserTabsExpanded` rule lives in
+    /// exactly one place.
+    private func makeMetrics(for screen: NSScreen?) -> SwitcherMetrics {
+        SwitcherMetrics.forScreen(
+            screen,
+            layoutMode: effective.layoutMode,
+            userScale: effective.panelSize.scale,
+            fontScale: effective.fontScale.multiplier,
+            letterHints: effective.letterHintsEnabled,
+            showAppNames: effective.showApplicationNames,
+            showWindowTitles: effective.showWindowTitleLabel,
+            hoverActionCount: Preferences.shared.enabledHoverActionCount,
+            browserTabsExpanded: browserTabsExpandedForMetrics
+        )
+    }
+
+    /// Recompute `currentMetrics` for the current search state so the preview
+    /// label band toggles with `browserTabsExpandedForMetrics`. Called on every
+    /// search-mode transition that keeps the panel visible (enter/exit). The
+    /// teardown path (`resetSearch`) never re-presents, so it needs no sync.
+    private func syncSearchMetrics() {
+        guard phase == .visible else { return }
+        currentMetrics = makeMetrics(for: panel.targetScreen)
+    }
+
     private func toggleSearch() {
         if searchActive { exitSearch() } else { enterSearch() }
     }
@@ -5111,6 +5222,20 @@ final class SwitcherController: SwitcherViewDelegate {
         if Preferences.shared.searchIncludesLaunchableApps {
             InstalledAppsIndex.shared.ensureFresh()
         }
+        // Warm the browser-tab cache so typing can match background tabs. The
+        // completion only rebuilds the transient search set and re-renders — it
+        // never touches `baseRows` (unlike the pref-on `reExpandBrowserTabs`).
+        if searchUsesExpandedTabs {
+            scanBrowserTabs(rows: baseRows, force: false, wantExpansion: true) { [weak self] in
+                guard let self, self.searchActive else { return }
+                self.searchExpandedValid = false
+                self.refreshDisplay()
+            }
+        }
+        // Reserve the preview label band for transient tab rows (no-op unless the
+        // search-tab feature applies). Before refreshDisplay so it uses the new
+        // metrics.
+        syncSearchMetrics()
         refreshDisplay()
         resyncSecureInputChords()
     }
@@ -5119,7 +5244,13 @@ final class SwitcherController: SwitcherViewDelegate {
         guard searchActive else { return }
         searchActive = false
         searchQuery = ""
+        // Drop the transient tab-expanded set so it can't leak into a later view.
+        searchExpandedRows = []
+        searchExpandedFolded = []
+        searchExpandedValid = false
         hotkey.setSearchMode(false)
+        // Restore the non-search metrics (drops the transient tab-row band).
+        syncSearchMetrics()
         refreshDisplay()
         resyncSecureInputChords()
     }

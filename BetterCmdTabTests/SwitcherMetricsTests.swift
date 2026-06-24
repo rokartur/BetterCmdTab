@@ -5,6 +5,21 @@ import Testing
 @Suite("SwitcherMetrics")
 struct SwitcherMetricsTests {
 
+    @Test("reserveTabBand: on when always-expanded, or transiently while searching with the search-tab feature")
+    func reserveTabBand() {
+        typealias M = SwitcherMetrics
+        // Always-expand reserves the band regardless of search.
+        #expect(M.reserveTabBand(expandAsWindows: true, applicationsOnly: false, searchActive: false, searchExpandsTabs: false))
+        // Search-tab feature: band only while actually searching.
+        #expect(!M.reserveTabBand(expandAsWindows: false, applicationsOnly: false, searchActive: false, searchExpandsTabs: true))
+        #expect(M.reserveTabBand(expandAsWindows: false, applicationsOnly: false, searchActive: true, searchExpandsTabs: true))
+        // Neither feature → never.
+        #expect(!M.reserveTabBand(expandAsWindows: false, applicationsOnly: false, searchActive: true, searchExpandsTabs: false))
+        // Applications-only collapses to one row per app, so the band is never reserved.
+        #expect(!M.reserveTabBand(expandAsWindows: true, applicationsOnly: true, searchActive: false, searchExpandsTabs: false))
+        #expect(!M.reserveTabBand(expandAsWindows: false, applicationsOnly: true, searchActive: true, searchExpandsTabs: true))
+    }
+
     @Test("scale 1.0 yields baseline values")
     func baseline() {
         let m = SwitcherMetrics.forScale(1.0)

@@ -18,6 +18,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let browserTabMRUSwitch = NSSwitch()
     private let livePreviewSwitch = NSSwitch()
     private let rankResultsSwitch = NSSwitch()
+    private let searchTabsSwitch = NSSwitch()
 
     override func setupContent() {
         // Untitled intro card — the unstable warning applies to the whole tab,
@@ -78,6 +79,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: searchSection, title: String(localized: "Rank search"),
                subtitle: String(localized: "Order results by how well they match instead of by recent use, so the closest match is selected first."),
                accessory: rankResultsSwitch, searchItemID: SearchID.rankResults)
+        configureSwitch(searchTabsSwitch, action: #selector(toggleSearchExpandsTabs(_:)))
+        addRow(to: searchSection, title: String(localized: "Search browser tabs"),
+               subtitle: String(localized: "Type-to-search matches any browser tab by its title, not just each window's active tab. Matching tabs appear as temporary rows while the search field is active and disappear when you leave search. Already covered by “Show browser tabs as separate entries.”"),
+               accessory: searchTabsSwitch, searchItemID: SearchID.searchExpandsBrowserTabs)
 
         // Previews section (the window-preview layout).
         let previews = addSection(title: String(localized: "Previews"), anchor: SettingsAnchor.experimentalPreviews)
@@ -137,6 +142,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         browserTabMRUSwitch.state = prefs.experimentalBrowserTabMRU ? .on : .off
         livePreviewSwitch.state = prefs.experimentalLivePreviews ? .on : .off
         rankResultsSwitch.state = prefs.fuzzySearchRankBestMatchFirst ? .on : .off
+        searchTabsSwitch.state = prefs.searchExpandsBrowserTabs ? .on : .off
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
 
@@ -185,6 +191,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleRankResults(_ sender: NSSwitch) {
         Preferences.shared.fuzzySearchRankBestMatchFirst = (sender.state == .on)
+    }
+
+    @objc private func toggleSearchExpandsTabs(_ sender: NSSwitch) {
+        Preferences.shared.searchExpandsBrowserTabs = (sender.state == .on)
     }
 
     /// The reverse/commit/sensitivity controls only make sense while the swipe
