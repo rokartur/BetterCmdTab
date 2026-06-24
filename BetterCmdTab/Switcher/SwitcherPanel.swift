@@ -181,6 +181,14 @@ final class SwitcherPanel: NSPanel {
         }
         CATransaction.commit()
         onFrameDidChange?(Self.cgGlobalFrame(from: frame))
+        // [#46 diagnostics] Capture state right after order-front, and again on
+        // the next runloop once the WindowServer settles, so a repro shows
+        // whether an "invisible" panel is off-active-space, off-screen, occluded,
+        // or simply never ordered in.
+        logSpaceDiagnostics("present.sync", chosenScreen: screen)
+        DispatchQueue.main.async { [weak self] in
+            self?.logSpaceDiagnostics("present.deferred", chosenScreen: nil)
+        }
         // A non-activating panel isn't always granted key on the first
         // `makeKeyAndOrderFront` if another app is mid-activation when the switcher
         // opens; re-key on the next runloop (same approach as `resignKey`) so the
@@ -189,6 +197,29 @@ final class SwitcherPanel: NSPanel {
             guard let self, self.isVisible, !self.isKeyWindow else { return }
             self.makeKeyAndOrderFront(nil)
         }
+    }
+
+    /// [#46 diagnostics — temporary] Log the panel/Space visibility state so the
+    /// "panel invisible on another Space after a full-screen app quits" repro
+    /// can be pinned down. Not for release — remove once #46 is fixed.
+    private func logSpaceDiagnostics(_ phase: String, chosenScreen: NSScreen?) {
+        let screens = NSScreen.screens
+        let chosen = chosenScreen ?? activeScreen()
+        let screenIndex = screens.firstIndex { $0 == chosen } ?? -1
+        let frameOnScreen = chosen.frame.intersects(frame)
+        let activeSpace = PrivateAPI.activeSpace().map(String.init) ?? "nil"
+        let occVisible = occlusionState.contains(.visible)
+        Log.spaceDiag.notice("""
+        [\(phase, privacy: .public)] visible=\(self.isVisible, privacy: .public) \
+        key=\(self.isKeyWindow, privacy: .public) onActiveSpace=\(self.isOnActiveSpace, privacy: .public) \
+        occVisible=\(occVisible, privacy: .public) level=\(self.level.rawValue, privacy: .public) \
+        collBehavior=\(self.collectionBehavior.rawValue, privacy: .public) \
+        activeSpace=\(activeSpace, privacy: .public) \
+        screens=\(screens.count, privacy: .public) chosenScreenIdx=\(screenIndex, privacy: .public) \
+        panelFrame=\(NSStringFromRect(self.frame), privacy: .public) \
+        chosenScreenFrame=\(NSStringFromRect(chosen.frame), privacy: .public) \
+        frameOnChosenScreen=\(frameOnScreen, privacy: .public)
+        """)
     }
 
     /// Hide the panel. `NSGlassEffectView` / `NSVisualEffectView` is a

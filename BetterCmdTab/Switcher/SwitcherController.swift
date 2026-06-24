@@ -391,6 +391,9 @@ final class SwitcherController: SwitcherViewDelegate {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            // [#46 diagnostics — temporary] Mark each Space flip so a repro log
+            // shows the order of space-change vs. the next reveal's present().
+            Log.spaceDiag.notice("activeSpaceDidChange activeSpace=\(PrivateAPI.activeSpace().map(String.init) ?? "nil", privacy: .public)")
             Task { @MainActor [weak self] in self?.updateTriggerSuppression() }
         }
     }
