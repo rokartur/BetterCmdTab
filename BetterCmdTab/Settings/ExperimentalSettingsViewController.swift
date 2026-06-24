@@ -16,6 +16,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let sensitivityValueLabel = NSTextField(labelWithString: "")
     private let instantSpaceSwitch = NSSwitch()
     private let mruWindowsSortSwitch = NSSwitch()
+    private let rankResultsSwitch = NSSwitch()
     private let displayMonitorPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let displayModes: [SwitcherDisplayMode] = SwitcherDisplayMode.allCases
 
@@ -67,6 +68,12 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: experimental, title: String(localized: "Most recent (windows) sort order"),
                subtitle: String(localized: "Orders the list by when you last focused each window, across all apps."),
                accessory: mruWindowsSortSwitch, searchItemID: SearchID.mruWindowsSort)
+
+        addDivider(to: experimental)
+        configureSwitch(rankResultsSwitch, action: #selector(toggleRankResults(_:)))
+        addRow(to: experimental, title: String(localized: "Rank search"),
+               subtitle: String(localized: "Order results by how well they match instead of by recent use, so the closest match is selected first."),
+               accessory: rankResultsSwitch, searchItemID: SearchID.rankResults)
 
         addDivider(to: experimental)
         displayMonitorPopup.controlSize = .small
@@ -129,6 +136,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         applySensitivity(prefs.swipeSensitivity)
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
         mruWindowsSortSwitch.state = prefs.sortOrder == .mruWindows ? .on : .off
+        rankResultsSwitch.state = prefs.fuzzySearchRankBestMatchFirst ? .on : .off
         if let i = displayModes.firstIndex(of: prefs.switcherDisplayMode) { displayMonitorPopup.selectItem(at: i) }
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
@@ -172,6 +180,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         let idx = displayMonitorPopup.indexOfSelectedItem
         guard displayModes.indices.contains(idx) else { return }
         Preferences.shared.switcherDisplayMode = displayModes[idx]
+    }
+
+    @objc private func toggleRankResults(_ sender: NSSwitch) {
+        Preferences.shared.fuzzySearchRankBestMatchFirst = (sender.state == .on)
     }
 
     @objc private func toggleMRUWindowsSort(_ sender: NSSwitch) {
