@@ -17,6 +17,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let instantSpaceSwitch = NSSwitch()
     private let mruWindowsSortSwitch = NSSwitch()
     private let rankResultsSwitch = NSSwitch()
+    private let searchTabsSwitch = NSSwitch()
     private let displayMonitorPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let displayModes: [SwitcherDisplayMode] = SwitcherDisplayMode.allCases
 
@@ -74,6 +75,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: experimental, title: String(localized: "Rank search"),
                subtitle: String(localized: "Order results by how well they match instead of by recent use, so the closest match is selected first."),
                accessory: rankResultsSwitch, searchItemID: SearchID.rankResults)
+        configureSwitch(searchTabsSwitch, action: #selector(toggleSearchExpandsTabs(_:)))
+        addRow(to: experimental, title: String(localized: "Search browser tabs"),
+               subtitle: String(localized: "Type-to-search matches any browser tab by its title, not just each window's active tab. Matching tabs appear as temporary rows while the search field is active and disappear when you leave search. Already covered by “Show browser tabs as separate entries.”"),
+               accessory: searchTabsSwitch, searchItemID: SearchID.searchExpandsBrowserTabs)
 
         addDivider(to: experimental)
         displayMonitorPopup.controlSize = .small
@@ -86,6 +91,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: experimental, title: String(localized: "Show switcher on"),
                subtitle: String(localized: "Choose which monitor the switcher opens on when you have more than one display."),
                accessory: displayMonitorPopup, searchItemID: SearchID.displayMonitor)
+
         // Tab drill-in (the `\` peek) + tab expansion graduated to the Switcher
         // tab's "Tabs" section — they are stable, on by default, and belong with
         // the other content options.
@@ -137,6 +143,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
         mruWindowsSortSwitch.state = prefs.sortOrder == .mruWindows ? .on : .off
         rankResultsSwitch.state = prefs.fuzzySearchRankBestMatchFirst ? .on : .off
+        searchTabsSwitch.state = prefs.searchExpandsBrowserTabs ? .on : .off
         if let i = displayModes.firstIndex(of: prefs.switcherDisplayMode) { displayMonitorPopup.selectItem(at: i) }
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
@@ -184,6 +191,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleRankResults(_ sender: NSSwitch) {
         Preferences.shared.fuzzySearchRankBestMatchFirst = (sender.state == .on)
+    }
+
+    @objc private func toggleSearchExpandsTabs(_ sender: NSSwitch) {
+        Preferences.shared.searchExpandsBrowserTabs = (sender.state == .on)
     }
 
     @objc private func toggleMRUWindowsSort(_ sender: NSSwitch) {

@@ -120,6 +120,7 @@ enum SearchID {
     static let mruWindowsSort = "experimental.mruWindowsSort"
     static let displayMonitor = "experimental.displayMonitor"
     static let rankResults = "experimental.rankResults"
+    static let searchExpandsBrowserTabs = "experimental.searchExpandsBrowserTabs"
 }
 
 @MainActor
@@ -357,6 +358,8 @@ enum SettingsCatalog {
              String(localized: "Show switcher on"), ["display", "monitor", "screen", "multi monitor", "cursor", "main display", "active window"]),
         item(SearchID.rankResults, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
              String(localized: "Rank search"), ["fuzzy", "search", "ranking", "rank", "best match", "sort results", "relevance"]),
+        item(SearchID.searchExpandsBrowserTabs, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
+             String(localized: "Search browser tabs"), ["search", "browser", "tabs", "tab", "fuzzy", "find tab", "safari", "chrome"]),
     ]
 
     private static func item(
