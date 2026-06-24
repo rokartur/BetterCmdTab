@@ -42,6 +42,8 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     private let scrollReverseSwitch = NSSwitch()
     private let clickDismissSwitch = NSSwitch()
     private let vimNavSwitch = NSSwitch()
+    private let hoverSelectSwitch = NSSwitch()
+    private let clickSelectSwitch = NSSwitch()
 
     // Hover actions
     private let hoverSwitch = NSSwitch()
@@ -199,6 +201,14 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         addRow(to: navigation, title: String(localized: "Vim keys (h j k l)"),
                subtitle: String(localized: "Use h / j / k / l like the arrow keys while the switcher is open. h overrides the Hide binding and j / k / l override letter-jump; search mode still types those letters."),
                accessory: vimNavSwitch, searchItemID: SearchID.vimNavigation)
+        configureSwitch(hoverSelectSwitch, action: #selector(toggleHoverSelect(_:)))
+        addRow(to: navigation, title: String(localized: "Select window on hover"),
+               subtitle: String(localized: "Move the selection to the row your pointer is over. Off keeps the keyboard selection put so the mouse can't change it by accident."),
+               accessory: hoverSelectSwitch)
+        configureSwitch(clickSelectSwitch, action: #selector(toggleClickSelect(_:)))
+        addRow(to: navigation, title: String(localized: "Select window on click"),
+               subtitle: String(localized: "Click a row to switch to that window. Off ignores clicks inside the switcher so the mouse can't pick a window — the tab strip and hover actions still work."),
+               accessory: clickSelectSwitch)
 
         // Hover actions section — buttons revealed on a row under the pointer.
         let actions = addSection(title: String(localized: "Hover actions"), anchor: SettingsAnchor.actions)
@@ -258,6 +268,8 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         scrollReverseSwitch.isEnabled = prefs.scrollToSwitch
         clickDismissSwitch.state = prefs.clickOutsideToDismiss ? .on : .off
         vimNavSwitch.state = prefs.vimNavigationEnabled ? .on : .off
+        hoverSelectSwitch.state = prefs.mouseHoverSelectionEnabled ? .on : .off
+        clickSelectSwitch.state = prefs.mouseClickSelectionEnabled ? .on : .off
         hoverSwitch.state = prefs.hoverActionsEnabled ? .on : .off
         hoverCloseSwitch.state = prefs.hoverShowClose ? .on : .off
         hoverMinimizeSwitch.state = prefs.hoverShowMinimize ? .on : .off
@@ -400,6 +412,14 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleVimNavigation(_ sender: NSSwitch) {
         Preferences.shared.vimNavigationEnabled = (sender.state == .on)
+    }
+
+    @objc private func toggleHoverSelect(_ sender: NSSwitch) {
+        Preferences.shared.mouseHoverSelectionEnabled = (sender.state == .on)
+    }
+
+    @objc private func toggleClickSelect(_ sender: NSSwitch) {
+        Preferences.shared.mouseClickSelectionEnabled = (sender.state == .on)
     }
 
     @objc private func toggleHover(_ sender: NSSwitch) {

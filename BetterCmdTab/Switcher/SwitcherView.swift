@@ -367,7 +367,13 @@ final class SwitcherView: NSView, TabStripDelegate {
         let idx = indexAtWindowPoint(event.locationInWindow)
         setHoveredIndex(idx ?? -1)
         if let idx {
-            delegate?.switcherViewDidHover(index: idx)
+            // Hover-select moves the selection to the row under the pointer; the
+            // user can turn it off so the mouse can't change the selection by
+            // accident (issue #47). The visual hover + action dots still track
+            // the pointer either way.
+            if Preferences.shared.mouseHoverSelectionEnabled {
+                delegate?.switcherViewDidHover(index: idx)
+            }
             // Highlight the hover-action dot under the pointer, if any.
             itemViews[idx].setHotDot(atWindowPoint: event.locationInWindow)
         }
@@ -406,7 +412,12 @@ final class SwitcherView: NSView, TabStripDelegate {
             delegate?.switcherViewDidInvokeAction(action, atIndex: idx)
             return
         }
-        delegate?.switcherViewDidClick(index: idx)
+        // Click-select commits the row under the pointer; the user can turn it
+        // off so a stray click inside the panel can't pick a window (issue #47).
+        // Tab-strip and hover-action clicks above stay live regardless.
+        if Preferences.shared.mouseClickSelectionEnabled {
+            delegate?.switcherViewDidClick(index: idx)
+        }
     }
 
     /// Re-entrancy guard: when the strip's scroll view can't use a wheel event

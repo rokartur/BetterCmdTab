@@ -464,6 +464,8 @@ final class Preferences: ObservableObject {
         static let currentSpaceOnly = "Switcher.currentSpaceOnly"
         static let directActivationBindings = "Switcher.directActivationBindings"
         static let scopedShortcutScopes = "Switcher.scopedShortcutScopes"
+        static let mouseHoverSelectionEnabled = "Switcher.mouseHoverSelectionEnabled"
+        static let mouseClickSelectionEnabled = "Switcher.mouseClickSelectionEnabled"
         static let hoverActionsEnabled = "Switcher.hoverActionsEnabled"
         static let hoverShowClose = "Switcher.hoverShowClose"
         static let hoverShowMinimize = "Switcher.hoverShowMinimize"
@@ -794,6 +796,28 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != vimNavigationEnabled else { return }
             UserDefaults.standard.set(vimNavigationEnabled, forKey: Keys.vimNavigationEnabled)
+        }
+    }
+
+    /// Move the switcher selection to the row under the pointer. Default on.
+    /// Off keeps the keyboard selection put so the mouse can't change the
+    /// highlighted row by accident (issue #47). Hover-action buttons still
+    /// appear under the pointer when `hoverActionsEnabled` is on.
+    @Published var mouseHoverSelectionEnabled: Bool {
+        didSet {
+            guard oldValue != mouseHoverSelectionEnabled else { return }
+            UserDefaults.standard.set(mouseHoverSelectionEnabled, forKey: Keys.mouseHoverSelectionEnabled)
+        }
+    }
+
+    /// Commit the switcher selection when a row is clicked. Default on. Off
+    /// ignores clicks inside the panel so the mouse can't pick a window by
+    /// accident (issue #47); the tab strip and hover-action buttons still work,
+    /// and click-outside-to-dismiss is unaffected.
+    @Published var mouseClickSelectionEnabled: Bool {
+        didSet {
+            guard oldValue != mouseClickSelectionEnabled else { return }
+            UserDefaults.standard.set(mouseClickSelectionEnabled, forKey: Keys.mouseClickSelectionEnabled)
         }
     }
 
@@ -1208,6 +1232,8 @@ final class Preferences: ObservableObject {
         self.currentSpaceOnly = defaults.object(forKey: Keys.currentSpaceOnly) as? Bool ?? false
         self.directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
         self.scopedShortcutScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
+        self.mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
+        self.mouseClickSelectionEnabled = defaults.object(forKey: Keys.mouseClickSelectionEnabled) as? Bool ?? true
         self.hoverActionsEnabled = defaults.object(forKey: Keys.hoverActionsEnabled) as? Bool ?? false
         self.hoverShowClose = defaults.object(forKey: Keys.hoverShowClose) as? Bool ?? true
         self.hoverShowMinimize = defaults.object(forKey: Keys.hoverShowMinimize) as? Bool ?? true
@@ -1270,6 +1296,8 @@ final class Preferences: ObservableObject {
         scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
         vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
+        mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
+        mouseClickSelectionEnabled = defaults.object(forKey: Keys.mouseClickSelectionEnabled) as? Bool ?? true
         cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
