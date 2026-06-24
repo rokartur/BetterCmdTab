@@ -95,3 +95,35 @@ struct TabStackResolutionTests {
         #expect(r.siblingIndices.isEmpty)
     }
 }
+
+/// `switchableWindowIndices` decides which of an app's windows reach the
+/// switcher: every window for a regular app, only user-closable (real) windows
+/// for a menu-bar agent, so an agent's non-closable helper window is dropped
+/// (issue #43).
+@Suite("Agent helper-window filter")
+struct SwitchableWindowIndicesTests {
+
+    @Test("regular app surfaces every window, closable or not")
+    func regularKeepsAll() {
+        #expect(WindowEnumerator.switchableWindowIndices(isRegular: true, hasCloseButton: [true, false, true]) == [0, 1, 2])
+    }
+
+    @Test("accessory app keeps only its closable windows")
+    func accessoryKeepsClosable() {
+        // A menu-bar agent with a real settings window (closable) plus a
+        // non-closable status helper → only the real window survives.
+        #expect(WindowEnumerator.switchableWindowIndices(isRegular: false, hasCloseButton: [false, true]) == [1])
+    }
+
+    @Test("accessory app with no closable window contributes nothing")
+    func accessoryAllHelpersDropped() {
+        // The MenuBarAgent case: its only window has no close button → dropped.
+        #expect(WindowEnumerator.switchableWindowIndices(isRegular: false, hasCloseButton: [false]).isEmpty)
+        #expect(WindowEnumerator.switchableWindowIndices(isRegular: false, hasCloseButton: []).isEmpty)
+    }
+
+    @Test("accessory app with all-closable windows keeps them all")
+    func accessoryKeepsAllClosable() {
+        #expect(WindowEnumerator.switchableWindowIndices(isRegular: false, hasCloseButton: [true, true]) == [0, 1])
+    }
+}

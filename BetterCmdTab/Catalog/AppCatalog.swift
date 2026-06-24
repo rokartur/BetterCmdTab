@@ -59,8 +59,15 @@ enum AppCatalog {
             let windows = windowsBuffer[i]
             if app.activationPolicy == .regular {
                 enriched.append((app: app, windows: windows))
-            } else if app.activationPolicy == .accessory, !windows.isEmpty {
-                enriched.append((app: app, windows: windows))
+            } else if app.activationPolicy == .accessory {
+                // A menu-bar agent surfaces only its real, user-closable windows;
+                // its non-closable helper window (issue #43) is dropped. If none
+                // remain the agent contributes no row.
+                let keep = WindowEnumerator.switchableWindowIndices(
+                    isRegular: false, hasCloseButton: windows.map(\.hasCloseButton))
+                if !keep.isEmpty {
+                    enriched.append((app: app, windows: keep.map { windows[$0] }))
+                }
             }
         }
 
