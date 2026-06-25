@@ -419,6 +419,8 @@ final class Preferences: ObservableObject {
         static let letterHintsEnabled = "Switcher.letterHintsEnabled"
         static let searchDismissMode = "Switcher.searchDismissMode"
         static let searchIncludesLaunchableApps = "Switcher.searchIncludesLaunchableApps"
+        static let fuzzySearchRankBestMatchFirst = "Switcher.fuzzySearchRankBestMatchFirst"
+        static let searchExpandsBrowserTabs = "Switcher.searchExpandsBrowserTabs"
         static let showRecentlyClosed = "Switcher.showRecentlyClosed"
         static let recentlyClosedLimit = "Switcher.recentlyClosedLimit"
         static let hapticOnCommit = "Switcher.hapticOnCommit"
@@ -656,6 +658,28 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != searchIncludesLaunchableApps else { return }
             UserDefaults.standard.set(searchIncludesLaunchableApps, forKey: Keys.searchIncludesLaunchableApps)
+        }
+    }
+
+    /// Experimental. Rank fuzzy-search results best-match-first (contiguous and
+    /// word-boundary matches in the app name win) instead of showing them in
+    /// catalog/MRU order. Default off.
+    @Published var fuzzySearchRankBestMatchFirst: Bool {
+        didSet {
+            guard oldValue != fuzzySearchRankBestMatchFirst else { return }
+            UserDefaults.standard.set(fuzzySearchRankBestMatchFirst, forKey: Keys.fuzzySearchRankBestMatchFirst)
+        }
+    }
+
+    /// Experimental. While the search field is active, expand browser windows
+    /// into one row per tab — for the search only — so a query can match a
+    /// background tab. Transient: the rows never enter the canonical list and
+    /// collapse back on exit. No effect when `expandBrowserTabsAsWindows` is on
+    /// (the list is already expanded). Default off.
+    @Published var searchExpandsBrowserTabs: Bool {
+        didSet {
+            guard oldValue != searchExpandsBrowserTabs else { return }
+            UserDefaults.standard.set(searchExpandsBrowserTabs, forKey: Keys.searchExpandsBrowserTabs)
         }
     }
 
@@ -1182,6 +1206,8 @@ final class Preferences: ObservableObject {
         self.searchDismissMode = dismissRaw.flatMap(SearchDismissMode.init(rawValue:)) ?? .holdModifier
 
         self.searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
+        self.fuzzySearchRankBestMatchFirst = defaults.object(forKey: Keys.fuzzySearchRankBestMatchFirst) as? Bool ?? false
+        self.searchExpandsBrowserTabs = defaults.object(forKey: Keys.searchExpandsBrowserTabs) as? Bool ?? false
         self.showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
         self.recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5
 
@@ -1279,6 +1305,8 @@ final class Preferences: ObservableObject {
         letterHintsEnabled = defaults.object(forKey: Keys.letterHintsEnabled) as? Bool ?? true
         searchDismissMode = defaults.string(forKey: Keys.searchDismissMode).flatMap(SearchDismissMode.init(rawValue:)) ?? .holdModifier
         searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
+        fuzzySearchRankBestMatchFirst = defaults.object(forKey: Keys.fuzzySearchRankBestMatchFirst) as? Bool ?? false
+        searchExpandsBrowserTabs = defaults.object(forKey: Keys.searchExpandsBrowserTabs) as? Bool ?? false
         showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
         recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5
 
