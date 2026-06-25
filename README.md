@@ -88,13 +88,7 @@ On first launch macOS will ask for **Accessibility** permission — this is requ
 
 ### Build from source
 
-```bash
-git clone https://github.com/rokartur/BetterCmdTab.git
-cd BetterCmdTab
-xcodebuild -scheme "BetterCmdTab" -configuration Release build
-```
-
-Requires Xcode 16+ and the macOS 26 SDK to build the Liquid Glass code paths. The deployment target is macOS 13.0 — older SDKs fall back to NSVisualEffectView automatically.
+If you prefer building it yourself from source, see [this section in CONTRIBUTING.md](CONTRIBUTING.md#Building) for instructions.
 
 ## Privacy
 
