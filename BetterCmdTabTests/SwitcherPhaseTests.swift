@@ -140,11 +140,14 @@ struct SwitcherVisibleReleaseBackstopTests {
         #expect(arm(stickyOpen: true, tabDrillActive: true))
     }
 
-    @Test func off_underSecureInput() {
-        // Under Secure Event Input `HoldModifierMonitor` owns the release poll;
-        // running both would double-poll, so this backstop stands down.
-        #expect(!arm(secureInputActive: true))
-        // Even drilled-in, secure input keeps it off (no double-poll).
-        #expect(!arm(stickyOpen: true, tabDrillActive: true, secureInputActive: true))
+    @Test func arms_underSecureInput_forFlagsStateIndependentRecovery() {
+        // Secure input is intentionally NOT excluded (issue #16): HoldModifierMonitor's
+        // release poll reads the same CGEventSource.flagsState that can stick reporting
+        // ⌘-held, so the backstop must also run under secure input to drive the
+        // flagsState-independent no-interaction force-close.
+        #expect(arm(secureInputActive: true))
+        #expect(arm(stickyOpen: true, tabDrillActive: true, secureInputActive: true))
+        // Sticky-without-drill still never arms, secure input or not.
+        #expect(!arm(stickyOpen: true, secureInputActive: true))
     }
 }

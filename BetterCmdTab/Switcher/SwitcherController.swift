@@ -162,6 +162,18 @@ final class SwitcherController: SwitcherViewDelegate {
     /// tier, which exists only because there the poll is the sole commit signal),
     /// keeping the main-thread wake count low while the panel is briefly up.
     private static let visibleReleaseBackstopInterval: TimeInterval = 0.2
+    /// Last time the user actively *steered* a visible panel (navigation, search
+    /// edit, drill nav — see `noteSteeringActivity`). The release-to-commit
+    /// backstop force-closes a panel that has gone this long without steering, so
+    /// a panel welded open by a STUCK `CGEventSource.flagsState` (the tap was
+    /// disabled across the real ⌘-release, leaving the modifier reported as still
+    /// held — which defeats every flagsState-based recovery, incl. PR #67) still
+    /// self-heals and the tap stops swallowing ⌘W/⌘Q (issue #16).
+    private var lastVisibleActivity: Date?
+    /// No-interaction ceiling for the force-close above. Generous enough that an
+    /// actively-steered panel never hits it (any nav refreshes the stamp), short
+    /// enough to bound how long ⌘W can be eaten when the modifier state is stuck.
+    private static let visibleStrandCeiling: TimeInterval = 4
     /// #16-diag (temporary): a low-frequency probe that dumps the full switcher
     /// state once the panel has been non-idle past a strand ceiling, so a real
     /// reproduction of "⌘W stops working" reveals exactly which flag is stuck
@@ -1066,8 +1078,14 @@ final class SwitcherController: SwitcherViewDelegate {
         tabDrillActive: Bool,
         secureInputActive: Bool
     ) -> Bool {
-        phase == .visible && primedByHeldChord && !secureInputActive
-            && (!stickyOpen || tabDrillActive)
+        // NOTE: secure input is deliberately NOT excluded. Under Secure Event Input
+        // the release is supposed to be caught by HoldModifierMonitor, but that
+        // poll reads the SAME CGEventSource.flagsState that can stick reporting
+        // ⌘-held (issue #16) — so the backstop must also run there to drive the
+        // flagsState-independent no-interaction force-close. `secureInputActive`
+        // is kept as a parameter for the unit matrix and future use.
+        _ = secureInputActive
+        return phase == .visible && primedByHeldChord && (!stickyOpen || tabDrillActive)
     }
 
     /// Live check of `releaseAlreadyMissed` against the current physical modifier
@@ -1497,6 +1515,9 @@ final class SwitcherController: SwitcherViewDelegate {
             // (commit/cancel → `.idle`) always tears it down, and a fresh `.visible`
             // arms it.
             syncVisibleReleaseBackstop()
+            // Seed the steering stamp on the open edge so the no-interaction
+            // force-close ceiling is measured from when the panel appeared.
+            if newValue == .visible { lastVisibleActivity = Date() }
             syncStrandProbe() // #16-diag (temporary)
             // Returning to idle ends any scoped-shortcut open so the next plain
             // ⌘Tab is unfiltered. Single chokepoint — every exit path (commit,
@@ -1627,6 +1648,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
     func switcherViewDidHover(index: Int) {
         guard phase == .visible else { return }
+        lastVisibleActivity = Date() // #16: mouse steering keeps the panel alive
         guard rows.indices.contains(index), index != self.index else { return }
         // Moving the selection off the drilled-in row drops drill mode — the
         // strip belongs to the previous row's tabs.
@@ -1672,7 +1694,27 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    /// Refresh `lastVisibleActivity` on genuine user *steering* of the panel —
+    /// navigation, search editing, drill nav. Deliberately NOT the in-panel action
+    /// keys (close/quit/minimize/hide/fullscreen — those are the very symptom of a
+    /// stranded swallow, and a user mashing ⌘W must not keep the panel alive), nor
+    /// commit/escape/dismiss/releaseCmd (those already close it). Lets the
+    /// no-interaction force-close distinguish "actively browsing" from "welded
+    /// open and abandoned" (issue #16).
+    private func noteSteeringActivity(for event: HotkeyTap.Event) {
+        switch event {
+        case .nextApp, .prevApp, .nextWindow, .prevWindow, .nextRow, .prevRow,
+             .spatialLeft, .spatialRight, .letterInput, .letterInputKey,
+             .searchInput, .searchInputKey, .searchBackspace, .toggleSearch,
+             .enterTabDrill, .exitTabDrill, .tabPrev, .tabNext:
+            lastVisibleActivity = Date()
+        default:
+            break
+        }
+    }
+
     private func handle(_ event: HotkeyTap.Event) {
+        noteSteeringActivity(for: event)
         switch event {
         case .nextApp:
             // Secure-input Carbon parity with the tap's drill branch: while
@@ -2088,9 +2130,28 @@ final class SwitcherController: SwitcherViewDelegate {
             syncVisibleReleaseBackstop()
             return
         }
-        guard holdReleaseAlreadyMissed() else { return }
-        Log.switcher.warning("visible panel outlived its ⌘-release — recovering (issue #16)")
-        handleModifierRelease()
+        // Fast path: the live modifier state confirms ⌘ is up — honour the missed
+        // release immediately (commit), exactly as the tap's `.releaseCmd` would.
+        if holdReleaseAlreadyMissed() {
+            Log.switcher.warning("visible panel outlived its ⌘-release — recovering (issue #16)")
+            handleModifierRelease()
+            return
+        }
+        // Robust path: when the tap was disabled across the real release, the
+        // ⌘-up is lost AND `CGEventSource.flagsState` can stick reporting ⌘-held —
+        // so the fast path never fires and the panel is welded open with the tap
+        // swallowing ⌘W/⌘Q. Force it closed once the user has stopped steering it
+        // past the ceiling. flagsState-independent, so it heals a stuck modifier
+        // that PR #67 could not (issue #16).
+        if let last = lastVisibleActivity,
+           Date().timeIntervalSince(last) > Self.visibleStrandCeiling {
+            let idle = Int(Date().timeIntervalSince(last))
+            Log.switcher.error("visible panel stranded \(idle)s with no interaction — force-closing (issue #16)")
+            // The user has moved on by now; don't yank focus back to the app that
+            // was frontmost at open — just dismiss so the tap stops swallowing ⌘W.
+            previousFrontmostApp = nil
+            cancel()
+        }
     }
 
     /// #16-diag (temporary): arm/disarm the strand probe alongside the phase edge.
