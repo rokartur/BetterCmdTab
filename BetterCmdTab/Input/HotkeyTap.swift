@@ -760,28 +760,37 @@ final class HotkeyTap {
                 DispatchQueue.main.async { handler() }
                 return Unmanaged.passUnretained(event)
             }
-            // Storm guard: count rapid consecutive disables. Re-enabling an active
-            // session tap that the WindowServer keeps disabling (a sustained
-            // timeout with AX still granted) pins THIS tap thread in synchronous
-            // WindowServer IPC — and the WindowServer blocks all system input on
-            // it, freezing the whole machine. Once a burst is seen, stop the tight
-            // re-enable loop and hand off to a main-thread recovery that tears the
-            // tap down / re-arms on a backoff.
-            let now = DispatchTime.now().uptimeNanoseconds
-            let storming = disableGate.withLock { gate -> Bool in
-                if now &- gate.lastNs > Self.disableBurstWindowNs { gate.count = 0 }
-                gate.lastNs = now
-                gate.count += 1
-                return gate.count > Self.maxRapidReenables
-            }
-            if storming {
-                // Return WITHOUT re-enabling so the tap thread stops spinning in
-                // WindowServer IPC; recovery happens on main (uninstall + re-arm,
-                // or stay down if AX was revoked).
-                Log.hotkey.error("CGEventTap disabled repeatedly (storm) — bailing to main-thread recovery")
-                let handler = onTapDisabledStorm
-                DispatchQueue.main.async { handler() }
-                return Unmanaged.passUnretained(event)
+            // Storm guard — TIMEOUT only. `kCGEventTapDisabledByUserInput` is the
+            // secure-input / external-input kind of disable, NOT the watchdog
+            // timeout, and it carries no freeze risk beyond what the AX-trust check
+            // above already guards. On affected setups a secure-input source flaps
+            // on/off ~1×/second, so the WindowServer streams `userInput` disables;
+            // routing them through this gate tore the tap down and re-armed it on a
+            // backoff every second, and during each backoff the ⌘-release was lost
+            // — welding the switcher open so the tap swallowed ⌘W/⌘Q system-wide
+            // (issue #16). For `userInput` just fall through and re-enable (as the
+            // simple alt-tab handler does): under secure input the WindowServer
+            // re-disables instantly and the always-armed Carbon survivor trigger
+            // keeps ⌘Tab working; the tap re-takes over the moment it clears.
+            //
+            // The gate stays for TIMEOUT: re-enabling an active session tap the
+            // WindowServer keeps timing out (AX still granted, main thread wedged)
+            // pins this tap thread in synchronous WindowServer IPC, freezing the
+            // whole machine — so a timeout burst still bails to main-thread recovery.
+            if type == .tapDisabledByTimeout {
+                let now = DispatchTime.now().uptimeNanoseconds
+                let storming = disableGate.withLock { gate -> Bool in
+                    if now &- gate.lastNs > Self.disableBurstWindowNs { gate.count = 0 }
+                    gate.lastNs = now
+                    gate.count += 1
+                    return gate.count > Self.maxRapidReenables
+                }
+                if storming {
+                    Log.hotkey.error("CGEventTap disabled repeatedly (storm) — bailing to main-thread recovery")
+                    let handler = onTapDisabledStorm
+                    DispatchQueue.main.async { handler() }
+                    return Unmanaged.passUnretained(event)
+                }
             }
             // Final trust re-check immediately before the re-enable closes the
             // TOCTOU window: AX can be revoked in the tiny gap since the check
