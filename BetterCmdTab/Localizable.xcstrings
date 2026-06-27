@@ -7457,6 +7457,34 @@
         }
       }
     },
+    "Tap Shift to step backwards" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Shift-Tippen rückwärts wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocar Mayús para retroceder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyer sur Maj pour reculer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofaj tapnięciem Shift"
+          }
+        }
+      }
+    },
     "Tap to switch instantly; hold longer to open the switcher." : {
       "localizations" : {
         "de" : {
@@ -8265,6 +8293,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gdy ten program pojawia się w przełączniku"
+          }
+        }
+      }
+    },
+    "While the switcher is open, a tap of the Shift key moves the selection backwards. Turn this off to step back only by holding Shift as you press the switch key (⌘⇧Tab)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei geöffnetem Umschalter verschiebt ein Tippen auf die Shift-Taste die Auswahl rückwärts. Deaktiviere dies, um nur durch Halten von Shift beim Drücken der Wechseltaste rückwärts zu gehen (⌘⇧Tab)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mientras el selector está abierto, un toque en la tecla Mayús mueve la selección hacia atrás. Desactiva esto para retroceder solo manteniendo Mayús mientras pulsas la tecla de cambio (⌘⇧Tab)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsque le sélecteur est ouvert, une pression sur la touche Maj déplace la sélection vers l’arrière. Désactivez cette option pour reculer uniquement en maintenant Maj tout en appuyant sur la touche de changement (⌘⇧Tab)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy przełącznik jest otwarty, tapnięcie klawisza Shift przesuwa zaznaczenie wstecz. Wyłącz tę opcję, aby cofać tylko przez przytrzymanie Shift podczas naciskania klawisza przełączania (⌘⇧Tab)."
           }
         }
       }

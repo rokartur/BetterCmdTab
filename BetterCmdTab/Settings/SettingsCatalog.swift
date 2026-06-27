@@ -95,6 +95,7 @@ enum SearchID {
     static let launcher = "switcher.launcher"
     static let searchMode = "switcher.searchMode"
     static let letterChainTimeout = "switcher.letterChainTimeout"
+    static let shiftTapBack = "switcher.shiftTapBack"
     static let scroll = "switcher.scroll"
     static let scrollReverse = "switcher.scrollReverse"
     static let clickDismiss = "switcher.clickDismiss"
@@ -302,6 +303,8 @@ enum SettingsCatalog {
         item(SearchID.searchMode, .switcher, SettingsAnchor.search, String(localized: "Switcher"), String(localized: "Search"),
              String(localized: "When searching"), ["search mode", "hold", "stay open", "dismiss"]),
         // Switcher · Navigation
+        item(SearchID.shiftTapBack, .switcher, SettingsAnchor.navigation, String(localized: "Switcher"), String(localized: "Navigation"),
+             String(localized: "Tap Shift to step backwards"), ["shift", "backwards", "back", "reverse", "tap shift", "cmd shift tab", "windows"]),
         item(SearchID.scroll, .switcher, SettingsAnchor.navigation, String(localized: "Switcher"), String(localized: "Navigation"),
              String(localized: "Switch with mouse scroll"), ["scroll", "wheel", "mouse"]),
         item(SearchID.scrollReverse, .switcher, SettingsAnchor.navigation, String(localized: "Switcher"), String(localized: "Navigation"),

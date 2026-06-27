@@ -195,6 +195,11 @@ final class HotkeyTap {
     /// vim user can navigate without leaving the home row. Consulted on the tap
     /// thread, written from main via `setVimNavigationEnabled`. Default off.
     private let vimNavigationFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// When true (the default), tapping Shift on its own while the switcher is
+    /// open steps the selection backwards. Turned off (#45) so reverse needs
+    /// Shift held with the switch key (⌘⇧Tab) instead — the bare-Shift step in
+    /// `flagsChanged` is suppressed; the keyDown ⌘⇧Tab path is unaffected.
+    private let shiftTapStepsBackwardFlag = OSAllocatedUnfairLock<Bool>(initialState: true)
     /// Rebindable in-panel action keys (#5): physical keycode → action. Consulted
     /// in the non-search switching branch before the letter-jump fallback, so a
     /// bound key suppresses letter-jumping (same as the old hardcoded W/M/H/Q).
@@ -498,6 +503,12 @@ final class HotkeyTap {
     /// Enable/disable click-outside-to-dismiss for the open switcher.
     func setClickOutsideDismiss(_ value: Bool) {
         clickDismissFlag.withLock { $0 = value }
+    }
+
+    /// Enable/disable stepping backwards when Shift is tapped on its own while
+    /// the switcher is open (#45). Pushed from main when the preference changes.
+    func setShiftTapStepsBackward(_ value: Bool) {
+        shiftTapStepsBackwardFlag.withLock { $0 = value }
     }
 
     /// Suppress (pass through) the initial trigger chord for the frontmost app —
@@ -1041,9 +1052,11 @@ final class HotkeyTap {
             }
             // Not while drilled into a tab strip (an app step would desync the
             // highlight from the strip) or typing in search (Shift for a
-            // capital must not move the selection). ⌘⇧Tab still steps
-            // explicitly through the keyDown path in both modes.
+            // capital must not move the selection). Also off when the user opted
+            // a bare-Shift step out (#45) — ⌘⇧Tab still steps explicitly through
+            // the keyDown path in both modes regardless.
             if anyModHeld && shiftHeld && !wasShift && !tabDrillNow
+                && shiftTapStepsBackwardFlag.withLock({ $0 })
                 && isSwitchingNow() && !isSearchingNow() {
                 deliver(.prevApp)
             }

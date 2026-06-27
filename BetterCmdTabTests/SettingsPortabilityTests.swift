@@ -79,6 +79,36 @@ struct SettingsPortabilityTests {
         #expect(prefs.switcherDisplayMode == .activeWindow)
     }
 
+    @Test("round-trip: shiftTapStepsBackward survives export/import")
+    func shiftTapStepsBackwardRoundTrip() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.shiftTapStepsBackward
+        defer {
+            try? prefs.importSettings(from: envelope([
+                Preferences.Keys.shiftTapStepsBackward: saved
+            ]))
+        }
+        // Flip away from the default (on), export, flip live back, import.
+        prefs.shiftTapStepsBackward = false
+        let data = try prefs.exportedJSONData()
+        prefs.shiftTapStepsBackward = true
+        try prefs.importSettings(from: data)
+        #expect(prefs.shiftTapStepsBackward == false)
+    }
+
+    @Test("import missing shiftTapStepsBackward leaves the current value untouched")
+    func shiftTapStepsBackwardPartialImport() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.shiftTapStepsBackward
+        defer { prefs.shiftTapStepsBackward = saved }
+        prefs.shiftTapStepsBackward = false
+        // Envelope without the key (partial-import contract).
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.panelOpacity: 100
+        ]))
+        #expect(prefs.shiftTapStepsBackward == false)
+    }
+
     @Test("import missing switcherDisplayMode leaves the current value untouched")
     func displayModePartialImport() throws {
         let prefs = Preferences.shared

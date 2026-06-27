@@ -475,6 +475,7 @@ final class Preferences: ObservableObject {
         static let hoverShowForceQuit = "Switcher.hoverShowForceQuit"
         static let hideFromScreenSharing = "Switcher.hideFromScreenSharing"
         static let vimNavigationEnabled = "Switcher.vimNavigationEnabled"
+        static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
         static let switcherDisplayMode = "Switcher.displayMode"
     }
 
@@ -796,6 +797,19 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != vimNavigationEnabled else { return }
             UserDefaults.standard.set(vimNavigationEnabled, forKey: Keys.vimNavigationEnabled)
+        }
+    }
+
+    /// Whether tapping Shift on its own steps the open switcher's selection
+    /// backwards (#45). Default on — that has always been the behavior. Users
+    /// coming from Windows can turn it off so reverse needs Shift held with the
+    /// switch key (⌘⇧Tab); otherwise the keydown on Shift plus the Tab press
+    /// step back twice. Only the bare-Shift step is gated — ⌘⇧Tab keeps working
+    /// through the keyDown path regardless.
+    @Published var shiftTapStepsBackward: Bool {
+        didSet {
+            guard oldValue != shiftTapStepsBackward else { return }
+            UserDefaults.standard.set(shiftTapStepsBackward, forKey: Keys.shiftTapStepsBackward)
         }
     }
 
@@ -1204,6 +1218,7 @@ final class Preferences: ObservableObject {
         self.scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         self.clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
         self.vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
+        self.shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true
         self.cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         self.experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
@@ -1296,6 +1311,7 @@ final class Preferences: ObservableObject {
         scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
         vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
+        shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true
         mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
         mouseClickSelectionEnabled = defaults.object(forKey: Keys.mouseClickSelectionEnabled) as? Bool ?? true
         cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
