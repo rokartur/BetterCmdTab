@@ -64,7 +64,7 @@ struct RowLabelsTests {
     func diacriticFolding() {
         // .diacriticInsensitive strips combining marks but not ligatures or
         // strokes. "Café" → "Cafe" (é→e), but "Łódź" keeps Ł, ó, ź. The first
-        // ASCII letter wins, so behaviour is letter-skip + fold combined.
+        // ASCII letter wins, so behavior is letter-skip + fold combined.
         let labels = RowLabels.labels(forInputs: [
             input("Café"),       // é folds → c
             input("Naïve")       // ï folds → n

@@ -710,7 +710,7 @@ enum Activator {
     /// last ran *last*, so the window the user hid everything from returns on top.
     /// When there's no remembered hide-time app (show-all without a prior shortcut
     /// hide, or after a relaunch), it activates nothing — the apps just reappear
-    /// and focus stays put, the old stateless behaviour.
+    /// and focus stays put, the old stateless behavior.
     static func showAllApps() {
         let running = NSWorkspace.shared.runningApplications
         let runningIDs = running.map {
