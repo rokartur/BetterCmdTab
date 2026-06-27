@@ -71,6 +71,20 @@ final class BrowserTabFocusObserver {
             }
         }
         for app in NSWorkspace.shared.runningApplications { addObserver(for: app) }
+        // Seed the current tab so the FIRST ⌘Tab after enabling/launch already has
+        // it as most-recent (row 0), before any focus change is observed — otherwise
+        // an as-yet-unseen current tab sinks to the back and the first step lands
+        // wrong until the tracker warms.
+        seedFrontmost()
+    }
+
+    /// Bump the frontmost browser's active tab to MRU front, once, on enable.
+    private func seedFrontmost() {
+        guard enabled,
+              let front = NSWorkspace.shared.frontmostApplication,
+              front.processIdentifier != getpid(),
+              BrowserTabs.Family.from(bundleID: front.bundleIdentifier) != nil else { return }
+        handleChange(pid: front.processIdentifier)
     }
 
     private func stop() {
@@ -143,8 +157,9 @@ final class BrowserTabFocusObserver {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.inFlight.remove(pid)
-                guard self.enabled, let info, info.wid != 0, !info.title.isEmpty else { return }
-                self.tracker.bump(.tab(info.wid, info.title))
+                guard self.enabled, let info, info.wid != 0,
+                      !info.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                self.tracker.bump(BrowserTabMRUTracker.tabKey(wid: info.wid, title: info.title))
             }
         }
     }

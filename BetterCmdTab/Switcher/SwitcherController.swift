@@ -2784,8 +2784,9 @@ final class SwitcherController: SwitcherViewDelegate {
                 self.focusSyncInFlight.remove(pid)
                 if wid != 0 { self.windowMRU.bump(pid: pid, wid: wid) }
                 if feedTabMRU, wid != 0 {
-                    if isBrowser, let title = info?.title, !title.isEmpty {
-                        self.tabMRU.bump(.tab(wid, title))
+                    if isBrowser, let title = info?.title,
+                       !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        self.tabMRU.bump(BrowserTabMRUTracker.tabKey(wid: wid, title: title))
                     } else if !isBrowser {
                         self.tabMRU.bump(.window(wid))
                     }

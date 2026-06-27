@@ -87,4 +87,15 @@ struct BrowserTabMRUTrackerTests {
         t.bump(.window(0))   // a 0 wid is windowless — never tracked
         #expect(t.order.isEmpty)
     }
+
+    @Test func tabKeyTrimsTitleSoWhitespaceDoesNotSplitEntries() {
+        // The observer (AX title) and the displayed rows (osascript title) can
+        // differ by stray whitespace; trimming both onto one key keeps the current
+        // tab from being a separate entry that misses row 0.
+        #expect(BrowserTabMRUTracker.tabKey(wid: 3, title: "  Inbox \n") == .tab(3, "Inbox"))
+        let t = BrowserTabMRUTracker()
+        t.bump(BrowserTabMRUTracker.tabKey(wid: 3, title: " Inbox "))   // whitespacey AX title
+        // Clean osascript row titles — the trimmed bump still matches "Inbox".
+        #expect(t.sortRows(tabRows(wid: 3, titles: ["Inbox", "Docs"])).first?.windowTitle == "Inbox")
+    }
 }

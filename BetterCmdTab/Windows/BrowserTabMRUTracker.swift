@@ -55,12 +55,22 @@ final class BrowserTabMRUTracker {
         order.removeAll { $0.wid == wid }
     }
 
-    /// The MRU key for a displayed row: a tab row keys by (parent wid, tab title);
-    /// any other windowed row keys by its CGWindowID. Windowless rows (placeholder
-    /// / launchable / recently-closed, `cgWindowID == 0`) have no recency → nil.
+    /// A tab key with a normalized title. Tab titles reach the tracker from two
+    /// sources — the AX window title (observer / focus) and the osascript tab list
+    /// (displayed rows) — which the cache already matches on a *trimmed* basis. Trim
+    /// here too so a stray whitespace difference between the two can't split one tab
+    /// into two recency entries (the current tab would then miss row 0).
+    static func tabKey(wid: CGWindowID, title: String) -> Key {
+        .tab(wid, title.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    /// The MRU key for a displayed row: a tab row keys by (parent wid, trimmed tab
+    /// title); any other windowed row keys by its CGWindowID. Windowless rows
+    /// (placeholder / launchable / recently-closed, `cgWindowID == 0`) have no
+    /// recency → nil.
     static func key(for row: SwitcherRow) -> Key? {
         guard row.cgWindowID != 0 else { return nil }
-        if row.browserTab != nil { return .tab(row.cgWindowID, row.windowTitle) }
+        if row.browserTab != nil { return tabKey(wid: row.cgWindowID, title: row.windowTitle) }
         return .window(row.cgWindowID)
     }
 
