@@ -1085,6 +1085,15 @@ final class HotkeyTap {
                                 return nil
                             }
                             if let action = panelKeyMap.withLock({ $0[keyCode] }) {
+                                // #16-diag (temporary): records every time the tap
+                                // consumes an in-panel action key (W/Q/M/H/F). If the
+                                // user sees ⌘W "do nothing" with NO switcher panel on
+                                // screen and this line fired, the tap is swallowing on
+                                // a stranded phase; if ⌘W fails with NO such line, the
+                                // cause is elsewhere (Carbon override / something else).
+                                let diagSwitching = isSwitchingNow()
+                                let diagPresented = isPanelPresented()
+                                Log.hotkey.error("#16-diag tap-swallow action keyCode=\(keyCode) switching=\(diagSwitching) presented=\(diagPresented)")
                                 switch action {
                                 case .close: deliver(.closeWindow)
                                 case .minimize: deliver(.minimizeWindow)
