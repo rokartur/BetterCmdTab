@@ -195,6 +195,18 @@ final class HotkeyTap {
     /// vim user can navigate without leaving the home row. Consulted on the tap
     /// thread, written from main via `setVimNavigationEnabled`. Default off.
     private let vimNavigationFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// When true (the default), tapping Shift on its own while the switcher is
+    /// open steps the selection backwards. Turned off (#45) so reverse needs
+    /// Shift held with the switch key (⌘⇧Tab) instead — the bare-Shift step in
+    /// `flagsChanged` is suppressed; the keyDown ⌘⇧Tab path is unaffected.
+    private let shiftTapStepsBackwardFlag = OSAllocatedUnfairLock<Bool>(initialState: true)
+    /// Synthesizes auto-repeat for a *held* Shift so it steps backwards
+    /// continuously, mirroring a held Tab (a modifier emits no key-repeat
+    /// keyDowns, so the cadence is driven here). Armed on the Shift-down
+    /// transition, torn down on Shift-up / hold-modifier release / switcher
+    /// close. `nil` while idle — no timer exists unless Shift is actively held
+    /// with the switcher open.
+    private let shiftRepeatTimer = OSAllocatedUnfairLock<DispatchSourceTimer?>(initialState: nil)
     /// Rebindable in-panel action keys (#5): physical keycode → action. Consulted
     /// in the non-search switching branch before the letter-jump fallback, so a
     /// bound key suppresses letter-jumping (same as the old hardcoded W/M/H/Q).
@@ -439,6 +451,9 @@ final class HotkeyTap {
             DistributedNotificationCenter.default().removeObserver(obs)
             layoutObserver = nil
         }
+        // A repeating timer never auto-cancels — tear it down so it can't keep
+        // firing into a torn-down tap after uninstall/deinit.
+        stopShiftRepeat()
     }
 
     deinit {
@@ -450,6 +465,10 @@ final class HotkeyTap {
     /// the access safe without needing `MainActor.assumeIsolated`.
     func setSwitching(_ value: Bool) {
         switchingFlag.withLock { $0 = value }
+        // Closing the switcher (commit, Esc, click-outside, app deactivation)
+        // must always kill a lingering held-Shift backward repeat — catch-all
+        // for any close path the tap-thread stop signals don't observe.
+        if !value { stopShiftRepeat() }
         // The pointer tap is only needed while the switcher is open; keep it
         // live exactly for that window so idle scroll/click traffic never
         // enters this process. Safe to call from main: `tapEnable` just toggles
@@ -498,6 +517,73 @@ final class HotkeyTap {
     /// Enable/disable click-outside-to-dismiss for the open switcher.
     func setClickOutsideDismiss(_ value: Bool) {
         clickDismissFlag.withLock { $0 = value }
+    }
+
+    /// Enable/disable stepping backwards when Shift is tapped on its own while
+    /// the switcher is open (#45). Pushed from main when the preference changes.
+    func setShiftTapStepsBackward(_ value: Bool) {
+        shiftTapStepsBackwardFlag.withLock { $0 = value }
+        if !value { stopShiftRepeat() }
+    }
+
+    /// The user's keyboard repeat cadence (System Settings → Keyboard: "Delay
+    /// Until Repeat" / "Key Repeat"), so a held Shift steps back at the same
+    /// pace as a held Tab. Both are stored as 1/60 s ticks in the global domain.
+    private func keyRepeatCadence() -> (initial: Double, interval: Double)? {
+        let d = UserDefaults.standard
+        return Self.repeatCadence(
+            initialTicks: (d.object(forKey: "InitialKeyRepeat") as? Double) ?? 0,
+            repeatTicks: (d.object(forKey: "KeyRepeat") as? Double) ?? 0
+        )
+    }
+
+    /// Pure 1/60 s-tick → seconds conversion for the held-Shift repeat. Absent
+    /// (`0`) values fall back to the macOS defaults; a huge `repeatTicks` is the
+    /// system-wide "Off" state, so it returns `nil` (a hold is then one step).
+    /// Both outputs are clamped so a misconfigured global value can't spin a
+    /// runaway timer. Static and pure so the tests can exercise it directly.
+    static func repeatCadence(initialTicks: Double, repeatTicks: Double) -> (initial: Double, interval: Double)? {
+        if repeatTicks >= 300 { return nil }
+        let initial = initialTicks > 0 ? initialTicks / 60.0 : 25.0 / 60.0
+        let interval = repeatTicks > 0 ? repeatTicks / 60.0 : 6.0 / 60.0
+        return (max(0.05, initial), max(0.02, interval))
+    }
+
+    /// Arm the held-Shift backward auto-repeat. The caller delivers the
+    /// immediate first `.prevApp` (so a quick tap is exactly one step); this
+    /// schedules the repeats that follow once the hold passes the initial delay.
+    /// Each tick re-checks live state so the repeat self-stops the instant the
+    /// switcher leaves the bare-Shift-steps-back situation, even if an explicit
+    /// stop signal is missed.
+    private func startShiftRepeat() {
+        guard let cadence = keyRepeatCadence() else { return }
+        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInteractive))
+        timer.schedule(deadline: .now() + cadence.initial, repeating: cadence.interval)
+        timer.setEventHandler { [weak self] in
+            guard let self else { return }
+            guard self.isSwitchingNow(), !self.isSearchingNow(),
+                  !self.tabDrillFlag.withLock({ $0 }),
+                  self.shiftTapStepsBackwardFlag.withLock({ $0 }) else {
+                self.stopShiftRepeat(); return
+            }
+            self.deliver(.prevApp)
+        }
+        shiftRepeatTimer.withLock { existing in
+            existing?.cancel()
+            existing = timer
+            timer.resume()
+        }
+    }
+
+    /// Cancel the held-Shift backward auto-repeat if running. Idempotent and
+    /// safe from any thread (the tap thread, main, or the timer's own handler).
+    private func stopShiftRepeat() {
+        let timer = shiftRepeatTimer.withLock { current -> DispatchSourceTimer? in
+            let t = current
+            current = nil
+            return t
+        }
+        timer?.cancel()
     }
 
     /// Suppress (pass through) the initial trigger chord for the frontmost app —
@@ -1041,11 +1127,21 @@ final class HotkeyTap {
             }
             // Not while drilled into a tab strip (an app step would desync the
             // highlight from the strip) or typing in search (Shift for a
-            // capital must not move the selection). ⌘⇧Tab still steps
-            // explicitly through the keyDown path in both modes.
-            if anyModHeld && shiftHeld && !wasShift && !tabDrillNow
-                && isSwitchingNow() && !isSearchingNow() {
+            // capital must not move the selection). Also off when the user opted
+            // a bare-Shift step out (#45) — ⌘⇧Tab still steps explicitly through
+            // the keyDown path in both modes regardless.
+            let shiftStepsBack = anyModHeld && !tabDrillNow
+                && shiftTapStepsBackwardFlag.withLock({ $0 })
+                && isSwitchingNow() && !isSearchingNow()
+            if shiftHeld && !wasShift && shiftStepsBack {
+                // Immediate first step (a quick tap is exactly one), then a held
+                // Shift keeps stepping back at the key-repeat pace until release
+                // — the modifier-key counterpart to a held Tab going forward.
                 deliver(.prevApp)
+                startShiftRepeat()
+            } else if wasShift && !shiftHeld {
+                // Shift released: stop the backward repeat.
+                stopShiftRepeat()
             }
             // `.releaseCmd` only means anything while the switcher is open
             // (releasing the hold modifier commits the selection). When idle
@@ -1054,6 +1150,9 @@ final class HotkeyTap {
             // no-op `commit()` to the main thread. Gate it on switching so idle
             // typing costs nothing on the main run loop.
             if !anyModHeld && isSwitchingNow() {
+                // The hold modifier went up (commit) while Shift may still be
+                // down — kill the backward repeat before the panel closes.
+                stopShiftRepeat()
                 deliver(.releaseCmd)
             }
         }

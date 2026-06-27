@@ -814,6 +814,34 @@
         }
       }
     },
+    "Behaviour" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verhalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comportamiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comportement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowanie"
+          }
+        }
+      }
+    },
     "BetterCmdTab needs Accessibility permission to handle ⌘Tab. Re-enable it in System Settings and the switcher reactivates automatically." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7457,6 +7485,34 @@
         }
       }
     },
+    "Tap Shift to step backwards" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Shift-Tippen rückwärts wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocar Mayús para retroceder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyer sur Maj pour reculer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofaj tapnięciem Shift"
+          }
+        }
+      }
+    },
     "Tap to switch instantly; hold longer to open the switcher." : {
       "localizations" : {
         "de" : {
@@ -8265,6 +8321,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gdy ten program pojawia się w przełączniku"
+          }
+        }
+      }
+    },
+    "While the switcher is open, a tap of the Shift key steps the selection backwards and holding Shift keeps stepping back until you let go — just like a held Tab. Turn this off to step back only with Shift held as you press the switch key (⌘⇧Tab)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei geöffnetem Umschalter setzt ein Tippen auf die Shift-Taste die Auswahl eine Position zurück, und gedrückt gehaltenes Shift geht weiter rückwärts, bis du loslässt – genau wie ein gehaltenes Tab. Deaktiviere dies, um nur durch Halten von Shift beim Drücken der Wechseltaste rückwärts zu gehen (⌘⇧Tab)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mientras el selector está abierto, un toque en la tecla Mayús retrocede la selección una posición y mantener Mayús sigue retrocediendo hasta que la sueltas, igual que mantener Tab. Desactiva esto para retroceder solo manteniendo Mayús mientras pulsas la tecla de cambio (⌘⇧Tab)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsque le sélecteur est ouvert, une pression sur la touche Maj recule la sélection d’un cran et maintenir Maj continue de reculer jusqu’à ce que vous relâchiez, comme une touche Tab maintenue. Désactivez cette option pour reculer uniquement en maintenant Maj tout en appuyant sur la touche de changement (⌘⇧Tab)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy przełącznik jest otwarty, tapnięcie klawisza Shift cofa zaznaczenie o jedną pozycję, a przytrzymanie Shift cofa dalej, aż go puścisz — tak jak przytrzymany Tab. Wyłącz tę opcję, aby cofać tylko przez przytrzymanie Shift podczas naciskania klawisza przełączania (⌘⇧Tab)."
           }
         }
       }

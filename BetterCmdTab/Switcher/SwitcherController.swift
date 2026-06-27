@@ -668,6 +668,14 @@ final class SwitcherController: SwitcherViewDelegate {
             .sink { [weak self] enabled in self?.hotkey.setVimNavigationEnabled(enabled) }
             .store(in: &cancellables)
 
+        // Tap-Shift-to-step-backwards: gated in the tap's flagsChanged handler so
+        // a user can require ⌘⇧Tab for reverse instead of a bare Shift tap (#45).
+        hotkey.setShiftTapStepsBackward(Preferences.shared.shiftTapStepsBackward)
+        Preferences.shared.$shiftTapStepsBackward
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in self?.hotkey.setShiftTapStepsBackward(enabled) }
+            .store(in: &cancellables)
+
         // "Ignore shortcuts" exceptions: seed the suppression flag for the
         // current frontmost app and re-derive it when the exceptions change.
         updateTriggerSuppression()
