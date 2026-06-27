@@ -814,6 +814,34 @@
         }
       }
     },
+    "Behaviour" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verhalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comportamiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comportement"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zachowanie"
+          }
+        }
+      }
+    },
     "BetterCmdTab needs Accessibility permission to handle ⌘Tab. Re-enable it in System Settings and the switcher reactivates automatically." : {
       "extractionState" : "manual",
       "localizations" : {
