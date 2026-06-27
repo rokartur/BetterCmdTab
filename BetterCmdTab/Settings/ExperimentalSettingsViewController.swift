@@ -16,6 +16,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let sensitivityValueLabel = NSTextField(labelWithString: "")
     private let instantSpaceSwitch = NSSwitch()
     private let mruWindowsSortSwitch = NSSwitch()
+    private let browserTabMRUSwitch = NSSwitch()
 
     override func setupContent() {
         // Experimental section — off by default, clearly flagged as unstable.
@@ -65,6 +66,11 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: experimental, title: String(localized: "Most recent (windows) sort order"),
                subtitle: String(localized: "Orders the list by when you last focused each window, across all apps."),
                accessory: mruWindowsSortSwitch, searchItemID: SearchID.mruWindowsSort)
+
+        configureSwitch(browserTabMRUSwitch, action: #selector(toggleBrowserTabMRU(_:)))
+        addRow(to: experimental, title: String(localized: "Track browser tabs in recency"),
+               subtitle: String(localized: "With “Show browser tabs as separate entries” and the windows sort order on, ⌘Tab returns to the tab you last used, not just the last window. Needs always-on monitoring of your browsers, so it costs a little energy."),
+               accessory: browserTabMRUSwitch, searchItemID: SearchID.browserTabMRU)
         // "Show switcher on" (multi-monitor placement) and the `\` tab peek + tab
         // expansion graduated to the Switcher tab once stable — see its "Display"
         // and "Tabs" sections.
@@ -115,6 +121,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         applySensitivity(prefs.swipeSensitivity)
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
         mruWindowsSortSwitch.state = prefs.sortOrder == .mruWindows ? .on : .off
+        browserTabMRUSwitch.state = prefs.experimentalBrowserTabMRU ? .on : .off
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
 
@@ -151,6 +158,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleInstantSpace(_ sender: NSSwitch) {
         Preferences.shared.experimentalInstantSpaceSwitch = (sender.state == .on)
+    }
+
+    @objc private func toggleBrowserTabMRU(_ sender: NSSwitch) {
+        Preferences.shared.experimentalBrowserTabMRU = (sender.state == .on)
     }
 
     @objc private func toggleMRUWindowsSort(_ sender: NSSwitch) {

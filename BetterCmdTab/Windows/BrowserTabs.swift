@@ -409,19 +409,39 @@ enum BrowserTabs {
     /// and lighter on CPU than calling `tabTitles` per window. No `AXRaise`, so
     /// it never reorders the user's windows.
     ///
-    /// Returns `(windowTitle, tabTitles)` per window, in window order. Empty on
-    /// no windows / failure / unsupported (the caller negative-caches). The
-    /// caller maps results back to its AX window elements by (trimmed) title;
-    /// windows whose title isn't unique are left for the caller to skip.
+    /// Per-window tab listing plus a `failed` flag distinguishing a script error
+    /// (Automation permission denied / timeout) from a browser that genuinely has
+    /// no windows or tabs. The expand-as-windows scan needs that split to surface
+    /// the "grant Automation access" hint (#39) — an empty result alone can't tell
+    /// "denied" from "nothing to show".
+    struct AllWindowTabs {
+        let windows: [(title: String, activeTab: String, tabs: [String])]
+        /// True only when the osascript spawn itself failed (nil result) — a
+        /// permission/timeout signal, not an empty browser.
+        let failed: Bool
+        static let empty = AllWindowTabs(windows: [], failed: false)
+        static let failure = AllWindowTabs(windows: [], failed: true)
+    }
+
+    /// List every window of `app` together with its tab titles in a **single**
+    /// Apple Events round-trip (one `osascript` spawn per browser, not one per
+    /// window). The process spawn dominates the cost, so batching is both faster
+    /// and lighter on CPU than calling `tabTitles` per window. No `AXRaise`, so
+    /// it never reorders the user's windows.
+    ///
+    /// Returns `(windowTitle, activeTab, tabTitles)` per window, in window order,
+    /// plus `failed` (osascript error vs. genuinely empty). The caller maps results
+    /// back to its AX window elements by (trimmed) title; windows whose title isn't
+    /// unique are left for the caller to skip.
     ///
     /// Records are framed with ASCII control chars that can't appear in titles:
     /// GS (29) between windows, RS (30) between a window's title, its active-tab
     /// title, and its tab list, US (31) between tabs. Run off-main.
-    static func allWindowTabs(for app: NSRunningApplication) -> [(title: String, activeTab: String, tabs: [String])] {
-        // Sending an Apple Event to a quit app relaunches it — bail if terminated.
+    static func allWindowTabs(for app: NSRunningApplication) -> AllWindowTabs {
+        // A quit / non-browser app is not a permission failure — nothing to grant.
         guard !app.isTerminated,
               let family = Family.from(bundleID: app.bundleIdentifier),
-              let bid = app.bundleIdentifier else { return [] }
+              let bid = app.bundleIdentifier else { return .empty }
         let appLit = appLiteral(bid)
         let attr: String = (family == .safari) ? "name" : "title"
         // A browser window's AX title reflects its active tab, so also capture the
@@ -454,9 +474,9 @@ enum BrowserTabs {
         """
         guard let raw = runScript(source) else {
             Log.activator.error("BrowserTabs: allWindowTabs \(bid) failed (permission/timeout?)")
-            return []
+            return .failure
         }
-        if raw == "NOWINDOWS" || raw.isEmpty { return [] }
+        if raw == "NOWINDOWS" || raw.isEmpty { return .empty }
         var out: [(title: String, activeTab: String, tabs: [String])] = []
         for block in raw.components(separatedBy: "\u{1D}") {
             let parts = block.components(separatedBy: "\u{1E}")
@@ -464,7 +484,7 @@ enum BrowserTabs {
             let tabs = parts[2].isEmpty ? [] : parts[2].components(separatedBy: "\u{1F}")
             out.append((title: parts[0], activeTab: parts[1], tabs: tabs))
         }
-        return out
+        return AllWindowTabs(windows: out, failed: false)
     }
 
     /// Switch the row window's browser tab to `tabIndex` (0-based here, 1-based

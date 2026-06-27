@@ -121,6 +121,7 @@ enum SearchID {
     static let sensitivity = "experimental.sensitivity"
     static let instantSpace = "experimental.instantSpace"
     static let mruWindowsSort = "experimental.mruWindowsSort"
+    static let browserTabMRU = "experimental.browserTabMRU"
 }
 
 @MainActor
@@ -360,6 +361,8 @@ enum SettingsCatalog {
              String(localized: "Switch Spaces without animation"), ["spaces", "space", "animation", "instant", "full screen"]),
         item(SearchID.mruWindowsSort, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
              String(localized: "Most recent (windows) sort order"), ["sort", "window", "recent", "order", "mru", "windows"]),
+        item(SearchID.browserTabMRU, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
+             String(localized: "Track browser tabs in recency"), ["browser", "tab", "tabs", "recent", "mru", "safari", "chrome"]),
     ]
 
     private static func item(

@@ -435,6 +435,7 @@ final class Preferences: ObservableObject {
         static let clickOutsideToDismiss = "Switcher.clickOutsideToDismiss"
         static let cycleTileWidths = "Switcher.cycleTileWidths"
         static let experimentalInstantSpaceSwitch = "Switcher.experimentalInstantSpaceSwitch"
+        static let experimentalBrowserTabMRU = "Switcher.experimentalBrowserTabMRU"
         /// `\` tab drill-in (peek the highlighted window's tabs in a strip).
         /// Graduated out of the Experimental tab in 26.x and flipped to default
         /// ON (intentional — the `\` peek is now the standard way to reach tabs).
@@ -869,6 +870,18 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// When true (and "Show browser tabs as separate entries" is on), browser tabs
+    /// are tracked as first-class MRU entries so ⌘Tab returns to the previously
+    /// used tab, not just the previously used window. Requires always-on AX title
+    /// observation of running browsers, so it's off by default — opt-in cost on a
+    /// hot-path app. See `BrowserTabMRUTracker` / `BrowserTabFocusObserver`.
+    @Published var experimentalBrowserTabMRU: Bool {
+        didSet {
+            guard oldValue != experimentalBrowserTabMRU else { return }
+            UserDefaults.standard.set(experimentalBrowserTabMRU, forKey: Keys.experimentalBrowserTabMRU)
+        }
+    }
+
     /// Tab drill-in: pressing `\` on a row whose window has a tab group reveals
     /// a horizontal tab strip beneath the switcher so a specific tab can be
     /// picked. Native AX `AXTabs` for Finder/Terminal/…; AppleScript for
@@ -1224,6 +1237,7 @@ final class Preferences: ObservableObject {
         self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
+        self.experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
         // Badges graduated out of the Experimental tab and now default on. Honor
         // the new key if present, otherwise carry over a choice made under the
         // old experimental key, otherwise default to on.
@@ -1319,6 +1333,7 @@ final class Preferences: ObservableObject {
         tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
         expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
+        experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
         showUnreadBadges = defaults.object(forKey: Keys.showUnreadBadges) as? Bool ?? true
 
         showWindowTitleLabel = defaults.object(forKey: Keys.showWindowTitleLabel) as? Bool ?? true
