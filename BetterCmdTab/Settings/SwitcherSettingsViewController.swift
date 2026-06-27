@@ -206,7 +206,7 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         let navigation = addSection(title: String(localized: "Navigation"), anchor: SettingsAnchor.navigation)
         configureSwitch(shiftTapBackSwitch, action: #selector(toggleShiftTapBack(_:)))
         addRow(to: navigation, title: String(localized: "Tap Shift to step backwards"),
-               subtitle: String(localized: "While the switcher is open, a tap of the Shift key moves the selection backwards. Turn this off to step back only by holding Shift as you press the switch key (⌘⇧Tab)."),
+               subtitle: String(localized: "While the switcher is open, a tap of the Shift key steps the selection backwards and holding Shift keeps stepping back until you let go — just like a held Tab. Turn this off to step back only with Shift held as you press the switch key (⌘⇧Tab)."),
                accessory: shiftTapBackSwitch, searchItemID: SearchID.shiftTapBack)
         configureSwitch(scrollSwitch, action: #selector(toggleScroll(_:)))
         addRow(to: navigation, title: String(localized: "Switch with mouse scroll"),
