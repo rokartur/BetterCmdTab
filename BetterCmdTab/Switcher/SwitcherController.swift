@@ -269,6 +269,10 @@ final class SwitcherController: SwitcherViewDelegate {
     /// `browserTabsCacheTTL`, bounding osascript spawns across rapid re-opens.
     private var browserTabsCacheStamp: [AXRef: TimeInterval] = [:]
     private static let browserTabsCacheTTL: TimeInterval = 3.0
+    /// Active-tab index per cached browser window, parallel to `browserTabsCache`.
+    /// Lets a window-MRU fast tap into a browser land on the tab the user left on
+    /// instead of snapping to tab 1 when post-expansion title matching misses (#39).
+    private var browserTabsActiveIndex: [AXRef: Int] = [:]
     /// Monotonic time of the last *forced* (event-driven) browser-tab scan. A
     /// forced scan (a browser-window title change while the panel is open, which
     /// fires when a tab is opened/closed/switched) bypasses the per-window TTL so
@@ -2488,13 +2492,24 @@ final class SwitcherController: SwitcherViewDelegate {
             // Window-level mode anchors on the selected *window*; matching by pid
             // would snap a non-first window back to its app's first row. Preserve
             // it by row identity instead. App-grouped modes keep the pid anchor.
-            let windowKey = Preferences.shared.sortOrder == .mruWindows ? selectionKey() : nil
+            let inWindowMode = Preferences.shared.sortOrder == .mruWindows
+            let windowKey = inWindowMode ? selectionKey() : nil
             let selectedPid = rows.indices.contains(index) ? rows[index].pid : targetPid
+            // The stepped-to window's element, so a browser window whose AX title
+            // didn't survive expansion (Chrome's " — <browser>" suffix, trimmed
+            // whitespace, a duplicate title) lands on its active tab instead of the
+            // pid match's first row, i.e. tab 1 (#39). Window mode only — app-grouped
+            // modes intentionally keep the pid anchor.
+            let selectedWindow = (inWindowMode && rows.indices.contains(index)) ? rows[index].window : nil
             baseRows = expandedAtReveal
             baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
             labels = baseLabels
             if let windowKey, let match = rows.firstIndex(where: { keyMatches($0, windowKey) }) {
+                index = match
+            } else if let win = selectedWindow,
+                      let active = browserTabsActiveIndex[AXRef(element: win)],
+                      let match = Self.activeBrowserTabIndex(in: rows, window: AXRef(element: win), activeTabIndex: active) {
                 index = match
             } else if let pid = selectedPid, let match = rows.firstIndex(where: { $0.pid == pid }) {
                 index = match
@@ -2539,6 +2554,17 @@ final class SwitcherController: SwitcherViewDelegate {
                 }
             }
         }
+
+        // Fast-tap rescue: ⌘ may have been released during reveal()'s own run —
+        // after the pre-present holdReleaseAlreadyMissed() guard but before `.visible`
+        // armed the tap's `.releaseCmd` delivery, so the tap dropped the release and
+        // nothing dismisses the panel until the 0.2s visibleReleaseBackstop tick.
+        // Honour it now so a quick tap commits instantly instead of leaving the
+        // switcher on screen (#39). Held-chord only — gestures/scoped opens set
+        // primedByHeldChord=false and never release-commit; a still-held ⌘ is a no-op
+        // so a user mid-browse is never committed out from under. commit() bumps
+        // revealGeneration, so the refresh scheduled just above drops on its guard.
+        if primedByHeldChord, holdReleaseAlreadyMissed() { handleModifierRelease() }
     }
 
     /// Audio-playing pids (CoreAudio) and Dock unread badges (the Dock's AX
@@ -2974,6 +3000,7 @@ final class SwitcherController: SwitcherViewDelegate {
         if browserTabsCache.contains(where: { !liveKeys.contains($0.key) }) {
             browserTabsCache = browserTabsCache.filter { liveKeys.contains($0.key) }
             browserTabsCacheStamp = browserTabsCacheStamp.filter { liveKeys.contains($0.key) }
+            browserTabsActiveIndex = browserTabsActiveIndex.filter { liveKeys.contains($0.key) }
         }
         guard !byApp.isEmpty else { return }
         if force { lastForcedBrowserScanAt = now }
@@ -2985,6 +3012,9 @@ final class SwitcherController: SwitcherViewDelegate {
             // rather than genuinely having no tabs — surface the permission hint and
             // skip negative-caching so a grant + re-open retries at once (#39).
             var failedApps: [NSRunningApplication] = []
+            // Active-tab index per resolved window, so the panel can land a
+            // window-MRU step on the tab the user left on rather than tab 1 (#39).
+            var fetchedActive: [AXRef: Int] = [:]
             for entry in apps {
                 // A browser window's AX kAXTitleAttribute reflects its ACTIVE TAB,
                 // not the AppleScript window title (e.g. Arc reports "Arc" as the
@@ -2996,23 +3026,26 @@ final class SwitcherController: SwitcherViewDelegate {
                 if result.failed { failedApps.append(entry.app); continue }
                 let perWindow = result.windows
                 var activeCounts: [String: Int] = [:]
-                var byActive: [String: [String]] = [:]
+                var byActive: [String: (tabs: [String], active: Int)] = [:]
                 var titleCounts: [String: Int] = [:]
-                var byTitle: [String: [String]] = [:]
+                var byTitle: [String: (tabs: [String], active: Int)] = [:]
                 for w in perWindow {
+                    let activeIdx = w.tabs.firstIndex(of: w.activeTab) ?? 0
                     let a = w.activeTab.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !a.isEmpty { activeCounts[a, default: 0] += 1; byActive[a] = w.tabs }
+                    if !a.isEmpty { activeCounts[a, default: 0] += 1; byActive[a] = (w.tabs, activeIdx) }
                     let t = w.title.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !t.isEmpty { titleCounts[t, default: 0] += 1; byTitle[t] = w.tabs }
+                    if !t.isEmpty { titleCounts[t, default: 0] += 1; byTitle[t] = (w.tabs, activeIdx) }
                 }
                 for t in entry.wins {
                     let k = t.title.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if activeCounts[k] == 1 {
-                        fetched[t.key] = byActive[k] ?? []
-                    } else if titleCounts[k] == 1 {
-                        fetched[t.key] = byTitle[k] ?? []
+                    if activeCounts[k] == 1, let hit = byActive[k] {
+                        fetched[t.key] = hit.tabs; fetchedActive[t.key] = hit.active
+                    } else if titleCounts[k] == 1, let hit = byTitle[k] {
+                        fetched[t.key] = hit.tabs; fetchedActive[t.key] = hit.active
                     } else if perWindow.count == 1 && entry.wins.count == 1 {
-                        fetched[t.key] = perWindow[0].tabs
+                        let only = perWindow[0]
+                        fetched[t.key] = only.tabs
+                        fetchedActive[t.key] = only.tabs.firstIndex(of: only.activeTab) ?? 0
                     } else {
                         // Negative-cache (empty) a missing/ambiguous window so we
                         // don't re-spawn osascript for it every tick this session.
@@ -3029,6 +3062,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 for (k, v) in fetched {
                     self.browserTabsCache[k] = v
                     self.browserTabsCacheStamp[k] = stamp
+                    self.browserTabsActiveIndex[k] = fetchedActive[k]
                 }
                 if let failed = failedApps.first { self.showTabDrillHint(forApp: failed) }
                 onDone?()
@@ -4198,6 +4232,18 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func keyMatches(_ row: SwitcherRow, _ key: (pid_t, String, Bool)) -> Bool {
         row.pid == key.0 && row.windowTitle == key.1 && (row.window != nil) == key.2
+    }
+
+    /// The expanded-row index for `window`'s active tab — the row a window-MRU
+    /// step should select when the collapsed browser row's title didn't survive
+    /// expansion (so `keyMatches` missed), landing on the tab the user left on
+    /// instead of snapping to tab 1 (#39). nil when no tab row carries that window
+    /// at `activeTabIndex`, so the caller falls back to the pid match. Pure.
+    nonisolated static func activeBrowserTabIndex(in rows: [SwitcherRow], window: AXRef, activeTabIndex: Int) -> Int? {
+        rows.firstIndex {
+            guard let w = $0.window else { return false }
+            return AXRef(element: w) == window && $0.browserTab?.index == activeTabIndex
+        }
     }
 
     /// Recently closed windows/apps to surface for reopening. `forSearchQuery`

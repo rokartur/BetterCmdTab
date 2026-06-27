@@ -1,3 +1,5 @@
+import AppKit
+import ApplicationServices
 import CoreGraphics
 import Testing
 @testable import BetterCmdTab
@@ -149,5 +151,55 @@ struct SwitcherVisibleReleaseBackstopTests {
         #expect(arm(stickyOpen: true, tabDrillActive: true, secureInputActive: true))
         // Sticky-without-drill still never arms, secure input or not.
         #expect(!arm(stickyOpen: true, secureInputActive: true))
+    }
+}
+
+/// Pure-logic coverage for the browser-tab active-tab landing (#39). After a
+/// window-MRU step expands a browser window into per-tab rows, the selection must
+/// land on the window's ACTIVE tab — not snap to tab 1 — when the collapsed row's
+/// title didn't survive expansion (Chrome's " — Google Chrome" suffix, trimmed
+/// whitespace, a duplicate title) so the exact-title `keyMatches` missed and the
+/// pid fallback would otherwise pick the window's first row.
+@Suite("Switcher browser active-tab landing")
+struct SwitcherActiveBrowserTabTests {
+    private var hostApp: NSRunningApplication { .current }
+    private func axElement() -> AXUIElement { AXUIElementCreateApplication(getpid()) }
+
+    /// One browser window expanded into three tab rows, preceded by an unrelated
+    /// windowless row — mirrors the post-expansion `rows` the reveal re-map sees.
+    private func expandedRows(window: AXUIElement) -> [SwitcherRow] {
+        let parent = SwitcherRow(app: hostApp, window: window, windowTitle: "Browser",
+                                 isMinimized: false, cgWindowID: 99)
+        let tabs = parent.browserTabRows(tabTitles: ["Inbox", "Docs", "News"])
+        let other = SwitcherRow(app: hostApp, window: nil, windowTitle: "", isMinimized: false)
+        return [other] + tabs   // [windowless, tab0, tab1, tab2]
+    }
+
+    @Test func landsOnActiveTab_notTabOne() {
+        let win = axElement()
+        let rows = expandedRows(window: win)
+        // Active tab is the third (index 2) → row position 3, NOT the first tab (1).
+        #expect(SwitcherController.activeBrowserTabIndex(
+            in: rows, window: AXRef(element: win), activeTabIndex: 2) == 3)
+        // First tab active → its row, position 1.
+        #expect(SwitcherController.activeBrowserTabIndex(
+            in: rows, window: AXRef(element: win), activeTabIndex: 0) == 1)
+    }
+
+    @Test func nilWhenNoTabRowAtThatIndex() {
+        let win = axElement()
+        let rows = expandedRows(window: win)
+        // An active index past the tab count has no matching row → nil, so the caller
+        // falls back to the pid match instead of mis-selecting.
+        #expect(SwitcherController.activeBrowserTabIndex(
+            in: rows, window: AXRef(element: win), activeTabIndex: 9) == nil)
+    }
+
+    @Test func nilWhenWindowHasNoTabRows() {
+        let win = axElement()
+        // No expanded browser rows at all → nil.
+        let rows = [SwitcherRow(app: hostApp, window: nil, windowTitle: "", isMinimized: false)]
+        #expect(SwitcherController.activeBrowserTabIndex(
+            in: rows, window: AXRef(element: win), activeTabIndex: 0) == nil)
     }
 }
