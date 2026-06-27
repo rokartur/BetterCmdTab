@@ -2,30 +2,16 @@ import AppKit
 import BetterSettings
 import Combine
 
-/// Settings for what the switcher lists, how search behaves, and per-app
-/// exclusion/pinning. Split out of General so the trigger/app-level prefs and
-/// the switcher's own content/search options live under their own tab.
+/// Behavior pane — how the switcher acts once open: which display it opens on,
+/// tab drill-in, type-to-filter search, selection navigation, and hover actions.
+/// What it lists (the Contents options) now lives under the Appearance tab; the
+/// per-app rules and pinning live under the Apps tab.
 @MainActor
 final class SwitcherSettingsViewController: SettingsTabViewController {
 
     // Display
     private let displayMonitorPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let displayModes: [SwitcherDisplayMode] = SwitcherDisplayMode.allCases
-
-    // Contents
-    private let minimizedSwitch = NSSwitch()
-    private let hiddenSwitch = NSSwitch()
-    private let windowlessSwitch = NSSwitch()
-    private let applicationsOnlySwitch = NSSwitch()
-    private let badgesSwitch = NSSwitch()
-    private let currentSpaceSwitch = NSSwitch()
-    private let recentlyClosedSwitch = NSSwitch()
-    private let recentlyClosedLimitPopup = NSPopUpButton(frame: .zero, pullsDown: false)
-    private let recentlyClosedLimits: [Int] = [3, 5, 10, 15, 20]
-    private let sortOrderPopup = NSPopUpButton(frame: .zero, pullsDown: false)
-    // `.mruWindows` is hidden here while it lives behind the Experimental pane;
-    // it graduates into this popup once stable (see the plan's graduation path).
-    private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases.filter { $0 != .mruWindows }
 
     // Tabs
     private let tabDrillSwitch = NSSwitch()
@@ -75,57 +61,6 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         addRow(to: display, title: String(localized: "Show switcher on"),
                subtitle: String(localized: "Choose which monitor the switcher opens on when you have more than one display."),
                accessory: displayMonitorPopup, searchItemID: SearchID.displayMonitor)
-
-        // Switcher contents section — what kinds of windows/apps appear.
-        let contents = addSection(title: String(localized: "Contents"), anchor: SettingsAnchor.contents)
-        configureSwitch(minimizedSwitch, action: #selector(toggleMinimized(_:)))
-        addRow(to: contents, title: String(localized: "Show minimized windows"), accessory: minimizedSwitch,
-               searchItemID: SearchID.showMinimized)
-        configureSwitch(hiddenSwitch, action: #selector(toggleHidden(_:)))
-        addRow(to: contents, title: String(localized: "Show hidden apps"), accessory: hiddenSwitch,
-               searchItemID: SearchID.showHidden)
-        configureSwitch(windowlessSwitch, action: #selector(toggleWindowless(_:)))
-        addRow(to: contents, title: String(localized: "Show apps without windows"),
-               subtitle: String(localized: "Running apps with no open windows."),
-               accessory: windowlessSwitch, searchItemID: SearchID.showWindowless)
-        configureSwitch(applicationsOnlySwitch, action: #selector(toggleApplicationsOnly(_:)))
-        addRow(to: contents, title: String(localized: "Applications only"),
-               subtitle: String(localized: "Show one row per app instead of one per window — classic ⌘Tab."),
-               accessory: applicationsOnlySwitch, searchItemID: SearchID.applicationsOnly)
-        configureSwitch(badgesSwitch, action: #selector(toggleBadges(_:)))
-        addRow(to: contents, title: String(localized: "Show unread badges"),
-               subtitle: String(localized: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row."),
-               accessory: badgesSwitch, searchItemID: SearchID.showBadges)
-        configureSwitch(currentSpaceSwitch, action: #selector(toggleCurrentSpace(_:)))
-        addRow(to: contents, title: String(localized: "Only current Space"),
-               subtitle: String(localized: "Show only windows on the Space you're currently viewing."),
-               accessory: currentSpaceSwitch, searchItemID: SearchID.currentSpaceOnly)
-
-        sortOrderPopup.controlSize = .small
-        sortOrderPopup.translatesAutoresizingMaskIntoConstraints = false
-        sortOrderPopup.setContentHuggingPriority(.required, for: .horizontal)
-        sortOrderPopup.removeAllItems()
-        sortOrderPopup.addItems(withTitles: sortOrders.map(\.displayName))
-        sortOrderPopup.target = self
-        sortOrderPopup.action = #selector(sortOrderChanged)
-        addRow(to: contents, title: String(localized: "Sort order"),
-               subtitle: String(localized: "Most recent keeps the classic ⌘Tab order; the others stay put as you switch."),
-               accessory: sortOrderPopup, searchItemID: SearchID.sortOrder)
-        configureSwitch(recentlyClosedSwitch, action: #selector(toggleRecentlyClosed(_:)))
-        addRow(to: contents, title: String(localized: "Show recently closed apps"),
-               subtitle: String(localized: "Lists apps and windows you just closed so you can reopen them."),
-               accessory: recentlyClosedSwitch, searchItemID: SearchID.showRecentlyClosed)
-
-        recentlyClosedLimitPopup.controlSize = .small
-        recentlyClosedLimitPopup.translatesAutoresizingMaskIntoConstraints = false
-        recentlyClosedLimitPopup.setContentHuggingPriority(.required, for: .horizontal)
-        recentlyClosedLimitPopup.removeAllItems()
-        recentlyClosedLimitPopup.addItems(withTitles: recentlyClosedLimits.map(String.init))
-        recentlyClosedLimitPopup.target = self
-        recentlyClosedLimitPopup.action = #selector(recentlyClosedLimitChanged)
-        addRow(to: contents, title: String(localized: "Recently closed to show"),
-               subtitle: String(localized: "How many recently closed items to list."),
-               accessory: recentlyClosedLimitPopup, searchItemID: SearchID.recentlyClosedLimit)
 
         // Tabs section — how windows that use native system tabs (Finder,
         // Terminal, TextEdit, …) are surfaced. Browsers (Safari/Chromium) can't
@@ -267,14 +202,7 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         super.viewWillAppear()
 
         let prefs = Preferences.shared
-        minimizedSwitch.state = prefs.showMinimizedWindows ? .on : .off
-        hiddenSwitch.state = prefs.showHiddenApps ? .on : .off
-        windowlessSwitch.state = prefs.showWindowlessApps ? .on : .off
-        applicationsOnlySwitch.state = prefs.applicationsOnly ? .on : .off
-        badgesSwitch.state = prefs.showUnreadBadges ? .on : .off
-        currentSpaceSwitch.state = prefs.currentSpaceOnly ? .on : .off
         if let i = displayModes.firstIndex(of: prefs.switcherDisplayMode) { displayMonitorPopup.selectItem(at: i) }
-        selectSortOrder(prefs.sortOrder)
         tabDrillSwitch.state = prefs.tabDrillEnabled ? .on : .off
         expandTabsSwitch.state = prefs.expandTabsAsWindows ? .on : .off
         expandBrowserTabsSwitch.state = prefs.expandBrowserTabsAsWindows ? .on : .off
@@ -283,9 +211,6 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         letterTimeoutSlider.isEnabled = prefs.letterHintsEnabled
         fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
         launcherSwitch.state = prefs.searchIncludesLaunchableApps ? .on : .off
-        recentlyClosedSwitch.state = prefs.showRecentlyClosed ? .on : .off
-        selectRecentlyClosedLimit(prefs.recentlyClosedLimit)
-        recentlyClosedLimitPopup.isEnabled = prefs.showRecentlyClosed
         selectSearchMode(prefs.searchDismissMode)
         shiftTapBackSwitch.state = prefs.shiftTapStepsBackward ? .on : .off
         scrollSwitch.state = prefs.scrollToSwitch ? .on : .off
@@ -321,60 +246,10 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         cancellables.removeAll()
     }
 
-    @objc private func toggleMinimized(_ sender: NSSwitch) {
-        Preferences.shared.showMinimizedWindows = (sender.state == .on)
-    }
-
-    @objc private func toggleHidden(_ sender: NSSwitch) {
-        Preferences.shared.showHiddenApps = (sender.state == .on)
-    }
-
-    @objc private func toggleWindowless(_ sender: NSSwitch) {
-        Preferences.shared.showWindowlessApps = (sender.state == .on)
-    }
-
-    @objc private func toggleApplicationsOnly(_ sender: NSSwitch) {
-        Preferences.shared.applicationsOnly = (sender.state == .on)
-    }
-
-    @objc private func toggleBadges(_ sender: NSSwitch) {
-        Preferences.shared.showUnreadBadges = (sender.state == .on)
-    }
-
-    @objc private func toggleCurrentSpace(_ sender: NSSwitch) {
-        Preferences.shared.currentSpaceOnly = (sender.state == .on)
-    }
-
-    @objc private func sortOrderChanged() {
-        let idx = sortOrderPopup.indexOfSelectedItem
-        guard sortOrders.indices.contains(idx) else { return }
-        Preferences.shared.sortOrder = sortOrders[idx]
-    }
-
     @objc private func displayModeChanged() {
         let idx = displayMonitorPopup.indexOfSelectedItem
         guard displayModes.indices.contains(idx) else { return }
         Preferences.shared.switcherDisplayMode = displayModes[idx]
-    }
-
-    private func selectSortOrder(_ order: SwitcherSortOrder) {
-        // Drop any transient item added for an unlisted (Experimental) order on
-        // a previous appearance so the popup matches `sortOrders` again.
-        while sortOrderPopup.numberOfItems > sortOrders.count {
-            sortOrderPopup.removeItem(at: sortOrderPopup.numberOfItems - 1)
-        }
-        if let i = sortOrders.firstIndex(of: order) {
-            sortOrderPopup.selectItem(at: i)
-            sortOrderPopup.isEnabled = true
-        } else {
-            // The active order (e.g. `.mruWindows`) is controlled from the
-            // Experimental pane and isn't offered here. Show it as a read-only
-            // entry so the popup can't mislabel the current state or let a stray
-            // click silently overwrite that choice.
-            sortOrderPopup.addItem(withTitle: order.displayName)
-            sortOrderPopup.selectItem(at: sortOrderPopup.numberOfItems - 1)
-            sortOrderPopup.isEnabled = false
-        }
     }
 
     @objc private func toggleTabDrill(_ sender: NSSwitch) {
@@ -495,27 +370,6 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         hoverHideSwitch.isEnabled = enabled
         hoverQuitSwitch.isEnabled = enabled
         hoverForceQuitSwitch.isEnabled = enabled
-    }
-
-    @objc private func toggleRecentlyClosed(_ sender: NSSwitch) {
-        let on = (sender.state == .on)
-        Preferences.shared.showRecentlyClosed = on
-        recentlyClosedLimitPopup.isEnabled = on
-    }
-
-    @objc private func recentlyClosedLimitChanged() {
-        let idx = recentlyClosedLimitPopup.indexOfSelectedItem
-        guard recentlyClosedLimits.indices.contains(idx) else { return }
-        Preferences.shared.recentlyClosedLimit = recentlyClosedLimits[idx]
-    }
-
-    private func selectRecentlyClosedLimit(_ value: Int) {
-        // Snap to the closest offered value if a stored limit isn't in the list.
-        if let exact = recentlyClosedLimits.firstIndex(of: value) {
-            recentlyClosedLimitPopup.selectItem(at: exact)
-        } else if let nearest = recentlyClosedLimits.enumerated().min(by: { abs($0.element - value) < abs($1.element - value) }) {
-            recentlyClosedLimitPopup.selectItem(at: nearest.offset)
-        }
     }
 
     @objc private func searchModeChanged() {

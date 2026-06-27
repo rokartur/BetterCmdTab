@@ -38,7 +38,6 @@ enum SettingsAnchor {
     static let recovery = "privacy.recovery"
     // Switcher
     static let display = "switcher.display"
-    static let contents = "switcher.contents"
     static let tabs = "switcher.tabs"
     static let search = "switcher.search"
     static let navigation = "switcher.navigation"
@@ -48,6 +47,7 @@ enum SettingsAnchor {
     static let pinned = "apps.pinned"
     // Appearance
     static let appearance = "appearance.switcher"
+    static let contents = "appearance.contents"
     // Experimental
     static let experimental = "experimental.features"
     // About
@@ -262,26 +262,6 @@ enum SettingsCatalog {
         // Switcher · Display
         item(SearchID.displayMonitor, .switcher, SettingsAnchor.display, String(localized: "Behavior"), String(localized: "Display"),
              String(localized: "Show switcher on"), ["display", "monitor", "screen", "multi monitor", "cursor", "main display", "active space"]),
-        // Switcher · Contents
-        item(SearchID.showMinimized, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Show minimized windows"), ["minimized", "minimize"]),
-        item(SearchID.showHidden, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Show hidden apps"), ["hidden", "hide"]),
-        item(SearchID.showWindowless, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Show apps without windows"), ["windowless", "no windows", "background apps"]),
-        item(SearchID.applicationsOnly, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Applications only"),
-             ["applications only", "apps only", "one per app", "per app", "command tab", "classic", "group windows"]),
-        item(SearchID.showBadges, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Show unread badges"), ["badge", "unread", "dock badge", "count"]),
-        item(SearchID.currentSpaceOnly, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Only current Space"), ["space", "current space", "desktop", "filter"]),
-        item(SearchID.sortOrder, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Sort order"), ["sort", "order", "mru", "most recent", "alphabetical", "launch order"]),
-        item(SearchID.showRecentlyClosed, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Show recently closed apps"), ["recently closed", "reopen", "recent"]),
-        item(SearchID.recentlyClosedLimit, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Recently closed to show"), ["recently closed", "limit", "count"]),
         // Switcher · Tabs
         item(SearchID.tabDrill, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Peek tabs with \\"), ["tabs", "tab", "drill", "peek", "backslash", "finder tabs", "browser tabs", "safari", "chrome"]),
@@ -343,6 +323,27 @@ enum SettingsCatalog {
              String(localized: "Panel opacity"), ["opacity", "transparency", "alpha", "translucent"]),
         item(SearchID.cornerRadius, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
              String(localized: "Corner radius"), ["corner", "radius", "rounded", "rounding"]),
+
+        // Appearance · Contents
+        item(SearchID.showMinimized, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+             String(localized: "Show minimized windows"), ["minimized", "minimize"]),
+        item(SearchID.showHidden, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+             String(localized: "Show hidden apps"), ["hidden", "hide"]),
+        item(SearchID.showWindowless, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+             String(localized: "Show apps without windows"), ["windowless", "no windows", "background apps"]),
+        item(SearchID.applicationsOnly, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+             String(localized: "Applications only"),
+             ["applications only", "apps only", "one per app", "per app", "command tab", "classic", "group windows"]),
+        item(SearchID.showBadges, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+             String(localized: "Show unread badges"), ["badge", "unread", "dock badge", "count"]),
+        item(SearchID.currentSpaceOnly, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+             String(localized: "Only current Space"), ["space", "current space", "desktop", "filter"]),
+        item(SearchID.sortOrder, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+             String(localized: "Sort order"), ["sort", "order", "mru", "most recent", "alphabetical", "launch order"]),
+        item(SearchID.showRecentlyClosed, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+             String(localized: "Show recently closed apps"), ["recently closed", "reopen", "recent"]),
+        item(SearchID.recentlyClosedLimit, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+             String(localized: "Recently closed to show"), ["recently closed", "limit", "count"]),
 
         // Experimental
         item(SearchID.swipe, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
