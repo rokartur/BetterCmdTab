@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/rokartur/BetterSettings.git",
       "state" : {
-        "revision" : "11f1c28a013d4547b6ccfc8eedd09d1ce1288ed8",
-        "version" : "0.2.8"
+        "revision" : "1e7cbe5ef11d79acc5dc4c2c57747d5494aa111c",
+        "version" : "0.2.9"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/rokartur/BetterShortcuts.git",
       "state" : {
-        "revision" : "eeb1ee2cf98cc22c4229ab545e2bcfcbdfcb0ec9",
-        "version" : "0.1.2"
+        "revision" : "9194a98754771645a2458d96e483acf77b85497c",
+        "version" : "0.2.0"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser.git",
       "state" : {
-        "revision" : "ca37474853a4b5f59a22c74bfdd449b1f6bc4cc2",
-        "version" : "1.8.1"
+        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+        "version" : "1.8.2"
       }
     }
   ],
