@@ -939,13 +939,22 @@ final class SwitcherController: SwitcherViewDelegate {
     /// React to a Secure Event Input transition surfaced by `secureInputMonitor`:
     /// re-derive and apply the native-shortcut override for the new state.
     private func handleSecureInputChange(_ active: Bool) {
+        guard active != secureInputActive else { return }
         secureInputActive = active
-        Log.switcher.error("#16-diag secureInput -> \(active) (phase=\(String(describing: self.phase), privacy: .public))") // #16-diag (temporary)
+        Log.switcher.error("#16-diag secureInput -> \(active) phase=\(String(describing: self.phase), privacy: .public)") // #16-diag (temporary)
+        // While the panel is CLOSED the native-override plan does NOT depend on
+        // secure input — the in-panel parity Carbon chords exist only while a panel
+        // is open. So a secure-input flap while idle must not recompute/reapply the
+        // override: a flapping secure-input source (observed pulsing ~1×/s) was
+        // driving syncNativeHotkeyOverride → carbonTrigger.update(), which
+        // UNREGISTERS + RE-REGISTERS every global Carbon hotkey on each flap. That
+        // ~1 Hz WindowServer churn was disabling the CGEvent tap (the issue #16
+        // storm → missed ⌘-release → stranded panel → ⌘W/⌘Q swallowed). The flag is
+        // kept current above; the panel's open edge re-syncs the override from it.
+        guard phase != .idle else { return }
+        // A secure-input flip while a panel IS open changes which poller owns
+        // ⌘-release detection (HoldModifierMonitor under secure input), so re-sync.
         syncNativeHotkeyOverride()
-        // A secure-input flip changes which poller owns ⌘-release detection: under
-        // Secure Event Input `HoldModifierMonitor` (started by the sync above) owns
-        // it, so stand the normal-input backstop down; when it clears, reclaim it —
-        // catching a release dropped while the tap was deaf (issue #16).
         syncVisibleReleaseBackstop()
     }
 
