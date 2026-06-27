@@ -174,12 +174,6 @@ final class SwitcherController: SwitcherViewDelegate {
     /// actively-steered panel never hits it (any nav refreshes the stamp), short
     /// enough to bound how long ⌘W can be eaten when the modifier state is stuck.
     private static let visibleStrandCeiling: TimeInterval = 4
-    /// #16-diag (temporary): a low-frequency probe that dumps the full switcher
-    /// state once the panel has been non-idle past a strand ceiling, so a real
-    /// reproduction of "⌘W stops working" reveals exactly which flag is stuck
-    /// (and whether a panel is genuinely on screen). Remove once #16 is closed.
-    private var strandProbe: Timer?
-    private var nonIdleSince: Date?
     private var currentMetrics: SwitcherMetrics = .baseline
     private var letterBuffer: String = ""
     private var letterBufferTimer: Timer?
@@ -941,7 +935,6 @@ final class SwitcherController: SwitcherViewDelegate {
     private func handleSecureInputChange(_ active: Bool) {
         guard active != secureInputActive else { return }
         secureInputActive = active
-        Log.switcher.error("#16-diag secureInput -> \(active) phase=\(String(describing: self.phase), privacy: .public)") // #16-diag (temporary)
         // While the panel is CLOSED the native-override plan does NOT depend on
         // secure input — the in-panel parity Carbon chords exist only while a panel
         // is open. So a secure-input flap while idle must not recompute/reapply the
@@ -1380,8 +1373,6 @@ final class SwitcherController: SwitcherViewDelegate {
         holdMonitorRunning = false
         visibleReleaseBackstop?.invalidate()
         visibleReleaseBackstop = nil
-        strandProbe?.invalidate() // #16-diag (temporary)
-        strandProbe = nil
         carbonTrigger.uninstall()
         if !disabledSymbolicKeys.isEmpty {
             PrivateAPI.setNativeCommandTabEnabled(true, disabledSymbolicKeys)
@@ -1527,7 +1518,6 @@ final class SwitcherController: SwitcherViewDelegate {
             // Seed the steering stamp on the open edge so the no-interaction
             // force-close ceiling is measured from when the panel appeared.
             if newValue == .visible { lastVisibleActivity = Date() }
-            syncStrandProbe() // #16-diag (temporary)
             // Returning to idle ends any scoped-shortcut open so the next plain
             // ⌘Tab is unfiltered. Single chokepoint — every exit path (commit,
             // cancel, dismiss) flows through here.
@@ -2161,47 +2151,6 @@ final class SwitcherController: SwitcherViewDelegate {
             previousFrontmostApp = nil
             cancel()
         }
-    }
-
-    /// #16-diag (temporary): arm/disarm the strand probe alongside the phase edge.
-    /// Runs only while non-idle (zero timers when the switcher is closed).
-    private func syncStrandProbe() {
-        if phase != .idle {
-            if nonIdleSince == nil { nonIdleSince = Date() }
-            if strandProbe == nil {
-                let timer = Timer(timeInterval: 2.0, repeats: true) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.strandProbeFired() }
-                }
-                RunLoop.main.add(timer, forMode: .common)
-                strandProbe = timer
-            }
-        } else {
-            nonIdleSince = nil
-            strandProbe?.invalidate()
-            strandProbe = nil
-        }
-    }
-
-    /// #16-diag (temporary): dump the full switcher state once the panel has been
-    /// non-idle past a strand ceiling (4 s — well beyond a normal switch). When
-    /// ⌘W "stops working", reproduce and read this line: it shows whether a panel
-    /// is genuinely on screen (`panel.isVisible`) and which flag is stuck.
-    private func strandProbeFired() {
-        guard let since = nonIdleSince, Date().timeIntervalSince(since) > 4 else { return }
-        // Bind to locals first: the os.Logger interpolation is an autoclosure, so
-        // touching these stored properties inside it would require explicit self.
-        let age = Int(Date().timeIntervalSince(since))
-        let phaseDesc = String(describing: phase)
-        let panelVisible = panel.isVisible
-        let panelKey = panel.isKeyWindow
-        let sticky = stickyOpen
-        let heldChord = primedByHeldChord
-        let drill = tabDrillActive
-        let search = searchActive
-        let secure = secureInputActive
-        let held = holdMonitor.isHeld
-        let symbolic = disabledSymbolicKeys.count
-        Log.switcher.error("#16-diag STRAND phase=\(phaseDesc, privacy: .public) panelVisible=\(panelVisible) panelKey=\(panelKey) sticky=\(sticky) heldChord=\(heldChord) tabDrill=\(drill) search=\(search) secureInput=\(secure) holdHeld=\(held) symbolicDisabled=\(symbolic) age=\(age)s")
     }
 
     private func schedulePrimedReveal() {

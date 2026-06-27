@@ -823,9 +823,14 @@ final class HotkeyTap {
                     CGEvent.tapEnable(tap: auxTap, enable: true)
                 }
             }
-            // #16-diag (temporary): which kind of disable is storming?
-            let diagReason = type == .tapDisabledByTimeout ? "timeout" : "userInput"
-            Log.hotkey.warning("CGEventTap disabled (\(diagReason, privacy: .public)), re-enabling")
+            // A watchdog timeout is rare and worth a warning; a userInput disable
+            // (secure-input flap) can stream ~1×/s, so log it at debug to avoid
+            // spamming the default log while still being inspectable.
+            if type == .tapDisabledByTimeout {
+                Log.hotkey.warning("CGEventTap disabled (timeout), re-enabling")
+            } else {
+                Log.hotkey.debug("CGEventTap disabled (userInput), re-enabling")
+            }
             return Unmanaged.passUnretained(event)
         }
 
@@ -1096,15 +1101,6 @@ final class HotkeyTap {
                                 return nil
                             }
                             if let action = panelKeyMap.withLock({ $0[keyCode] }) {
-                                // #16-diag (temporary): records every time the tap
-                                // consumes an in-panel action key (W/Q/M/H/F). If the
-                                // user sees ⌘W "do nothing" with NO switcher panel on
-                                // screen and this line fired, the tap is swallowing on
-                                // a stranded phase; if ⌘W fails with NO such line, the
-                                // cause is elsewhere (Carbon override / something else).
-                                let diagSwitching = isSwitchingNow()
-                                let diagPresented = isPanelPresented()
-                                Log.hotkey.error("#16-diag tap-swallow action keyCode=\(keyCode) switching=\(diagSwitching) presented=\(diagPresented)")
                                 switch action {
                                 case .close: deliver(.closeWindow)
                                 case .minimize: deliver(.minimizeWindow)
