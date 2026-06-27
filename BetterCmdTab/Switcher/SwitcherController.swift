@@ -928,6 +928,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// re-derive and apply the native-shortcut override for the new state.
     private func handleSecureInputChange(_ active: Bool) {
         secureInputActive = active
+        Log.switcher.error("#16-diag secureInput -> \(active) (phase=\(String(describing: self.phase), privacy: .public))") // #16-diag (temporary)
         syncNativeHotkeyOverride()
         // A secure-input flip changes which poller owns ⌘-release detection: under
         // Secure Event Input `HoldModifierMonitor` (started by the sync above) owns
@@ -2130,7 +2131,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let secure = secureInputActive
         let held = holdMonitor.isHeld
         let symbolic = disabledSymbolicKeys.count
-        Log.switcher.error("#16-diag STRAND phase=\(phaseDesc) panelVisible=\(panelVisible) panelKey=\(panelKey) sticky=\(sticky) heldChord=\(heldChord) tabDrill=\(drill) search=\(search) secureInput=\(secure) holdHeld=\(held) symbolicDisabled=\(symbolic) age=\(age)s")
+        Log.switcher.error("#16-diag STRAND phase=\(phaseDesc, privacy: .public) panelVisible=\(panelVisible) panelKey=\(panelKey) sticky=\(sticky) heldChord=\(heldChord) tabDrill=\(drill) search=\(search) secureInput=\(secure) holdHeld=\(held) symbolicDisabled=\(symbolic) age=\(age)s")
     }
 
     private func schedulePrimedReveal() {

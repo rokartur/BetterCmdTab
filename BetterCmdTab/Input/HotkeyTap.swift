@@ -814,7 +814,9 @@ final class HotkeyTap {
                     CGEvent.tapEnable(tap: auxTap, enable: true)
                 }
             }
-            Log.hotkey.warning("CGEventTap disabled, re-enabling")
+            // #16-diag (temporary): which kind of disable is storming?
+            let diagReason = type == .tapDisabledByTimeout ? "timeout" : "userInput"
+            Log.hotkey.warning("CGEventTap disabled (\(diagReason)), re-enabling")
             return Unmanaged.passUnretained(event)
         }
 
