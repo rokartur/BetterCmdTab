@@ -27,9 +27,8 @@ enum SettingsAnchor {
     static let feedback = "general.feedback"
     static let updates = "general.updates"
     static let backup = "general.backup"
-    // Shortcuts
+    // Profiles (shortcuts tab)
     static let switching = "shortcuts.switching"
-    static let directActivation = "shortcuts.directActivation"
     static let scopedSwitch = "shortcuts.scopedSwitch"
     static let panelKeys = "shortcuts.panelKeys"
     // Windows
@@ -48,6 +47,7 @@ enum SettingsAnchor {
     static let actions = "switcher.actions"
     // Apps
     static let appRules = "apps.rules"
+    static let directActivation = "apps.directActivation"
     static let pinned = "apps.pinned"
     // Appearance
     static let appearance = "appearance.switcher"
@@ -252,8 +252,8 @@ enum SettingsCatalog {
              String(localized: "Switch apps"), ["shortcut", "hotkey", "cmd tab", "command tab", "trigger"]),
         item(SearchID.switchWindows, .shortcuts, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "Switcher shortcuts"),
              String(localized: "Switch windows"), ["shortcut", "hotkey", "window cycle"]),
-        // Shortcuts · Direct activation
-        item(SearchID.directActivation, .shortcuts, SettingsAnchor.directActivation, String(localized: "Profiles"), String(localized: "Direct activation"),
+        // Apps · Direct activation
+        item(SearchID.directActivation, .apps, SettingsAnchor.directActivation, String(localized: "Apps"), String(localized: "Direct activation"),
              String(localized: "Direct activation hotkeys"), ["direct", "hotkey", "shortcut", "activate", "focus app", "jump to app"]),
         item(SearchID.scopedSwitch, .shortcuts, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "Switcher shortcuts"),
              String(localized: "Scoped shortcuts"), ["scope", "scoped", "all windows", "current app", "minimized", "this space", "filtered switcher"]),
