@@ -120,5 +120,10 @@ extension Preferences {
             defaults.set(value, forKey: key)
         }
         reloadFromDefaults()
+        // The import may have introduced scoped shortcuts with ids that didn't
+        // exist at launch; install their Carbon handlers now (idempotent) so a
+        // freshly-recorded trigger actually opens the switcher instead of being
+        // registered with no handler — a dead, key-swallowing combo until relaunch.
+        ScopedSwitch.installHandlers()
     }
 }

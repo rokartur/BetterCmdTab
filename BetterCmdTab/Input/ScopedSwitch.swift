@@ -43,6 +43,15 @@ enum ScopedSwitch {
         }
     }
 
+    /// Tear down the Carbon handler for a removed entry: drop its `onKeyDown`
+    /// closure (otherwise it lingers in `BetterShortcuts.legacyKeyDownHandlers`
+    /// for the app's lifetime) and free its name so `installedNames` can't grow
+    /// unbounded across add/remove churn. Call when the user deletes an entry.
+    static func removeHandler(for shortcutName: String) {
+        guard installedNames.remove(shortcutName) != nil else { return }
+        BetterShortcuts.removeHandler(for: BetterShortcuts.Name(shortcutName))
+    }
+
     private static func trigger(id: Int) {
         // Re-read live: the entry may have been removed (then its recorded trigger
         // was cleared, so this normally can't fire) or its scope changed.

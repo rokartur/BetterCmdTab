@@ -35,7 +35,9 @@ final class ShortcutsEditorView: NSView {
         super.init(frame: frameRect)
         translatesAutoresizingMaskIntoConstraints = false
         setup()
-        rebuildTabs(select: 0)
+        // The list/panels are built on first `reload()` (always called from the
+        // host controller's `viewWillAppear` before the pane shows), so don't
+        // build here too — that work would just be torn down and rebuilt.
         // Keep each list row's trigger label live as the user records shortcuts.
         shortcutChangeObserver = NotificationCenter.default.addObserver(
             forName: Notification.Name("BetterShortcuts_shortcutByNameDidChange"),
@@ -278,7 +280,9 @@ final class ShortcutsEditorView: NSView {
     private func removeEntry() {
         guard case .scoped(let id)? = currentTarget() else { return }
         if let name = Preferences.shared.removeScopedShortcut(id: id) {
-            // Clear the recorded trigger so the orphaned Carbon handler can't fire.
+            // Free the Carbon handler closure (else it lingers for the app's
+            // lifetime), then clear the recorded trigger so it can't fire / persist.
+            ScopedSwitch.removeHandler(for: name)
             BetterShortcuts.setShortcut(nil, for: BetterShortcuts.Name(name))
         }
         rebuildTabs(select: selectedIndex - 1)
