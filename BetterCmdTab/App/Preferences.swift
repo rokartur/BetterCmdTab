@@ -1377,9 +1377,12 @@ final class Preferences: ObservableObject {
     static func decodeShortcutOverrides(_ raw: [[String: String]]?) -> [String: ShortcutOverride] {
         var out: [String: ShortcutOverride] = [:]
         for entry in raw ?? [] {
-            guard let key = entry["target"], SwitchTarget(storageKey: key) != nil,
+            // Re-key by the canonical `storageKey`: a hand-edited/corrupt import
+            // could carry a non-canonical-but-valid target (e.g. "scoped.007"),
+            // which every consumer looks up as "scoped.7" and would otherwise miss.
+            guard let key = entry["target"], let target = SwitchTarget(storageKey: key),
                   let override = ShortcutOverride(dictionary: entry), !override.isEmpty else { continue }
-            out[key] = override
+            out[target.storageKey] = override
         }
         return out
     }
@@ -1633,15 +1636,26 @@ final class Preferences: ObservableObject {
         self.scopedShortcutScopes = legacyScopes
         // Dynamic scoped list (#74): use the stored list if present, else migrate
         // once from the legacy fixed slots.
+        let storedList = defaults.array(forKey: Keys.scopedShortcutList) as? [[String: String]]
         let migrated: [ScopedShortcut]
-        if let raw = defaults.array(forKey: Keys.scopedShortcutList) as? [[String: String]] {
-            migrated = Self.decodeScopedShortcuts(raw)
+        if let storedList {
+            migrated = Self.decodeScopedShortcuts(storedList)
         } else {
             migrated = Self.migrateScopedShortcuts(legacyScopes: legacyScopes)
         }
         self.scopedShortcuts = migrated
         let storedNextID = defaults.object(forKey: Keys.nextScopedShortcutID) as? Int
-        self.nextScopedShortcutID = max(storedNextID ?? 0, (migrated.map(\.id).max() ?? -1) + 1)
+        let resolvedNextID = max(storedNextID ?? 0, (migrated.map(\.id).max() ?? -1) + 1)
+        self.nextScopedShortcutID = resolvedNextID
+        // `didSet` doesn't fire for assignments inside init, so a freshly migrated
+        // list would never reach UserDefaults until the user first edits it —
+        // leaving the authoritative key absent (and missing from settings export,
+        // forcing a lossy re-migration on import). Persist it once here so the
+        // dynamic list is the source of truth immediately after an upgrade.
+        if storedList == nil {
+            defaults.set(migrated.map(\.dictionary), forKey: Keys.scopedShortcutList)
+            defaults.set(resolvedNextID, forKey: Keys.nextScopedShortcutID)
+        }
         self.shortcutOverrides = Self.decodeShortcutOverrides(defaults.array(forKey: Keys.shortcutOverrides) as? [[String: String]])
         self.mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
         self.mouseClickSelectionEnabled = defaults.object(forKey: Keys.mouseClickSelectionEnabled) as? Bool ?? true
