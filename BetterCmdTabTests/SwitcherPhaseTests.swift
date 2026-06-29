@@ -154,6 +154,41 @@ struct SwitcherVisibleReleaseBackstopTests {
     }
 }
 
+/// The backstop's no-interaction force-close is a flagsState-independent escape from
+/// a panel welded open by a STUCK `CGEventSource.flagsState`. That stick only happens
+/// under Secure Event Input (the tap is deaf and HoldModifierMonitor polls the same
+/// lying state). Under NORMAL input flagsState is authoritative and the fast path
+/// recovers any dropped release, so a held ⌘ must keep the panel open indefinitely —
+/// force-closing it stranded a user holding ⌘ while reading the panel (issue: ⌘Tab
+/// hold + idle closed after 4s). These pin the gate to secure input only.
+@Suite("Switcher stranded-visible force-close")
+struct SwitcherStrandedVisibleTests {
+    private let ceiling: TimeInterval = 4
+
+    @Test func neverForceClosesUnderNormalInput() {
+        // The reported bug: ⌘ genuinely held, no steering — normal input must NEVER
+        // force-close, no matter how long the panel idles.
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: false, idle: 0))
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: false, idle: ceiling + 1))
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: false, idle: 3600))
+    }
+
+    @Test func forceClosesPastCeilingUnderSecureInput() {
+        // Secure input + idle beyond the ceiling: the only flagsState-independent
+        // heal for a welded-open panel (issue #16).
+        #expect(SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: true, idle: ceiling + 0.5))
+    }
+
+    @Test func holdsBelowCeilingUnderSecureInput() {
+        // Within the ceiling, even under secure input, a recently-steered panel is
+        // left alone — the stamp is fresh, so don't yank it.
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: true, idle: 0))
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: true, idle: ceiling - 0.5))
+        // Boundary: exactly at the ceiling is not yet past it (strict `>`).
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: true, idle: ceiling))
+    }
+}
+
 /// Pure-logic coverage for the browser-tab active-tab landing (#39). After a
 /// window-MRU step expands a browser window into per-tab rows, the selection must
 /// land on the window's ACTIVE tab — not snap to tab 1 — when the collapsed row's

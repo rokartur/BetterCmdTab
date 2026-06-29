@@ -167,17 +167,20 @@ final class SwitcherController: SwitcherViewDelegate {
     /// keeping the main-thread wake count low while the panel is briefly up.
     private static let visibleReleaseBackstopInterval: TimeInterval = 0.2
     /// Last time the user actively *steered* a visible panel (navigation, search
-    /// edit, drill nav — see `noteSteeringActivity`). The release-to-commit
-    /// backstop force-closes a panel that has gone this long without steering, so
-    /// a panel welded open by a STUCK `CGEventSource.flagsState` (the tap was
-    /// disabled across the real ⌘-release, leaving the modifier reported as still
-    /// held — which defeats every flagsState-based recovery, incl. PR #67) still
-    /// self-heals and the tap stops swallowing ⌘W/⌘Q (issue #16).
+    /// edit, drill nav — see `noteSteeringActivity`). Under Secure Event Input the
+    /// release-to-commit backstop force-closes a panel that has gone this long
+    /// without steering, so a panel welded open by a STUCK `CGEventSource.flagsState`
+    /// (the tap was deaf across the real ⌘-release, leaving the modifier reported as
+    /// still held — which defeats every flagsState-based recovery, incl. PR #67)
+    /// still self-heals and the tap stops swallowing ⌘W/⌘Q (issue #16). Under NORMAL
+    /// input flagsState is reliable, so this stamp drives nothing — a held ⌘ keeps
+    /// the panel up for as long as the user wants, with no idle ceiling.
     private var lastVisibleActivity: Date?
-    /// No-interaction ceiling for the force-close above. Generous enough that an
-    /// actively-steered panel never hits it (any nav refreshes the stamp), short
-    /// enough to bound how long ⌘W can be eaten when the modifier state is stuck.
-    private static let visibleStrandCeiling: TimeInterval = 4
+    /// No-interaction ceiling for the secure-input force-close above. Generous enough
+    /// that an actively-steered panel never hits it (any nav refreshes the stamp),
+    /// short enough to bound how long ⌘W can be eaten when flagsState is stuck.
+    /// `nonisolated` so the pure `shouldForceCloseStrandedVisible` gate can read it.
+    nonisolated private static let visibleStrandCeiling: TimeInterval = 4
     private var currentMetrics: SwitcherMetrics = .baseline
     private var letterBuffer: String = ""
     private var letterBufferTimer: Timer?
@@ -1108,6 +1111,22 @@ final class SwitcherController: SwitcherViewDelegate {
         // is kept as a parameter for the unit matrix and future use.
         _ = secureInputActive
         return phase == .visible && primedByHeldChord && (!stickyOpen || tabDrillActive)
+    }
+
+    /// Pure: on a backstop tick, should an idle `.visible` panel be force-closed?
+    /// ONLY under Secure Event Input — the sole state where `CGEventSource.flagsState`
+    /// can stick reporting ⌘-held (HoldModifierMonitor polls that same lying state),
+    /// making the no-interaction ceiling the only flagsState-independent way out of a
+    /// welded-open panel (issue #16). Under NORMAL input flagsState is authoritative:
+    /// a missed ⌘-release is recovered by the backstop's fast path within one tick, so
+    /// a panel still on screen means ⌘ is genuinely held — never force-close it out
+    /// from under a user holding ⌘ while reading the panel without steering it.
+    /// Isolated so the gate stays unit-testable.
+    nonisolated static func shouldForceCloseStrandedVisible(
+        secureInputActive: Bool,
+        idle: TimeInterval
+    ) -> Bool {
+        secureInputActive && idle > visibleStrandCeiling
     }
 
     /// Live check of `releaseAlreadyMissed` against the current physical modifier
@@ -2156,16 +2175,19 @@ final class SwitcherController: SwitcherViewDelegate {
             handleModifierRelease()
             return
         }
-        // Robust path: when the tap was disabled across the real release, the
-        // ⌘-up is lost AND `CGEventSource.flagsState` can stick reporting ⌘-held —
-        // so the fast path never fires and the panel is welded open with the tap
-        // swallowing ⌘W/⌘Q. Force it closed once the user has stopped steering it
-        // past the ceiling. flagsState-independent, so it heals a stuck modifier
-        // that PR #67 could not (issue #16).
-        if let last = lastVisibleActivity,
-           Date().timeIntervalSince(last) > Self.visibleStrandCeiling {
-            let idle = Int(Date().timeIntervalSince(last))
-            Log.switcher.error("visible panel stranded \(idle)s with no interaction — force-closing (issue #16)")
+        // Robust path — Secure Event Input ONLY: there the tap is deaf and
+        // HoldModifierMonitor's release poll reads the same `CGEventSource.flagsState`
+        // that can stick reporting ⌘-held, so the ⌘-up is lost AND the fast path
+        // above can't see it — the panel welds open with the tap swallowing ⌘W/⌘Q.
+        // The no-interaction ceiling is the only flagsState-independent way out
+        // (issue #16). Under NORMAL input flagsState is authoritative: any dropped
+        // release is recovered by the fast path within a tick, so a still-visible
+        // panel means ⌘ is GENUINELY held — keep it up. Force-closing there yanked
+        // the panel out from under a user holding ⌘ and reading it without steering.
+        guard let last = lastVisibleActivity else { return }
+        let idle = Date().timeIntervalSince(last)
+        if Self.shouldForceCloseStrandedVisible(secureInputActive: secureInputActive, idle: idle) {
+            Log.switcher.error("visible panel stranded \(Int(idle))s with no interaction under secure input — force-closing (issue #16)")
             // The user has moved on by now; don't yank focus back to the app that
             // was frontmost at open — just dismiss so the tap stops swallowing ⌘W.
             previousFrontmostApp = nil
