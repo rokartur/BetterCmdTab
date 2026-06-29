@@ -5,24 +5,13 @@ import BetterShortcuts
 @MainActor
 final class ShortcutsSettingsViewController: SettingsTabViewController {
 
-    private let appRecorder = BetterShortcuts.RecorderCocoa(for: .switchApps)
-    private let windowRecorder = BetterShortcuts.RecorderCocoa(for: .switchWindows)
+    // Unified AltTab-style switcher-shortcut editor (#74): tabbed selector for the
+    // core triggers + each scoped shortcut, with inline per-shortcut options.
+    private let shortcutsEditorView = ShortcutsEditorView()
 
     // Direct-activation slots: a "choose app" button + shortcut recorder per slot.
     private var directButtons: [NSButton] = []
     private var directSlotSheet: AppsPickerSheetWindowController?
-
-    // Scoped-switch shortcuts: a dynamic, user-managed add/remove list (#74).
-    private let scopedListView = ScopedShortcutsListView()
-
-    // Per-shortcut override editor (#74): a "Customize…" button per panel-opening
-    // shortcut, the rows whose subtitle reflects whether an override is set, and
-    // the live sheet.
-    private var switchAppsRow: SettingsRowView?
-    private var switchWindowsRow: SettingsRowView?
-    private var optionsSheet: ShortcutOptionsSheetWindowController?
-    private let switchAppsBaseSubtitle = String(localized: "Hold the modifier (⌘ by default) and tap to move through your open apps.")
-    private let switchWindowsBaseSubtitle = String(localized: "Cycle through the windows of the app you're on.")
 
     // Window-management options.
     private let cycleWidthsSwitch = NSSwitch()
@@ -33,26 +22,13 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     private var excludedHideAppsSheet: AppsPickerSheetWindowController?
 
     override func setupContent() {
-        // Switching section — the core ⌘Tab triggers. The trigger must include a
-        // hold modifier (⌘/⌥/⌃); Shift is reserved for stepping backwards and is
-        // rejected by the recorder.
-        let switching = addSection(title: String(localized: "Switching"), anchor: SettingsAnchor.switching)
-        let appsCustomize = makeCustomizeButton(action: #selector(customizeSwitchApps))
-        switchAppsRow = addRow(
-            to: switching,
-            title: String(localized: "Switch apps"),
-            subtitle: subtitle(switchAppsBaseSubtitle, target: .switchApps),
-            accessory: triggerStack(button: appsCustomize, recorder: appRecorder),
-            searchItemID: SearchID.switchApps
-        )
-        let windowsCustomize = makeCustomizeButton(action: #selector(customizeSwitchWindows))
-        switchWindowsRow = addRow(
-            to: switching,
-            title: String(localized: "Switch windows"),
-            subtitle: subtitle(switchWindowsBaseSubtitle, target: .switchWindows),
-            accessory: triggerStack(button: windowsCustomize, recorder: windowRecorder),
-            searchItemID: SearchID.switchWindows
-        )
+        // Switcher shortcuts — the unified, AltTab-style tabbed editor: the two
+        // core triggers (Apps, Windows) plus each user-created scoped shortcut,
+        // every one with its own trigger + inline per-shortcut options. The
+        // trigger must include a hold modifier (⌘/⌥/⌃); Shift is reserved for
+        // stepping backwards and is rejected by the recorder.
+        let switching = addSection(title: String(localized: "Switcher shortcuts"), anchor: SettingsAnchor.switching)
+        switching.addContent(shortcutsEditorView)
 
         // Direct activation section — global shortcuts that jump straight to a
         // chosen app, bypassing the switcher.
@@ -76,20 +52,6 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
             addRow(to: direct, title: String(localized: "Slot \(index + 1)"), accessory: stack)
             directButtons.append(button)
         }
-
-        // Scoped shortcuts section — global shortcuts that open the switcher
-        // already filtered to a subset of windows.
-        let scoped = addSection(title: String(localized: "Scoped shortcuts"), anchor: SettingsAnchor.scopedSwitch)
-        addRow(
-            to: scoped,
-            title: String(localized: "Open the switcher on a subset"),
-            subtitle: String(localized: "Give a shortcut its own view — all windows, just this Space, the current app's windows, or only minimized."),
-            searchItemID: SearchID.scopedSwitch
-        )
-        scopedListView.onCustomize = { [weak self] target in
-            self?.presentOptions(for: target, title: String(localized: "Customize scoped shortcut"), includeSpaceScope: false)
-        }
-        scoped.addContent(scopedListView)
 
         // In-panel keys section — the keys that act on the highlighted window
         // while the switcher is open (close / minimize / hide / quit). Recorded
@@ -161,10 +123,9 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     override func viewWillAppear() {
         super.viewWillAppear()
         refreshDirectSlots()
-        // Another pane (Import settings) can rewrite the scoped list off-screen;
-        // rebuild from the live model on appear.
-        scopedListView.rebuild()
-        refreshCustomizedSubtitles()
+        // Another pane (Import settings) can rewrite the shortcut list/overrides
+        // off-screen; rebuild the editor from the live model on appear.
+        shortcutsEditorView.rebuildTabs(select: 0)
         cycleWidthsSwitch.state = Preferences.shared.cycleTileWidths ? .on : .off
         // Another pane (e.g. Import settings) can rewrite the list while this
         // cached controller is off screen — re-sync the subtitle on appear.
@@ -250,62 +211,6 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         directSlotSheet = controller
         controller.present(asSheetFor: window)
     }
-
-    // MARK: - Per-shortcut overrides (#74)
-
-    private func makeCustomizeButton(action: Selector) -> NSButton {
-        let button = NSButton(title: String(localized: "Customize…"), target: self, action: action)
-        button.bezelStyle = .rounded
-        button.controlSize = .small
-        return button
-    }
-
-    private func triggerStack(button: NSButton, recorder: NSView) -> NSStackView {
-        let stack = NSStackView(views: [button, recorder])
-        stack.orientation = .horizontal
-        stack.spacing = 8
-        stack.alignment = .centerY
-        return stack
-    }
-
-    /// Append a "(Customized)" marker to a row's base subtitle when the target has
-    /// a non-empty override.
-    private func subtitle(_ base: String, target: SwitchTarget) -> String {
-        guard !Preferences.shared.override(for: target).isEmpty else { return base }
-        let marker = String(localized: "Customized")
-        return base.isEmpty ? marker : "\(base) · \(marker)"
-    }
-
-    private func refreshCustomizedSubtitles() {
-        switchAppsRow?.update(subtitle: subtitle(switchAppsBaseSubtitle, target: .switchApps))
-        switchWindowsRow?.update(subtitle: subtitle(switchWindowsBaseSubtitle, target: .switchWindows))
-    }
-
-    @objc private func customizeSwitchApps() {
-        presentOptions(for: .switchApps, title: String(localized: "Customize Switch apps"), includeSpaceScope: true)
-    }
-
-    @objc private func customizeSwitchWindows() {
-        presentOptions(for: .switchWindows, title: String(localized: "Customize Switch windows"), includeSpaceScope: true)
-    }
-
-    private func presentOptions(for target: SwitchTarget, title: String, includeSpaceScope: Bool) {
-        guard let window = view.window, optionsSheet == nil else { return }
-        let controller = ShortcutOptionsSheetWindowController(
-            title: title,
-            target: target,
-            includeSpaceScope: includeSpaceScope
-        ) { override in
-            Preferences.shared.setOverride(override, for: target)
-        }
-        controller.onDidDismiss = { [weak self] in
-            self?.optionsSheet = nil
-            self?.refreshCustomizedSubtitles()
-        }
-        optionsSheet = controller
-        controller.present(asSheetFor: window)
-    }
-
 
     private static func appName(forBundleID bundleID: String) -> String? {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return nil }

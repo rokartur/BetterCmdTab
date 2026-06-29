@@ -238,14 +238,14 @@ enum SettingsCatalog {
              String(localized: "Import settings"), ["import", "restore", "load settings"]),
 
         // Shortcuts · Switching
-        item(SearchID.switchApps, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switching"),
+        item(SearchID.switchApps, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switcher shortcuts"),
              String(localized: "Switch apps"), ["shortcut", "hotkey", "cmd tab", "command tab", "trigger"]),
-        item(SearchID.switchWindows, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switching"),
+        item(SearchID.switchWindows, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switcher shortcuts"),
              String(localized: "Switch windows"), ["shortcut", "hotkey", "window cycle"]),
         // Shortcuts · Direct activation
         item(SearchID.directActivation, .shortcuts, SettingsAnchor.directActivation, String(localized: "Shortcuts"), String(localized: "Direct activation"),
              String(localized: "Direct activation hotkeys"), ["direct", "hotkey", "shortcut", "activate", "focus app", "jump to app"]),
-        item(SearchID.scopedSwitch, .shortcuts, SettingsAnchor.scopedSwitch, String(localized: "Shortcuts"), String(localized: "Scoped shortcuts"),
+        item(SearchID.scopedSwitch, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switcher shortcuts"),
              String(localized: "Scoped shortcuts"), ["scope", "scoped", "all windows", "current app", "minimized", "this space", "filtered switcher"]),
         item(SearchID.panelKeys, .shortcuts, SettingsAnchor.panelKeys, String(localized: "Shortcuts"), String(localized: "In-panel keys"),
              String(localized: "Action keys while switching"), ["panel keys", "rebind", "close", "minimize", "hide", "quit", "wmhq", "in-panel"]),
