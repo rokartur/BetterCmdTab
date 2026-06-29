@@ -10,6 +10,7 @@ import BetterSettings
 enum SettingsTabID {
     static let general = "general"
     static let shortcuts = "shortcuts"
+    static let windows = "windows"
     static let switcher = "switcher"
     static let apps = "apps"
     static let appearance = "appearance"
@@ -31,13 +32,16 @@ enum SettingsAnchor {
     static let directActivation = "shortcuts.directActivation"
     static let scopedSwitch = "shortcuts.scopedSwitch"
     static let panelKeys = "shortcuts.panelKeys"
-    static let windowMgmt = "shortcuts.windowMgmt"
+    // Windows
+    static let windowArrange = "windows.arrange"
+    static let windowAll = "windows.all"
     // Privacy
     static let screenSharing = "privacy.screenSharing"
     static let permissions = "privacy.permissions"
     static let recovery = "privacy.recovery"
-    // Switcher
+    // Behavior (switcher tab)
     static let display = "switcher.display"
+    static let contents = "switcher.contents"
     static let tabs = "switcher.tabs"
     static let search = "switcher.search"
     static let navigation = "switcher.navigation"
@@ -47,7 +51,6 @@ enum SettingsAnchor {
     static let pinned = "apps.pinned"
     // Appearance
     static let appearance = "appearance.switcher"
-    static let contents = "appearance.contents"
     // Experimental
     static let experimental = "experimental.features"
     // About
@@ -137,6 +140,7 @@ enum SettingsCatalog {
                 switch tab.id {
                 case SettingsTabID.general:      return GeneralSettingsViewController()
                 case SettingsTabID.shortcuts:    return ShortcutsSettingsViewController()
+                case SettingsTabID.windows:      return WindowsSettingsViewController()
                 case SettingsTabID.switcher:     return SwitcherSettingsViewController()
                 case SettingsTabID.apps:         return AppsSettingsViewController()
                 case SettingsTabID.appearance:   return AppearanceSettingsViewController()
@@ -147,7 +151,7 @@ enum SettingsCatalog {
             },
             searchPlaceholder: String(localized: "Search"),
             showDetailsDefaultsKey: "BetterCmdTab.showSettingsDetails",
-            // 8 tabs: keep the active tab + 1 previous live and drop to active-only
+            // 9 tabs: keep the active tab + 1 previous live and drop to active-only
             // when the settings window loses key. Inactive tab trees are freed and
             // rebuilt lazily on revisit, minimizing RAM for this secondary window.
             tabUnloadPolicy: .balanced
@@ -168,6 +172,11 @@ enum SettingsCatalog {
         SettingsTab(
             id: SettingsTabID.shortcuts, title: String(localized: "Shortcuts"), icon: "command",
             iconStyle: style(0x40BCFF, 0x0060FF, scale: 0.9)
+        ),
+        // Window management — tile / maximize / center + hide-all hotkeys.
+        SettingsTab(
+            id: SettingsTabID.windows, title: String(localized: "Windows"), icon: "macwindow.on.rectangle",
+            iconStyle: style(0x5AC8FA, 0x0A84C4, scale: 0.85)
         ),
         // Stacked windows — the switcher cycles through your open windows/apps.
         SettingsTab(
@@ -249,7 +258,7 @@ enum SettingsCatalog {
              String(localized: "Scoped shortcuts"), ["scope", "scoped", "all windows", "current app", "minimized", "this space", "filtered switcher"]),
         item(SearchID.panelKeys, .shortcuts, SettingsAnchor.panelKeys, String(localized: "Shortcuts"), String(localized: "In-panel keys"),
              String(localized: "Action keys while switching"), ["panel keys", "rebind", "close", "minimize", "hide", "quit", "wmhq", "in-panel"]),
-        item(SearchID.windowMgmt, .shortcuts, SettingsAnchor.windowMgmt, String(localized: "Shortcuts"), String(localized: "Window management"),
+        item(SearchID.windowMgmt, .windows, SettingsAnchor.windowArrange, String(localized: "Windows"), String(localized: "Arrange window"),
              String(localized: "Arrange the highlighted window"), ["window management", "tile", "maximize", "center", "snap", "halves", "arrange", "rebind"]),
 
         // Privacy · Screen sharing
@@ -331,25 +340,25 @@ enum SettingsCatalog {
         item(SearchID.cornerRadius, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
              String(localized: "Corner radius"), ["corner", "radius", "rounded", "rounding"]),
 
-        // Appearance · Contents
-        item(SearchID.showMinimized, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+        // Behavior · Contents
+        item(SearchID.showMinimized, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Show minimized windows"), ["minimized", "minimize"]),
-        item(SearchID.showHidden, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+        item(SearchID.showHidden, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Show hidden apps"), ["hidden", "hide"]),
-        item(SearchID.showWindowless, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+        item(SearchID.showWindowless, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Show apps without windows"), ["windowless", "no windows", "background apps"]),
-        item(SearchID.applicationsOnly, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+        item(SearchID.applicationsOnly, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Applications only"),
              ["applications only", "apps only", "one per app", "per app", "command tab", "classic", "group windows"]),
-        item(SearchID.showBadges, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+        item(SearchID.showBadges, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Show unread badges"), ["badge", "unread", "dock badge", "count"]),
-        item(SearchID.currentSpaceOnly, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+        item(SearchID.currentSpaceOnly, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Only current Space"), ["space", "current space", "desktop", "filter"]),
-        item(SearchID.sortOrder, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+        item(SearchID.sortOrder, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Sort order"), ["sort", "order", "mru", "most recent", "alphabetical", "launch order"]),
-        item(SearchID.showRecentlyClosed, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+        item(SearchID.showRecentlyClosed, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Show recently closed apps"), ["recently closed", "reopen", "recent"]),
-        item(SearchID.recentlyClosedLimit, .appearance, SettingsAnchor.contents, String(localized: "Appearance"), String(localized: "Contents"),
+        item(SearchID.recentlyClosedLimit, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Recently closed to show"), ["recently closed", "limit", "count"]),
 
         // Experimental
@@ -392,12 +401,13 @@ enum SettingsCatalog {
     }
 
     private enum TabRef {
-        case general, shortcuts, switcher, apps, appearance, privacy, experimental
+        case general, shortcuts, windows, switcher, apps, appearance, privacy, experimental
 
         var id: String {
             switch self {
             case .general: return SettingsTabID.general
             case .shortcuts: return SettingsTabID.shortcuts
+            case .windows: return SettingsTabID.windows
             case .switcher: return SettingsTabID.switcher
             case .apps: return SettingsTabID.apps
             case .appearance: return SettingsTabID.appearance
