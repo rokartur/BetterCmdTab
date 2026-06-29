@@ -2752,6 +2752,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// actor like the other hot-path pref reads.
     private var browserTabMRUActive: Bool {
         browserTabMRUEnabled
+            // `browserTabMRUEnabled` gates the *feed* on the global pref, but a
+            // per-shortcut override can turn browser-tab expansion off for this
+            // panel; if so the rows aren't expanded, so the order must not be
+            // consumed (would sort plain window rows by the tab timeline).
+            && effective.expandBrowserTabsAsWindows
             && !effective.applicationsOnly
             && effective.sortOrder == .mruWindows
     }
@@ -3193,7 +3198,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // must never trigger a synchronous cross-process AppCatalog.snapshot().
         // On a cold cache (the brief boot/AX-regrant window) it returns nil and
         // the caller falls back to a cheap, main-safe app activation.
-        var candidates = cache.rows(orderedBy: mru.order).filter { $0.pid == pid && $0.window != nil }
+        var candidates = cache.rows(orderedBy: mru.order, filter: activeFilterConfig).filter { $0.pid == pid && $0.window != nil }
         guard !candidates.isEmpty else { return nil }
         candidates = windowMRU.sortRows(candidates, forPid: pid)
         let count = candidates.count
@@ -3212,7 +3217,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// cheap, main-safe `activateApp`.
     private func primedAppTargetRow(for app: NSRunningApplication) -> SwitcherRow? {
         let pid = app.processIdentifier
-        return cache.rows(orderedBy: mru.order).first(where: { $0.pid == pid && $0.window != nil })
+        return cache.rows(orderedBy: mru.order, filter: activeFilterConfig).first(where: { $0.pid == pid && $0.window != nil })
     }
 
     /// The window row a `.mruWindows` fast tap-release should activate: the
@@ -4014,7 +4019,9 @@ final class SwitcherController: SwitcherViewDelegate {
                isMinimized: false,
                appHidden: closedApp.isHidden,
                hasWindow: false,
-               CatalogFilter.config()
+               // Match the active per-shortcut override (if any), like the row
+               // reads above and the 250ms refresh below — not the global config.
+               activeFilterConfig ?? CatalogFilter.config()
            ) {
             baseRows.insert(
                 SwitcherRow(
