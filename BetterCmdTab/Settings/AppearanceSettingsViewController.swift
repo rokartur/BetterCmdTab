@@ -7,12 +7,14 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private var layoutRadio: SettingsRadioGroupView!
     private var sizeRadio: SettingsRadioGroupView!
+    private var titleAlignmentRadio: SettingsRadioGroupView!
     private let gridPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let accentPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let delaySlider = NSSlider()
     private let delayValueLabel = NSTextField(labelWithString: "")
     private let windowTitleSwitch = NSSwitch()
     private let appNamesSwitch = NSSwitch()
+    private let boldSelectedSwitch = NSSwitch()
     private let opacitySlider = NSSlider()
     private let opacityValueLabel = NSTextField(labelWithString: "")
     private let radiusSlider = NSSlider()
@@ -37,6 +39,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     // Ordered option models backing the popups (index ↔ value).
     private let layoutModes: [SwitcherLayoutMode] = [.gridView, .list, .windowPreview]
+    private let titleAlignments: [PreviewTitleAlignment] = [.leading, .center, .trailing]
     private let panelSizes: [PanelSize] = PanelSize.allCases
     private let gridValues: [Int] = [0, 2, 3, 4, 5, 6] // 0 = automatic
     private let accents: [SwitcherAccent] = SwitcherAccent.allCases
@@ -92,6 +95,16 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         addRow(to: section, title: String(localized: "Show window title"),
                subtitle: String(localized: "Show each window's title under the icon in the Grid and Previews layouts."),
                accessory: windowTitleSwitch, searchItemID: SearchID.windowTitle)
+
+        titleAlignmentRadio = makeTitleAlignmentRadio()
+        addRow(to: section, title: String(localized: "Title alignment"),
+               subtitle: String(localized: "Position of the title under each Previews tile."),
+               accessory: titleAlignmentRadio, searchItemID: SearchID.titleAlignment)
+
+        configureSwitch(boldSelectedSwitch, action: #selector(toggleBoldSelected(_:)))
+        addRow(to: section, title: String(localized: "Bold selected title"),
+               subtitle: String(localized: "Make the highlighted item's title bold in the Grid and Previews layouts. Off only brightens it."),
+               accessory: boldSelectedSwitch, searchItemID: SearchID.boldSelected)
 
         configureSwitch(appNamesSwitch, action: #selector(toggleApplicationNames(_:)))
         addRow(to: section, title: String(localized: "Show application names"),
@@ -239,6 +252,18 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         return group
     }
 
+    private func makeTitleAlignmentRadio() -> SettingsRadioGroupView {
+        let options = titleAlignments.map { alignment in
+            SettingsRadioGroupView.Option(identifier: alignment.rawValue, title: alignment.displayName)
+        }
+        let group = SettingsRadioGroupView(options: options, orientation: .horizontal)
+        group.onSelectionChange = { id in
+            guard let alignment = PreviewTitleAlignment(rawValue: id) else { return }
+            Preferences.shared.previewTitleAlignment = alignment
+        }
+        return group
+    }
+
     private func configurePopup(_ popup: NSPopUpButton, titles: [String], action: Selector) {
         popup.controlSize = .small
         popup.translatesAutoresizingMaskIntoConstraints = false
@@ -282,6 +307,14 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.windowTitleSwitch.state = $0 ? .on : .off }
             .store(in: &cancellables)
+        prefs.$previewTitleAlignment
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.selectTitleAlignment($0) }
+            .store(in: &cancellables)
+        prefs.$boldSelectedLabel
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.boldSelectedSwitch.state = $0 ? .on : .off }
+            .store(in: &cancellables)
         prefs.$showApplicationNames
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.appNamesSwitch.state = $0 ? .on : .off }
@@ -319,6 +352,8 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         applyDelay(prefs.revealDelayMs)
         selectAccent(prefs.accentChoice)
         windowTitleSwitch.state = prefs.showWindowTitleLabel ? .on : .off
+        selectTitleAlignment(prefs.previewTitleAlignment)
+        boldSelectedSwitch.state = prefs.boldSelectedLabel ? .on : .off
         appNamesSwitch.state = prefs.showApplicationNames ? .on : .off
         applyOpacity(prefs.panelOpacity)
         applyRadius(prefs.panelCornerRadius)
@@ -395,6 +430,14 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleApplicationNames(_ sender: NSSwitch) {
         Preferences.shared.showApplicationNames = (sender.state == .on)
+    }
+
+    @objc private func toggleBoldSelected(_ sender: NSSwitch) {
+        Preferences.shared.boldSelectedLabel = (sender.state == .on)
+    }
+
+    private func selectTitleAlignment(_ alignment: PreviewTitleAlignment) {
+        titleAlignmentRadio.select(identifier: alignment.rawValue)
     }
 
     @objc private func opacityChanged(_ sender: NSSlider) {

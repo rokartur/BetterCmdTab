@@ -60,6 +60,33 @@ struct PreferencesEnumTests {
         #expect(SwitcherDisplayMode.mainDisplay.rawValue == "mainDisplay")
     }
 
+    @Test("PreviewTitleAlignment raw values round-trip and unknown falls back")
+    func previewTitleAlignmentRoundTrip() {
+        for alignment in PreviewTitleAlignment.allCases {
+            #expect(PreviewTitleAlignment(rawValue: alignment.rawValue) == alignment)
+            #expect(!alignment.displayName.isEmpty)
+        }
+        #expect(PreviewTitleAlignment(rawValue: "garbage") == nil)
+        // Stable raw values (persisted to UserDefaults / exported settings).
+        #expect(PreviewTitleAlignment.leading.rawValue == "leading")
+        #expect(PreviewTitleAlignment.center.rawValue == "center")
+        #expect(PreviewTitleAlignment.trailing.rawValue == "trailing")
+    }
+
+    @MainActor
+    @Test("titleGroupOriginX places the preview title at the chosen edge")
+    func titleGroupOriginX() {
+        let tile: CGFloat = 200
+        let group: CGFloat = 80   // 120 pt of slack
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .leading, groupWidth: group, tileWidth: tile) == 0)
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .center, groupWidth: group, tileWidth: tile) == 60)
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .trailing, groupWidth: group, tileWidth: tile) == 120)
+
+        // A group wider than the tile never starts off-screen (slack clamps to 0).
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .trailing, groupWidth: 260, tileWidth: tile) == 0)
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .center, groupWidth: 260, tileWidth: tile) == 0)
+    }
+
     @Test("HideWindowsMode / IgnoreShortcutsMode round-trip through raw values")
     func exceptionModeRawValues() {
         for mode in HideWindowsMode.allCases {

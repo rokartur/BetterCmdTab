@@ -111,6 +111,8 @@ enum SearchID {
     static let accent = "appearance.accent"
     static let quickSwitchDelay = "appearance.quickSwitchDelay"
     static let windowTitle = "appearance.windowTitle"
+    static let titleAlignment = "appearance.titleAlignment"
+    static let boldSelected = "appearance.boldSelected"
     static let opacity = "appearance.opacity"
     static let cornerRadius = "appearance.cornerRadius"
     // Experimental
@@ -317,6 +319,10 @@ enum SettingsCatalog {
              String(localized: "Quick-switch delay"), ["delay", "reveal", "hold", "quick switch"]),
         item(SearchID.windowTitle, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
              String(localized: "Show window title"), ["window title", "title", "label", "name"]),
+        item(SearchID.titleAlignment, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
+             String(localized: "Title alignment"), ["title", "alignment", "align", "left", "center", "centre", "right", "position", "ellipsis"]),
+        item(SearchID.boldSelected, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
+             String(localized: "Bold selected title"), ["bold", "selected", "title", "weight", "highlight", "label"]),
         item(SearchID.applicationNames, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
              String(localized: "Show application names"),
              ["application names", "app name", "app names", "name", "label", "icon only", "hide name"]),

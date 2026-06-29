@@ -25,6 +25,23 @@ enum SwitcherLayoutMode: String, CaseIterable {
     }
 }
 
+/// Where the title (app icon + window title pair) sits under each
+/// window-preview tile (#72). The pair stays tight together; this only moves it
+/// to the leading edge, the centre (default), or the trailing edge of the tile.
+enum PreviewTitleAlignment: String, CaseIterable {
+    case leading
+    case center
+    case trailing
+
+    var displayName: String {
+        switch self {
+        case .leading: return String(localized: "Left")
+        case .center: return String(localized: "Center")
+        case .trailing: return String(localized: "Right")
+        }
+    }
+}
+
 /// Which display the switcher panel opens on (#22).
 enum SwitcherDisplayMode: String, CaseIterable {
     /// Screen under the mouse pointer. Default — matches pre-#22 behavior.
@@ -478,6 +495,8 @@ final class Preferences: ObservableObject {
         static let vimNavigationEnabled = "Switcher.vimNavigationEnabled"
         static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
         static let switcherDisplayMode = "Switcher.displayMode"
+        static let previewTitleAlignment = "Switcher.previewTitleAlignment"
+        static let boldSelectedLabel = "Switcher.boldSelectedLabel"
     }
 
     @Published var switcherLayoutMode: SwitcherLayoutMode {
@@ -935,6 +954,25 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Horizontal placement of the title (app icon + window title) under each
+    /// window-preview tile (#72). Default centred — unchanged from before.
+    @Published var previewTitleAlignment: PreviewTitleAlignment {
+        didSet {
+            guard oldValue != previewTitleAlignment else { return }
+            UserDefaults.standard.set(previewTitleAlignment.rawValue, forKey: Keys.previewTitleAlignment)
+        }
+    }
+
+    /// Bold the selected row's title in the Grid and Previews layouts. Default
+    /// on. When off, the selected title only brightens (white) with no weight or
+    /// width change — avoids the "text grows on select" wobble (#72).
+    @Published var boldSelectedLabel: Bool {
+        didSet {
+            guard oldValue != boldSelectedLabel else { return }
+            UserDefaults.standard.set(boldSelectedLabel, forKey: Keys.boldSelectedLabel)
+        }
+    }
+
     /// Show the application name in every switcher layout (List right column,
     /// Grid name-under-icon, and any app-name fallback in Previews). Default on.
     /// Off = strict icon-only.
@@ -1251,6 +1289,9 @@ final class Preferences: ObservableObject {
 
         self.showWindowTitleLabel = defaults.object(forKey: Keys.showWindowTitleLabel) as? Bool ?? true
         self.showApplicationNames = defaults.object(forKey: Keys.showApplicationNames) as? Bool ?? true
+        self.previewTitleAlignment = defaults.string(forKey: Keys.previewTitleAlignment)
+            .flatMap(PreviewTitleAlignment.init(rawValue:)) ?? .center
+        self.boldSelectedLabel = defaults.object(forKey: Keys.boldSelectedLabel) as? Bool ?? true
         let opacity = defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100
         self.panelOpacity = Self.clampOpacity(opacity)
         let radius = defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0
@@ -1338,6 +1379,8 @@ final class Preferences: ObservableObject {
 
         showWindowTitleLabel = defaults.object(forKey: Keys.showWindowTitleLabel) as? Bool ?? true
         showApplicationNames = defaults.object(forKey: Keys.showApplicationNames) as? Bool ?? true
+        previewTitleAlignment = defaults.string(forKey: Keys.previewTitleAlignment).flatMap(PreviewTitleAlignment.init(rawValue:)) ?? .center
+        boldSelectedLabel = defaults.object(forKey: Keys.boldSelectedLabel) as? Bool ?? true
         panelOpacity = Self.clampOpacity(defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100)
         panelCornerRadius = Self.clampCornerRadius(defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0)
         customAccentHex = defaults.string(forKey: Keys.customAccentHex)

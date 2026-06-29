@@ -378,9 +378,12 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     private func applySelection() {
         selectionBackdrop.isHidden = !isSelected
         nameLabel.textColor = isSelected ? .labelColor : .secondaryLabelColor
+        // Bolding the selected name is optional (#72) — off keeps a steady weight
+        // so the label doesn't grow/shrink as selection moves; it still brightens.
+        let bold = isSelected && Preferences.shared.boldSelectedLabel
         nameLabel.font = NSFont.systemFont(
             ofSize: metrics.tileNameFontSize,
-            weight: isSelected ? .semibold : .medium
+            weight: bold ? .semibold : .medium
         )
         // The jump letter doesn't depend on selection, so it is rendered once in
         // `configure` rather than re-built on every selection move.

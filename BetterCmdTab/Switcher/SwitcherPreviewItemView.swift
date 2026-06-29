@@ -169,6 +169,12 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     private var currentLabel: String = ""
     private var currentPrefixLength: Int = 0
 
+    /// Horizontal padding a borderless NSTextFieldCell reserves around its text,
+    /// beyond the raw glyph bounding box returned by `size(withAttributes:)`. Near
+    /// constant (~4–5pt) across font sizes; added to the measured title width so a
+    /// title that fits isn't truncated to an ellipsis by the cell's own inset.
+    private static let labelCellInset: CGFloat = 5
+
     func prepareForIdle() {
         // Release the thumbnail and app-icon retains so WindowThumbnailCache /
         // IconCache can evict them; all are re-set by `configure` on reuse.
@@ -278,10 +284,26 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     private func applySelection() {
         selectionBackdrop.isHidden = !isSelected
         nameLabel.textColor = isSelected ? .labelColor : .secondaryLabelColor
+        // The selected title brightens to `labelColor`; bolding it is optional so
+        // users who dislike the on-select width wobble keep a steady weight (#72).
+        let bold = isSelected && Preferences.shared.boldSelectedLabel
         nameLabel.font = NSFont.systemFont(
             ofSize: metrics.previewNameFontSize,
-            weight: isSelected ? .semibold : .medium
+            weight: bold ? .semibold : .medium
         )
+    }
+
+    /// Leading edge of the tight icon+title group inside a tile of width
+    /// `tileWidth`, for the chosen alignment (#72). Leading hugs the left edge,
+    /// trailing the right, centre splits the slack. Clamped to ≥ 0 so an
+    /// over-wide group never starts off-tile.
+    static func titleGroupOriginX(alignment: PreviewTitleAlignment, groupWidth: CGFloat, tileWidth: CGFloat) -> CGFloat {
+        let slack = max(0, tileWidth - groupWidth)
+        switch alignment {
+        case .leading: return 0
+        case .center: return round(slack / 2)
+        case .trailing: return slack
+        }
     }
 
     private func renderLetter() {
@@ -362,14 +384,32 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
             // Measure the title width with a string-metrics query rather than
             // `nameLabel.sizeToFit()`, which lays out and resizes the whole
             // NSTextField just to read a width that's immediately clamped below.
-            // `nameLabel` is a plain single-line truncating field, so the glyph
-            // bounding box is equivalent; `nameLabel.frame` is set explicitly at
-            // the end of this method, so the skipped sizeToFit mutates nothing used.
-            let measureFont = nameLabel.font ?? NSFont.systemFont(ofSize: m.previewNameFontSize, weight: .medium)
+            // `nameLabel.frame` is set explicitly at the end of this method, so the
+            // skipped sizeToFit mutates nothing used.
+            //
+            // The glyph bounding box is NOT what the field needs to draw, though:
+            // the borderless NSTextFieldCell adds a small fixed horizontal inset
+            // (~4–5pt total, independent of font size). Sizing the frame to the bare
+            // glyph width left the cell ~4pt short and truncated a fitting title to an
+            // ellipsis ("ChatGPT" → "ChatG…"). Add the inset back so titles that fit
+            // aren't clipped; the outer `min` still clamps to the tile's free width.
+            //
+            // Measure the heaviest weight the title can ever take (.semibold), never
+            // the current one. A selected tile renders semibold via `applySelection`
+            // WITHOUT a relayout, and the bold-on-select pref can flip while the panel
+            // is open — so keying the measure off the live weight or pref risks a frame
+            // sized for .medium clipping a later semibold render. The bold width fits
+            // the medium render too (~1pt slack); the outer `min` still clamps to the
+            // tile's free width. Constant weight also keeps this off the pref read path.
+            let measureFont = NSFont.systemFont(ofSize: m.previewNameFontSize, weight: .semibold)
             let textW = (nameLabel.stringValue as NSString).size(withAttributes: [.font: measureFont]).width
-            let nameW = min(ceil(textW), w - iconSize - 6 - badgeSlot)
+            let nameW = min(ceil(textW) + Self.labelCellInset, w - iconSize - 6 - badgeSlot)
             let groupW = iconSize + 4 + nameW + badgeSlot
-            let startX = max(0, round((w - groupW) / 2))
+            let startX = Self.titleGroupOriginX(
+                alignment: Preferences.shared.previewTitleAlignment,
+                groupWidth: groupW,
+                tileWidth: w
+            )
             let rowMidY = labelAreaH / 2
             iconView.frame = NSRect(
                 x: startX,
