@@ -1,17 +1,20 @@
 import AppKit
+import BetterSettings
 import BetterShortcuts
 
-/// AltTab-style unified switcher-shortcut editor (#74): a tab bar listing every
-/// panel-opening shortcut — the two core triggers (Apps, Windows) plus each
-/// user-created scoped shortcut — and a "+" to add another. Selecting a tab shows
-/// that shortcut's trigger recorder, scope (scoped tabs only), and the full set
-/// of per-shortcut options inline (live-persisting). Core tabs can't be removed;
-/// scoped tabs have a Remove button. Recording a combo already bound elsewhere is
-/// rejected by BetterShortcuts' conflict alert, so every shortcut stays unique.
+/// AltTab-style unified switcher-shortcut editor (#74), built from the app's own
+/// settings section cards + rows so it matches the Appearance pane. A segmented
+/// tab bar lists every panel-opening shortcut — the two core triggers (Apps,
+/// Windows) plus each user-created scoped shortcut — with +/− to add and remove.
+/// Selecting a tab shows that shortcut's Trigger card (recorder + scope) and its
+/// inline Behavior / Appearance option cards, all live-persisting. Core tabs
+/// can't be removed. Recording a combo already bound elsewhere is rejected by
+/// BetterShortcuts' conflict alert, so every shortcut stays unique.
 @MainActor
 final class ShortcutsEditorView: NSView {
     private let tabs = NSSegmentedControl()
     private let addButton = NSButton()
+    private let removeButton = NSButton()
     private let detail = NSStackView()
     private let scopeOptions: [SwitchScope] = SwitchScope.allCases
 
@@ -34,40 +37,45 @@ final class ShortcutsEditorView: NSView {
         tabs.target = self
         tabs.action = #selector(tabChanged)
         tabs.translatesAutoresizingMaskIntoConstraints = false
-        tabs.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        tabs.setContentHuggingPriority(.defaultHigh, for: .horizontal)
 
-        addButton.bezelStyle = .texturedRounded
-        addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: String(localized: "Add shortcut"))
-        addButton.target = self
-        addButton.action = #selector(addEntry)
-        addButton.translatesAutoresizingMaskIntoConstraints = false
-        addButton.setContentHuggingPriority(.required, for: .horizontal)
+        configureIconButton(addButton, symbol: "plus", accessibility: String(localized: "Add shortcut"), action: #selector(addEntry))
+        configureIconButton(removeButton, symbol: "minus", accessibility: String(localized: "Remove shortcut"), action: #selector(removeEntry))
 
-        let tabRow = NSStackView(views: [tabs, addButton])
+        let tabRow = NSStackView(views: [tabs, addButton, removeButton])
         tabRow.orientation = .horizontal
-        tabRow.spacing = 8
+        tabRow.spacing = 6
         tabRow.alignment = .centerY
         tabRow.translatesAutoresizingMaskIntoConstraints = false
 
         detail.orientation = .vertical
         detail.alignment = .leading
-        detail.spacing = 12
+        detail.spacing = 18
         detail.translatesAutoresizingMaskIntoConstraints = false
 
         let outer = NSStackView(views: [tabRow, detail])
         outer.orientation = .vertical
         outer.alignment = .leading
-        outer.spacing = 14
+        outer.spacing = 16
         outer.translatesAutoresizingMaskIntoConstraints = false
         addSubview(outer)
         NSLayoutConstraint.activate([
-            outer.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            outer.topAnchor.constraint(equalTo: topAnchor),
             outer.leadingAnchor.constraint(equalTo: leadingAnchor),
             outer.trailingAnchor.constraint(equalTo: trailingAnchor),
-            outer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
-            tabRow.widthAnchor.constraint(lessThanOrEqualTo: outer.widthAnchor),
+            outer.bottomAnchor.constraint(equalTo: bottomAnchor),
             detail.widthAnchor.constraint(equalTo: outer.widthAnchor),
         ])
+    }
+
+    private func configureIconButton(_ button: NSButton, symbol: String, accessibility: String, action: Selector) {
+        button.bezelStyle = .texturedRounded
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: accessibility)
+        button.imagePosition = .imageOnly
+        button.target = self
+        button.action = action
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setContentHuggingPriority(.required, for: .horizontal)
     }
 
     // MARK: - Tabs
@@ -116,18 +124,29 @@ final class ShortcutsEditorView: NSView {
             detail.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
-        guard let target = currentTarget() else { return }
+        guard let target = currentTarget() else {
+            removeButton.isEnabled = false
+            return
+        }
 
-        // Trigger recorder.
+        var isScoped = false
+        if case .scoped = target { isScoped = true }
+        removeButton.isEnabled = isScoped
+
+        // Trigger card.
+        let trigger = SettingsSectionView(title: String(localized: "Trigger"))
         let recorder = BetterShortcuts.RecorderCocoa(for: betterShortcutsName(for: target))
-        detail.addArrangedSubview(labeledRow(String(localized: "Trigger"), recorder))
+        addRow(to: trigger, title: String(localized: "Keyboard shortcut"),
+               subtitle: isScoped
+                   ? String(localized: "Opens this shortcut's switcher. Hold the modifier and tap.")
+                   : String(localized: "Hold the modifier (⌘ by default) and tap to step through."),
+               accessory: recorder)
 
-        // Scope picker (scoped tabs only — the core triggers have a fixed window set).
-        let isScoped: Bool
         if case .scoped(let id) = target {
-            isScoped = true
             let popup = NSPopUpButton(frame: .zero, pullsDown: false)
             popup.controlSize = .small
+            popup.translatesAutoresizingMaskIntoConstraints = false
+            popup.setContentHuggingPriority(.required, for: .horizontal)
             popup.addItems(withTitles: scopeOptions.map(\.displayName))
             if let entry = Preferences.shared.scopedShortcuts.first(where: { $0.id == id }),
                let i = scopeOptions.firstIndex(of: entry.scope) {
@@ -136,38 +155,26 @@ final class ShortcutsEditorView: NSView {
             popup.target = self
             popup.action = #selector(scopeChanged(_:))
             popup.tag = id
-            detail.addArrangedSubview(labeledRow(String(localized: "Show from"), popup))
-        } else {
-            isScoped = false
+            addRow(to: trigger, title: String(localized: "Show windows from"),
+                   subtitle: String(localized: "Which windows this shortcut opens onto."),
+                   accessory: popup)
         }
+        addCard(trigger)
 
-        // Inline options form. Core triggers can override the Space scope (they
-        // have no scope picker); scoped tabs let their scope own it, so the form
-        // omits the Space-scope control to avoid double-filtering.
-        let form = ShortcutOptionsFormView(target: target, includeSpaceScope: !isScoped)
-        detail.addArrangedSubview(form)
-
-        if case .scoped(let id) = target {
-            let remove = NSButton(title: String(localized: "Remove shortcut"), target: self, action: #selector(removeEntry(_:)))
-            remove.bezelStyle = .rounded
-            remove.controlSize = .small
-            remove.contentTintColor = .systemRed
-            remove.tag = id
-            detail.addArrangedSubview(remove)
-        }
+        // Behavior + Appearance option cards. Core triggers can override the Space
+        // scope (they have no scope picker); scoped tabs let their scope own it, so
+        // the form omits the Space-scope row to avoid double-filtering.
+        addCard(ShortcutOptionsFormView(target: target, includeSpaceScope: !isScoped))
     }
 
-    private func labeledRow(_ title: String, _ control: NSView) -> NSView {
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 13)
-        label.setContentHuggingPriority(.required, for: .horizontal)
-        label.widthAnchor.constraint(equalToConstant: 90).isActive = true
-        control.translatesAutoresizingMaskIntoConstraints = false
-        let row = NSStackView(views: [label, control])
-        row.orientation = .horizontal
-        row.spacing = 12
-        row.alignment = .centerY
-        return row
+    private func addRow(to section: SettingsSectionView, title: String, subtitle: String?, accessory: NSView) {
+        section.addContent(SettingsRowView(title: title, subtitle: subtitle, accessory: accessory))
+    }
+
+    private func addCard(_ card: NSView) {
+        card.translatesAutoresizingMaskIntoConstraints = false
+        detail.addArrangedSubview(card)
+        card.widthAnchor.constraint(equalTo: detail.widthAnchor).isActive = true
     }
 
     // MARK: - Actions
@@ -180,12 +187,12 @@ final class ShortcutsEditorView: NSView {
     @objc private func addEntry() {
         let entry = Preferences.shared.appendScopedShortcut()
         ScopedSwitch.installHandler(for: entry)
-        // Select the new tab (last).
-        rebuildTabs(select: targets.count) // count grows by one after rebuild
+        // The new entry lands at index == the old tab count, i.e. the new last tab.
+        rebuildTabs(select: targets.count)
     }
 
-    @objc private func removeEntry(_ sender: NSButton) {
-        let id = sender.tag
+    @objc private func removeEntry() {
+        guard case .scoped(let id)? = currentTarget() else { return }
         if let name = Preferences.shared.removeScopedShortcut(id: id) {
             // Clear the recorded trigger so the orphaned Carbon handler can't fire.
             BetterShortcuts.setShortcut(nil, for: BetterShortcuts.Name(name))
