@@ -605,7 +605,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // The Carbon fallback drives the same handler as the tap.
         carbonTrigger.onEvent = { [weak self] event in self?.handle(event) }
         // Scoped-shortcut triggers open the switcher pre-filtered (#3).
-        ScopedSwitch.onTrigger = { [weak self] slot, scope in self?.openScoped(slot: slot, scope: scope) }
+        ScopedSwitch.onTrigger = { [weak self] id, scope in self?.openScoped(id: id, scope: scope) }
         // User-invoked recovery from the Privacy pane: re-enable every native
         // symbolic hotkey we may have disabled, in case a prior unclean exit
         // left the system ⌘Tab stuck. Re-syncs the live override afterwards so
@@ -1603,9 +1603,9 @@ final class SwitcherController: SwitcherViewDelegate {
     /// gesture/stay-open open) so releasing the shortcut's own modifier doesn't
     /// commit — the user steps with Tab/arrows/scroll and commits with Return or
     /// a click, or dismisses with Esc. Ignored if the switcher is already open.
-    func openScoped(slot: Int, scope: SwitchScope) {
+    func openScoped(id: Int, scope: SwitchScope) {
         guard phase == .idle else { return }
-        resolveActiveOptions(for: .scoped(slot))
+        resolveActiveOptions(for: .scoped(id))
         mru.syncFrontmost()
         cache.scheduleFullRefresh()
         let selfPid = getpid()

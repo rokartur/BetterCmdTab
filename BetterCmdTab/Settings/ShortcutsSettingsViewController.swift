@@ -12,16 +12,14 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     private var directButtons: [NSButton] = []
     private var directSlotSheet: AppsPickerSheetWindowController?
 
-    // Scoped-switch slots: a scope popup + shortcut recorder per slot.
-    private var scopePopups: [NSPopUpButton] = []
-    private let scopeOptions: [SwitchScope] = SwitchScope.allCases
+    // Scoped-switch shortcuts: a dynamic, user-managed add/remove list (#74).
+    private let scopedListView = ScopedShortcutsListView()
 
     // Per-shortcut override editor (#74): a "Customize…" button per panel-opening
     // shortcut, the rows whose subtitle reflects whether an override is set, and
     // the live sheet.
     private var switchAppsRow: SettingsRowView?
     private var switchWindowsRow: SettingsRowView?
-    private var scopedRows: [SettingsRowView] = []
     private var optionsSheet: ShortcutOptionsSheetWindowController?
     private let switchAppsBaseSubtitle = String(localized: "Hold the modifier (⌘ by default) and tap to move through your open apps.")
     private let switchWindowsBaseSubtitle = String(localized: "Cycle through the windows of the app you're on.")
@@ -88,31 +86,10 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
             subtitle: String(localized: "Give a shortcut its own view — all windows, just this Space, the current app's windows, or only minimized."),
             searchItemID: SearchID.scopedSwitch
         )
-        for (index, name) in BetterShortcuts.Name.scopedSwitch.enumerated() {
-            let recorder = BetterShortcuts.RecorderCocoa(for: name)
-            let popup = NSPopUpButton(frame: .zero, pullsDown: false)
-            popup.controlSize = .small
-            popup.translatesAutoresizingMaskIntoConstraints = false
-            popup.setContentHuggingPriority(.required, for: .horizontal)
-            popup.addItems(withTitles: scopeOptions.map(\.displayName))
-            popup.target = self
-            popup.action = #selector(scopeChanged(_:))
-            popup.tag = index
-            let customize = makeCustomizeButton(action: #selector(customizeScopedSlot(_:)))
-            customize.tag = index
-            let stack = NSStackView(views: [popup, recorder, customize])
-            stack.orientation = .horizontal
-            stack.spacing = 8
-            stack.alignment = .centerY
-            let row = addRow(
-                to: scoped,
-                title: String(localized: "Slot \(index + 1)"),
-                subtitle: subtitle("", target: .scoped(index)),
-                accessory: stack
-            )
-            scopePopups.append(popup)
-            scopedRows.append(row)
+        scopedListView.onCustomize = { [weak self] target in
+            self?.presentOptions(for: target, title: String(localized: "Customize scoped shortcut"), includeSpaceScope: false)
         }
+        scoped.addContent(scopedListView)
 
         // In-panel keys section — the keys that act on the highlighted window
         // while the switcher is open (close / minimize / hide / quit). Recorded
@@ -184,7 +161,9 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     override func viewWillAppear() {
         super.viewWillAppear()
         refreshDirectSlots()
-        refreshScopeSlots()
+        // Another pane (Import settings) can rewrite the scoped list off-screen;
+        // rebuild from the live model on appear.
+        scopedListView.rebuild()
         refreshCustomizedSubtitles()
         cycleWidthsSwitch.state = Preferences.shared.cycleTileWidths ? .on : .off
         // Another pane (e.g. Import settings) can rewrite the list while this
@@ -272,27 +251,6 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         controller.present(asSheetFor: window)
     }
 
-    // MARK: - Scoped shortcut slots
-
-    /// Sync each slot's scope popup to its stored `SwitchScope`.
-    private func refreshScopeSlots() {
-        let scopes = Preferences.shared.scopedShortcutScopes
-        for (index, popup) in scopePopups.enumerated() {
-            let scope = scopes.indices.contains(index) ? scopes[index] : .allAppsAllSpaces
-            if let i = scopeOptions.firstIndex(of: scope) { popup.selectItem(at: i) }
-        }
-    }
-
-    @objc private func scopeChanged(_ sender: NSPopUpButton) {
-        let slot = sender.tag
-        let idx = sender.indexOfSelectedItem
-        guard scopeOptions.indices.contains(idx) else { return }
-        var scopes = Preferences.shared.scopedShortcutScopes
-        while scopes.count <= slot { scopes.append(.allAppsAllSpaces) }
-        scopes[slot] = scopeOptions[idx]
-        Preferences.shared.scopedShortcutScopes = scopes
-    }
-
     // MARK: - Per-shortcut overrides (#74)
 
     private func makeCustomizeButton(action: Selector) -> NSButton {
@@ -321,9 +279,6 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     private func refreshCustomizedSubtitles() {
         switchAppsRow?.update(subtitle: subtitle(switchAppsBaseSubtitle, target: .switchApps))
         switchWindowsRow?.update(subtitle: subtitle(switchWindowsBaseSubtitle, target: .switchWindows))
-        for (index, row) in scopedRows.enumerated() {
-            row.update(subtitle: subtitle("", target: .scoped(index)))
-        }
     }
 
     @objc private func customizeSwitchApps() {
@@ -332,14 +287,6 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
 
     @objc private func customizeSwitchWindows() {
         presentOptions(for: .switchWindows, title: String(localized: "Customize Switch windows"), includeSpaceScope: true)
-    }
-
-    @objc private func customizeScopedSlot(_ sender: NSButton) {
-        let slot = sender.tag
-        // The scoped slot's SwitchScope already owns the window-set (incl. the
-        // Space dimension), so the override sheet omits the Space-scope control to
-        // avoid double-filtering.
-        presentOptions(for: .scoped(slot), title: String(localized: "Customize Slot \(slot + 1)"), includeSpaceScope: false)
     }
 
     private func presentOptions(for target: SwitchTarget, title: String, includeSpaceScope: Bool) {

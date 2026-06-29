@@ -13,24 +13,40 @@ import BetterShortcuts
 /// scope takes effect without re-registering.
 @MainActor
 enum ScopedSwitch {
-    /// Set by `SwitcherController` at startup. Invoked with the slot index and the
-    /// slot's scope when its shortcut fires. The slot index lets the controller
-    /// look up that slot's per-shortcut override (#74).
+    /// Set by `SwitcherController` at startup. Invoked with the entry's stable id
+    /// and its scope when its shortcut fires. The id lets the controller look up
+    /// that entry's per-shortcut override (#74).
     static var onTrigger: ((Int, SwitchScope) -> Void)?
 
+    /// Names that already have a Carbon `onKeyDown` handler installed. Stable ids
+    /// are never reused, so a name is only ever registered once per launch.
+    private static var installedNames: Set<String> = []
+
+    /// Install handlers for every current scoped-list entry. Call once at startup
+    /// (after `Preferences` has loaded its list).
     static func installHandlers() {
-        for (index, name) in BetterShortcuts.Name.scopedSwitch.enumerated() {
-            BetterShortcuts.onKeyDown(for: name) {
-                // BetterShortcuts invokes this on the main thread inside
-                // `MainActor.assumeIsolated`; mirror that to reach our isolation.
-                MainActor.assumeIsolated { trigger(slot: index) }
-            }
+        for entry in Preferences.shared.scopedShortcuts {
+            installHandler(for: entry)
         }
     }
 
-    private static func trigger(slot: Int) {
-        let scopes = Preferences.shared.scopedShortcutScopes
-        guard scopes.indices.contains(slot) else { return }
-        onTrigger?(slot, scopes[slot])
+    /// Install the Carbon handler for one entry, mapping its recorded trigger to
+    /// the entry's id. Idempotent — a re-install for the same name is ignored.
+    /// Call when the user adds a new entry at runtime.
+    static func installHandler(for entry: ScopedShortcut) {
+        guard installedNames.insert(entry.shortcutName).inserted else { return }
+        let id = entry.id
+        BetterShortcuts.onKeyDown(for: BetterShortcuts.Name(entry.shortcutName)) {
+            // BetterShortcuts invokes this on the main thread inside
+            // `MainActor.assumeIsolated`; mirror that to reach our isolation.
+            MainActor.assumeIsolated { trigger(id: id) }
+        }
+    }
+
+    private static func trigger(id: Int) {
+        // Re-read live: the entry may have been removed (then its recorded trigger
+        // was cleared, so this normally can't fire) or its scope changed.
+        guard let entry = Preferences.shared.scopedShortcuts.first(where: { $0.id == id }) else { return }
+        onTrigger?(id, entry.scope)
     }
 }

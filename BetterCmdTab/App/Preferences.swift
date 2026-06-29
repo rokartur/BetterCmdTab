@@ -249,7 +249,8 @@ enum SpaceScopeOverride: String, CaseIterable, Sendable {
 enum SwitchTarget: Hashable, Sendable {
     case switchApps
     case switchWindows
-    /// Scoped-shortcut slot `0 ..< scopedShortcutSlotCount`.
+    /// Scoped-shortcut entry, keyed by its stable `ScopedShortcut.id` (monotonic,
+    /// never reused — not a positional slot, so it survives add/remove/reorder).
     case scoped(Int)
 
     var storageKey: String {
@@ -260,8 +261,8 @@ enum SwitchTarget: Hashable, Sendable {
         }
     }
 
-    /// Parse a stored key back into a target. Rejects an out-of-range scoped
-    /// index so a hand-edited/imported file can't address a non-existent slot.
+    /// Parse a stored key back into a target. Any non-negative scoped id is valid
+    /// (the list is dynamic); a negative/malformed id is rejected.
     init?(storageKey: String) {
         switch storageKey {
         case "switchApps": self = .switchApps
@@ -269,9 +270,40 @@ enum SwitchTarget: Hashable, Sendable {
         default:
             guard storageKey.hasPrefix("scoped."),
                   let i = Int(storageKey.dropFirst("scoped.".count)),
-                  i >= 0, i < Preferences.scopedShortcutSlotCount else { return nil }
+                  i >= 0 else { return nil }
             self = .scoped(i)
         }
+    }
+}
+
+/// One user-created scoped-switch shortcut (#74): a dynamic, add/remove list
+/// entry (AltTab-style) replacing the old fixed 3 slots. `id` is stable and
+/// monotonic — it keys the entry's per-shortcut override (`SwitchTarget.scoped`)
+/// and its recorded trigger, so removing an entry never disturbs the others.
+/// `shortcutName` is the `BetterShortcuts.Name` raw value the trigger is recorded
+/// under (migrated entries keep the legacy `scopedSwitch1…` names; new entries
+/// use `scopedSwitch.<id>`). Persisted as a plist `[String: String]`.
+struct ScopedShortcut: Equatable, Sendable {
+    var id: Int
+    var scope: SwitchScope
+    var shortcutName: String
+
+    init(id: Int, scope: SwitchScope = .allAppsAllSpaces, shortcutName: String) {
+        self.id = id
+        self.scope = scope
+        self.shortcutName = shortcutName
+    }
+
+    var dictionary: [String: String] {
+        ["id": String(id), "scope": scope.rawValue, "name": shortcutName]
+    }
+
+    init?(dictionary: [String: String]) {
+        guard let idStr = dictionary["id"], let id = Int(idStr), id >= 0,
+              let name = dictionary["name"], !name.isEmpty else { return nil }
+        self.id = id
+        self.scope = dictionary["scope"].flatMap(SwitchScope.init(rawValue:)) ?? .allAppsAllSpaces
+        self.shortcutName = name
     }
 }
 
@@ -648,6 +680,12 @@ final class Preferences: ObservableObject {
         static let currentSpaceOnly = "Switcher.currentSpaceOnly"
         static let directActivationBindings = "Switcher.directActivationBindings"
         static let scopedShortcutScopes = "Switcher.scopedShortcutScopes"
+        /// The dynamic scoped-switch list (#74), as `[[String: String]]` of
+        /// `ScopedShortcut.dictionary`. Supersedes the fixed `scopedShortcutScopes`
+        /// array; migrated from it on first launch of the new build.
+        static let scopedShortcutList = "Switcher.scopedShortcutList"
+        /// Monotonic counter for allocating stable `ScopedShortcut.id`s.
+        static let nextScopedShortcutID = "Switcher.nextScopedShortcutID"
         /// Per-shortcut behavioral + appearance overrides (#74), keyed by
         /// `SwitchTarget.storageKey`. Stored as `[[String: String]]` (each entry =
         /// a `ShortcutOverride.dictionary` plus a `"target"` key) so the generic
@@ -1227,6 +1265,75 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// The dynamic, user-managed scoped-switch list (#74). Add/remove entries from
+    /// the Shortcuts pane; each carries a stable `id`, a `scope`, and the
+    /// `BetterShortcuts.Name` its trigger is recorded under. Persisted as
+    /// `[[String: String]]` so the generic settings export/import carries it.
+    @Published var scopedShortcuts: [ScopedShortcut] {
+        didSet {
+            guard oldValue != scopedShortcuts else { return }
+            UserDefaults.standard.set(scopedShortcuts.map(\.dictionary), forKey: Keys.scopedShortcutList)
+        }
+    }
+
+    /// Monotonic id allocator for `scopedShortcuts`. Never decreases, so a removed
+    /// entry's id is never reused (keeps stale recorded triggers/overrides inert).
+    @Published var nextScopedShortcutID: Int {
+        didSet {
+            guard oldValue != nextScopedShortcutID else { return }
+            UserDefaults.standard.set(nextScopedShortcutID, forKey: Keys.nextScopedShortcutID)
+        }
+    }
+
+    /// Append a new scoped-switch entry with a fresh id and the default scope, and
+    /// return it. The caller wires its BetterShortcuts handler + UI row.
+    @discardableResult
+    func appendScopedShortcut(scope: SwitchScope = .allAppsAllSpaces) -> ScopedShortcut {
+        let id = nextScopedShortcutID
+        nextScopedShortcutID = id + 1
+        let entry = ScopedShortcut(id: id, scope: scope, shortcutName: "scopedSwitch.\(id)")
+        scopedShortcuts.append(entry)
+        return entry
+    }
+
+    /// Remove the entry with `id`, returning its `shortcutName` so the caller can
+    /// clear the recorded trigger + override. No-op (nil) if the id is unknown.
+    @discardableResult
+    func removeScopedShortcut(id: Int) -> String? {
+        guard let i = scopedShortcuts.firstIndex(where: { $0.id == id }) else { return nil }
+        let name = scopedShortcuts[i].shortcutName
+        scopedShortcuts.remove(at: i)
+        setOverride(ShortcutOverride(), for: .scoped(id))
+        return name
+    }
+
+    /// Update the scope of the entry with `id`.
+    func setScope(_ scope: SwitchScope, forScopedID id: Int) {
+        guard let i = scopedShortcuts.firstIndex(where: { $0.id == id }), scopedShortcuts[i].scope != scope else { return }
+        scopedShortcuts[i].scope = scope
+    }
+
+    static func decodeScopedShortcuts(_ raw: [[String: String]]?) -> [ScopedShortcut] {
+        (raw ?? []).compactMap(ScopedShortcut.init(dictionary:))
+    }
+
+    /// Build the initial list from the legacy fixed `scopedShortcutScopes` (the
+    /// pre-#74 3 slots): keep only slots the user actually used — a recorded
+    /// trigger or a non-default scope — so a clean install starts empty instead of
+    /// with three blank rows. Names stay `scopedSwitch1…3` so existing recorded
+    /// triggers carry over untouched.
+    static func migrateScopedShortcuts(legacyScopes: [SwitchScope]) -> [ScopedShortcut] {
+        var out: [ScopedShortcut] = []
+        for (i, scope) in legacyScopes.enumerated() {
+            let name = "scopedSwitch\(i + 1)"
+            let hasTrigger = UserDefaults.standard.object(forKey: "BetterShortcuts_\(name)") != nil
+                || UserDefaults.standard.object(forKey: "KeyboardShortcuts_\(name)") != nil
+            guard hasTrigger || scope != .allAppsAllSpaces else { continue }
+            out.append(ScopedShortcut(id: i, scope: scope, shortcutName: name))
+        }
+        return out
+    }
+
     /// Per-shortcut behavioral + appearance overrides (#74), keyed by
     /// `SwitchTarget.storageKey`. An absent key means the shortcut inherits the
     /// global preferences; empty overrides are never stored. Read on the main
@@ -1522,7 +1629,19 @@ final class Preferences: ObservableObject {
         self.backdropMaterial = materialRaw.flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
         self.currentSpaceOnly = defaults.object(forKey: Keys.currentSpaceOnly) as? Bool ?? false
         self.directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
-        self.scopedShortcutScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
+        let legacyScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
+        self.scopedShortcutScopes = legacyScopes
+        // Dynamic scoped list (#74): use the stored list if present, else migrate
+        // once from the legacy fixed slots.
+        let migrated: [ScopedShortcut]
+        if let raw = defaults.array(forKey: Keys.scopedShortcutList) as? [[String: String]] {
+            migrated = Self.decodeScopedShortcuts(raw)
+        } else {
+            migrated = Self.migrateScopedShortcuts(legacyScopes: legacyScopes)
+        }
+        self.scopedShortcuts = migrated
+        let storedNextID = defaults.object(forKey: Keys.nextScopedShortcutID) as? Int
+        self.nextScopedShortcutID = max(storedNextID ?? 0, (migrated.map(\.id).max() ?? -1) + 1)
         self.shortcutOverrides = Self.decodeShortcutOverrides(defaults.array(forKey: Keys.shortcutOverrides) as? [[String: String]])
         self.mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
         self.mouseClickSelectionEnabled = defaults.object(forKey: Keys.mouseClickSelectionEnabled) as? Bool ?? true
@@ -1609,7 +1728,14 @@ final class Preferences: ObservableObject {
         backdropMaterial = defaults.string(forKey: Keys.backdropMaterial).flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
         currentSpaceOnly = defaults.object(forKey: Keys.currentSpaceOnly) as? Bool ?? false
         directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
-        scopedShortcutScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
+        let reloadedScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
+        scopedShortcutScopes = reloadedScopes
+        if let raw = defaults.array(forKey: Keys.scopedShortcutList) as? [[String: String]] {
+            scopedShortcuts = Self.decodeScopedShortcuts(raw)
+        } else {
+            scopedShortcuts = Self.migrateScopedShortcuts(legacyScopes: reloadedScopes)
+        }
+        nextScopedShortcutID = max(defaults.object(forKey: Keys.nextScopedShortcutID) as? Int ?? 0, (scopedShortcuts.map(\.id).max() ?? -1) + 1)
         shortcutOverrides = Self.decodeShortcutOverrides(defaults.array(forKey: Keys.shortcutOverrides) as? [[String: String]])
 
         hoverActionsEnabled = defaults.object(forKey: Keys.hoverActionsEnabled) as? Bool ?? false

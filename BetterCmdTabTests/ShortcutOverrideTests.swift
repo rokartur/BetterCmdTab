@@ -21,14 +21,47 @@ struct ShortcutOverrideTests {
         #expect(SwitchTarget(storageKey: "switchApps") == .switchApps)
         #expect(SwitchTarget(storageKey: "switchWindows") == .switchWindows)
         #expect(SwitchTarget(storageKey: "scoped.1") == .scoped(1))
+        // The scoped list is dynamic, so any non-negative id is valid (not slot-bounded).
+        #expect(SwitchTarget(storageKey: "scoped.999") == .scoped(999))
     }
 
-    @Test("out-of-range / malformed scoped keys are rejected")
+    @Test("malformed scoped keys are rejected")
     func targetRejectsBadKeys() {
-        #expect(SwitchTarget(storageKey: "scoped.\(Preferences.scopedShortcutSlotCount)") == nil)
         #expect(SwitchTarget(storageKey: "scoped.-1") == nil)
         #expect(SwitchTarget(storageKey: "scoped.x") == nil)
+        #expect(SwitchTarget(storageKey: "scoped.") == nil)
         #expect(SwitchTarget(storageKey: "bogus") == nil)
+    }
+
+    // MARK: - ScopedShortcut (dynamic list)
+
+    @Test("ScopedShortcut dictionary round-trips")
+    func scopedShortcutRoundTrip() {
+        let entry = ScopedShortcut(id: 7, scope: .minimizedOnly, shortcutName: "scopedSwitch.7")
+        let parsed = ScopedShortcut(dictionary: entry.dictionary)
+        #expect(parsed == entry)
+    }
+
+    @Test("ScopedShortcut rejects malformed dictionaries")
+    func scopedShortcutRejectsBad() {
+        #expect(ScopedShortcut(dictionary: ["scope": "minimizedOnly", "name": "x"]) == nil) // no id
+        #expect(ScopedShortcut(dictionary: ["id": "-1", "name": "x"]) == nil)               // negative id
+        #expect(ScopedShortcut(dictionary: ["id": "1", "name": ""]) == nil)                 // empty name
+        // Unknown scope falls back to the default rather than dropping the entry.
+        #expect(ScopedShortcut(dictionary: ["id": "1", "name": "x", "scope": "bogus"])?.scope == .allAppsAllSpaces)
+    }
+
+    @Test("decodeScopedShortcuts drops malformed entries")
+    func decodeScopedList() {
+        let raw: [[String: String]] = [
+            ["id": "0", "scope": "allAppsAllSpaces", "name": "scopedSwitch1"],
+            ["scope": "minimizedOnly", "name": "x"], // no id → dropped
+            ["id": "5", "scope": "currentAppWindows", "name": "scopedSwitch.5"],
+        ]
+        let decoded = Preferences.decodeScopedShortcuts(raw)
+        #expect(decoded.count == 2)
+        #expect(decoded.map(\.id) == [0, 5])
+        #expect(decoded[1].scope == .currentAppWindows)
     }
 
     // MARK: - SpaceScopeOverride

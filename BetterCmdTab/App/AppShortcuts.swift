@@ -135,6 +135,10 @@ extension BetterShortcuts.Name: @retroactive CaseIterable {
                let slot = Int(rawValue.dropFirst(Self.directActivatePrefix.count)) {
                 return String(localized: "Direct activation \(slot)")
             }
+            // Dynamic list entry (#74): "scopedSwitch.<id>".
+            if rawValue.hasPrefix("scopedSwitch.") {
+                return String(localized: "Scoped shortcut")
+            }
             if rawValue.hasPrefix(Self.scopedSwitchPrefix),
                let slot = Int(rawValue.dropFirst(Self.scopedSwitchPrefix.count)) {
                 return String(localized: "Scoped shortcut \(slot)")
