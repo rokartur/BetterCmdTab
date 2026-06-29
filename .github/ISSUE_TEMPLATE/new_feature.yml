@@ -1,0 +1,36 @@
+name: New Feature
+description: Suggest a new feature or enhancement
+labels: ["feat"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature — please provide enough detail so we can evaluate and prioritize it.
+  - type: input
+    id: summary
+    attributes:
+      label: Short summary
+      placeholder: One-line summary of the feature
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why is this needed?
+      placeholder: Describe the problem, who it affects, and the user benefit
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed solution / behaviour
+      placeholder: Describe how it should work (interaction, defaults, edge cases)
+  - type: input
+    id: related_issues
+    attributes:
+      label: Related issues or PRs (optional)
+      placeholder: #123, #456
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups / screenshots / notes (optional)
