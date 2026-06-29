@@ -1,7 +1,10 @@
 import AppKit
 
 enum AppCatalog {
-    static func fastAppList(orderedBy mru: [pid_t]) -> [NSRunningApplication] {
+    /// `filter` lets a per-shortcut override (#74) replace the global filter;
+    /// `nil` (the default) reads the global config, keeping existing callers
+    /// byte-identical.
+    static func fastAppList(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil) -> [NSRunningApplication] {
         let selfPid = getpid()
         let regulars = NSWorkspace.shared.runningApplications
             .filter { $0.activationPolicy == .regular && $0.processIdentifier != selfPid }
@@ -19,10 +22,10 @@ enum AppCatalog {
         for app in regulars where !seen.contains(app.processIdentifier) {
             ordered.append(app)
         }
-        return CatalogFilter.filteredApps(ordered, CatalogFilter.config())
+        return CatalogFilter.filteredApps(ordered, cfg ?? CatalogFilter.config())
     }
 
-    static func snapshot(orderedBy mru: [pid_t]) -> [SwitcherRow] {
+    static func snapshot(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil) -> [SwitcherRow] {
         // Self is intentionally included: BetterCmdTab should appear in the
         // switcher when — and only when — it has a real standard window open
         // (the Settings window). The switcher panel is a borderless
@@ -110,7 +113,7 @@ enum AppCatalog {
                 return lhs.offset < rhs.offset
             }
             .map { $0.row }
-        return CatalogFilter.filteredRows(sorted, CatalogFilter.config())
+        return CatalogFilter.filteredRows(sorted, cfg ?? CatalogFilter.config())
     }
 
     private static func statusPriority(_ row: SwitcherRow) -> Int {

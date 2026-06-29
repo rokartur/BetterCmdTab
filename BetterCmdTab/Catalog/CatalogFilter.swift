@@ -50,6 +50,23 @@ enum CatalogFilter {
         )
     }
 
+    /// Overlay a per-shortcut override (#74) onto a base config, substituting only
+    /// the fields the override actually sets. Pure and `Sendable`-safe — the
+    /// resolved `Config` is built once on the main actor when a trigger fires and
+    /// threaded into the off-main catalog filter, so a shortcut can widen/narrow
+    /// the row set (e.g. force "all Spaces") without touching `UserDefaults`.
+    static func overlay(_ base: Config, _ ov: ShortcutOverride) -> Config {
+        Config(
+            hideModes: base.hideModes,
+            pinned: base.pinned,
+            showMinimized: ov.showMinimized ?? base.showMinimized,
+            showHidden: ov.showHidden ?? base.showHidden,
+            showWindowless: ov.showWindowless ?? base.showWindowless,
+            currentSpaceOnly: ov.spaceScope.resolvedCurrentSpaceOnly ?? base.currentSpaceOnly,
+            sortOrder: ov.sortOrder ?? base.sortOrder
+        )
+    }
+
     /// Drop apps hidden by their exception and (optionally) minimized/hidden
     /// windows, then move pinned apps to the front in pin order. Placeholders
     /// (cache-warm rows) are never filtered or reordered.

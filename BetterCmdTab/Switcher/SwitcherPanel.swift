@@ -129,7 +129,8 @@ final class SwitcherPanel: NSPanel {
         }
     }
 
-    func present() {
+    /// `opacity` is the resolved per-shortcut panel opacity (#74), 30–100.
+    func present(opacity: Int = 100) {
         guard let content = contentView else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -162,7 +163,7 @@ final class SwitcherPanel: NSPanel {
         // shown at the user's chosen opacity (no fade — `animationBehavior` is
         // `.none`).
         content.isHidden = false
-        alphaValue = CGFloat(Preferences.shared.panelOpacity) / 100
+        alphaValue = CGFloat(opacity) / 100
         // The WindowServer order-front + app activation; split out so Instruments
         // shows it apart from the autolayout pass above when chasing reveal spikes.
         Log.reveal.withIntervalSignpost("present.orderFront") {

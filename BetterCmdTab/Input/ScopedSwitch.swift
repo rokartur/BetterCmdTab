@@ -13,9 +13,10 @@ import BetterShortcuts
 /// scope takes effect without re-registering.
 @MainActor
 enum ScopedSwitch {
-    /// Set by `SwitcherController` at startup. Invoked with the slot's scope when
-    /// its shortcut fires.
-    static var onTrigger: ((SwitchScope) -> Void)?
+    /// Set by `SwitcherController` at startup. Invoked with the slot index and the
+    /// slot's scope when its shortcut fires. The slot index lets the controller
+    /// look up that slot's per-shortcut override (#74).
+    static var onTrigger: ((Int, SwitchScope) -> Void)?
 
     static func installHandlers() {
         for (index, name) in BetterShortcuts.Name.scopedSwitch.enumerated() {
@@ -30,6 +31,6 @@ enum ScopedSwitch {
     private static func trigger(slot: Int) {
         let scopes = Preferences.shared.scopedShortcutScopes
         guard scopes.indices.contains(slot) else { return }
-        onTrigger?(scopes[slot])
+        onTrigger?(slot, scopes[slot])
     }
 }

@@ -114,10 +114,16 @@ final class SwitcherView: NSView, TabStripDelegate {
     private var searchActive: Bool = false
     private var accent: NSColor = .controlAccentColor
     private var tabStripActive: Bool = false
+    /// Resolved appearance for the current reveal (#74). Set at the top of
+    /// `configure` so the layout helpers below (and on standalone relayouts) read
+    /// the firing shortcut's overrides instead of the global preferences.
+    private var effective: EffectiveSettings = .defaults
 
-    func configure(rows: [SwitcherRow], labels: [String], selectedIndex: Int, metrics: SwitcherMetrics, highlightPrefix: String = "", searchActive: Bool = false, searchQuery: String = "", tabStripTitles: [String]? = nil, tabStripSelectedIndex: Int = 0) {
+    func configure(rows: [SwitcherRow], labels: [String], selectedIndex: Int, metrics: SwitcherMetrics, effective: EffectiveSettings, highlightPrefix: String = "", searchActive: Bool = false, searchQuery: String = "", tabStripTitles: [String]? = nil, tabStripSelectedIndex: Int = 0) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        // Set before `fittedMetrics`/layout below read it (see ivar note).
+        self.effective = effective
         // Item frames depend only on the row count, the metrics, and whether the
         // search strip is showing — not on row content or selection. When none
         // of those changed (a reorder, a glyph flip, an audio/badge repaint, a
@@ -141,7 +147,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         self.labels = labels
         self.highlightPrefix = highlightPrefix
         self.searchActive = searchActive
-        self.accent = Preferences.shared.resolvedAccent
+        self.accent = effective.resolvedAccent
         self.selectedIndex = selectedIndex
         searchBar.update(query: searchQuery)
         searchBar.isHidden = !searchActive
@@ -275,7 +281,7 @@ final class SwitcherView: NSView, TabStripDelegate {
 
     /// User-pinned corner radius when set (> 0), otherwise the size-derived metric.
     private func effectiveCornerRadius(_ metrics: SwitcherMetrics) -> CGFloat {
-        let pref = Preferences.shared.panelCornerRadius
+        let pref = effective.panelCornerRadius
         return pref > 0 ? CGFloat(pref) : metrics.cornerRadius
     }
 
@@ -284,7 +290,7 @@ final class SwitcherView: NSView, TabStripDelegate {
     private func applyBackdropMaterial() {
         if #available(macOS 26.0, *), glassBackdrop is NSGlassEffectView { return }
         guard let effect = glassBackdrop as? NSVisualEffectView else { return }
-        effect.material = Preferences.shared.backdropMaterial.material
+        effect.material = effective.backdropMaterial.material
         // Pin to `.active` on every reveal: the switcher must always read as
         // active/focused, never follow the (non-activating) panel's key state and
         // dim. Idempotent — cheap to re-assert alongside the material.
@@ -509,7 +515,8 @@ final class SwitcherView: NSView, TabStripDelegate {
                 prefixLength: highlightLen,
                 selected: i == selectedIndex,
                 metrics: metrics,
-                accent: accent
+                accent: accent,
+                effective: effective
             )
             itemViews[i].isHovered = (i == hoveredIndex)
             itemViews[i].isHidden = false
@@ -618,7 +625,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         guard base.layoutMode == .gridView || base.layoutMode == .windowPreview else { return base }
         let frame = layoutScreenFrame()
         let letterHints = base.tileLetterArea > 0
-        let userCap = Preferences.shared.gridMaxColumns
+        let userCap = effective.gridMaxColumns
 
         func fits(_ m: SwitcherMetrics) -> Bool {
             let reservedSearch = searchActive ? round(30 * m.scale) + m.outerPadding : 0
@@ -648,7 +655,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         var candidate = base
         while scale > minScale + 0.001 {
             scale = max(minScale, scale - 0.05)
-            candidate = SwitcherMetrics.forScale(scale, layoutMode: base.layoutMode, letterHints: letterHints, showAppNames: Preferences.shared.showApplicationNames, showWindowTitles: Preferences.shared.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: Preferences.shared.expandBrowserTabsAsWindows && !Preferences.shared.applicationsOnly)
+            candidate = SwitcherMetrics.forScale(scale, layoutMode: base.layoutMode, letterHints: letterHints, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
             if fits(candidate) { return candidate }
         }
         return candidate
@@ -831,7 +838,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         let itemH = letterArea + tile + labelArea
         let fit = Self.gridFit(count: count, tileW: tile, itemH: itemH, gap: gap,
                                maxListWidth: maxListWidth, maxListHeight: maxListHeight,
-                               userCap: Preferences.shared.gridMaxColumns)
+                               userCap: effective.gridMaxColumns)
         let cols = fit.cols
         let rowsCount = fit.rowsCount
         let listWidth = fit.listWidth
@@ -890,7 +897,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         // even max-width columns can't fit (both auto and explicit-column-cap).
         let fit = Self.gridFit(count: count, tileW: tileW, itemH: itemH, gap: gap,
                                maxListWidth: maxListWidth, maxListHeight: maxListHeight,
-                               userCap: Preferences.shared.gridMaxColumns)
+                               userCap: effective.gridMaxColumns)
         let cols = fit.cols
         let rowsCount = fit.rowsCount
         let listWidth = fit.listWidth

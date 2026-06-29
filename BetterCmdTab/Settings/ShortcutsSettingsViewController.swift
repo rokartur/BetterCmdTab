@@ -16,6 +16,16 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     private var scopePopups: [NSPopUpButton] = []
     private let scopeOptions: [SwitchScope] = SwitchScope.allCases
 
+    // Per-shortcut override editor (#74): a "Customize…" button per panel-opening
+    // shortcut, the rows whose subtitle reflects whether an override is set, and
+    // the live sheet.
+    private var switchAppsRow: SettingsRowView?
+    private var switchWindowsRow: SettingsRowView?
+    private var scopedRows: [SettingsRowView] = []
+    private var optionsSheet: ShortcutOptionsSheetWindowController?
+    private let switchAppsBaseSubtitle = String(localized: "Hold the modifier (⌘ by default) and tap to move through your open apps.")
+    private let switchWindowsBaseSubtitle = String(localized: "Cycle through the windows of the app you're on.")
+
     // Window-management options.
     private let cycleWidthsSwitch = NSSwitch()
 
@@ -29,18 +39,20 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         // hold modifier (⌘/⌥/⌃); Shift is reserved for stepping backwards and is
         // rejected by the recorder.
         let switching = addSection(title: String(localized: "Switching"), anchor: SettingsAnchor.switching)
-        addRow(
+        let appsCustomize = makeCustomizeButton(action: #selector(customizeSwitchApps))
+        switchAppsRow = addRow(
             to: switching,
             title: String(localized: "Switch apps"),
-            subtitle: String(localized: "Hold the modifier (⌘ by default) and tap to move through your open apps."),
-            accessory: appRecorder,
+            subtitle: subtitle(switchAppsBaseSubtitle, target: .switchApps),
+            accessory: triggerStack(button: appsCustomize, recorder: appRecorder),
             searchItemID: SearchID.switchApps
         )
-        addRow(
+        let windowsCustomize = makeCustomizeButton(action: #selector(customizeSwitchWindows))
+        switchWindowsRow = addRow(
             to: switching,
             title: String(localized: "Switch windows"),
-            subtitle: String(localized: "Cycle through the windows of the app you're on."),
-            accessory: windowRecorder,
+            subtitle: subtitle(switchWindowsBaseSubtitle, target: .switchWindows),
+            accessory: triggerStack(button: windowsCustomize, recorder: windowRecorder),
             searchItemID: SearchID.switchWindows
         )
 
@@ -86,12 +98,20 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
             popup.target = self
             popup.action = #selector(scopeChanged(_:))
             popup.tag = index
-            let stack = NSStackView(views: [popup, recorder])
+            let customize = makeCustomizeButton(action: #selector(customizeScopedSlot(_:)))
+            customize.tag = index
+            let stack = NSStackView(views: [popup, recorder, customize])
             stack.orientation = .horizontal
             stack.spacing = 8
             stack.alignment = .centerY
-            addRow(to: scoped, title: String(localized: "Slot \(index + 1)"), accessory: stack)
+            let row = addRow(
+                to: scoped,
+                title: String(localized: "Slot \(index + 1)"),
+                subtitle: subtitle("", target: .scoped(index)),
+                accessory: stack
+            )
             scopePopups.append(popup)
+            scopedRows.append(row)
         }
 
         // In-panel keys section — the keys that act on the highlighted window
@@ -165,6 +185,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         super.viewWillAppear()
         refreshDirectSlots()
         refreshScopeSlots()
+        refreshCustomizedSubtitles()
         cycleWidthsSwitch.state = Preferences.shared.cycleTileWidths ? .on : .off
         // Another pane (e.g. Import settings) can rewrite the list while this
         // cached controller is off screen — re-sync the subtitle on appear.
@@ -270,6 +291,72 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         while scopes.count <= slot { scopes.append(.allAppsAllSpaces) }
         scopes[slot] = scopeOptions[idx]
         Preferences.shared.scopedShortcutScopes = scopes
+    }
+
+    // MARK: - Per-shortcut overrides (#74)
+
+    private func makeCustomizeButton(action: Selector) -> NSButton {
+        let button = NSButton(title: String(localized: "Customize…"), target: self, action: action)
+        button.bezelStyle = .rounded
+        button.controlSize = .small
+        return button
+    }
+
+    private func triggerStack(button: NSButton, recorder: NSView) -> NSStackView {
+        let stack = NSStackView(views: [button, recorder])
+        stack.orientation = .horizontal
+        stack.spacing = 8
+        stack.alignment = .centerY
+        return stack
+    }
+
+    /// Append a "(Customized)" marker to a row's base subtitle when the target has
+    /// a non-empty override.
+    private func subtitle(_ base: String, target: SwitchTarget) -> String {
+        guard !Preferences.shared.override(for: target).isEmpty else { return base }
+        let marker = String(localized: "Customized")
+        return base.isEmpty ? marker : "\(base) · \(marker)"
+    }
+
+    private func refreshCustomizedSubtitles() {
+        switchAppsRow?.update(subtitle: subtitle(switchAppsBaseSubtitle, target: .switchApps))
+        switchWindowsRow?.update(subtitle: subtitle(switchWindowsBaseSubtitle, target: .switchWindows))
+        for (index, row) in scopedRows.enumerated() {
+            row.update(subtitle: subtitle("", target: .scoped(index)))
+        }
+    }
+
+    @objc private func customizeSwitchApps() {
+        presentOptions(for: .switchApps, title: String(localized: "Customize Switch apps"), includeSpaceScope: true)
+    }
+
+    @objc private func customizeSwitchWindows() {
+        presentOptions(for: .switchWindows, title: String(localized: "Customize Switch windows"), includeSpaceScope: true)
+    }
+
+    @objc private func customizeScopedSlot(_ sender: NSButton) {
+        let slot = sender.tag
+        // The scoped slot's SwitchScope already owns the window-set (incl. the
+        // Space dimension), so the override sheet omits the Space-scope control to
+        // avoid double-filtering.
+        presentOptions(for: .scoped(slot), title: String(localized: "Customize Slot \(slot + 1)"), includeSpaceScope: false)
+    }
+
+    private func presentOptions(for target: SwitchTarget, title: String, includeSpaceScope: Bool) {
+        guard let window = view.window, optionsSheet == nil else { return }
+        let controller = ShortcutOptionsSheetWindowController(
+            title: title,
+            target: target,
+            includeSpaceScope: includeSpaceScope
+        ) { override in
+            Preferences.shared.setOverride(override, for: target)
+        }
+        controller.onDidDismiss = { [weak self] in
+            self?.optionsSheet = nil
+            self?.refreshCustomizedSubtitles()
+        }
+        optionsSheet = controller
+        controller.present(asSheetFor: window)
     }
 
 

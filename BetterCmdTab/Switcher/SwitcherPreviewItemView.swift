@@ -17,6 +17,9 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
 
     private var metrics: SwitcherMetrics = .baseline
     private var accent: NSColor = .controlAccentColor
+    /// Resolved appearance for the current reveal (#74); set in `configure`, read
+    /// by render helpers (`applySelection`, title layout) that run outside it.
+    private var effective: EffectiveSettings = .defaults
     private var accentKey: String = NSColor.controlAccentColor.description
 
     /// CGWindowID of the row this tile shows, so a late thumbnail capture can be
@@ -186,7 +189,8 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         windowID = 0
     }
 
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor) {
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
+        self.effective = effective
         if metrics != self.metrics {
             applyMetrics(metrics)
         }
@@ -210,8 +214,8 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         // sibling tabs). Otherwise the title is gated by "Show window title". When
         // app names are hidden, use windowTitleText so a windowless/launch row
         // never re-surfaces the app name as its title.
-        let previewTitle = row.titleSlot(showAppNames: Preferences.shared.showApplicationNames)
-        nameLabel.stringValue = (Preferences.shared.showWindowTitleLabel || row.browserTab != nil) ? previewTitle : ""
+        let previewTitle = row.titleSlot(showAppNames: effective.showApplicationNames)
+        nameLabel.stringValue = (effective.showWindowTitleLabel || row.browserTab != nil) ? previewTitle : ""
 
         // Dock/notification count badge — shown beside the title, never over the
         // thumbnail. Suppressed for placeholder/dialog rows and for browser-tab
@@ -286,7 +290,7 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         nameLabel.textColor = isSelected ? .labelColor : .secondaryLabelColor
         // The selected title brightens to `labelColor`; bolding it is optional so
         // users who dislike the on-select width wobble keep a steady weight (#72).
-        let bold = isSelected && Preferences.shared.boldSelectedLabel
+        let bold = isSelected && effective.boldSelectedLabel
         nameLabel.font = NSFont.systemFont(
             ofSize: metrics.previewNameFontSize,
             weight: bold ? .semibold : .medium
@@ -406,7 +410,7 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
             let nameW = min(ceil(textW) + Self.labelCellInset, w - iconSize - 6 - badgeSlot)
             let groupW = iconSize + 4 + nameW + badgeSlot
             let startX = Self.titleGroupOriginX(
-                alignment: Preferences.shared.previewTitleAlignment,
+                alignment: effective.previewTitleAlignment,
                 groupWidth: groupW,
                 tileWidth: w
             )

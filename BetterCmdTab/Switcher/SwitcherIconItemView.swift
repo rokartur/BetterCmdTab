@@ -12,7 +12,7 @@ protocol SwitcherItemViewProtocol: NSView {
     func hoverAction(atWindowPoint point: NSPoint) -> RowAction?
     /// Highlight the button under `point` (window coords); nil clears it.
     func setHotDot(atWindowPoint point: NSPoint?)
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor)
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings)
     /// Drop per-tile image retains (app icon, window thumbnail) so the shared
     /// `IconCache` / `WindowThumbnailCache` can evict them, without discarding the
     /// view itself. Called when the panel dismisses so the pooled view stays
@@ -33,6 +33,9 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
 
     private var metrics: SwitcherMetrics = .baseline
     private var accent: NSColor = .controlAccentColor
+    /// Resolved appearance for the current reveal (#74); set in `configure`, read
+    /// by render helpers (`applySelection`) that run outside it.
+    private var effective: EffectiveSettings = .defaults
     /// Cheap stable token for the current accent, recomputed only when the
     /// accent changes — used as a memo-cache key instead of re-deriving
     /// `accent.description` on every letter/symbol render.
@@ -188,7 +191,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         imageView.image = nil
     }
 
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor) {
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
+        self.effective = effective
         if metrics != self.metrics {
             applyMetrics(metrics)
         }
@@ -204,8 +208,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         // just the window title with the System Settings icon — no status
         // glyphs — since their host process name/icon are meaningless.
         let isDialog = row.isSystemDialog
-        let showNames = Preferences.shared.showApplicationNames
-        let showTitles = Preferences.shared.showWindowTitleLabel
+        let showNames = effective.showApplicationNames
+        let showTitles = effective.showWindowTitleLabel
         // Both labels hidden → bare icon-only tile: the metrics drop the label area to
         // zero, so the name/title lines and the status glyphs are all dropped.
         let bothHidden = !showNames && !showTitles
@@ -380,7 +384,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         nameLabel.textColor = isSelected ? .labelColor : .secondaryLabelColor
         // Bolding the selected name is optional (#72) — off keeps a steady weight
         // so the label doesn't grow/shrink as selection moves; it still brightens.
-        let bold = isSelected && Preferences.shared.boldSelectedLabel
+        let bold = isSelected && effective.boldSelectedLabel
         nameLabel.font = NSFont.systemFont(
             ofSize: metrics.tileNameFontSize,
             weight: bold ? .semibold : .medium

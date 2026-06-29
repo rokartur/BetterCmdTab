@@ -111,7 +111,10 @@ final class AppCatalogCache {
         axCatalogPanelVisible = visible
     }
 
-    func rows(orderedBy mru: [pid_t]) -> [SwitcherRow] {
+    /// `filter` lets a per-shortcut override (#74) replace the global filter for
+    /// this reveal; `nil` (the default) reads the global config, so every existing
+    /// caller and every no-override reveal stays byte-identical.
+    func rows(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil) -> [SwitcherRow] {
         // Sweep terminated apps that the didTerminate workspace observer
         // hasn't reached yet (race: user hits Cmd+Q on a switcher row → row
         // stays visible with empty icon until the observer fires). Filtering
@@ -172,7 +175,7 @@ final class AppCatalogCache {
                 return lhs.offset < rhs.offset
             }
             .map { $0.row }
-        return CatalogFilter.filteredRows(sorted, CatalogFilter.config())
+        return CatalogFilter.filteredRows(sorted, cfg ?? CatalogFilter.config())
     }
 
     /// Internal (not private) so the `.mruWindows` window-recency sort can

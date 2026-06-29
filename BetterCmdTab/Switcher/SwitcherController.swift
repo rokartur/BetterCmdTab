@@ -104,7 +104,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Hint letters to render on tiles — empty when the user disabled letter
     /// hints, so no per-window letter is drawn. The internal `labels` array is
     /// kept populated for search reordering regardless.
-    private var displayLabels: [String] { Preferences.shared.letterHintsEnabled ? labels : [] }
+    private var displayLabels: [String] { effective.letterHintsEnabled ? labels : [] }
     private var index: Int = 0
     /// The frontmost app's focused window captured at the instant the switcher
     /// opens — before the panel is presented, while the user's real app is still
@@ -297,6 +297,15 @@ final class SwitcherController: SwitcherViewDelegate {
     /// `.currentAppWindows` scope (we're an accessory app, so the frontmost at
     /// trigger time is the user's real app, not us).
     private var scopeFrontPid: pid_t? = nil
+
+    /// Per-shortcut behavioral override (#74), resolved into a `CatalogFilter.Config`
+    /// when a trigger fires and threaded into the off-main catalog filter for this
+    /// reveal. `nil` when the firing shortcut has no override — the catalog then
+    /// reads the global config, so the common ⌘Tab path is byte-identical.
+    private var activeFilterConfig: CatalogFilter.Config? = nil
+    /// Per-shortcut appearance + reveal-time behavioral snapshot (#74). Rebuilt at
+    /// each trigger; resolves to the globals when the shortcut has no override.
+    private var effective: EffectiveSettings = .defaults
 
     /// Signatures of windows the user just closed locally. Any cache refresh
     /// completing before the AX close has propagated would otherwise re-add
@@ -596,7 +605,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // The Carbon fallback drives the same handler as the tap.
         carbonTrigger.onEvent = { [weak self] event in self?.handle(event) }
         // Scoped-shortcut triggers open the switcher pre-filtered (#3).
-        ScopedSwitch.onTrigger = { [weak self] scope in self?.openScoped(scope) }
+        ScopedSwitch.onTrigger = { [weak self] slot, scope in self?.openScoped(slot: slot, scope: scope) }
         // User-invoked recovery from the Privacy pane: re-enable every native
         // symbolic hotkey we may have disabled, in case a prior unclean exit
         // left the system ⌘Tab stuck. Re-syncs the live override afterwards so
@@ -1563,6 +1572,10 @@ final class SwitcherController: SwitcherViewDelegate {
             if newValue == .idle {
                 activeScope = nil
                 scopeFrontPid = nil
+                // Drop the per-shortcut override (#74) so the next plain ⌘Tab
+                // resolves the global config/appearance, not the last shortcut's.
+                activeFilterConfig = nil
+                effective = .defaults
             }
             // Under Secure Event Input the in-panel nav chords are registered only
             // while the panel is open, so re-sync on the open⇄close edge. Gated on
@@ -1573,13 +1586,26 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    /// Resolve the firing shortcut's per-shortcut override (#74) into the two
+    /// per-reveal snapshots — `activeFilterConfig` (behavioral, threaded into the
+    /// off-main catalog filter) and `effective` (appearance + reveal-time
+    /// behavioral). Called once per trigger, before the reveal is scheduled. With
+    /// no override, `activeFilterConfig` stays nil and `effective` resolves to the
+    /// globals, so the common path is unchanged.
+    private func resolveActiveOptions(for target: SwitchTarget) {
+        let override = Preferences.shared.override(for: target)
+        activeFilterConfig = override.isEmpty ? nil : CatalogFilter.overlay(CatalogFilter.config(), override)
+        effective = Preferences.shared.effectiveSettings(for: override)
+    }
+
     /// Open the switcher already filtered to `scope` (#3). Driven by a user
     /// scoped-shortcut via `ScopedSwitch.onTrigger`. Opens sticky (like a
     /// gesture/stay-open open) so releasing the shortcut's own modifier doesn't
     /// commit — the user steps with Tab/arrows/scroll and commits with Return or
     /// a click, or dismisses with Esc. Ignored if the switcher is already open.
-    func openScoped(_ scope: SwitchScope) {
+    func openScoped(slot: Int, scope: SwitchScope) {
         guard phase == .idle else { return }
+        resolveActiveOptions(for: .scoped(slot))
         mru.syncFrontmost()
         cache.scheduleFullRefresh()
         let selfPid = getpid()
@@ -1591,7 +1617,7 @@ final class SwitcherController: SwitcherViewDelegate {
             scopeFrontPid = nil
         }
         activeScope = scope
-        primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
+        primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
         primedIndex = 0
         primedStepDelta = 0
         // Scoped opens are sticky and never release-to-commit; the bound chord
@@ -1644,7 +1670,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// global toggle is on (that's the whole point of ⌘` — see the user's per-app
     /// vs per-window split). All other scopes (and plain ⌘Tab) collapse.
     private func applyApplicationsOnly(_ rows: [SwitcherRow]) -> [SwitcherRow] {
-        guard Preferences.shared.applicationsOnly, !windowsOnlyMode else { return rows }
+        guard effective.applicationsOnly, !windowsOnlyMode else { return rows }
         switch activeScope {
         case .currentAppWindows, .minimizedOnly:
             return rows
@@ -1661,7 +1687,7 @@ final class SwitcherController: SwitcherViewDelegate {
             isMinimized: false,
             isPlaceholder: true
         )
-        view.configure(rows: [placeholder], labels: [""], selectedIndex: 0, metrics: .baseline, highlightPrefix: "")
+        view.configure(rows: [placeholder], labels: [""], selectedIndex: 0, metrics: .baseline, effective: effective, highlightPrefix: "")
         panel.setFrame(NSRect(x: -20000, y: -20000, width: 200, height: 80), display: false)
         panel.orderFrontRegardless()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
@@ -1853,7 +1879,7 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func handleLetter(_ ch: Character) {
-        guard Preferences.shared.letterHintsEnabled else { return }
+        guard effective.letterHintsEnabled else { return }
         guard phase == .visible, !rows.isEmpty, !labels.isEmpty else { return }
 
         let attempt = letterBuffer + String(ch)
@@ -1963,6 +1989,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // synchronously below (the snapshot is sorted later, on the reveal
             // timer), so it can land asynchronously and still order this chord.
             handleFocusChange(pid: front.processIdentifier)
+            resolveActiveOptions(for: .switchWindows)
             windowsOnlyMode = true
             windowsOnlyPid = front.processIdentifier
             windowsOnlyPrimedDelta = delta
@@ -1988,7 +2015,8 @@ final class SwitcherController: SwitcherViewDelegate {
             // reveal() reads an up-to-date cache instead of stale rows that
             // then visibly re-populate after the panel appears.
             cache.scheduleFullRefresh()
-            primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
+            resolveActiveOptions(for: .switchApps)
+            primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
             guard !primedApps.isEmpty else { return }
             if primedApps.count == 1 {
                 primedIndex = 0
@@ -2251,7 +2279,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// in `handleScreenParametersChange()`; `refreshDisplay()` re-presents.
     private func applySessionScreen(_ screen: NSScreen) {
         panel.targetScreen = screen
-        currentMetrics = SwitcherMetrics.forScreen(screen, layoutMode: Preferences.shared.switcherLayoutMode, userScale: Preferences.shared.panelSize.scale, letterHints: Preferences.shared.letterHintsEnabled, showAppNames: Preferences.shared.showApplicationNames, showWindowTitles: Preferences.shared.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: Preferences.shared.expandBrowserTabsAsWindows && !Preferences.shared.applicationsOnly)
+        currentMetrics = SwitcherMetrics.forScreen(screen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
         refreshDisplay()
     }
 
@@ -2441,7 +2469,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // applies the scope once the real scan lands. nil scope (normal ⌘Tab)
         // leaves rows untouched.
         var sortedRows = applyWindowMRUSort(
-            Log.reveal.withIntervalSignpost("catalog.rows") { cache.rows(orderedBy: mru.order) }
+            Log.reveal.withIntervalSignpost("catalog.rows") { cache.rows(orderedBy: mru.order, filter: activeFilterConfig) }
         )
         let hadCachedRows = !sortedRows.isEmpty
         if let scope = activeScope, hadCachedRows {
@@ -2457,7 +2485,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // Scoped opens start at the top: the MRU/pid anchors below were
                 // computed pre-scope and don't map onto the narrowed set.
                 index = 0
-            } else if Preferences.shared.sortOrder == .mruWindows {
+            } else if effective.sortOrder == .mruWindows {
                 // Window-level list: step over rows by window recency, not apps.
                 // `primedStepDelta` taps from row 0 (the current window), so a
                 // single forward tap lands on the second-most-recent window.
@@ -2514,7 +2542,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // Window-level mode anchors on the selected *window*; matching by pid
             // would snap a non-first window back to its app's first row. Preserve
             // it by row identity instead. App-grouped modes keep the pid anchor.
-            let inWindowMode = Preferences.shared.sortOrder == .mruWindows
+            let inWindowMode = effective.sortOrder == .mruWindows
             let windowKey = inWindowMode ? selectionKey() : nil
             let selectedPid = rows.indices.contains(index) ? rows[index].pid : targetPid
             // The stepped-to window's element, so a browser window whose AX title
@@ -2545,12 +2573,12 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
-        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: Preferences.shared.switcherLayoutMode, userScale: Preferences.shared.panelSize.scale, letterHints: Preferences.shared.letterHintsEnabled, showAppNames: Preferences.shared.showApplicationNames, showWindowTitles: Preferences.shared.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: Preferences.shared.expandBrowserTabsAsWindows && !Preferences.shared.applicationsOnly)
-        view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, highlightPrefix: letterBuffer)
-        panel.present()
+        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
+        panel.present(opacity: effective.panelOpacity)
         phase = .visible
         cache.setPanelVisible(true)
-        dockBadgeObserver.start(enabled: Preferences.shared.showUnreadBadges)
+        dockBadgeObserver.start(enabled: effective.showUnreadBadges)
         // Inline browser-tab mode: start scanning the visible browser windows'
         // tabs now so the rows expand as soon as Apple Events answers. Self-
         // guards on the pref; a no-op on the cold (placeholder) branch since
@@ -2562,14 +2590,15 @@ final class SwitcherController: SwitcherViewDelegate {
             // layer (single AX scan, not a duplicate) and re-apply when ready.
             cache.scheduleFullRefresh { [weak self] in
                 guard let self, gen == self.revealGeneration else { return }
-                let fresh = self.cache.rows(orderedBy: self.mru.order)
+                let fresh = self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig)
                 self.applyFullSnapshot(fresh, anchorPid: targetPid)
             }
         } else {
             // No cache yet — must do an immediate AX scan to populate rows.
             let mruOrder = mru.order
+            let cfg = activeFilterConfig
             DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-                let fresh = AppCatalog.snapshot(orderedBy: mruOrder)
+                let fresh = AppCatalog.snapshot(orderedBy: mruOrder, filter: cfg)
                 DispatchQueue.main.async {
                     guard let self, gen == self.revealGeneration else { return }
                     self.applyFullSnapshot(fresh, anchorPid: targetPid)
@@ -2596,7 +2625,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// snapshot (or no indicators on a cold first reveal) and patches the rest
     /// in within a few ms.
     private func refreshAuxiliaryIndicators() {
-        let wantsBadges = Preferences.shared.showUnreadBadges
+        let wantsBadges = effective.showUnreadBadges
         if !wantsBadges { DockBadgeReader.shared.clear() }
         let scanBadges = wantsBadges && DockBadgeReader.shared.shouldRefresh()
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
@@ -2615,7 +2644,7 @@ final class SwitcherController: SwitcherViewDelegate {
         revealGeneration &+= 1
         let gen = revealGeneration
 
-        let cached = cache.rows(orderedBy: mru.order).filter { $0.pid == pid }
+        let cached = cache.rows(orderedBy: mru.order, filter: activeFilterConfig).filter { $0.pid == pid }
         if !cached.isEmpty {
             guard cached.contains(where: { $0.window != nil }) else { cancel(); return }
             presentWindowsOnly(cached, pid: pid)
@@ -2627,8 +2656,9 @@ final class SwitcherController: SwitcherViewDelegate {
             // through `pickWindowsOnlyTarget` (primed phase); the generation
             // guard drops this stale apply.
             let mruOrder = mru.order
+            let cfg = activeFilterConfig
             DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-                let fresh = AppCatalog.snapshot(orderedBy: mruOrder).filter { $0.pid == pid }
+                let fresh = AppCatalog.snapshot(orderedBy: mruOrder, filter: cfg).filter { $0.pid == pid }
                 DispatchQueue.main.async {
                     guard let self, gen == self.revealGeneration, self.phase == .primed else { return }
                     guard fresh.contains(where: { $0.window != nil }) else { self.cancel(); return }
@@ -2651,18 +2681,18 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
-        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: Preferences.shared.switcherLayoutMode, userScale: Preferences.shared.panelSize.scale, letterHints: Preferences.shared.letterHintsEnabled, showAppNames: Preferences.shared.showApplicationNames, showWindowTitles: Preferences.shared.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: Preferences.shared.expandBrowserTabsAsWindows && !Preferences.shared.applicationsOnly)
-        view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, highlightPrefix: letterBuffer)
-        panel.present()
+        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
+        panel.present(opacity: effective.panelOpacity)
         phase = .visible
         cache.setPanelVisible(true)
-        dockBadgeObserver.start(enabled: Preferences.shared.showUnreadBadges)
+        dockBadgeObserver.start(enabled: effective.showUnreadBadges)
     }
 
     private func scheduleWindowsOnlyRefresh(pid: pid_t, gen: UInt64) {
         cache.scheduleFullRefresh { [weak self] in
             guard let self, gen == self.revealGeneration else { return }
-            let fresh = self.cache.rows(orderedBy: self.mru.order).filter { $0.pid == pid }
+            let fresh = self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig).filter { $0.pid == pid }
             self.applyWindowsOnlySnapshot(fresh)
         }
     }
@@ -2686,7 +2716,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// apps stay at the front and their windows keep recency order within the
     /// pin block (the partition is stable on offset).
     private func applyWindowMRUSort(_ rows: [SwitcherRow]) -> [SwitcherRow] {
-        guard Preferences.shared.sortOrder == .mruWindows else { return rows }
+        guard effective.sortOrder == .mruWindows else { return rows }
         // Re-base onto a frontmost-independent order before the recency sort.
         // The incoming rows are app-MRU ordered, so the *currently active* app's
         // windows lead the list; windows the tracker has never seen would then
@@ -2722,8 +2752,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// actor like the other hot-path pref reads.
     private var browserTabMRUActive: Bool {
         browserTabMRUEnabled
-            && !Preferences.shared.applicationsOnly
-            && Preferences.shared.sortOrder == .mruWindows
+            && !effective.applicationsOnly
+            && effective.sortOrder == .mruWindows
     }
 
     /// The feature + tab-expansion are on, so the tab MRU should be *fed* (observer,
@@ -2912,7 +2942,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// `configure`, so no row-model change is needed. Generation- and
     /// visibility-guarded so a scan landing after the panel closed is dropped.
     private func scheduleVisibleBadgeRefresh() {
-        guard phase == .visible, Preferences.shared.showUnreadBadges else { return }
+        guard phase == .visible, effective.showUnreadBadges else { return }
         let gen = revealGeneration
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
             let badges = DockBadgeReader.snapshot()
@@ -2937,8 +2967,8 @@ final class SwitcherController: SwitcherViewDelegate {
     private func expandBrowserTabs(_ source: [SwitcherRow]) -> [SwitcherRow] {
         // Applications-only mode collapses to one row per app; re-expanding a
         // browser into per-tab rows would defeat it, so leave the rows untouched.
-        guard Preferences.shared.expandBrowserTabsAsWindows,
-              !Preferences.shared.applicationsOnly else { return source }
+        guard effective.expandBrowserTabsAsWindows,
+              !effective.applicationsOnly else { return source }
         var out: [SwitcherRow] = []
         out.reserveCapacity(source.count)
         for row in source {
@@ -2993,7 +3023,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// `forcedBrowserScanMinInterval` so page-load title churn can't spam
     /// osascript. `onDone` runs on the main actor after the cache is updated.
     private func scanBrowserTabs(rows: [SwitcherRow], force: Bool, onDone: (() -> Void)? = nil) {
-        guard Preferences.shared.expandBrowserTabsAsWindows else { return }
+        guard effective.expandBrowserTabsAsWindows else { return }
         let now = ProcessInfo.processInfo.systemUptime
         if force, now - lastForcedBrowserScanAt < Self.forcedBrowserScanMinInterval { return }
 
@@ -3097,8 +3127,8 @@ final class SwitcherController: SwitcherViewDelegate {
     private func scheduleBrowserTabExpansion(force: Bool = false) {
         // Mirror expandBrowserTabs' applications-only guard: with it on, the
         // expansion no-ops, so spawning the osascript scan is pure waste.
-        guard Preferences.shared.expandBrowserTabsAsWindows,
-              !Preferences.shared.applicationsOnly, phase == .visible else { return }
+        guard effective.expandBrowserTabsAsWindows,
+              !effective.applicationsOnly, phase == .visible else { return }
         scanBrowserTabs(rows: collapsedBrowserSource(), force: force) { [weak self] in
             self?.reExpandBrowserTabs()
         }
@@ -3112,9 +3142,9 @@ final class SwitcherController: SwitcherViewDelegate {
     /// panel is already visible by the time it lands (otherwise `reveal()` picks
     /// up the now-warm cache itself).
     private func prewarmBrowserTabs() {
-        guard Preferences.shared.expandBrowserTabsAsWindows,
-              !Preferences.shared.applicationsOnly else { return }
-        scanBrowserTabs(rows: cache.rows(orderedBy: mru.order), force: false) { [weak self] in
+        guard effective.expandBrowserTabsAsWindows,
+              !effective.applicationsOnly else { return }
+        scanBrowserTabs(rows: cache.rows(orderedBy: mru.order, filter: activeFilterConfig), force: false) { [weak self] in
             self?.reExpandBrowserTabs()
         }
     }
@@ -3196,7 +3226,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // row a fast tap activates is byte-identical to the one a held-open panel
         // would select (the held panel collapses after the sort — see `reveal()`).
         let sorted = Log.reveal.withIntervalSignpost("primed.windowMRU") {
-            applyApplicationsOnly(applyWindowMRUSort(cache.rows(orderedBy: mru.order)))
+            applyApplicationsOnly(applyWindowMRUSort(cache.rows(orderedBy: mru.order, filter: activeFilterConfig)))
         }
         guard !sorted.isEmpty else { return nil }
         let idx = ((primedStepDelta % sorted.count) + sorted.count) % sorted.count
@@ -3209,7 +3239,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// be a browser-tab row, so the caller routes it through `activation(for:)`.
     private func primedBrowserTabMRUTargetRow() -> SwitcherRow? {
         let sorted = Log.reveal.withIntervalSignpost("primed.tabMRU") {
-            applyBrowserTabMRU(expandBrowserTabs(applyApplicationsOnly(applyWindowMRUSort(cache.rows(orderedBy: mru.order)))))
+            applyBrowserTabMRU(expandBrowserTabs(applyApplicationsOnly(applyWindowMRUSort(cache.rows(orderedBy: mru.order, filter: activeFilterConfig)))))
         }
         guard !sorted.isEmpty else { return nil }
         let idx = ((primedStepDelta % sorted.count) + sorted.count) % sorted.count
@@ -3294,7 +3324,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // switcher would have selected, stepped by unified tab recency, so a
                 // quick ⌘⇥ returns to the previous *tab* exactly like the panel.
                 pendingActivation = activation(for: row, instantSpace: instantSpace)
-            } else if Preferences.shared.sortOrder == .mruWindows,
+            } else if effective.sortOrder == .mruWindows,
                       let row = primedWindowMRUTargetRow() {
                 // Window-level fast tap-release: activate the window the visible
                 // switcher would have selected (stepped by recency, not by app),
@@ -3948,7 +3978,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // Checked before the demotion below so the app isn't inserted as a
         // windowless row only to be torn down a line later.
         let closedWindow = row.window
-        let anyWindowRemains = cache.rows(orderedBy: mru.order).contains { r in
+        let anyWindowRemains = cache.rows(orderedBy: mru.order, filter: activeFilterConfig).contains { r in
             guard let w = r.window else { return false }
             if let cw = closedWindow { return !CFEqual(w, cw) }
             return true
@@ -4062,7 +4092,7 @@ final class SwitcherController: SwitcherViewDelegate {
             guard gen == revealGeneration, phase == .visible else { return }
             cache.scheduleFullRefresh { [weak self] in
                 guard let self, gen == self.revealGeneration, self.phase == .visible else { return }
-                let fresh = self.filterQuitting(self.filterClosedTombstones(self.cache.rows(orderedBy: self.mru.order)))
+                let fresh = self.filterQuitting(self.filterClosedTombstones(self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig)))
                 // Windows-only mode (⌘`) is scoped to a single app's windows. A
                 // post-action refresh must stay filtered to `windowsOnlyPid` —
                 // otherwise it rebuilds from the full multi-app catalog and the
@@ -4397,13 +4427,14 @@ final class SwitcherController: SwitcherViewDelegate {
             labels: displayLabels,
             selectedIndex: index,
             metrics: currentMetrics,
+            effective: effective,
             highlightPrefix: searchActive ? "" : letterBuffer,
             searchActive: searchActive,
             searchQuery: searchQuery,
             tabStripTitles: tabDrillActive ? tabTitles : tabDrillHint.map { [$0] },
             tabStripSelectedIndex: tabIndex
         )
-        panel.present()
+        panel.present(opacity: effective.panelOpacity)
     }
 
     // MARK: - Fuzzy search

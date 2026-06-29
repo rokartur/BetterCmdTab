@@ -18,6 +18,8 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
     private let badgeLabel = NSTextField(labelWithString: "")
 
     private var metrics: SwitcherMetrics = .baseline
+    /// Resolved appearance for the current reveal (#74); set in `configure`.
+    private var effective: EffectiveSettings = .defaults
     private static let statusIconGap: CGFloat = 4
 
     /// Indicator → image view, in display order. Drives setup, tinting, and
@@ -169,7 +171,8 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         imageView.image = nil
     }
 
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor) {
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
+        self.effective = effective
         if metrics != self.metrics {
             applyMetrics(metrics)
         }
@@ -184,7 +187,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         // the window title with the System Settings icon — no status icons.
         let isDialog = row.isSystemDialog
 
-        let showAppNames = Preferences.shared.showApplicationNames
+        let showAppNames = effective.showApplicationNames
         if isDialog {
             appNameLabel.stringValue = row.windowTitle.isEmpty ? row.appName : row.windowTitle
             titleLabel.stringValue = ""

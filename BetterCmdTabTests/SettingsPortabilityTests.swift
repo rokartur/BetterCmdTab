@@ -79,6 +79,25 @@ struct SettingsPortabilityTests {
         #expect(prefs.switcherDisplayMode == .activeWindow)
     }
 
+    @Test("round-trip: shortcutOverrides survive export/import")
+    func shortcutOverridesRoundTrip() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.shortcutOverrides
+        defer { prefs.shortcutOverrides = saved }
+        var ov = ShortcutOverride()
+        ov.spaceScope = .allSpaces
+        ov.sortOrder = .alphabetical
+        ov.panelOpacity = 70
+        prefs.shortcutOverrides = [SwitchTarget.switchWindows.storageKey: ov]
+        let data = try prefs.exportedJSONData()
+        prefs.shortcutOverrides = [:] // flip live, then restore from the export
+        try prefs.importSettings(from: data)
+        let restored = prefs.override(for: .switchWindows)
+        #expect(restored.spaceScope == .allSpaces)
+        #expect(restored.sortOrder == .alphabetical)
+        #expect(restored.panelOpacity == 70)
+    }
+
     @Test("round-trip: shiftTapStepsBackward survives export/import")
     func shiftTapStepsBackwardRoundTrip() throws {
         let prefs = Preferences.shared
