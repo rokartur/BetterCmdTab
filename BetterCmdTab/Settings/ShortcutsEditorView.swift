@@ -8,19 +8,29 @@ import BetterShortcuts
 /// Windows) plus each user-created scoped shortcut — with +/− to add and remove.
 /// Selecting a tab shows that shortcut's Trigger card (recorder + scope) and its
 /// inline Behavior / Appearance option cards, all live-persisting. Core tabs
-/// can't be removed. Recording a combo already bound elsewhere is rejected by
+/// can't be removed; recording a combo already bound elsewhere is rejected by
 /// BetterShortcuts' conflict alert, so every shortcut stays unique.
+///
+/// Switching is instant: each tab's detail panel is built once and cached, then
+/// shown/hidden — no teardown/rebuild on tab change.
 @MainActor
 final class ShortcutsEditorView: NSView {
+    private let header = NSTextField(labelWithString: String(localized: "Switcher shortcuts"))
     private let tabs = NSSegmentedControl()
     private let addButton = NSButton()
     private let removeButton = NSButton()
-    private let detail = NSStackView()
+    /// Holds every built detail panel; only the selected one is unhidden, so the
+    /// stack lays out just that panel (detachesHiddenViews is on by default).
+    private let detailContainer = NSStackView()
+
     private let scopeOptions: [SwitchScope] = SwitchScope.allCases
 
     /// `SwitchTarget` for each tab, in display order.
     private var targets: [SwitchTarget] = []
     private var selectedIndex = 0
+    /// Cached detail panel per tab, keyed by `SwitchTarget.storageKey`.
+    private var detailCache: [String: NSView] = [:]
+    private var visibleKey: String?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -31,7 +41,25 @@ final class ShortcutsEditorView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
+    /// Drop every cached panel and rebuild from the live model — used when the
+    /// pane re-appears (another pane, e.g. Import settings, may have rewritten the
+    /// list/overrides off-screen). In-session tab switches use the cache instead,
+    /// so they stay instant.
+    func reload() {
+        for (_, view) in detailCache {
+            detailContainer.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+        detailCache.removeAll()
+        visibleKey = nil
+        rebuildTabs(select: 0)
+    }
+
     private func setup() {
+        header.font = .systemFont(ofSize: 14, weight: .bold)
+        header.textColor = .labelColor
+        header.translatesAutoresizingMaskIntoConstraints = false
+
         tabs.segmentStyle = .texturedRounded
         tabs.trackingMode = .selectOne
         tabs.target = self
@@ -48,15 +76,16 @@ final class ShortcutsEditorView: NSView {
         tabRow.alignment = .centerY
         tabRow.translatesAutoresizingMaskIntoConstraints = false
 
-        detail.orientation = .vertical
-        detail.alignment = .leading
-        detail.spacing = 18
-        detail.translatesAutoresizingMaskIntoConstraints = false
+        detailContainer.orientation = .vertical
+        detailContainer.alignment = .leading
+        detailContainer.spacing = 18
+        detailContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        let outer = NSStackView(views: [tabRow, detail])
+        let outer = NSStackView(views: [header, tabRow, detailContainer])
         outer.orientation = .vertical
         outer.alignment = .leading
-        outer.spacing = 16
+        outer.spacing = 12
+        outer.setCustomSpacing(14, after: tabRow)
         outer.translatesAutoresizingMaskIntoConstraints = false
         addSubview(outer)
         NSLayoutConstraint.activate([
@@ -64,7 +93,8 @@ final class ShortcutsEditorView: NSView {
             outer.leadingAnchor.constraint(equalTo: leadingAnchor),
             outer.trailingAnchor.constraint(equalTo: trailingAnchor),
             outer.bottomAnchor.constraint(equalTo: bottomAnchor),
-            detail.widthAnchor.constraint(equalTo: outer.widthAnchor),
+            header.leadingAnchor.constraint(equalTo: outer.leadingAnchor, constant: 4),
+            detailContainer.widthAnchor.constraint(equalTo: outer.widthAnchor),
         ])
     }
 
@@ -81,8 +111,21 @@ final class ShortcutsEditorView: NSView {
     // MARK: - Tabs
 
     /// Rebuild the tab list from the current model and select `select` (clamped).
+    /// Called on first load and after add/remove; drops cached panels for tabs
+    /// that no longer exist. Plain tab switches go through `showSelected` and
+    /// reuse the cache, so they stay instant.
     func rebuildTabs(select index: Int) {
         targets = [.switchApps, .switchWindows] + Preferences.shared.scopedShortcuts.map { .scoped($0.id) }
+
+        // Drop cached panels whose target is gone (removed scoped shortcut).
+        let valid = Set(targets.map(\.storageKey))
+        for (key, view) in detailCache where !valid.contains(key) {
+            detailContainer.removeArrangedSubview(view)
+            view.removeFromSuperview()
+            detailCache[key] = nil
+            if visibleKey == key { visibleKey = nil }
+        }
+
         tabs.segmentCount = targets.count
         for (i, target) in targets.enumerated() {
             tabs.setLabel(label(for: target, at: i), forSegment: i)
@@ -90,7 +133,7 @@ final class ShortcutsEditorView: NSView {
         }
         selectedIndex = max(0, min(index, targets.count - 1))
         tabs.selectedSegment = selectedIndex
-        rebuildDetail()
+        showSelected()
     }
 
     /// Tab label: core triggers by name, scoped ones as "Shortcut N" (1-based tab
@@ -107,6 +150,11 @@ final class ShortcutsEditorView: NSView {
         targets.indices.contains(selectedIndex) ? targets[selectedIndex] : nil
     }
 
+    private func isScoped(_ target: SwitchTarget) -> Bool {
+        if case .scoped = target { return true }
+        return false
+    }
+
     private func betterShortcutsName(for target: SwitchTarget) -> BetterShortcuts.Name {
         switch target {
         case .switchApps: return .switchApps
@@ -117,31 +165,53 @@ final class ShortcutsEditorView: NSView {
         }
     }
 
-    // MARK: - Detail panel
+    // MARK: - Detail panel (cached for instant switching)
 
-    private func rebuildDetail() {
-        for view in detail.arrangedSubviews {
-            detail.removeArrangedSubview(view)
-            view.removeFromSuperview()
-        }
+    /// Show the selected tab's detail panel, building+caching it on first visit
+    /// and just toggling visibility on every later switch.
+    private func showSelected() {
         guard let target = currentTarget() else {
             removeButton.isEnabled = false
             return
         }
+        let key = target.storageKey
+        let panel: NSView
+        if let cached = detailCache[key] {
+            panel = cached
+        } else {
+            panel = buildDetail(for: target)
+            panel.isHidden = true
+            detailCache[key] = panel
+            detailContainer.addArrangedSubview(panel)
+            panel.widthAnchor.constraint(equalTo: detailContainer.widthAnchor).isActive = true
+        }
+        if visibleKey != key {
+            if let prev = visibleKey, let prevView = detailCache[prev] { prevView.isHidden = true }
+            panel.isHidden = false
+            visibleKey = key
+        }
+        removeButton.isEnabled = isScoped(target)
+    }
 
-        var isScoped = false
-        if case .scoped = target { isScoped = true }
-        removeButton.isEnabled = isScoped
+    private func buildDetail(for target: SwitchTarget) -> NSView {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 18
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        let scoped = isScoped(target)
 
         // Trigger card.
         let trigger = SettingsSectionView(title: String(localized: "Trigger"))
         let recorder = BetterShortcuts.RecorderCocoa(for: betterShortcutsName(for: target))
-        addRow(to: trigger, title: String(localized: "Keyboard shortcut"),
-               subtitle: isScoped
-                   ? String(localized: "Opens this shortcut's switcher. Hold the modifier and tap.")
-                   : String(localized: "Hold the modifier (⌘ by default) and tap to step through."),
-               accessory: recorder)
-
+        trigger.addContent(SettingsRowView(
+            title: String(localized: "Keyboard shortcut"),
+            subtitle: scoped
+                ? String(localized: "Opens this shortcut's switcher. Hold the modifier and tap.")
+                : String(localized: "Hold the modifier (⌘ by default) and tap to step through."),
+            accessory: recorder
+        ))
         if case .scoped(let id) = target {
             let popup = NSPopUpButton(frame: .zero, pullsDown: false)
             popup.controlSize = .small
@@ -155,33 +225,32 @@ final class ShortcutsEditorView: NSView {
             popup.target = self
             popup.action = #selector(scopeChanged(_:))
             popup.tag = id
-            addRow(to: trigger, title: String(localized: "Show windows from"),
-                   subtitle: String(localized: "Which windows this shortcut opens onto."),
-                   accessory: popup)
+            trigger.addContent(SettingsRowView(
+                title: String(localized: "Show windows from"),
+                subtitle: String(localized: "Which windows this shortcut opens onto."),
+                accessory: popup
+            ))
         }
-        addCard(trigger)
+        addCard(trigger, to: stack)
 
         // Behavior + Appearance option cards. Core triggers can override the Space
-        // scope (they have no scope picker); scoped tabs let their scope own it, so
-        // the form omits the Space-scope row to avoid double-filtering.
-        addCard(ShortcutOptionsFormView(target: target, includeSpaceScope: !isScoped))
+        // scope (no scope picker); scoped tabs let their scope own it, so the form
+        // omits the Space-scope row to avoid double-filtering.
+        addCard(ShortcutOptionsFormView(target: target, includeSpaceScope: !scoped), to: stack)
+        return stack
     }
 
-    private func addRow(to section: SettingsSectionView, title: String, subtitle: String?, accessory: NSView) {
-        section.addContent(SettingsRowView(title: title, subtitle: subtitle, accessory: accessory))
-    }
-
-    private func addCard(_ card: NSView) {
+    private func addCard(_ card: NSView, to stack: NSStackView) {
         card.translatesAutoresizingMaskIntoConstraints = false
-        detail.addArrangedSubview(card)
-        card.widthAnchor.constraint(equalTo: detail.widthAnchor).isActive = true
+        stack.addArrangedSubview(card)
+        card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
     }
 
     // MARK: - Actions
 
     @objc private func tabChanged() {
         selectedIndex = tabs.selectedSegment
-        rebuildDetail()
+        showSelected()
     }
 
     @objc private func addEntry() {

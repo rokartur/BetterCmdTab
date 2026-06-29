@@ -24,11 +24,12 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     override func setupContent() {
         // Switcher shortcuts — the unified, AltTab-style tabbed editor: the two
         // core triggers (Apps, Windows) plus each user-created scoped shortcut,
-        // every one with its own trigger + inline per-shortcut options. The
-        // trigger must include a hold modifier (⌘/⌥/⌃); Shift is reserved for
-        // stepping backwards and is rejected by the recorder.
-        let switching = addSection(title: String(localized: "Switcher shortcuts"), anchor: SettingsAnchor.switching)
-        switching.addContent(shortcutsEditorView)
+        // every one with its own trigger + inline per-shortcut options. Added as a
+        // top-level view (not wrapped in a section card) so its own Trigger /
+        // Behavior / Appearance cards read as standalone cards, matching the
+        // Appearance pane — rather than nesting cards inside a card.
+        addArrangedSubview(shortcutsEditorView)
+        register(section: shortcutsEditorView, anchor: SettingsAnchor.switching)
 
         // Direct activation section — global shortcuts that jump straight to a
         // chosen app, bypassing the switcher.
@@ -125,7 +126,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         refreshDirectSlots()
         // Another pane (Import settings) can rewrite the shortcut list/overrides
         // off-screen; rebuild the editor from the live model on appear.
-        shortcutsEditorView.rebuildTabs(select: 0)
+        shortcutsEditorView.reload()
         cycleWidthsSwitch.state = Preferences.shared.cycleTileWidths ? .on : .off
         // Another pane (e.g. Import settings) can rewrite the list while this
         // cached controller is off screen — re-sync the subtitle on appear.
