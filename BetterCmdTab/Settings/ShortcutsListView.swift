@@ -25,6 +25,9 @@ final class ShortcutsListView: NSView {
     private let addButton = ListActionButton(symbol: "plus")
     private let removeButton = ListActionButton(symbol: "minus")
     private var rows: [ShortcutListRow] = []
+    /// `removable` flag per row, in display order — kept so a row-click selection
+    /// can recompute the −button's enabled state without a full `reload`.
+    private var removable: [Bool] = []
     private var selectedIndex = 0
 
     override init(frame frameRect: NSRect) {
@@ -83,16 +86,24 @@ final class ShortcutsListView: NSView {
             row.widthAnchor.constraint(equalTo: rowsStack.widthAnchor).isActive = true
             return row
         }
+        removable = items.map(\.removable)
         self.selectedIndex = max(0, min(selectedIndex, rows.count - 1))
         applySelection()
-        removeButton.isEnabled = items.indices.contains(self.selectedIndex) && items[self.selectedIndex].removable
+        updateRemoveEnabled()
         addButton.isEnabled = true
     }
 
     private func select(_ index: Int, notify: Bool) {
         selectedIndex = index
         applySelection()
+        updateRemoveEnabled()
         if notify { onSelect?(index) }
+    }
+
+    /// Enable − only when the selected row is removable, so a row-click selection
+    /// keeps the footer in sync (not just `reload`).
+    private func updateRemoveEnabled() {
+        removeButton.isEnabled = removable.indices.contains(selectedIndex) && removable[selectedIndex]
     }
 
     private func applySelection() {
