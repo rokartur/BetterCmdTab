@@ -22,8 +22,8 @@ final class ShortcutsListView: NSView {
 
     private let card = PickerCardView()
     private let rowsStack = NSStackView()
-    private let addButton = NSButton()
-    private let removeButton = NSButton()
+    private let addButton = ListActionButton(symbol: "plus")
+    private let removeButton = ListActionButton(symbol: "minus")
     private var rows: [ShortcutListRow] = []
     private var selectedIndex = 0
 
@@ -49,11 +49,13 @@ final class ShortcutsListView: NSView {
             rowsStack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -6),
         ])
 
-        configureFooterButton(addButton, symbol: "plus", accessibility: String(localized: "Add shortcut"), action: #selector(addTapped))
-        configureFooterButton(removeButton, symbol: "minus", accessibility: String(localized: "Remove shortcut"), action: #selector(removeTapped))
+        addButton.setAccessibilityLabel(String(localized: "Add shortcut"))
+        removeButton.setAccessibilityLabel(String(localized: "Remove shortcut"))
+        addButton.onClick = { [weak self] in self?.onAdd?() }
+        removeButton.onClick = { [weak self] in self?.onRemove?() }
         let footer = NSStackView(views: [addButton, removeButton])
         footer.orientation = .horizontal
-        footer.spacing = 0
+        footer.spacing = 6
         footer.translatesAutoresizingMaskIntoConstraints = false
 
         let outer = NSStackView(views: [card, footer])
@@ -71,18 +73,6 @@ final class ShortcutsListView: NSView {
         ])
     }
 
-    private func configureFooterButton(_ button: NSButton, symbol: String, accessibility: String, action: Selector) {
-        button.bezelStyle = .smallSquare
-        button.isBordered = true
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: accessibility)
-        button.imagePosition = .imageOnly
-        button.target = self
-        button.action = action
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.widthAnchor.constraint(equalToConstant: 26).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 22).isActive = true
-    }
-
     /// Rebuild the rows and apply the selection.
     func reload(items: [Item], selectedIndex: Int) {
         for row in rows { rowsStack.removeArrangedSubview(row); row.removeFromSuperview() }
@@ -96,6 +86,7 @@ final class ShortcutsListView: NSView {
         self.selectedIndex = max(0, min(selectedIndex, rows.count - 1))
         applySelection()
         removeButton.isEnabled = items.indices.contains(self.selectedIndex) && items[self.selectedIndex].removable
+        addButton.isEnabled = true
     }
 
     private func select(_ index: Int, notify: Bool) {
@@ -107,9 +98,79 @@ final class ShortcutsListView: NSView {
     private func applySelection() {
         for (i, row) in rows.enumerated() { row.isSelected = (i == selectedIndex) }
     }
+}
 
-    @objc private func addTapped() { onAdd?() }
-    @objc private func removeTapped() { onRemove?() }
+/// Compact, modern icon button for the list footer (+/−). A rounded square with
+/// the app's subtle section-chrome fill that brightens on hover and press —
+/// native-feeling and consistent with the rest of the app, instead of the dated
+/// gradient `.smallSquare` push button. Supports a disabled state.
+@MainActor
+final class ListActionButton: NSView {
+    var onClick: (() -> Void)?
+    var isEnabled = true { didSet { if oldValue != isEnabled { updateAppearance() } } }
+
+    private let iconView = NSImageView()
+    private var trackingArea: NSTrackingArea?
+    private var isHovering = false { didSet { if oldValue != isHovering { updateAppearance() } } }
+    private var isPressing = false { didSet { if oldValue != isPressing { updateAppearance() } } }
+
+    init(symbol: String) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.cornerRadius = 6
+        layer?.cornerCurve = .continuous
+        layer?.borderWidth = AppKitSectionChrome.borderWidth
+
+        iconView.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        iconView.symbolConfiguration = .init(pointSize: 11, weight: .semibold)
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(iconView)
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 28),
+            heightAnchor.constraint(equalToConstant: 24),
+            iconView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+        updateAppearance()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let existing = trackingArea { removeTrackingArea(existing) }
+        let area = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect], owner: self)
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) { guard isEnabled else { return }; isHovering = true }
+    override func mouseExited(with event: NSEvent) { isHovering = false; isPressing = false }
+    override func mouseDown(with event: NSEvent) { guard isEnabled else { return }; isPressing = true }
+
+    override func mouseUp(with event: NSEvent) {
+        guard isEnabled else { return }
+        let wasPressing = isPressing
+        isPressing = false
+        let inside = bounds.contains(convert(event.locationInWindow, from: nil))
+        if wasPressing && inside { onClick?() }
+    }
+
+    private func updateAppearance() {
+        let base = AppKitSectionChrome.fillColor(for: effectiveAppearance)
+        let border = AppKitSectionChrome.borderColor(for: effectiveAppearance)
+        let boost: CGFloat = isPressing ? 0.08 : (isHovering ? 0.04 : 0)
+        layer?.backgroundColor = (base.blended(withFraction: boost, of: .labelColor) ?? base).cgColor
+        layer?.borderColor = border.cgColor
+        iconView.contentTintColor = .secondaryLabelColor
+        alphaValue = isEnabled ? 1 : 0.35
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearance()
+    }
 }
 
 /// One selectable shortcut row: leading SF Symbol, title, trailing detail (the

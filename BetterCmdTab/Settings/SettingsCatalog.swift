@@ -168,9 +168,10 @@ enum SettingsCatalog {
             id: SettingsTabID.general, title: String(localized: "General"), icon: "gear",
             iconStyle: style(0x898A8F, 0x67686E, scale: 1.0)
         ),
-        // ⌘ glyph — the Shortcuts tab is where you bind the Command-Tab triggers.
+        // Profiles — each switcher shortcut is a profile with its own trigger +
+        // per-shortcut options, plus direct-activation and in-panel keys.
         SettingsTab(
-            id: SettingsTabID.shortcuts, title: String(localized: "Shortcuts"), icon: "command",
+            id: SettingsTabID.shortcuts, title: String(localized: "Profiles"), icon: "command",
             iconStyle: style(0x40BCFF, 0x0060FF, scale: 0.9)
         ),
         // Window management — tile / maximize / center + hide-all hotkeys.
@@ -247,16 +248,16 @@ enum SettingsCatalog {
              String(localized: "Import settings"), ["import", "restore", "load settings"]),
 
         // Shortcuts · Switching
-        item(SearchID.switchApps, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switcher shortcuts"),
+        item(SearchID.switchApps, .shortcuts, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "Switcher shortcuts"),
              String(localized: "Switch apps"), ["shortcut", "hotkey", "cmd tab", "command tab", "trigger"]),
-        item(SearchID.switchWindows, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switcher shortcuts"),
+        item(SearchID.switchWindows, .shortcuts, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "Switcher shortcuts"),
              String(localized: "Switch windows"), ["shortcut", "hotkey", "window cycle"]),
         // Shortcuts · Direct activation
-        item(SearchID.directActivation, .shortcuts, SettingsAnchor.directActivation, String(localized: "Shortcuts"), String(localized: "Direct activation"),
+        item(SearchID.directActivation, .shortcuts, SettingsAnchor.directActivation, String(localized: "Profiles"), String(localized: "Direct activation"),
              String(localized: "Direct activation hotkeys"), ["direct", "hotkey", "shortcut", "activate", "focus app", "jump to app"]),
-        item(SearchID.scopedSwitch, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switcher shortcuts"),
+        item(SearchID.scopedSwitch, .shortcuts, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "Switcher shortcuts"),
              String(localized: "Scoped shortcuts"), ["scope", "scoped", "all windows", "current app", "minimized", "this space", "filtered switcher"]),
-        item(SearchID.panelKeys, .shortcuts, SettingsAnchor.panelKeys, String(localized: "Shortcuts"), String(localized: "In-panel keys"),
+        item(SearchID.panelKeys, .shortcuts, SettingsAnchor.panelKeys, String(localized: "Profiles"), String(localized: "In-panel keys"),
              String(localized: "Action keys while switching"), ["panel keys", "rebind", "close", "minimize", "hide", "quit", "wmhq", "in-panel"]),
         item(SearchID.windowMgmt, .windows, SettingsAnchor.windowArrange, String(localized: "Windows"), String(localized: "Arrange window"),
              String(localized: "Arrange the highlighted window"), ["window management", "tile", "maximize", "center", "snap", "halves", "arrange", "rebind"]),
