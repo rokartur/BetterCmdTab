@@ -37,7 +37,7 @@ body:
     attributes:
       label: Application version
       description: Find it in Settings > About. (e.g. 1.2.3)
-      placeholder: 26.6
+      placeholder: 26.5.1
     validations:
       required: true
   - type: input
