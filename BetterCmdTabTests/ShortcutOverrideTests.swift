@@ -227,6 +227,18 @@ struct ShortcutOverrideTests {
         #expect(Preferences.decodeShortcutOverrides(nil).isEmpty)
     }
 
+    @Test("decode re-keys a non-canonical target to its canonical form")
+    func decodeCanonicalizesKey() {
+        // A hand-edited/corrupt import can carry a valid-but-non-canonical key:
+        // "scoped.007" parses to .scoped(7). It must be stored under the canonical
+        // "scoped.7" so override(for:) / setOverride can find and clear it — keying
+        // by the raw string would leave it silently inert and unclearable.
+        let decoded = Preferences.decodeShortcutOverrides([["target": "scoped.007", "spaceScope": "currentSpace"]])
+        #expect(decoded.count == 1)
+        #expect(decoded[SwitchTarget.scoped(7).storageKey]?.spaceScope == .currentSpace)
+        #expect(decoded["scoped.007"] == nil)
+    }
+
     // MARK: - EffectiveSettings resolution
 
     @Test("empty override inherits every global value")
