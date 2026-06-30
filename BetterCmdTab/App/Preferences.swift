@@ -1,5 +1,4 @@
 import AppKit
-import BetterShortcuts
 import Combine
 import Foundation
 
@@ -338,15 +337,6 @@ struct ShortcutOverride: Equatable, Sendable {
     var showApplicationNames: Bool?
     var showUnreadBadges: Bool?
     var letterHintsEnabled: Bool?
-    // In-panel action keys (#5): a per-shortcut override of the global key that
-    // acts on the highlighted window while the switcher is open. Only the keycode
-    // is used in-panel (⌘ is held the whole time), but the full chord is stored
-    // so the recorder shows what the user pressed. Unset = inherit the global key.
-    var panelClose: BetterShortcuts.Shortcut?
-    var panelMinimize: BetterShortcuts.Shortcut?
-    var panelHide: BetterShortcuts.Shortcut?
-    var panelQuit: BetterShortcuts.Shortcut?
-    var panelFullscreen: BetterShortcuts.Shortcut?
 
     init() {}
 
@@ -361,8 +351,6 @@ struct ShortcutOverride: Equatable, Sendable {
             && showWindowTitleLabel == nil && previewTitleAlignment == nil
             && boldSelectedLabel == nil && showApplicationNames == nil
             && showUnreadBadges == nil && letterHintsEnabled == nil
-            && panelClose == nil && panelMinimize == nil && panelHide == nil
-            && panelQuit == nil && panelFullscreen == nil
     }
 
     /// Plist-friendly representation: only *set* fields are emitted, so an absent
@@ -372,10 +360,6 @@ struct ShortcutOverride: Equatable, Sendable {
         var d: [String: String] = [:]
         func put(_ key: String, _ value: Bool?) { if let value { d[key] = value ? "true" : "false" } }
         func put(_ key: String, _ value: Int?) { if let value { d[key] = String(value) } }
-        // Shortcut → "carbonKeyCode:carbonModifiers" (compact, plist-clean).
-        func put(_ key: String, _ value: BetterShortcuts.Shortcut?) {
-            if let value { d[key] = "\(value.carbonKeyCode):\(value.carbonModifiers)" }
-        }
         if spaceScope != .inherit { d["spaceScope"] = spaceScope.rawValue }
         put("showMinimized", showMinimized)
         put("showHidden", showHidden)
@@ -397,11 +381,6 @@ struct ShortcutOverride: Equatable, Sendable {
         put("showApplicationNames", showApplicationNames)
         put("showUnreadBadges", showUnreadBadges)
         put("letterHintsEnabled", letterHintsEnabled)
-        put("panelClose", panelClose)
-        put("panelMinimize", panelMinimize)
-        put("panelHide", panelHide)
-        put("panelQuit", panelQuit)
-        put("panelFullscreen", panelFullscreen)
         return d
     }
 
@@ -410,15 +389,6 @@ struct ShortcutOverride: Equatable, Sendable {
     /// degrades gracefully instead of being dropped.
     init?(dictionary: [String: String]) {
         func bool(_ key: String) -> Bool? { dictionary[key].map { $0 == "true" } }
-        // Parse "carbonKeyCode:carbonModifiers"; a malformed value reads as unset
-        // (→ inherit), so a corrupt entry degrades gracefully instead of crashing.
-        func shortcut(_ key: String) -> BetterShortcuts.Shortcut? {
-            guard let raw = dictionary[key] else { return nil }
-            let parts = raw.split(separator: ":", maxSplits: 1)
-            guard let kc = parts.first.flatMap({ Int($0) }) else { return nil }
-            let mods = parts.count > 1 ? Int(parts[1]) ?? 0 : 0
-            return BetterShortcuts.Shortcut(carbonKeyCode: kc, carbonModifiers: mods)
-        }
         spaceScope = dictionary["spaceScope"].flatMap(SpaceScopeOverride.init(rawValue:)) ?? .inherit
         showMinimized = bool("showMinimized")
         showHidden = bool("showHidden")
@@ -440,11 +410,6 @@ struct ShortcutOverride: Equatable, Sendable {
         showApplicationNames = bool("showApplicationNames")
         showUnreadBadges = bool("showUnreadBadges")
         letterHintsEnabled = bool("letterHintsEnabled")
-        panelClose = shortcut("panelClose")
-        panelMinimize = shortcut("panelMinimize")
-        panelHide = shortcut("panelHide")
-        panelQuit = shortcut("panelQuit")
-        panelFullscreen = shortcut("panelFullscreen")
     }
 }
 
