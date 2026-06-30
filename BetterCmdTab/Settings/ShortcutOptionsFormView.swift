@@ -95,32 +95,20 @@ final class ShortcutOptionsFormView: NSView {
         addCard(appearance)
 
         // MARK: In-panel keys
-        // Per-shortcut rebinding of the action keys that act on the highlighted
-        // window while this shortcut's switcher is open (#5). "Use global default"
-        // leaves the key unset so it inherits the global In-panel keys pane. Only
-        // the keycode is used in-panel (⌘ is held the whole time).
+        // This profile's action keys that act on the highlighted window while its
+        // switcher is open (#5). Recorded with BetterShortcuts like the trigger
+        // (per-profile names "<base>@<target>"); each defaults to the shipped key,
+        // so a recorder shows e.g. ⌘W until changed and its clear button restores
+        // that default. Only the keycode is used in-panel (⌘ is held the whole time).
         let panelKeys = SettingsSectionView(title: String(localized: "In-panel keys"))
-        let panelKeyRows: [(String, WritableKeyPath<ShortcutOverride, BetterShortcuts.Shortcut?>)] = [
-            (String(localized: "Close window"), \.panelClose),
-            (String(localized: "Minimize window"), \.panelMinimize),
-            (String(localized: "Hide app"), \.panelHide),
-            (String(localized: "Quit app"), \.panelQuit),
-            (String(localized: "Full screen"), \.panelFullscreen),
-        ]
-        for (title, keyPath) in panelKeyRows {
-            addRecorderRow(to: panelKeys, title: title, keyPath: keyPath)
+        panelKeys.addContent(SettingsRowView(
+            title: String(localized: "Action keys while switching"),
+            subtitle: String(localized: "These act on the highlighted window while the switcher is open. ⌘ is held the whole time, so the modifier you record is ignored in-panel.")
+        ))
+        for (name, title) in BetterShortcuts.Name.profilePanelKeys(for: target.storageKey) {
+            panelKeys.addContent(SettingsRowView(title: title, accessory: BetterShortcuts.RecorderCocoa(for: name)))
         }
         addCard(panelKeys)
-    }
-
-    /// A row whose accessory records a per-shortcut in-panel key into `override`
-    /// (the single writer), then persists. Clearing it restores the global key.
-    private func addRecorderRow(to section: SettingsSectionView, title: String, keyPath: WritableKeyPath<ShortcutOverride, BetterShortcuts.Shortcut?>) {
-        let recorder = PanelKeyOverrideRecorder(shortcut: override[keyPath: keyPath]) { [weak self] shortcut in
-            self?.override[keyPath: keyPath] = shortcut
-            self?.persist()
-        }
-        section.addContent(SettingsRowView(title: title, subtitle: nil, accessory: recorder))
     }
 
     // MARK: - Row builders

@@ -58,6 +58,32 @@ extension BetterShortcuts.Name {
         (.panelFullscreen, String(localized: "Full screen")),
     ]
 
+    // MARK: Per-profile in-panel action keys (#5)
+
+    /// Each switcher profile (switchApps / switchWindows / scoped) gets its OWN
+    /// in-panel action keys, recorded with `RecorderCocoa` like the triggers and
+    /// stored under "<base>@<target.storageKey>". Each defaults to the shipped key,
+    /// so a new profile is usable immediately and clearing a recorder restores that
+    /// default. Like the legacy panel keys these have NO `onKeyDown` handler, so
+    /// binding ⌘W never registers a global Carbon hotkey.
+    static func panelClose(for key: String) -> Self { Self("panelClose@\(key)", default: .init(.w, modifiers: .command)) }
+    static func panelMinimize(for key: String) -> Self { Self("panelMinimize@\(key)", default: .init(.m, modifiers: .command)) }
+    static func panelHide(for key: String) -> Self { Self("panelHide@\(key)", default: .init(.h, modifiers: .command)) }
+    static func panelQuit(for key: String) -> Self { Self("panelQuit@\(key)", default: .init(.q, modifiers: .command)) }
+    static func panelFullscreen(for key: String) -> Self { Self("panelFullscreen@\(key)", default: .init(.f, modifiers: .command)) }
+
+    /// The per-profile in-panel action-key names for the profile with `storageKey`,
+    /// paired with a stable title — drives the recorder rows and the keycode maps.
+    static func profilePanelKeys(for storageKey: String) -> [(name: Self, title: String)] {
+        [
+            (panelClose(for: storageKey), String(localized: "Close window")),
+            (panelMinimize(for: storageKey), String(localized: "Minimize window")),
+            (panelHide(for: storageKey), String(localized: "Hide app")),
+            (panelQuit(for: storageKey), String(localized: "Quit app")),
+            (panelFullscreen(for: storageKey), String(localized: "Full screen")),
+        ]
+    }
+
     // MARK: Window-management hotkeys (global + in-switcher)
 
     /// Arrange the focused/highlighted window — tile to a half, maximize, or
@@ -146,6 +172,17 @@ extension BetterShortcuts.Name: @retroactive CaseIterable {
             }
             if let panel = Self.panelActionKeys.first(where: { $0.name == self }) {
                 return panel.title
+            }
+            // Per-profile in-panel action key (#5): "<base>@<target>".
+            if let at = rawValue.firstIndex(of: "@") {
+                switch String(rawValue[..<at]) {
+                case "panelClose": return String(localized: "Close window")
+                case "panelMinimize": return String(localized: "Minimize window")
+                case "panelHide": return String(localized: "Hide app")
+                case "panelQuit": return String(localized: "Quit app")
+                case "panelFullscreen": return String(localized: "Full screen")
+                default: break
+                }
             }
             if let wm = Self.windowMgmt.first(where: { $0.name == self }) {
                 return wm.title

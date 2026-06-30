@@ -18,23 +18,9 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         // Appearance pane — rather than nesting cards inside a card.
         addArrangedSubview(shortcutsEditorView)
         register(section: shortcutsEditorView, anchor: SettingsAnchor.switching)
-
-        // In-panel keys section — the keys that act on the highlighted window
-        // while the switcher is open (close / minimize / hide / quit). Recorded
-        // with BetterShortcuts; only the key is used in-panel (⌘ is held the
-        // whole time), so e.g. ⌘W reads as W while switching. No global hotkey is
-        // registered for these — there's no onKeyDown handler — so binding ⌘W
-        // doesn't steal Close in other apps.
-        let panelKeys = addSection(title: String(localized: "In-panel keys"), anchor: SettingsAnchor.panelKeys)
-        addRow(
-            to: panelKeys,
-            title: String(localized: "Action keys while switching"),
-            subtitle: String(localized: "These act on the highlighted window while the switcher is open. ⌘ is held the whole time, so the modifier you record is ignored in-panel."),
-            searchItemID: SearchID.panelKeys
-        )
-        for (name, title) in BetterShortcuts.Name.panelActionKeys {
-            addRow(to: panelKeys, title: title, accessory: BetterShortcuts.RecorderCocoa(for: name))
-        }
+        // The in-panel action keys (close / minimize / hide / quit / full screen)
+        // are edited per profile, inside each profile's "In-panel keys" card in the
+        // editor above (#5) — there is no separate global section.
     }
 
     override func viewWillAppear() {
