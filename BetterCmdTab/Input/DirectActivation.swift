@@ -1,5 +1,6 @@
 import AppKit
 import BetterShortcuts
+import os
 
 /// Wires the direct-activation hotkeys: a user-assigned global shortcut jumps
 /// straight to a chosen app (launching it if needed), without opening the
@@ -15,6 +16,13 @@ import BetterShortcuts
 enum DirectActivation {
     static func installHandlers() {
         for (index, name) in BetterShortcuts.Name.directActivate.enumerated() {
+            // Skip a slot bound to a reserved switcher trigger chord (⌘Tab / ⌘` /
+            // Shift-reverse): the survivor trigger already owns it, so registering
+            // would only spew eventHotKeyExistsErr (-9878) (issue #16).
+            guard !BetterShortcuts.isBoundToReservedTriggerChord(name) else {
+                Log.hotkey.warning("direct-activation slot \(index + 1) is bound to a reserved switcher chord — not registering")
+                continue
+            }
             BetterShortcuts.onKeyDown(for: name) {
                 // BetterShortcuts invokes this on the main thread inside
                 // `MainActor.assumeIsolated`; mirror that to reach our isolation.

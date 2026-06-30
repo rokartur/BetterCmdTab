@@ -1,5 +1,6 @@
 import AppKit
 import BetterShortcuts
+import os
 
 /// Wires the scoped-switch shortcuts: a user-assigned global shortcut opens the
 /// switcher already filtered to a `SwitchScope` (all windows / current Space /
@@ -34,9 +35,18 @@ enum ScopedSwitch {
     /// the entry's id. Idempotent — a re-install for the same name is ignored.
     /// Call when the user adds a new entry at runtime.
     static func installHandler(for entry: ScopedShortcut) {
+        let name = BetterShortcuts.Name(entry.shortcutName)
+        // A slot bound to a reserved switcher trigger chord (⌘Tab / ⌘` / Shift-reverse)
+        // can never fire — the always-armed survivor trigger owns it — and registering
+        // it only spews eventHotKeyExistsErr (-9878). Skip it, and DON'T mark it
+        // installed, so a later remap to a free chord still registers (issue #16).
+        guard !BetterShortcuts.isBoundToReservedTriggerChord(name) else {
+            Log.hotkey.warning("scoped shortcut \(entry.id) is bound to a reserved switcher chord — not registering")
+            return
+        }
         guard installedNames.insert(entry.shortcutName).inserted else { return }
         let id = entry.id
-        BetterShortcuts.onKeyDown(for: BetterShortcuts.Name(entry.shortcutName)) {
+        BetterShortcuts.onKeyDown(for: name) {
             // BetterShortcuts invokes this on the main thread inside
             // `MainActor.assumeIsolated`; mirror that to reach our isolation.
             MainActor.assumeIsolated { trigger(id: id) }

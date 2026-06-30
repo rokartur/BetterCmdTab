@@ -1,5 +1,6 @@
 import AppKit
 import BetterShortcuts
+import Carbon.HIToolbox
 
 // Strongly-typed names for BetterCmdTab's two switcher triggers. The recorded
 // shortcuts are stored by the BetterShortcuts package but are NOT registered
@@ -161,5 +162,42 @@ extension BetterShortcuts {
     /// Wire the package's conflict-alert label provider to our `displayName`s. Call once at launch.
     static func installDisplayNames() {
         BetterShortcuts.displayName = { $0.displayName }
+    }
+
+    /// The chords the switcher's secure-input survivor (`CarbonHotkeyTrigger`) holds
+    /// for the whole run — `switchApps` / `switchWindows` and their Shift-reverse,
+    /// exactly the set `computeNativeOverridePlan` registers. Pure so it is unit
+    /// testable; the live overload reads the current bindings.
+    ///
+    /// A user-assignable GLOBAL slot (direct-activation / scoped-switch / window-
+    /// management) bound to one of these collides in-process with that registration:
+    /// two `RegisterEventHotKey` claimants for one chord, which macOS rejects with
+    /// `eventHotKeyExistsErr` (-9878). The slot could never fire anyway — the
+    /// survivor trigger owns the chord — so we refuse to register it (issue #16).
+    static func reservedTriggerShortcuts(app: Shortcut?, window: Shortcut?) -> [Shortcut] {
+        var out: [Shortcut] = []
+        for s in [app, window].compactMap({ $0 }) {
+            out.append(s)
+            // The Shift-reverse variant the survivor also registers (prevApp/prevWindow).
+            out.append(Shortcut(carbonKeyCode: s.carbonKeyCode, carbonModifiers: s.carbonModifiers | shiftKey))
+        }
+        return out
+    }
+
+    /// Live reserved set, read from the current `switchApps` / `switchWindows`
+    /// bindings (so a remapped trigger reserves its new chord and frees the old).
+    static func reservedTriggerShortcuts() -> [Shortcut] {
+        reservedTriggerShortcuts(
+            app: getShortcut(for: .switchApps),
+            window: getShortcut(for: .switchWindows)
+        )
+    }
+
+    /// True when `name`'s current chord is one the survivor trigger already owns, so
+    /// registering it as a global hotkey would only spew -9878 (issue #16). Call at
+    /// every global-slot install site to skip the doomed registration.
+    static func isBoundToReservedTriggerChord(_ name: Name) -> Bool {
+        guard let s = getShortcut(for: name) else { return false }
+        return reservedTriggerShortcuts().contains(s)
     }
 }
