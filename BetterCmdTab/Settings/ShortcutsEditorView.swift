@@ -56,6 +56,10 @@ final class ShortcutsEditorView: NSView {
     /// list/overrides off-screen). In-session tab switches use the cache instead,
     /// so they stay instant.
     func reload() {
+        // End any in-progress panel-key capture before its (cached) recorder is
+        // torn down, so its app-wide monitor and the global-hotkey suspension are
+        // released instead of leaking past the rebuild.
+        PanelKeyOverrideRecorder.stopActive()
         for (_, view) in detailCache {
             detailContainer.removeArrangedSubview(view)
             view.removeFromSuperview()
@@ -209,6 +213,10 @@ final class ShortcutsEditorView: NSView {
             panel.widthAnchor.constraint(equalTo: detailContainer.widthAnchor).isActive = true
         }
         if visibleKey != key {
+            // A different tab is becoming visible — end any panel-key capture so a
+            // recorder hidden mid-record can't keep swallowing keys / writing the
+            // next chord into the now-hidden profile's override.
+            PanelKeyOverrideRecorder.stopActive()
             if let prev = visibleKey, let prevView = detailCache[prev] { prevView.isHidden = true }
             panel.isHidden = false
             visibleKey = key

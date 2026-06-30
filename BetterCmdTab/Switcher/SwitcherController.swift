@@ -306,6 +306,13 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Per-shortcut appearance + reveal-time behavioral snapshot (#74). Rebuilt at
     /// each trigger; resolves to the globals when the shortcut has no override.
     private var effective: EffectiveSettings = .defaults
+    /// The firing shortcut's full override (#74), captured at each trigger. Read by
+    /// `panelActionSpecs`/`pushPanelKeyBindings` so the in-panel action keys (#5)
+    /// honor a per-shortcut rebinding for the duration of this reveal.
+    private var activeShortcutOverride = ShortcutOverride()
+    /// Last keycode→action map pushed to the tap, so an unchanged push (the common
+    /// case: no panel-key override) skips the cross-thread lock write.
+    private var lastPanelKeyMap: [Int64: HotkeyTap.PanelActionKey] = [:]
 
     /// Signatures of windows the user just closed locally. Any cache refresh
     /// completing before the AX close has propagated would otherwise re-add
@@ -843,19 +850,30 @@ final class SwitcherController: SwitcherViewDelegate {
     /// used — the chord's modifier is irrelevant in-panel (⌘ is held the whole
     /// time the switcher is open), so e.g. a stored ⌘W matches the physical W
     /// while switching. Re-derived on launch and on any shortcut change.
-    private func pushPanelKeyBindings() {
+    /// `override` supplies a per-shortcut rebinding (#74) for the active reveal;
+    /// each action prefers the override's keycode and otherwise the global one. The
+    /// default (empty) override is the baseline pushed on launch and on any global
+    /// shortcut change.
+    private func pushPanelKeyBindings(for override: ShortcutOverride = ShortcutOverride()) {
         var map: [Int64: HotkeyTap.PanelActionKey] = [:]
-        let pairs: [(BetterShortcuts.Name, HotkeyTap.PanelActionKey)] = [
-            (.panelClose, .close),
-            (.panelMinimize, .minimize),
-            (.panelHide, .hide),
-            (.panelQuit, .quit),
-            (.panelFullscreen, .fullscreen),
+        let pairs: [(BetterShortcuts.Name, BetterShortcuts.Shortcut?, HotkeyTap.PanelActionKey)] = [
+            (.panelClose, override.panelClose, .close),
+            (.panelMinimize, override.panelMinimize, .minimize),
+            (.panelHide, override.panelHide, .hide),
+            (.panelQuit, override.panelQuit, .quit),
+            (.panelFullscreen, override.panelFullscreen, .fullscreen),
         ]
-        for (name, action) in pairs {
-            guard let shortcut = BetterShortcuts.getShortcut(for: name) else { continue }
-            map[Int64(shortcut.carbonKeyCode)] = action
+        for (name, overridden, action) in pairs {
+            guard let shortcut = overridden ?? BetterShortcuts.getShortcut(for: name) else { continue }
+            // First-wins on a keycode collision (a profile may bind two actions to
+            // the same key, since the recorder does no conflict rejection). Matches
+            // the secure-input native-chord dedupe (`computeNativeOverridePlan`),
+            // which is also first-wins — so both paths pick the same action.
+            let keyCode = Int64(shortcut.carbonKeyCode)
+            if map[keyCode] == nil { map[keyCode] = action }
         }
+        guard map != lastPanelKeyMap else { return }
+        lastPanelKeyMap = map
         hotkey.setPanelKeyBindings(map)
     }
 
@@ -1053,16 +1071,16 @@ final class SwitcherController: SwitcherViewDelegate {
     /// The rebindable in-panel action keys (W/M/H/Q/F), in the pure plan's terms.
     /// Same source as `pushPanelKeyBindings` — only the keycode matters in-panel.
     private func panelActionSpecs() -> [PanelActionSpec] {
-        let pairs: [(BetterShortcuts.Name, ChordSpec.Kind)] = [
-            (.panelClose, .close),
-            (.panelMinimize, .minimize),
-            (.panelHide, .hide),
-            (.panelQuit, .quit),
-            (.panelFullscreen, .fullscreen),
+        let pairs: [(BetterShortcuts.Name, BetterShortcuts.Shortcut?, ChordSpec.Kind)] = [
+            (.panelClose, activeShortcutOverride.panelClose, .close),
+            (.panelMinimize, activeShortcutOverride.panelMinimize, .minimize),
+            (.panelHide, activeShortcutOverride.panelHide, .hide),
+            (.panelQuit, activeShortcutOverride.panelQuit, .quit),
+            (.panelFullscreen, activeShortcutOverride.panelFullscreen, .fullscreen),
         ]
         var specs: [PanelActionSpec] = []
-        for (name, action) in pairs {
-            guard let shortcut = BetterShortcuts.getShortcut(for: name) else { continue }
+        for (name, overridden, action) in pairs {
+            guard let shortcut = overridden ?? BetterShortcuts.getShortcut(for: name) else { continue }
             specs.append(PanelActionSpec(keyCode: UInt32(shortcut.carbonKeyCode), action: action))
         }
         return specs
@@ -1576,6 +1594,13 @@ final class SwitcherController: SwitcherViewDelegate {
                 // resolves the global config/appearance, not the last shortcut's.
                 activeFilterConfig = nil
                 effective = .defaults
+                // Restore the global in-panel action keys (#5) on close, so an
+                // open path that bypasses `resolveActiveOptions` (the experimental
+                // gesture trigger) can't inherit the last shortcut's rebinding.
+                // The change-guard makes the re-push a no-op after a no-override
+                // reveal and a single cheap write after an override reveal.
+                activeShortcutOverride = ShortcutOverride()
+                pushPanelKeyBindings()
             }
             // Under Secure Event Input the in-panel nav chords are registered only
             // while the panel is open, so re-sync on the open⇄close edge. Gated on
@@ -1596,6 +1621,11 @@ final class SwitcherController: SwitcherViewDelegate {
         let override = Preferences.shared.override(for: target)
         activeFilterConfig = override.isEmpty ? nil : CatalogFilter.overlay(CatalogFilter.config(), override)
         effective = Preferences.shared.effectiveSettings(for: override)
+        activeShortcutOverride = override
+        // Rebind the in-panel action keys (#5) for this reveal. With no override
+        // this resolves to the globals (so the map matches the launch/on-change
+        // push) and the change-guard skips the redundant tap write.
+        pushPanelKeyBindings(for: override)
     }
 
     /// Open the switcher already filtered to `scope` (#3). Driven by a user

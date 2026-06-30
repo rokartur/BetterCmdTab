@@ -1,4 +1,5 @@
 import AppKit
+import BetterShortcuts
 import Foundation
 import Testing
 @testable import BetterCmdTab
@@ -106,6 +107,11 @@ struct ShortcutOverrideTests {
         ov.showApplicationNames = true
         ov.showUnreadBadges = false
         ov.letterHintsEnabled = true
+        ov.panelClose = BetterShortcuts.Shortcut(.w, modifiers: .command)
+        ov.panelMinimize = BetterShortcuts.Shortcut(.m, modifiers: .command)
+        ov.panelHide = BetterShortcuts.Shortcut(.h, modifiers: .command)
+        ov.panelQuit = BetterShortcuts.Shortcut(.x, modifiers: [.command, .option])
+        ov.panelFullscreen = BetterShortcuts.Shortcut(.f, modifiers: .command)
         #expect(!ov.isEmpty)
         #expect(ShortcutOverride(dictionary: ov.dictionary) == ov)
     }
@@ -127,6 +133,35 @@ struct ShortcutOverrideTests {
         let parsed = ShortcutOverride(dictionary: ["spaceScope": "allSpaces", "futureField": "42"])
         #expect(parsed?.spaceScope == .allSpaces)
         #expect(parsed?.isEmpty == false)
+    }
+
+    // MARK: - Panel-key (in-panel action) overrides (#5)
+
+    @Test("a panel-key-only override is not empty and round-trips")
+    func panelKeyRoundTrip() {
+        var ov = ShortcutOverride()
+        ov.panelClose = BetterShortcuts.Shortcut(.w, modifiers: .command)
+        ov.panelQuit = BetterShortcuts.Shortcut(.x, modifiers: [.command, .option])
+        #expect(!ov.isEmpty)
+        let dict = ov.dictionary
+        // Serialized as "carbonKeyCode:carbonModifiers".
+        #expect(dict["panelClose"] == "\(ov.panelClose!.carbonKeyCode):\(ov.panelClose!.carbonModifiers)")
+        #expect(dict["panelMinimize"] == nil) // unset → absent → inherit the global key
+        let parsed = ShortcutOverride(dictionary: dict)
+        #expect(parsed?.panelClose == ov.panelClose)
+        #expect(parsed?.panelQuit == ov.panelQuit)
+        #expect(parsed?.panelMinimize == nil)
+    }
+
+    @Test("malformed panel-key value decodes to inherit, not a crash")
+    func panelKeyMalformed() {
+        #expect(ShortcutOverride(dictionary: ["panelClose": "notanumber"])?.panelClose == nil)
+        #expect(ShortcutOverride(dictionary: ["panelClose": ""])?.panelClose == nil)
+        // A bare keycode (no ":mods") parses with zero modifiers — only the keycode
+        // matters in-panel, so this is a valid, if modifier-less, binding.
+        let kcOnly = ShortcutOverride(dictionary: ["panelClose": "13"])?.panelClose
+        #expect(kcOnly?.carbonKeyCode == 13)
+        #expect(kcOnly?.carbonModifiers == 0)
     }
 
     // MARK: - CatalogFilter.overlay

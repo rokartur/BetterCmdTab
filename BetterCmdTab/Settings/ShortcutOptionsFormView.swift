@@ -1,5 +1,6 @@
 import AppKit
 import BetterSettings
+import BetterShortcuts
 
 /// Inline, live-persisting per-shortcut options (#74), laid out as the app's
 /// standard settings section cards + rows so it matches the Appearance pane
@@ -92,6 +93,34 @@ final class ShortcutOptionsFormView: NSView {
         addBoolRow(to: appearance, title: String(localized: "Show unread badges"), current: override.showUnreadBadges) { [weak self] in self?.override.showUnreadBadges = $0; self?.persist() }
         addBoolRow(to: appearance, title: String(localized: "Show quick-jump letters"), current: override.letterHintsEnabled) { [weak self] in self?.override.letterHintsEnabled = $0; self?.persist() }
         addCard(appearance)
+
+        // MARK: In-panel keys
+        // Per-shortcut rebinding of the action keys that act on the highlighted
+        // window while this shortcut's switcher is open (#5). "Use global default"
+        // leaves the key unset so it inherits the global In-panel keys pane. Only
+        // the keycode is used in-panel (⌘ is held the whole time).
+        let panelKeys = SettingsSectionView(title: String(localized: "In-panel keys"))
+        let panelKeyRows: [(String, WritableKeyPath<ShortcutOverride, BetterShortcuts.Shortcut?>)] = [
+            (String(localized: "Close window"), \.panelClose),
+            (String(localized: "Minimize window"), \.panelMinimize),
+            (String(localized: "Hide app"), \.panelHide),
+            (String(localized: "Quit app"), \.panelQuit),
+            (String(localized: "Full screen"), \.panelFullscreen),
+        ]
+        for (title, keyPath) in panelKeyRows {
+            addRecorderRow(to: panelKeys, title: title, keyPath: keyPath)
+        }
+        addCard(panelKeys)
+    }
+
+    /// A row whose accessory records a per-shortcut in-panel key into `override`
+    /// (the single writer), then persists. Clearing it restores the global key.
+    private func addRecorderRow(to section: SettingsSectionView, title: String, keyPath: WritableKeyPath<ShortcutOverride, BetterShortcuts.Shortcut?>) {
+        let recorder = PanelKeyOverrideRecorder(shortcut: override[keyPath: keyPath]) { [weak self] shortcut in
+            self?.override[keyPath: keyPath] = shortcut
+            self?.persist()
+        }
+        section.addContent(SettingsRowView(title: title, subtitle: nil, accessory: recorder))
     }
 
     // MARK: - Row builders
