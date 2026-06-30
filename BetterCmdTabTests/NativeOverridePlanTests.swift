@@ -331,4 +331,58 @@ struct NativeOverridePlanTests {
         #expect(plan.symbolicKeysToDisable.isEmpty)
         #expect(plan.carbonChords.isEmpty)
     }
+
+    // MARK: Role-decoupled symbolic disable (issue #16 — a swapped/remapped trigger
+    // that still lands on a reserved native chord must free that chord's symbolic
+    // hotkey regardless of which role holds it, or RegisterEventHotKey -9878s forever)
+
+    @Test func windowMappedToCmdTab_freesCmdTabSymbolic() {
+        // Window switch bound to ⌘Tab (kc 48), app on ⌘` (kc 50). The old
+        // role-pinned guard (appKeyCode == 48 only) left ⌘Tab's symbolic hotkey
+        // enabled while still registering ⌘Tab on the survivor → permanent -9878.
+        let trigger = TriggerSpec(appKeyCode: 50, appCarbonModifiers: Self.cmd, appIsCommandOnly: true,
+                                  windowKeyCode: 48, windowCarbonModifiers: Self.cmd, windowIsCommandOnly: true)
+        let plan = computeNativeOverridePlan(trigger: trigger, secureInputActive: false,
+                                             panelOpen: false, holdModifierDown: false)
+        #expect(Set(plan.symbolicKeysToDisable) == [1, 2, 6])
+    }
+
+    @Test func appMappedToBacktick_freesBacktickSymbolic() {
+        // App switch bound to ⌘` (kc 50): id 6 must be freed via the app role.
+        let trigger = TriggerSpec(appKeyCode: 50, appCarbonModifiers: Self.cmd, appIsCommandOnly: true,
+                                  windowKeyCode: 0, windowCarbonModifiers: Self.cmd, windowIsCommandOnly: false)
+        let plan = computeNativeOverridePlan(trigger: trigger, secureInputActive: false,
+                                             panelOpen: false, holdModifierDown: false)
+        #expect(plan.symbolicKeysToDisable.contains(6))
+    }
+
+    @Test func swappedTriggers_disableBothChordSets() {
+        // App on ⌘` (kc 50), window on ⌘Tab (kc 48) — the full swap. Both reserved
+        // native chords must be freed: {1,2} (⌘Tab/⌘⇧Tab) and {6} (⌘`).
+        let trigger = TriggerSpec(appKeyCode: 50, appCarbonModifiers: Self.cmd, appIsCommandOnly: true,
+                                  windowKeyCode: 48, windowCarbonModifiers: Self.cmd, windowIsCommandOnly: true)
+        let plan = computeNativeOverridePlan(trigger: trigger, secureInputActive: false,
+                                             panelOpen: false, holdModifierDown: false)
+        #expect(Set(plan.symbolicKeysToDisable) == [1, 2, 6])
+    }
+
+    @Test func bothRolesOnCmdTab_noDuplicateSymbolic() {
+        // Both roles on ⌘Tab (kc 48): the `||` must dedupe to exactly {1,2}, not
+        // append the pair twice.
+        let trigger = TriggerSpec(appKeyCode: 48, appCarbonModifiers: Self.cmd, appIsCommandOnly: true,
+                                  windowKeyCode: 48, windowCarbonModifiers: Self.cmd, windowIsCommandOnly: true)
+        let plan = computeNativeOverridePlan(trigger: trigger, secureInputActive: false,
+                                             panelOpen: false, holdModifierDown: false)
+        #expect(plan.symbolicKeysToDisable == [1, 2])
+    }
+
+    @Test func remappedToOption_onReservedKeycode_freesNothing() {
+        // ⌥Tab (kc 48 but NOT command-only) reserves no native symbolic hotkey —
+        // the keycode alone must not trigger a disable.
+        let trigger = TriggerSpec(appKeyCode: 48, appCarbonModifiers: Self.opt, appIsCommandOnly: false,
+                                  windowKeyCode: 50, windowCarbonModifiers: Self.opt, windowIsCommandOnly: false)
+        let plan = computeNativeOverridePlan(trigger: trigger, secureInputActive: false,
+                                             panelOpen: false, holdModifierDown: false)
+        #expect(plan.symbolicKeysToDisable.isEmpty)
+    }
 }

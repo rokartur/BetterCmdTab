@@ -34,6 +34,14 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Native symbolic hotkeys (⌘Tab etc.) we've currently disabled at the
     /// WindowServer, so teardown / a remap can re-enable exactly those.
     private var disabledSymbolicKeys: [PrivateAPI.SymbolicHotKey] = []
+    /// The Carbon chord set last handed to `carbonTrigger.update`. `update` is a
+    /// WindowServer op that transiently disables the CGEvent tap (the disable that
+    /// can drop a ⌘-up and weld the panel — issue #16), so it must run ONLY on a
+    /// genuine change. `syncNativeHotkeyOverride` is re-driven ~1×/s by secure-input
+    /// flaps and on every ⌘ up/down via `holdMonitor`, so without this guard the set
+    /// is torn down and re-registered constantly. Reset on teardown so an identical
+    /// plan re-applies after `carbonTrigger.uninstall`.
+    private var lastAppliedChords: [ChordSpec] = []
     /// Polls Secure Event Input. The native-shortcut override (symbolic disable +
     /// Carbon registration) is applied ONLY while it is active — outside it the
     /// tap alone suppresses + triggers ⌘Tab, so the native shortcut is never left
@@ -1181,6 +1189,14 @@ final class SwitcherController: SwitcherViewDelegate {
             disabledSymbolicKeys = toDisable
             persistDisabledSymbolicKeys(toDisable)
         }
+        // Change-guard: `carbonTrigger.update` unregisters + re-registers the whole
+        // chord set and transiently disables the CGEvent tap, so skip it when the
+        // plan's chords are unchanged. `ChordSpec` is `Equatable`, so this is a
+        // cheap value compare with no WindowServer IPC. Collapsing the per-flap /
+        // per-⌘ churn here removes both the repeating 6-retry log and the
+        // self-inflicted tap-disable that drops the ⌘-up and welds the panel (#16).
+        guard plan.carbonChords != lastAppliedChords else { return }
+        lastAppliedChords = plan.carbonChords
         carbonTrigger.update(plan.carbonChords.map { spec in
             CarbonHotkeyTrigger.Chord(
                 keyCode: spec.keyCode,
@@ -1440,6 +1456,9 @@ final class SwitcherController: SwitcherViewDelegate {
         visibleReleaseBackstop?.invalidate()
         visibleReleaseBackstop = nil
         carbonTrigger.uninstall()
+        // `uninstall` drops every registration; clear the change-guard cache so an
+        // identical plan re-registers if the controller is ever re-applied.
+        lastAppliedChords = []
         if !disabledSymbolicKeys.isEmpty {
             PrivateAPI.setNativeCommandTabEnabled(true, disabledSymbolicKeys)
             disabledSymbolicKeys = []
@@ -2193,6 +2212,15 @@ final class SwitcherController: SwitcherViewDelegate {
             tabDrillActive: tabDrillActive,
             secureInputActive: secureInputActive
         )
+        // Single source of truth for the tap's weld self-heal gate (issue #16):
+        // this predicate already marks a held-chord release-to-commit panel, and
+        // this method is invoked from every edge that can change it (the `phase`
+        // chokepoint, the `stickyOpen` / `tabDrillActive` didSets, secure-input
+        // transitions), so the tap flag can never miss a mutation site. The only
+        // divergence from the heal predicate (`|| tabDrillActive`) is unobservable
+        // at the gate — drill keyDowns are fully handled and return earlier in the
+        // tap, before the swallow gate is reached.
+        hotkey.setModifierHeldPanel(want)
         if want {
             guard visibleReleaseBackstop == nil else { return }
             let timer = Timer(timeInterval: Self.visibleReleaseBackstopInterval, repeats: true) { [weak self] _ in

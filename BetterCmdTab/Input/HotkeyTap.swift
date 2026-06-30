@@ -157,6 +157,13 @@ final class HotkeyTap {
     /// panel is up, independent of any timer firing. Pushed from main via
     /// `setPanelPresented`.
     private let panelPresentedFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// True iff a panel is on screen AND held open by the trigger modifier (a
+    /// held-chord reveal) — false for stay-open / sticky / gesture / scoped opens.
+    /// Lets the action-key/letter-jump swallow distinguish a *welded* held-chord
+    /// panel (heal it) from a deliberate stay-open panel (where bare keys must keep
+    /// routing). Pushed from main via `setModifierHeldPanel`. See the weld self-heal
+    /// at the swallow gate below (issue #16).
+    private let modifierHeldPanelFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let shiftWasHeld = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let layoutData = OSAllocatedUnfairLock<Data?>(initialState: nil)
     /// When true the tap consumes every keyDown (blocking system shortcuts) and
@@ -484,6 +491,13 @@ final class HotkeyTap {
     /// actually on screen (see `panelPresentedFlag`). Safe to call from main.
     func setPanelPresented(_ value: Bool) {
         panelPresentedFlag.withLock { $0 = value }
+    }
+
+    /// Mirror "panel is on screen AND held open by the trigger modifier" onto the
+    /// tap. Drives the weld self-heal at the swallow gate (issue #16). Safe to call
+    /// from main; pushed from `syncVisibleReleaseBackstop`'s single chokepoint.
+    func setModifierHeldPanel(_ value: Bool) {
+        modifierHeldPanelFlag.withLock { $0 = value }
     }
 
     /// Enter/leave recording mode. While recording, keyDowns are consumed and
@@ -1067,6 +1081,26 @@ final class HotkeyTap {
                         // Gating on a visible panel makes them pass through with
                         // no panel up, independent of any timer.
                         if isPanelPresented() {
+                            // Weld self-heal (issue #16 residual). On a live keyDown
+                            // the tap is alive, so `anyModHeld` (from event.flags,
+                            // computed at the top of this handler) is the TRUE live
+                            // modifier state — unlike `CGEventSource.flagsState`,
+                            // which latches a lie reporting ⌘-held after a ⌘-up was
+                            // dropped during a secure-input tap-disable. A held-chord
+                            // panel reaching this swallow gate with the hold modifier
+                            // physically up is provably welded: tear it down with NO
+                            // commit and NO focus yank (.dismiss restores the app the
+                            // user came from), then SWALLOW this key — present() made
+                            // us key/active (SwitcherPanel.canBecomeKey + NSApp
+                            // .activate), so passing it through would route it to our
+                            // own panel and lose it; the user's next keystroke lands
+                            // on the restored app. `!anyModHeld` is ordered first so a
+                            // genuinely-held ⌘ short-circuits BEFORE the lock read,
+                            // keeping the default reveal/commit path lock-free.
+                            if !anyModHeld && modifierHeldPanelFlag.withLock({ $0 }) {
+                                deliver(.dismiss)
+                                return nil
+                            }
                             // Vim navigation: h/j/k/l mirror the bare arrows.
                             // Opt-in because h overlaps the default Hide panel
                             // binding and j/k/l overlap letter-jump. Checked

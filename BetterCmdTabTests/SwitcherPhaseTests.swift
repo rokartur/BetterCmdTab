@@ -152,6 +152,19 @@ struct SwitcherVisibleReleaseBackstopTests {
         // Sticky-without-drill still never arms, secure input or not.
         #expect(!arm(stickyOpen: true, secureInputActive: true))
     }
+
+    @Test func drivesTapWeldHealFlag_heldChordOnly() {
+        // This same predicate is the single source of truth for the tap's
+        // `modifierHeldPanelFlag` weld self-heal (issue #16): on a live keyDown the
+        // tap refuses to swallow an action key / letter-jump when the panel is
+        // held-chord (flag true) AND the event's flags show the hold modifier up,
+        // tearing the welded panel down instead. So the flag must be true exactly
+        // for a held-chord panel (heal-eligible) and false for a deliberate stay-open
+        // / gesture / scoped park, where bare keys must keep routing to the panel.
+        #expect(arm())                          // held-chord ⌘Tab → heal-eligible
+        #expect(!arm(stickyOpen: true))         // parked stay-open → bare keys route
+        #expect(!arm(primedByHeldChord: false)) // gesture / scoped → bare keys route
+    }
 }
 
 /// The backstop's no-interaction force-close is a flagsState-independent escape from
