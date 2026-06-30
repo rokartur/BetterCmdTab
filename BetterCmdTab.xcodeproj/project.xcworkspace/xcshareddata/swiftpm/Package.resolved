@@ -1,51 +1,51 @@
 {
-  "originHash" : "1e7ea82aa96283e536a735944797722e409c3f942bc5f33a843dc5dcff726efb",
-  "pins" : [
+  "originHash": "1e7ea82aa96283e536a735944797722e409c3f942bc5f33a843dc5dcff726efb",
+  "pins": [
     {
-      "identity" : "betterpermissions",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/rokartur/BetterPermissions.git",
-      "state" : {
-        "revision" : "0679549a2bb9b5989a2f9975aed222a93af35616",
-        "version" : "1.0.1"
+      "identity": "betterpermissions",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/rokartur/BetterPermissions.git",
+      "state": {
+        "revision": "0679549a2bb9b5989a2f9975aed222a93af35616",
+        "version": "1.0.1"
       }
     },
     {
-      "identity" : "bettersettings",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/rokartur/BetterSettings.git",
-      "state" : {
-        "revision" : "1e7cbe5ef11d79acc5dc4c2c57747d5494aa111c",
-        "version" : "0.2.9"
+      "identity": "bettersettings",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/rokartur/BetterSettings.git",
+      "state": {
+        "revision": "1e7cbe5ef11d79acc5dc4c2c57747d5494aa111c",
+        "version": "0.2.9"
       }
     },
     {
-      "identity" : "bettershortcuts",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/rokartur/BetterShortcuts.git",
-      "state" : {
-        "revision" : "9194a98754771645a2458d96e483acf77b85497c",
-        "version" : "0.2.0"
+      "identity": "bettershortcuts",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/rokartur/BetterShortcuts.git",
+      "state": {
+        "revision": "d6dcac416fa2fb906ce3d53a6fa97fe86eb65e16",
+        "version": "0.3.0"
       }
     },
     {
-      "identity" : "betterupdater",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/rokartur/BetterUpdater.git",
-      "state" : {
-        "revision" : "f52c1c9ca4f878f7185aa7e341e679d6f706451d",
-        "version" : "0.2.1"
+      "identity": "betterupdater",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/rokartur/BetterUpdater.git",
+      "state": {
+        "revision": "f52c1c9ca4f878f7185aa7e341e679d6f706451d",
+        "version": "0.2.1"
       }
     },
     {
-      "identity" : "swift-argument-parser",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-argument-parser.git",
-      "state" : {
-        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
-        "version" : "1.8.2"
+      "identity": "swift-argument-parser",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/apple/swift-argument-parser.git",
+      "state": {
+        "revision": "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+        "version": "1.8.2"
       }
     }
   ],
-  "version" : 3
+  "version": 3
 }

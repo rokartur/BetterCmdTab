@@ -105,8 +105,12 @@ final class ShortcutOptionsFormView: NSView {
             title: String(localized: "Action keys while switching"),
             subtitle: String(localized: "These act on the highlighted window while the switcher is open. ⌘ is held the whole time, so the modifier you record is ignored in-panel.")
         ))
+        // Allow the same chord across profiles (e.g. ⌘W for Close in each) without
+        // the cross-name "already used by …" alert — every profile is an independent
+        // scope, so a recurring panel key is expected, not a conflict.
+        let panelPolicy = BetterShortcuts.RecorderPolicy(allowsDuplicateShortcuts: true)
         for (name, title) in BetterShortcuts.Name.profilePanelKeys(for: target.storageKey) {
-            panelKeys.addContent(SettingsRowView(title: title, accessory: BetterShortcuts.RecorderCocoa(for: name)))
+            panelKeys.addContent(SettingsRowView(title: title, accessory: BetterShortcuts.RecorderCocoa(for: name, policy: panelPolicy)))
         }
         addCard(panelKeys)
     }
