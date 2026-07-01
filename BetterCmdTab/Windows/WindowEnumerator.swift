@@ -24,6 +24,12 @@ struct WindowInfo {
     /// for an ordinary single window and whenever "expand tabs as windows" is on
     /// (each tab is then its own `WindowInfo`).
     let tabWindows: [TabWindowRef]
+    /// Whether this window exposes an AX close button (the red traffic light) —
+    /// i.e. a real, user-closable standard window. Used to tell a menu-bar
+    /// agent's genuine utility window from its non-closable helper window so the
+    /// latter is dropped from the switcher (issue #43). Always true in practice
+    /// for `.regular` apps; only consulted for `.accessory` apps.
+    let hasCloseButton: Bool
 
     init(
         ref: AXUIElement,
@@ -32,7 +38,8 @@ struct WindowInfo {
         isMinimized: Bool,
         isFullscreen: Bool = false,
         tabs: [AXUIElement] = [],
-        tabWindows: [TabWindowRef] = []
+        tabWindows: [TabWindowRef] = [],
+        hasCloseButton: Bool = true
     ) {
         self.ref = ref
         self.cgWindowID = cgWindowID
@@ -41,6 +48,7 @@ struct WindowInfo {
         self.isFullscreen = isFullscreen
         self.tabs = tabs
         self.tabWindows = tabWindows
+        self.hasCloseButton = hasCloseButton
     }
 }
 
@@ -239,6 +247,19 @@ enum WindowEnumerator {
         expectedCGWindowIDs.subtracting(coveredWids)
     }
 
+    /// Which of an app's windows belong in the switcher, given its activation
+    /// policy and whether each window exposes a close button (a real,
+    /// user-closable standard window). `.regular` apps surface every window;
+    /// `.accessory` (menu-bar agent) apps surface only their closable windows,
+    /// so an agent's non-closable helper window — e.g. a "MenuBarAgent" status
+    /// surface (issue #43) — is dropped while a genuine utility/settings window
+    /// is kept. Pure, so it's unit-tested without AX. Returns kept indices.
+    static func switchableWindowIndices(isRegular: Bool, hasCloseButton: [Bool]) -> [Int] {
+        isRegular
+            ? Array(hasCloseButton.indices)
+            : hasCloseButton.indices.filter { hasCloseButton[$0] }
+    }
+
     /// Full per-pid window enumeration. Returns the windows plus the
     /// `uncoverableWids` the caller should memoize (keyed on this same
     /// `expectedCGWindowIDs`) to short-circuit `needsBruteScan` next time.
@@ -412,6 +433,7 @@ enum WindowEnumerator {
             kAXTitleAttribute,
             kAXPositionAttribute,
             kAXSizeAttribute,
+            kAXCloseButtonAttribute,
         ] as CFArray
         // Per-window attributes, fetched once each (one AX IPC per window —
         // same round-trip count as processing inline). We materialize them up
@@ -428,6 +450,7 @@ enum WindowEnumerator {
             let title: String
             let frameKey: String?
             let fromAXList: Bool
+            let hasCloseButton: Bool
         }
         var raws: [RawWindow] = []
         raws.reserveCapacity(elements.count)
@@ -435,7 +458,7 @@ enum WindowEnumerator {
             AXUIElementSetMessagingTimeout(window, Self.confirmedTimeout)
             var valuesRef: CFArray?
             guard AXUIElementCopyMultipleAttributeValues(window, attrNames, AXCopyMultipleAttributeOptions(rawValue: 0), &valuesRef) == .success,
-                  let values = valuesRef as? [AnyObject], values.count == 7 else { continue }
+                  let values = valuesRef as? [AnyObject], values.count == 8 else { continue }
 
             let subrole = (values[0] as? String) ?? ""
             guard acceptedSubroles.contains(subrole) else { continue }
@@ -444,6 +467,10 @@ enum WindowEnumerator {
             let minimized = (values[2] as? Bool) ?? false
             let fullscreen = (values[3] as? Bool) ?? false
             let windowTitle = (values[4] as? String) ?? ""
+            // A real, user-closable standard window exposes a close button
+            // (the red traffic light); a missing attribute comes back as an
+            // AXValue error placeholder, so check the value is an AXUIElement.
+            let hasCloseButton = CFGetTypeID(values[7] as CFTypeRef) == AXUIElementGetTypeID()
             // Minimized windows legitimately share (0, 0); fullscreen windows
             // each fill the same display bounds, so two separate fullscreen
             // windows of one app (each on its own Space — recovered by the brute
@@ -460,7 +487,8 @@ enum WindowEnumerator {
                 fullscreen: fullscreen,
                 title: windowTitle,
                 frameKey: frameKey,
-                fromAXList: axListRefs.contains(AXRef(element: window))
+                fromAXList: axListRefs.contains(AXRef(element: window)),
+                hasCloseButton: hasCloseButton
             ))
         }
 
@@ -492,7 +520,8 @@ enum WindowEnumerator {
                 isMinimized: raw.minimized,
                 isFullscreen: raw.fullscreen,
                 tabs: raw.tabs.count > 1 ? raw.tabs : [],
-                tabWindows: tabWindows
+                tabWindows: tabWindows,
+                hasCloseButton: raw.hasCloseButton
             ))
         }
 
