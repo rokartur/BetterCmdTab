@@ -135,4 +135,52 @@ struct WindowMRUTrackerTests {
         let sorted = tracker.sortRowsGlobally([row(0, title: "wl"), row(10)])
         #expect(sorted.map(\.cgWindowID) == [10, 0])
     }
+
+    // MARK: - Per-app run sort (`sortRowsWithinAppRuns`, #83)
+
+    @Test("run detection finds maximal same-pid windowed runs of length ≥ 2")
+    func runRangesDetected() {
+        let ranges = WindowMRUTracker.windowRunRanges(
+            pids: [1, 1, 2, 1, 1, 1],
+            windowed: [true, true, true, true, true, true]
+        )
+        #expect(ranges == [0..<2, 3..<6])
+    }
+
+    @Test("a windowless row splits its app's run")
+    func runRangesSplitByWindowless() {
+        let ranges = WindowMRUTracker.windowRunRanges(
+            pids: [1, 1, 1, 1],
+            windowed: [true, false, true, true]
+        )
+        #expect(ranges == [2..<4])
+    }
+
+    @Test("nil pids and single-row runs produce no ranges")
+    func runRangesSkipNilAndSingles() {
+        let ranges = WindowMRUTracker.windowRunRanges(
+            pids: [nil, 1, 2, 2, nil],
+            windowed: [false, true, true, true, false]
+        )
+        #expect(ranges == [2..<4])
+    }
+
+    @Test("per-app run sort floats the app's MRU window to the run's front")
+    func runSortFloatsMRUWindow() {
+        let tracker = WindowMRUTracker()
+        let pid = NSRunningApplication.current.processIdentifier
+        tracker.bump(pid: pid, wid: 30)
+        tracker.bump(pid: pid, wid: 20) // 20 focused last
+        // Scan order [10, 20, 30] → recency floats 20, unseen 10 sinks.
+        let sorted = tracker.sortRowsWithinAppRuns([row(10), row(20), row(30)])
+        #expect(sorted.map(\.cgWindowID) == [20, 30, 10])
+    }
+
+    @Test("per-app run sort leaves apps the tracker never saw untouched")
+    func runSortUnseenAppUntouched() {
+        let tracker = WindowMRUTracker()
+        tracker.bump(pid: 999_999, wid: 77) // recency known only for another app
+        let sorted = tracker.sortRowsWithinAppRuns([row(10), row(20)])
+        #expect(sorted.map(\.cgWindowID) == [10, 20])
+    }
 }

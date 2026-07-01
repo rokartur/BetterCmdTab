@@ -100,6 +100,47 @@ final class WindowMRUTracker {
         return sortRows(rows, by: list)
     }
 
+    /// Re-orders each contiguous run of same-pid windowed rows by that app's
+    /// per-app recency (`sortRows(forPid:)`), leaving run boundaries and every
+    /// other row in place. The app-grouped sorts (.mru / alphabetical / launch
+    /// order) apply this so each app's leading row — the one
+    /// `collapseToApplications` elects, the pid selection anchor lands on, and
+    /// a ⌘Tab app commit activates — is the app's most recently used window
+    /// instead of the AX scan order (#83, #30). Runs never span status buckets
+    /// (the catalog orders buckets before any app's rows repeat), so a recently
+    /// focused but since-minimized window can't jump ahead of a visible one.
+    func sortRowsWithinAppRuns(_ rows: [SwitcherRow]) -> [SwitcherRow] {
+        guard !order.isEmpty, rows.count > 1 else { return rows }
+        let ranges = Self.windowRunRanges(
+            pids: rows.map(\.pid),
+            windowed: rows.map { $0.window != nil || $0.cgWindowID != 0 }
+        )
+        guard !ranges.isEmpty else { return rows }
+        var result = rows
+        for range in ranges {
+            guard let pid = result[range.lowerBound].pid, order[pid] != nil else { continue }
+            result.replaceSubrange(range, with: sortRows(Array(result[range]), forPid: pid))
+        }
+        return result
+    }
+
+    /// Pure index-level core of `sortRowsWithinAppRuns`, split out so run
+    /// detection is unit-testable without live AX rows: the maximal contiguous
+    /// ranges (length ≥ 2) of windowed rows sharing one non-nil pid. A
+    /// windowless row — or a different pid — ends the run it interrupts.
+    static func windowRunRanges(pids: [pid_t?], windowed: [Bool]) -> [Range<Int>] {
+        var ranges: [Range<Int>] = []
+        var i = 0
+        while i < pids.count {
+            guard let pid = pids[i], windowed[i] else { i += 1; continue }
+            var j = i + 1
+            while j < pids.count, pids[j] == pid, windowed[j] { j += 1 }
+            if j - i > 1 { ranges.append(i..<j) }
+            i = j
+        }
+        return ranges
+    }
+
     /// Re-orders `rows` by flat cross-app window recency (the `.mruWindows`
     /// sort): each window sorts by its rank in `globalOrder`, newest first,
     /// interleaving windows of different apps. Windowless rows (`cgWindowID == 0`)
