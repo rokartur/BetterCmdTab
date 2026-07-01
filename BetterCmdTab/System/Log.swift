@@ -12,6 +12,10 @@ enum Log {
     static let activator = Logger(subsystem: subsystem, category: "activator")
     static let priv = Logger(subsystem: subsystem, category: "private-api")
     static let launch = Logger(subsystem: subsystem, category: "launch-at-login")
+    /// Temporary diagnostics for the "panel invisible on another Space after a
+    /// full-screen app quits" report (#46). Capture with:
+    ///   log stream --predicate 'subsystem == "pro.bettercmdtab.BetterCmdTab" AND category == "space-diag"' --info
+    static let spaceDiag = Logger(subsystem: subsystem, category: "space-diag")
 
     /// Points-of-Interest signposter for the ⌘Tab reveal hot path. Use to capture
     /// where the panel-appearance latency goes in Instruments (Points of Interest
