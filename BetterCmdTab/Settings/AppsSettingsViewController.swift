@@ -69,7 +69,7 @@ final class AppsSettingsViewController: SettingsTabViewController {
             searchItemID: SearchID.directActivation
         )
         for (index, name) in BetterShortcuts.Name.directActivate.enumerated() {
-            let recorder = BetterShortcuts.RecorderCocoa(for: name)
+            let recorder = BetterShortcuts.RecorderCocoa(for: name, policy: .reservedRejecting)
             let button = NSButton(title: String(localized: "Choose…"), target: self, action: #selector(chooseDirectApp(_:)))
             button.bezelStyle = .rounded
             button.controlSize = .small

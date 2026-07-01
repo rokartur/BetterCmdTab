@@ -226,7 +226,12 @@ final class ShortcutsEditorView: NSView {
 
         // Trigger card.
         let trigger = SettingsSectionView(title: String(localized: "Trigger"))
-        let recorder = BetterShortcuts.RecorderCocoa(for: betterShortcutsName(for: target))
+        // Main switcher triggers (switchApps / switchWindows) DEFINE the reserved
+        // chords, so they stay bindable; a scoped-switch trigger is just another
+        // global slot that must not shadow them (issue #16).
+        var triggerPolicy = BetterShortcuts.recorderPolicy
+        triggerPolicy.rejectsReservedShortcuts = scoped
+        let recorder = BetterShortcuts.RecorderCocoa(for: betterShortcutsName(for: target), policy: triggerPolicy)
         trigger.addContent(SettingsRowView(
             title: String(localized: "Keyboard shortcut"),
             subtitle: scoped

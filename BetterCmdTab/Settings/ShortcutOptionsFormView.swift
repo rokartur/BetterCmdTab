@@ -108,7 +108,7 @@ final class ShortcutOptionsFormView: NSView {
         // Allow the same chord across profiles (e.g. ⌘W for Close in each) without
         // the cross-name "already used by …" alert — every profile is an independent
         // scope, so a recurring panel key is expected, not a conflict.
-        let panelPolicy = BetterShortcuts.RecorderPolicy(allowsDuplicateShortcuts: true)
+        let panelPolicy = BetterShortcuts.RecorderPolicy(allowsDuplicateShortcuts: true, rejectsReservedShortcuts: true)
         for (name, title) in BetterShortcuts.Name.profilePanelKeys(for: target.storageKey) {
             panelKeys.addContent(SettingsRowView(title: title, accessory: BetterShortcuts.RecorderCocoa(for: name, policy: panelPolicy)))
         }

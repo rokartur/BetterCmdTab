@@ -196,9 +196,16 @@ extension BetterShortcuts.Name: @retroactive CaseIterable {
 }
 
 extension BetterShortcuts {
-    /// Wire the package's conflict-alert label provider to our `displayName`s. Call once at launch.
+    /// Wire the package's conflict-alert label provider to our `displayName`s, and
+    /// publish the switcher-trigger chords the recorder must refuse for any
+    /// non-trigger slot. Call once at launch.
     static func installDisplayNames() {
         BetterShortcuts.displayName = { $0.displayName }
+        // The always-on switcher survivor owns ⌘Tab/⌘` (+ Shift-reverse); a slot
+        // recorded onto one could never fire. Publish them so a recorder opting into
+        // `rejectsReservedShortcuts` warns at record time. Evaluated live, so a
+        // remapped trigger reserves its new chord and frees the old (issue #16).
+        BetterShortcuts.reservedShortcuts = { Set(reservedTriggerShortcuts()) }
     }
 
     /// The chords the switcher's secure-input survivor (`CarbonHotkeyTrigger`) holds
@@ -236,5 +243,18 @@ extension BetterShortcuts {
     static func isBoundToReservedTriggerChord(_ name: Name) -> Bool {
         guard let s = getShortcut(for: name) else { return false }
         return reservedTriggerShortcuts().contains(s)
+    }
+}
+
+extension BetterShortcuts.RecorderPolicy {
+    /// The current global recorder policy with reservation rejection turned on — for
+    /// any recorder that must NOT shadow the always-on switcher triggers (in-panel
+    /// keys, direct-activation, window-management, scoped triggers). The main
+    /// `switchApps` / `switchWindows` trigger recorders keep the flag off so they can
+    /// still bind those chords (issue #16).
+    static var reservedRejecting: BetterShortcuts.RecorderPolicy {
+        var policy = BetterShortcuts.recorderPolicy
+        policy.rejectsReservedShortcuts = true
+        return policy
     }
 }

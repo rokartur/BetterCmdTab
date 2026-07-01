@@ -27,7 +27,7 @@ final class WindowsSettingsViewController: SettingsTabViewController {
             searchItemID: SearchID.windowMgmt
         )
         for (name, title) in BetterShortcuts.Name.windowMgmt {
-            addRow(to: arrange, title: title, accessory: BetterShortcuts.RecorderCocoa(for: name))
+            addRow(to: arrange, title: title, accessory: BetterShortcuts.RecorderCocoa(for: name, policy: .reservedRejecting))
         }
         cycleWidthsSwitch.controlSize = .small
         cycleWidthsSwitch.target = self
@@ -45,13 +45,13 @@ final class WindowsSettingsViewController: SettingsTabViewController {
             to: allWindows,
             title: String(localized: "Hide all windows"),
             subtitle: String(localized: "Hide every app to reveal the desktop. Works system-wide."),
-            accessory: BetterShortcuts.RecorderCocoa(for: .hideAllWindows)
+            accessory: BetterShortcuts.RecorderCocoa(for: .hideAllWindows, policy: .reservedRejecting)
         )
         addRow(
             to: allWindows,
             title: String(localized: "Show all windows"),
             subtitle: String(localized: "Bring every hidden app back."),
-            accessory: BetterShortcuts.RecorderCocoa(for: .showAllWindows)
+            accessory: BetterShortcuts.RecorderCocoa(for: .showAllWindows, policy: .reservedRejecting)
         )
         let excludeButton = NSButton(
             title: String(localized: "Choose…"),
