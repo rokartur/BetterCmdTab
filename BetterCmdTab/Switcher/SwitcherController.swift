@@ -184,11 +184,26 @@ final class SwitcherController: SwitcherViewDelegate {
     /// input flagsState is reliable, so this stamp drives nothing — a held ⌘ keeps
     /// the panel up for as long as the user wants, with no idle ceiling.
     private var lastVisibleActivity: Date?
+    /// When Secure Event Input last cleared (ON→OFF) while a panel was open. The
+    /// no-interaction force-close is normally SEI-only, but a ⌘-release dropped
+    /// during an SEI-deaf window can leave `CGEventSource.flagsState` latched
+    /// ⌘-held even AFTER SEI clears — welding the panel with neither backstop escape
+    /// live (the fast path reads the lie, the force-close was SEI-gated). Stamped on
+    /// the SEI→OFF edge so the force-close also covers a bounded window past it, and
+    /// cleared on panel close so it can't yank a later, unrelated panel (issue #16).
+    private var lastSecureInputClearedAt: Date?
     /// No-interaction ceiling for the secure-input force-close above. Generous enough
     /// that an actively-steered panel never hits it (any nav refreshes the stamp),
     /// short enough to bound how long ⌘W can be eaten when flagsState is stuck.
     /// `nonisolated` so the pure `shouldForceCloseStrandedVisible` gate can read it.
     nonisolated private static let visibleStrandCeiling: TimeInterval = 4
+    /// How long after Secure Event Input clears the no-interaction force-close stays
+    /// armed, to catch a `flagsState` ⌘-held latch that survives the SEI→OFF edge
+    /// (issue #16). A few seconds past the ceiling: the latch resolves on the user's
+    /// next physical ⌘ press+release, so it need not be long. Must exceed
+    /// `visibleStrandCeiling` or the window would close before `idle` can pass it.
+    /// `nonisolated` for the pure gate.
+    nonisolated private static let postSecureLatchWindow: TimeInterval = 8
     private var currentMetrics: SwitcherMetrics = .baseline
     private var letterBuffer: String = ""
     private var letterBufferTimer: Timer?
@@ -1005,6 +1020,15 @@ final class SwitcherController: SwitcherViewDelegate {
         // ⌘-release detection (HoldModifierMonitor under secure input), so re-sync.
         syncNativeHotkeyOverride()
         syncVisibleReleaseBackstop()
+        // On the SEI→OFF edge a ⌘-release dropped during the just-ended deaf window
+        // can leave a held-chord panel welded with flagsState latched ⌘-held. Stamp
+        // the edge so the no-interaction force-close covers the bounded latch window
+        // (`shouldForceCloseStrandedVisible`), and run one recovery pass now instead
+        // of waiting up to a 0.2s tick for the next backstop fire (issue #16).
+        if !active {
+            lastSecureInputClearedAt = Date()
+            visibleReleaseBackstopFired()
+        }
     }
 
     /// Re-derive the secure-input Carbon chords after an in-panel mode change
@@ -1148,19 +1172,24 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Pure: on a backstop tick, should an idle `.visible` panel be force-closed?
-    /// ONLY under Secure Event Input — the sole state where `CGEventSource.flagsState`
-    /// can stick reporting ⌘-held (HoldModifierMonitor polls that same lying state),
-    /// making the no-interaction ceiling the only flagsState-independent way out of a
-    /// welded-open panel (issue #16). Under NORMAL input flagsState is authoritative:
-    /// a missed ⌘-release is recovered by the backstop's fast path within one tick, so
-    /// a panel still on screen means ⌘ is genuinely held — never force-close it out
-    /// from under a user holding ⌘ while reading the panel without steering it.
-    /// Isolated so the gate stays unit-testable.
+    /// Fires while `CGEventSource.flagsState` can stick reporting ⌘-held — the sole
+    /// state where the no-interaction ceiling is the only flagsState-independent way
+    /// out of a welded-open panel (issue #16). That is true not only WHILE Secure
+    /// Event Input is active (HoldModifierMonitor polls the same lying state), but
+    /// also for a bounded window AFTER an SEI flap clears: a ⌘-release dropped during
+    /// the deaf window can leave the latch set past the SEI→OFF edge, and the
+    /// SEI-gated force-close alone would never reach it (`withinPostSecureWindow`).
+    /// Under NORMAL input with no recent flap, flagsState is authoritative: a missed
+    /// ⌘-release is recovered by the fast path within one tick, so a panel still on
+    /// screen means ⌘ is genuinely held — never force-close it out from under a user
+    /// holding ⌘ and reading the panel without steering it. Isolated so the gate
+    /// stays unit-testable.
     nonisolated static func shouldForceCloseStrandedVisible(
         secureInputActive: Bool,
+        withinPostSecureWindow: Bool,
         idle: TimeInterval
     ) -> Bool {
-        secureInputActive && idle > visibleStrandCeiling
+        (secureInputActive || withinPostSecureWindow) && idle > visibleStrandCeiling
     }
 
     /// Live check of `releaseAlreadyMissed` against the current physical modifier
@@ -1169,6 +1198,15 @@ final class SwitcherController: SwitcherViewDelegate {
         // A disabled trigger (nil) contributes no mask, so it never counts as held.
         let appTrigger = Self.carbonTrigger(for: .switchApps)
         let windowTrigger = Self.carbonTrigger(for: .switchWindows)
+        // With secure input OFF the tap sees real key/flag events, so its last live
+        // hold state is truthful — unlike `CGEventSource.flagsState`, which can latch
+        // ⌘-held across a secure-input flap (issue #16). Prefer it: a "released"
+        // reading recovers a weld the lying flagsState would hide, and the tap only
+        // reports released after a genuine ⌘-up, so it can't yank a real hold. Stale
+        // while the tap is deaf under secure input, so trust it only when SEI is off.
+        if !secureInputActive && !hotkey.liveTriggerHoldHeld() {
+            return true
+        }
         return Self.releaseAlreadyMissed(
             flags: CGEventSource.flagsState(.combinedSessionState),
             appMask: appTrigger.map { Self.holdMask(for: $0.carbonModifiers) },
@@ -1618,6 +1656,10 @@ final class SwitcherController: SwitcherViewDelegate {
                 // profile's keys instead of the last shortcut's. Change-guarded.
                 activeTarget = .switchApps
                 pushPanelKeyBindings()
+                // Bound the post-SEI force-close window to the panel that was open
+                // across the flap, so a fresh panel opened later isn't force-closed
+                // by a stale stamp (issue #16). A continuing flap re-stamps anyway.
+                lastSecureInputClearedAt = nil
             }
             // Under Secure Event Input the in-panel nav chords are registered only
             // while the panel is open, so re-sync on the open⇄close edge. Gated on
@@ -2269,8 +2311,18 @@ final class SwitcherController: SwitcherViewDelegate {
         // the panel out from under a user holding ⌘ and reading it without steering.
         guard let last = lastVisibleActivity else { return }
         let idle = Date().timeIntervalSince(last)
-        if Self.shouldForceCloseStrandedVisible(secureInputActive: secureInputActive, idle: idle) {
-            Log.switcher.error("visible panel stranded \(Int(idle))s with no interaction under secure input — force-closing (issue #16)")
+        // A ⌘-held latch can outlive the SEI→OFF edge, so the force-close also
+        // covers a bounded window after the last flap cleared (issue #16).
+        let withinPostSecure = lastSecureInputClearedAt.map {
+            Date().timeIntervalSince($0) < Self.postSecureLatchWindow
+        } ?? false
+        if Self.shouldForceCloseStrandedVisible(
+            secureInputActive: secureInputActive,
+            withinPostSecureWindow: withinPostSecure,
+            idle: idle
+        ) {
+            let reason = secureInputActive ? "under secure input" : "after a secure-input flap"
+            Log.switcher.error("visible panel stranded \(Int(idle))s with no interaction \(reason) — force-closing (issue #16)")
             // The user has moved on by now; don't yank focus back to the app that
             // was frontmost at open — just dismiss so the tap stops swallowing ⌘W.
             previousFrontmostApp = nil

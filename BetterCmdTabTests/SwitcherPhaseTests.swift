@@ -178,27 +178,52 @@ struct SwitcherVisibleReleaseBackstopTests {
 struct SwitcherStrandedVisibleTests {
     private let ceiling: TimeInterval = 4
 
-    @Test func neverForceClosesUnderNormalInput() {
-        // The reported bug: ⌘ genuinely held, no steering — normal input must NEVER
-        // force-close, no matter how long the panel idles.
-        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: false, idle: 0))
-        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: false, idle: ceiling + 1))
-        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: false, idle: 3600))
+    @Test func neverForceClosesUnderNormalInputWithoutRecentFlap() {
+        // The reported bug: ⌘ genuinely held, no steering, and no recent SEI flap —
+        // normal input must NEVER force-close, no matter how long the panel idles.
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: false, withinPostSecureWindow: false, idle: 0))
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: false, withinPostSecureWindow: false, idle: ceiling + 1))
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: false, withinPostSecureWindow: false, idle: 3600))
     }
 
     @Test func forceClosesPastCeilingUnderSecureInput() {
         // Secure input + idle beyond the ceiling: the only flagsState-independent
         // heal for a welded-open panel (issue #16).
-        #expect(SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: true, idle: ceiling + 0.5))
+        #expect(SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: true, withinPostSecureWindow: false, idle: ceiling + 0.5))
     }
 
     @Test func holdsBelowCeilingUnderSecureInput() {
         // Within the ceiling, even under secure input, a recently-steered panel is
         // left alone — the stamp is fresh, so don't yank it.
-        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: true, idle: 0))
-        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: true, idle: ceiling - 0.5))
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: true, withinPostSecureWindow: false, idle: 0))
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: true, withinPostSecureWindow: false, idle: ceiling - 0.5))
         // Boundary: exactly at the ceiling is not yet past it (strict `>`).
-        #expect(!SwitcherController.shouldForceCloseStrandedVisible(secureInputActive: true, idle: ceiling))
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: true, withinPostSecureWindow: false, idle: ceiling))
+    }
+
+    @Test func forceClosesPastCeilingWithinPostSecureWindow() {
+        // The residual #16 gap: SEI has flapped OFF (secureInputActive false) but a
+        // ⌘-held flagsState latch can outlive the SEI→OFF edge, so the bounded
+        // post-SEI window must still force-close a stranded panel past the ceiling
+        // even with secure input reported off.
+        #expect(SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: false, withinPostSecureWindow: true, idle: ceiling + 0.5))
+    }
+
+    @Test func holdsBelowCeilingWithinPostSecureWindow() {
+        // The post-SEI window still respects the idle ceiling — a freshly-steered
+        // panel right after a flap is not yanked before it goes quiet.
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: false, withinPostSecureWindow: true, idle: ceiling - 0.5))
+        #expect(!SwitcherController.shouldForceCloseStrandedVisible(
+            secureInputActive: false, withinPostSecureWindow: true, idle: ceiling))
     }
 }
 

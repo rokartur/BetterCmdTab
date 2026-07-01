@@ -164,6 +164,14 @@ final class HotkeyTap {
     /// routing). Pushed from main via `setModifierHeldPanel`. See the weld self-heal
     /// at the swallow gate below (issue #16).
     private let modifierHeldPanelFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// The trigger's hold-modifier state from the last LIVE event the tap processed
+    /// (`event.flags`), as opposed to `CGEventSource.flagsState`, which can latch a
+    /// stale ⌘-held lie across a Secure-Event-Input flap (issue #16). The controller's
+    /// stranded-panel fast path prefers this under NORMAL input to recover a weld the
+    /// lying flagsState hides. Stale while the tap is deaf (secure input), so the
+    /// reader is only trusted with secure input OFF. Updated on every keyDown /
+    /// flagsChanged; read via `liveTriggerHoldHeld`.
+    private let liveTriggerHoldFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let shiftWasHeld = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let layoutData = OSAllocatedUnfairLock<Data?>(initialState: nil)
     /// When true the tap consumes every keyDown (blocking system shortcuts) and
@@ -498,6 +506,14 @@ final class HotkeyTap {
     /// from main; pushed from `syncVisibleReleaseBackstop`'s single chokepoint.
     func setModifierHeldPanel(_ value: Bool) {
         modifierHeldPanelFlag.withLock { $0 = value }
+    }
+
+    /// The trigger's hold-modifier state from the last live event the tap saw.
+    /// Truthful under normal input (the tap sees real events); stale while the tap
+    /// is deaf under secure input — so callers must gate on secure input being off.
+    /// See `liveTriggerHoldFlag` (issue #16). Safe to call from main.
+    func liveTriggerHoldHeld() -> Bool {
+        liveTriggerHoldFlag.withLock { $0 }
     }
 
     /// Enter/leave recording mode. While recording, keyDowns are consumed and
@@ -910,6 +926,11 @@ final class HotkeyTap {
         let windowModHeld = cfg.windowKey != nil && flags.contains(cfg.windowModifier)
         // The switcher stays open while either trigger's hold modifier is down.
         let anyModHeld = appModHeld || windowModHeld
+        // Publish the LIVE trigger-hold state (from real event flags, reached by both
+        // keyDown and flagsChanged) for the controller's stranded-panel fast path.
+        // Truthful — unlike CGEventSource.flagsState, which can latch ⌘-held across a
+        // secure-input flap (issue #16). One cheap store on the hot path.
+        liveTriggerHoldFlag.withLock { $0 = anyModHeld }
         let shiftHeld = flags.contains(.maskShift)
         let tabDrillNow = tabDrillFlag.withLock { $0 }
         // Option + arrow (while the switcher is open) moves the highlighted
