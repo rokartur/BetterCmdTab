@@ -247,6 +247,7 @@ enum PrivateAPI {
         if copySpacesForWindowsFn == nil { missing.append("CGSCopySpacesForWindows") }
         if copyManagedDisplaySpacesFn == nil { missing.append("CGSCopyManagedDisplaySpaces") }
         if getActiveSpaceFn == nil { missing.append("CGSGetActiveSpace") }
+        if copyActiveMenuBarDisplayFn == nil { missing.append("SLSCopyActiveMenuBarDisplayIdentifier") }
         if setSymbolicHotKeyEnabledFn == nil { missing.append("CGSSetSymbolicHotKeyEnabled") }
         return missing
     }
