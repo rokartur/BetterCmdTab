@@ -66,11 +66,12 @@ struct ShortcutOverrideTests {
 
     // MARK: - SpaceScopeOverride
 
-    @Test("space-scope override maps to currentSpaceOnly")
+    @Test("space-scope override maps to the concrete SpaceScope")
     func spaceScopeMapping() {
-        #expect(SpaceScopeOverride.inherit.resolvedCurrentSpaceOnly == nil)
-        #expect(SpaceScopeOverride.currentSpace.resolvedCurrentSpaceOnly == true)
-        #expect(SpaceScopeOverride.allSpaces.resolvedCurrentSpaceOnly == false)
+        #expect(SpaceScopeOverride.inherit.resolvedScope == nil)
+        #expect(SpaceScopeOverride.currentSpace.resolvedScope == .currentSpace)
+        #expect(SpaceScopeOverride.allSpaces.resolvedScope == .allSpaces)
+        #expect(SpaceScopeOverride.visibleSpaces.resolvedScope == .visibleSpaces)
     }
 
     // MARK: - ShortcutOverride dictionary round-trip
@@ -134,7 +135,7 @@ struct ShortcutOverrideTests {
 
     private func baseConfig(
         showMinimized: Bool = true,
-        currentSpaceOnly: Bool = false,
+        spaceScope: SpaceScope = .allSpaces,
         sortOrder: SwitcherSortOrder = .mru
     ) -> CatalogFilter.Config {
         CatalogFilter.Config(
@@ -143,7 +144,7 @@ struct ShortcutOverrideTests {
             showMinimized: showMinimized,
             showHidden: true,
             showWindowless: true,
-            currentSpaceOnly: currentSpaceOnly,
+            spaceScope: spaceScope,
             sortOrder: sortOrder
         )
     }
@@ -152,19 +153,21 @@ struct ShortcutOverrideTests {
     func overlayEmpty() {
         let base = baseConfig()
         let result = CatalogFilter.overlay(base, ShortcutOverride())
-        #expect(result.currentSpaceOnly == base.currentSpaceOnly)
+        #expect(result.spaceScope == base.spaceScope)
         #expect(result.showMinimized == base.showMinimized)
         #expect(result.sortOrder == base.sortOrder)
         #expect(result.hideModes == base.hideModes)
         #expect(result.pinned == base.pinned)
     }
 
-    @Test("space-scope override forces currentSpaceOnly either way")
+    @Test("space-scope override forces the scope in any direction")
     func overlaySpaceScope() {
         var toCurrent = ShortcutOverride(); toCurrent.spaceScope = .currentSpace
-        #expect(CatalogFilter.overlay(baseConfig(currentSpaceOnly: false), toCurrent).currentSpaceOnly == true)
+        #expect(CatalogFilter.overlay(baseConfig(spaceScope: .allSpaces), toCurrent).spaceScope == .currentSpace)
         var toAll = ShortcutOverride(); toAll.spaceScope = .allSpaces
-        #expect(CatalogFilter.overlay(baseConfig(currentSpaceOnly: true), toAll).currentSpaceOnly == false)
+        #expect(CatalogFilter.overlay(baseConfig(spaceScope: .currentSpace), toAll).spaceScope == .allSpaces)
+        var toVisible = ShortcutOverride(); toVisible.spaceScope = .visibleSpaces
+        #expect(CatalogFilter.overlay(baseConfig(spaceScope: .allSpaces), toVisible).spaceScope == .visibleSpaces)
     }
 
     @Test("behavioral fields override when set and inherit when nil")
@@ -183,7 +186,7 @@ struct ShortcutOverrideTests {
 
     @Test("overlaying an empty override preserves an identity config")
     func overlayKeepsIdentity() {
-        let identity = CatalogFilter.Config(hideModes: [:], pinned: [], showMinimized: true, showHidden: true, showWindowless: true, currentSpaceOnly: false, sortOrder: .mru)
+        let identity = CatalogFilter.Config(hideModes: [:], pinned: [], showMinimized: true, showHidden: true, showWindowless: true, spaceScope: .allSpaces, sortOrder: .mru)
         #expect(identity.isIdentity)
         #expect(CatalogFilter.overlay(identity, ShortcutOverride()).isIdentity)
     }

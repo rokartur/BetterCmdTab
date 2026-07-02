@@ -62,6 +62,41 @@ struct SettingsPortabilityTests {
         #expect(prefs.pinnedBundleIDs == ["com.apple.finder", "com.apple.Safari"])
     }
 
+    @Test("pre-#57 import (legacy currentSpaceOnly bool, no spaceScope) applies through the fallback")
+    func legacySpaceScopeImport() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.spaceScope
+        defer {
+            try? prefs.importSettings(from: envelope([
+                Preferences.Keys.spaceScope: saved.rawValue,
+                Preferences.Keys.currentSpaceOnly: saved == .currentSpace,
+            ]))
+        }
+
+        // Local state has the new enum key set to a non-legacy value…
+        prefs.spaceScope = .visibleSpaces
+        // …then an old export carrying only the legacy bool is imported. The
+        // stale local enum key must not shadow the imported bool.
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.currentSpaceOnly: true
+        ]))
+        #expect(prefs.spaceScope == .currentSpace)
+
+        // Same with the bool off → all Spaces.
+        prefs.spaceScope = .visibleSpaces
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.currentSpaceOnly: false
+        ]))
+        #expect(prefs.spaceScope == .allSpaces)
+
+        // A new-format export carries both keys; the enum wins.
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.spaceScope: SpaceScope.visibleSpaces.rawValue,
+            Preferences.Keys.currentSpaceOnly: false,
+        ]))
+        #expect(prefs.spaceScope == .visibleSpaces)
+    }
+
     @Test("round-trip: switcherDisplayMode survives export/import")
     func displayModeRoundTrip() throws {
         let prefs = Preferences.shared

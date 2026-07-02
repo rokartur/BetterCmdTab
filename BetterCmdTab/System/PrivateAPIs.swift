@@ -133,6 +133,25 @@ enum PrivateAPI {
         return space == 0 ? nil : space
     }
 
+    /// The Spaces currently on screen: each display's "Current Space" from
+    /// `CGSCopyManagedDisplaySpaces` (#57 — the "visible Spaces" switcher
+    /// filter). One id per connected display; a single-monitor setup yields the
+    /// same id as `activeSpace()`. Empty when the private API is unavailable —
+    /// callers must treat that as "unknown" and degrade, same as a nil
+    /// `activeSpace()`. One CGS round-trip, no per-window IPC.
+    static func visibleSpaces() -> Set<UInt64> {
+        guard let mainConnection = mainConnectionFn,
+              let copyDisplays = copyManagedDisplaySpacesFn,
+              let cfDisplays = copyDisplays(mainConnection())?.takeRetainedValue() else { return [] }
+        var spaces = Set<UInt64>()
+        for display in (cfDisplays as NSArray).compactMap({ $0 as? [String: Any] }) {
+            if let current = display["Current Space"] as? [String: Any], let id = spaceId(current) {
+                spaces.insert(id)
+            }
+        }
+        return spaces
+    }
+
     /// The CoreGraphics display id of the monitor whose menu bar is currently
     /// active (the bright one) — i.e. the display the user is working on. This is
     /// the *focused* display: it follows keyboard focus / the frontmost window,

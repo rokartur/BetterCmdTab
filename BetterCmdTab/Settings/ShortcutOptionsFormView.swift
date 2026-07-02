@@ -56,8 +56,8 @@ final class ShortcutOptionsFormView: NSView {
         let behavior = SettingsSectionView(title: String(localized: "Behavior"))
         if includeSpaceScope {
             addEnumRow(to: behavior, title: String(localized: "Spaces"),
-                       subtitle: String(localized: "Limit this shortcut to the current Space, or show every Space."),
-                       options: [.currentSpace, .allSpaces] as [SpaceScopeOverride],
+                       subtitle: String(localized: "Limit this shortcut to the current Space, every visible Space, or show every Space."),
+                       options: [.currentSpace, .visibleSpaces, .allSpaces] as [SpaceScopeOverride],
                        display: { $0.displayName },
                        current: override.spaceScope == .inherit ? nil : override.spaceScope) { [weak self] in
                 self?.override.spaceScope = $0 ?? .inherit; self?.persist()

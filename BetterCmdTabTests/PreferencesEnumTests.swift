@@ -6,6 +6,30 @@ import Testing
 @Suite("Preferences enums")
 struct PreferencesEnumTests {
 
+    @Test("storedSpaceScope prefers the enum key, falls back to the legacy bool")
+    func storedSpaceScopeMigration() throws {
+        let defaults = try #require(UserDefaults(suiteName: "storedSpaceScopeMigrationTests"))
+        defer { defaults.removePersistentDomain(forName: "storedSpaceScopeMigrationTests") }
+
+        // Fresh install: neither key → all Spaces.
+        #expect(Preferences.storedSpaceScope(defaults) == .allSpaces)
+
+        // Legacy bool only (pre-#57 upgrade / old settings import).
+        defaults.set(true, forKey: Preferences.Keys.currentSpaceOnly)
+        #expect(Preferences.storedSpaceScope(defaults) == .currentSpace)
+        defaults.set(false, forKey: Preferences.Keys.currentSpaceOnly)
+        #expect(Preferences.storedSpaceScope(defaults) == .allSpaces)
+
+        // Enum key wins over a contradicting legacy bool.
+        defaults.set(true, forKey: Preferences.Keys.currentSpaceOnly)
+        defaults.set(SpaceScope.visibleSpaces.rawValue, forKey: Preferences.Keys.spaceScope)
+        #expect(Preferences.storedSpaceScope(defaults) == .visibleSpaces)
+
+        // Garbage enum value falls back to the legacy bool.
+        defaults.set("bogus", forKey: Preferences.Keys.spaceScope)
+        #expect(Preferences.storedSpaceScope(defaults) == .currentSpace)
+    }
+
     @Test("PanelSize scale ordering: small < standard < large")
     func panelSizeOrdering() {
         // Scale remap (2026-05-28): small=1.0, standard=1.2, large=1.5.

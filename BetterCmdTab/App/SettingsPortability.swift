@@ -119,6 +119,13 @@ extension Preferences {
             guard PropertyListSerialization.propertyList(value, isValidFor: .binary) else { continue }
             defaults.set(value, forKey: key)
         }
+        // Pre-#57 exports carry only the legacy `currentSpaceOnly` bool. Clear
+        // any locally stored `spaceScope` so the reload's legacy fallback
+        // derives the scope from the imported bool instead of keeping this
+        // machine's stale enum value.
+        if values[Preferences.Keys.currentSpaceOnly] != nil, values[Preferences.Keys.spaceScope] == nil {
+            defaults.removeObject(forKey: Preferences.Keys.spaceScope)
+        }
         reloadFromDefaults()
         // The import may have introduced scoped shortcuts with ids that didn't
         // exist at launch; install their Carbon handlers now (idempotent) so a

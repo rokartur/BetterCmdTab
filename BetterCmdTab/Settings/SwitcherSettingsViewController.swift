@@ -20,7 +20,8 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     private let windowlessSwitch = NSSwitch()
     private let applicationsOnlySwitch = NSSwitch()
     private let badgesSwitch = NSSwitch()
-    private let currentSpaceSwitch = NSSwitch()
+    private let spaceScopePopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let spaceScopes: [SpaceScope] = SpaceScope.allCases
     private let recentlyClosedSwitch = NSSwitch()
     private let recentlyClosedLimitPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let recentlyClosedLimits: [Int] = [3, 5, 10, 15, 20]
@@ -97,10 +98,10 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         addRow(to: contents, title: String(localized: "Show unread badges"),
                subtitle: String(localized: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row."),
                accessory: badgesSwitch, searchItemID: SearchID.showBadges)
-        configureSwitch(currentSpaceSwitch, action: #selector(toggleCurrentSpace(_:)))
-        addRow(to: contents, title: String(localized: "Only current Space"),
-               subtitle: String(localized: "Show only windows on the Space you're currently viewing."),
-               accessory: currentSpaceSwitch, searchItemID: SearchID.currentSpaceOnly)
+        configurePopup(spaceScopePopup, titles: spaceScopes.map(\.displayName), action: #selector(spaceScopeChanged))
+        addRow(to: contents, title: String(localized: "Show windows from"),
+               subtitle: String(localized: "All Spaces shows everything; Current Space only the Space you're viewing; Visible Spaces what's on screen across all your displays."),
+               accessory: spaceScopePopup, searchItemID: SearchID.spaceScope)
         configurePopup(sortOrderPopup, titles: sortOrders.map(\.displayName), action: #selector(sortOrderChanged))
         addRow(to: contents, title: String(localized: "Sort order"),
                subtitle: String(localized: "Most recent keeps the classic ⌘Tab order; Most recent (windows) interleaves windows from all apps by last focus; the others stay put as you switch."),
@@ -274,7 +275,7 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         windowlessSwitch.state = prefs.showWindowlessApps ? .on : .off
         applicationsOnlySwitch.state = prefs.applicationsOnly ? .on : .off
         badgesSwitch.state = prefs.showUnreadBadges ? .on : .off
-        currentSpaceSwitch.state = prefs.currentSpaceOnly ? .on : .off
+        if let i = spaceScopes.firstIndex(of: prefs.spaceScope) { spaceScopePopup.selectItem(at: i) }
         selectSortOrder(prefs.sortOrder)
         recentlyClosedSwitch.state = prefs.showRecentlyClosed ? .on : .off
         selectRecentlyClosedLimit(prefs.recentlyClosedLimit)
@@ -485,8 +486,10 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         Preferences.shared.showUnreadBadges = (sender.state == .on)
     }
 
-    @objc private func toggleCurrentSpace(_ sender: NSSwitch) {
-        Preferences.shared.currentSpaceOnly = (sender.state == .on)
+    @objc private func spaceScopeChanged() {
+        let idx = spaceScopePopup.indexOfSelectedItem
+        guard spaceScopes.indices.contains(idx) else { return }
+        Preferences.shared.spaceScope = spaceScopes[idx]
     }
 
     @objc private func sortOrderChanged() {

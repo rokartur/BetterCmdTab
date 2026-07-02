@@ -13,10 +13,10 @@ struct CatalogFilterTests {
         showMinimized: Bool = true,
         showHidden: Bool = true,
         showWindowless: Bool = true,
-        currentSpaceOnly: Bool = false,
+        spaceScope: SpaceScope = .allSpaces,
         sortOrder: SwitcherSortOrder = .mru
     ) -> CatalogFilter.Config {
-        CatalogFilter.Config(hideModes: hideModes, pinned: pinned, showMinimized: showMinimized, showHidden: showHidden, showWindowless: showWindowless, currentSpaceOnly: currentSpaceOnly, sortOrder: sortOrder)
+        CatalogFilter.Config(hideModes: hideModes, pinned: pinned, showMinimized: showMinimized, showHidden: showHidden, showWindowless: showWindowless, spaceScope: spaceScope, sortOrder: sortOrder)
     }
 
     // MARK: - isIdentity
@@ -29,6 +29,8 @@ struct CatalogFilterTests {
         #expect(!config(showMinimized: false).isIdentity)
         #expect(!config(showHidden: false).isIdentity)
         #expect(!config(showWindowless: false).isIdentity)
+        #expect(!config(spaceScope: .currentSpace).isIdentity)
+        #expect(!config(spaceScope: .visibleSpaces).isIdentity)
         #expect(!config(sortOrder: .alphabetical).isIdentity)
         #expect(!config(sortOrder: .launchOrder).isIdentity)
         // .mruWindows is not identity: the full filter path must run so the
@@ -325,16 +327,17 @@ struct CatalogFilterTests {
         #expect(!CatalogFilter.hasMultiWindowApp(pids: []))
     }
 
-    @Test("current-Space-only forces resolution; otherwise empty/windowless rows skip it")
+    @Test("a narrowing Space scope forces resolution; otherwise empty/windowless rows skip it")
     func needsSpaceResolutionGate() {
-        #expect(CatalogFilter.needsSpaceResolution([], config(currentSpaceOnly: true)))
+        #expect(CatalogFilter.needsSpaceResolution([], config(spaceScope: .currentSpace)))
+        #expect(CatalogFilter.needsSpaceResolution([], config(spaceScope: .visibleSpaces)))
         #expect(!CatalogFilter.needsSpaceResolution([], config()))
         // Launchable rows carry cgWindowID 0 → never counted, so the IPC sweep is
         // skipped even with two rows sharing nothing.
         #expect(!CatalogFilter.needsSpaceResolution([launchRow("com.a"), launchRow("com.b")], config()))
     }
 
-    // MARK: - filterToCurrentSpace (cached-wid path) + degrade
+    // MARK: - filterToAllowedSpaces (cached-wid path) + degrade
 
     /// A window-bearing row for the current process carrying an explicit wid.
     /// Only `cgWindowID` is read by the Space filters; `window` can be nil.
@@ -342,35 +345,45 @@ struct CatalogFilterTests {
         SwitcherRow(app: .current, window: nil, windowTitle: "", isMinimized: false, cgWindowID: wid)
     }
 
-    private func resolution(spaceByWindow: [CGWindowID: UInt64], activeSpace: UInt64?) -> CatalogFilter.SpaceResolution {
-        CatalogFilter.SpaceResolution(spaceByWindow: spaceByWindow, confirmedSpaceless: [], onScreen: [], activeSpace: activeSpace)
+    private func resolution(spaceByWindow: [CGWindowID: UInt64], allowedSpaces: Set<UInt64>) -> CatalogFilter.SpaceResolution {
+        CatalogFilter.SpaceResolution(spaceByWindow: spaceByWindow, confirmedSpaceless: [], onScreen: [], allowedSpaces: allowedSpaces)
     }
 
     @Test("current-Space filter drops a window on another Space, keeps active-Space")
     func currentSpaceDropsOtherSpace() {
         let active: UInt64 = 100
         let rows = [spaceRow(10), spaceRow(20)]   // 10 on active space, 20 elsewhere
-        let res = resolution(spaceByWindow: [10: active, 20: 200], activeSpace: active)
-        let kept = CatalogFilter.filterToCurrentSpace(rows, res)
+        let res = resolution(spaceByWindow: [10: active, 20: 200], allowedSpaces: [active])
+        let kept = CatalogFilter.filterToAllowedSpaces(rows, res)
         #expect(kept.map(\.cgWindowID) == [10])
     }
 
-    @Test("current-Space filter keeps rows whose wid didn't resolve")
+    @Test("visible-Spaces filter keeps each display's on-screen Space, drops the rest")
+    func visibleSpacesKeepsEveryDisplaysSpace() {
+        // Two displays: active Space 100 (display 1) and visible Space 300
+        // (display 2); Space 200 is a background Space of display 1 (#57).
+        let rows = [spaceRow(10), spaceRow(20), spaceRow(30)]
+        let res = resolution(spaceByWindow: [10: 100, 20: 200, 30: 300], allowedSpaces: [100, 300])
+        let kept = CatalogFilter.filterToAllowedSpaces(rows, res)
+        #expect(kept.map(\.cgWindowID) == [10, 30])
+    }
+
+    @Test("Space filter keeps rows whose wid didn't resolve")
     func currentSpaceKeepsUnresolved() {
         let active: UInt64 = 100
         let rows = [spaceRow(10), spaceRow(20)]   // 20 absent from the map
-        let res = resolution(spaceByWindow: [10: 200], activeSpace: active)
+        let res = resolution(spaceByWindow: [10: 200], allowedSpaces: [active])
         // 10 resolves to another space → dropped; 20 unresolved → kept.
-        let kept = CatalogFilter.filterToCurrentSpace(rows, res)
+        let kept = CatalogFilter.filterToAllowedSpaces(rows, res)
         #expect(kept.map(\.cgWindowID) == [20])
     }
 
-    @Test("current-Space filter keeps wid-0 (windowless) rows regardless")
+    @Test("Space filter keeps wid-0 (windowless) rows regardless")
     func currentSpaceKeepsWindowlessRows() {
         let active: UInt64 = 100
         let rows = [spaceRow(10), launchRow("com.a")]   // launchRow carries wid 0
-        let res = resolution(spaceByWindow: [10: 200], activeSpace: active)
-        let kept = CatalogFilter.filterToCurrentSpace(rows, res)
+        let res = resolution(spaceByWindow: [10: 200], allowedSpaces: [active])
+        let kept = CatalogFilter.filterToAllowedSpaces(rows, res)
         #expect(kept.contains { $0.isLaunchable })       // wid-0 row always kept
         #expect(!kept.contains { $0.cgWindowID == 10 })  // other-space window dropped
     }
@@ -378,7 +391,7 @@ struct CatalogFilterTests {
     @Test("both Space filters no-op on the unavailable resolution")
     func unavailableResolutionDegradesToNoOp() {
         let rows = [spaceRow(10), spaceRow(20)]
-        #expect(CatalogFilter.filterToCurrentSpace(rows, .unavailable).count == 2)
+        #expect(CatalogFilter.filterToAllowedSpaces(rows, .unavailable).count == 2)
         #expect(CatalogFilter.filterPhantomWindows(rows, .unavailable).count == 2)
     }
 }

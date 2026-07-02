@@ -84,7 +84,7 @@ enum SearchID {
     static let showWindowless = "switcher.showWindowless"
     static let applicationsOnly = "switcher.applicationsOnly"
     static let showBadges = "switcher.showBadges"
-    static let currentSpaceOnly = "switcher.currentSpaceOnly"
+    static let spaceScope = "switcher.spaceScope"
     static let sortOrder = "switcher.sortOrder"
     static let showRecentlyClosed = "switcher.showRecentlyClosed"
     static let recentlyClosedLimit = "switcher.recentlyClosedLimit"
@@ -355,8 +355,8 @@ enum SettingsCatalog {
              ["applications only", "apps only", "one per app", "per app", "command tab", "classic", "group windows"]),
         item(SearchID.showBadges, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Show unread badges"), ["badge", "unread", "dock badge", "count"]),
-        item(SearchID.currentSpaceOnly, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
-             String(localized: "Only current Space"), ["space", "current space", "desktop", "filter"]),
+        item(SearchID.spaceScope, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Show windows from"), ["space", "current space", "visible spaces", "desktop", "display", "monitor", "filter"]),
         item(SearchID.sortOrder, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Sort order"), ["sort", "order", "mru", "most recent", "alphabetical", "launch order", "windows", "window recency"]),
         item(SearchID.showRecentlyClosed, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),

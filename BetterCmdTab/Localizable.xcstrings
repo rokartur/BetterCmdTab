@@ -4624,34 +4624,6 @@
         }
       }
     },
-    "Only current Space" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nur aktueller Space"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Solo el espacio actual"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Espace actuel uniquement"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tylko bieżące biurko"
-          }
-        }
-      }
-    },
     "Open Accessibility Settings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6729,34 +6701,6 @@
         }
       }
     },
-    "Show only windows on the Space you're currently viewing." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zeigt nur Fenster auf dem Space an, den du gerade anzeigst."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Muestra solo las ventanas del espacio que estás viendo actualmente."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Affiche uniquement les fenêtres de l’espace que vous consultez actuellement."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokazuj tylko okna na biurku, które aktualnie oglądasz."
-          }
-        }
-      }
-    },
     "Show recently closed apps" : {
       "localizations" : {
         "de" : {
@@ -8601,6 +8545,174 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Powiększ okno"
+          }
+        }
+      }
+    },
+    "All Spaces" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Spaces"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos los espacios"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les espaces"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie biurka"
+          }
+        }
+      }
+    },
+    "Current Space" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktueller Space"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espacio actual"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espace actuel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bieżące biurko"
+          }
+        }
+      }
+    },
+    "Visible Spaces" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sichtbare Spaces"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espacios visibles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espaces visibles"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widoczne biurka"
+          }
+        }
+      }
+    },
+    "Show windows from" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster anzeigen von"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar ventanas de"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les fenêtres de"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj okna z"
+          }
+        }
+      }
+    },
+    "All Spaces shows everything; Current Space only the Space you're viewing; Visible Spaces what's on screen across all your displays." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Alle Spaces“ zeigt alles; „Aktueller Space“ nur den Space, den du gerade siehst; „Sichtbare Spaces“ das, was auf all deinen Bildschirmen zu sehen ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Todos los espacios» muestra todo; «Espacio actual» solo el espacio que estás viendo; «Espacios visibles» lo que se ve en todas tus pantallas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Tous les espaces » affiche tout ; « Espace actuel » uniquement l'espace affiché ; « Espaces visibles » ce qui est à l'écran sur tous vos moniteurs."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Wszystkie biurka” pokazuje wszystko; „Bieżące biurko” tylko biurko, które właśnie widzisz; „Widoczne biurka” to, co widać na wszystkich monitorach."
+          }
+        }
+      }
+    },
+    "Limit this shortcut to the current Space, every visible Space, or show every Space." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschränke diesen Kurzbefehl auf den aktuellen Space, alle sichtbaren Spaces oder zeige jeden Space."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limita este atajo al espacio actual o a los espacios visibles, o muestra todos los espacios."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitez ce raccourci à l'espace actuel ou aux espaces visibles, ou affichez tous les espaces."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogranicz ten skrót do bieżącego biurka lub widocznych biurek, albo pokazuj wszystkie biurka."
           }
         }
       }

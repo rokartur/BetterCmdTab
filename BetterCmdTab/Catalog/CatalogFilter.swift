@@ -19,12 +19,12 @@ enum CatalogFilter {
         let showMinimized: Bool
         let showHidden: Bool
         let showWindowless: Bool
-        let currentSpaceOnly: Bool
+        let spaceScope: SpaceScope
         let sortOrder: SwitcherSortOrder
 
         /// No filtering and no reordering — lets callers skip work entirely.
         var isIdentity: Bool {
-            hideModes.isEmpty && pinned.isEmpty && showMinimized && showHidden && showWindowless && !currentSpaceOnly && sortOrder == .mru
+            hideModes.isEmpty && pinned.isEmpty && showMinimized && showHidden && showWindowless && spaceScope == .allSpaces && sortOrder == .mru
         }
     }
 
@@ -45,7 +45,7 @@ enum CatalogFilter {
             showMinimized: defaults.object(forKey: Preferences.Keys.showMinimizedWindows) as? Bool ?? true,
             showHidden: defaults.object(forKey: Preferences.Keys.showHiddenApps) as? Bool ?? true,
             showWindowless: defaults.object(forKey: Preferences.Keys.showWindowlessApps) as? Bool ?? true,
-            currentSpaceOnly: defaults.object(forKey: Preferences.Keys.currentSpaceOnly) as? Bool ?? false,
+            spaceScope: Preferences.storedSpaceScope(defaults),
             sortOrder: sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
         )
     }
@@ -62,7 +62,7 @@ enum CatalogFilter {
             showMinimized: ov.showMinimized ?? base.showMinimized,
             showHidden: ov.showHidden ?? base.showHidden,
             showWindowless: ov.showWindowless ?? base.showWindowless,
-            currentSpaceOnly: ov.spaceScope.resolvedCurrentSpaceOnly ?? base.currentSpaceOnly,
+            spaceScope: ov.spaceScope.resolvedScope ?? base.spaceScope,
             sortOrder: ov.sortOrder ?? base.sortOrder
         )
     }
@@ -72,19 +72,19 @@ enum CatalogFilter {
     /// (cache-warm rows) are never filtered or reordered.
     static func filteredRows(_ rows: [SwitcherRow], _ cfg: Config) -> [SwitcherRow] {
         // Resolve Space membership once and share it across both Space-based
-        // filters so a reveal never queries the same window's Space twice. The
-        // current-Space filter needs every window's Space; the phantom filter
-        // only cares about off-screen windows, so when current-Space is off we
+        // filters so a reveal never queries the same window's Space twice. A
+        // narrowing Space scope needs every window's Space; the phantom filter
+        // only cares about off-screen windows, so under the all-Spaces scope we
         // resolve just those (see resolveSpaces).
         //
         // Gate the whole thing behind a pure, IPC-free precheck: a phantom can
         // only be dropped when some app has two or more window-bearing rows (the
         // never-shown helper always coexists with the app's real window — see
-        // phantomWindowOffsets). When that's impossible and current-Space is off,
-        // skip resolveSpaces entirely so a default-config reveal pays zero
-        // WindowServer round-trips on the ⌘Tab hot path.
+        // phantomWindowOffsets). When that's impossible and the scope is all
+        // Spaces, skip resolveSpaces entirely so a default-config reveal pays
+        // zero WindowServer round-trips on the ⌘Tab hot path.
         let spaces = needsSpaceResolution(rows, cfg)
-            ? resolveSpaces(rows, needsAllWindows: cfg.currentSpaceOnly)
+            ? resolveSpaces(rows, scope: cfg.spaceScope)
             : .unavailable
 
         // Drop Electron-style phantom windows first, unconditionally. These are
@@ -99,19 +99,19 @@ enum CatalogFilter {
             filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.appName }, pid: { $0.pid })
         }
         filtered = pinnedToFront(filtered, cfg.pinned)
-        if cfg.currentSpaceOnly {
-            filtered = filterToCurrentSpace(filtered, spaces)
+        if cfg.spaceScope != .allSpaces {
+            filtered = filterToAllowedSpaces(filtered, spaces)
         }
         return filtered
     }
 
-    /// Whether this reveal needs any WindowServer Space resolution. The
-    /// current-Space filter always does; otherwise it's needed only when a
+    /// Whether this reveal needs any WindowServer Space resolution. A narrowing
+    /// Space scope always does; otherwise it's needed only when a
     /// phantom could exist — i.e. some app has two or more window-bearing rows,
     /// since `phantomWindowOffsets` can never drop an app's lone window. Pure and
     /// IPC-free, so the common "nothing to drop" reveal skips `resolveSpaces`.
     static func needsSpaceResolution(_ rows: [SwitcherRow], _ cfg: Config) -> Bool {
-        cfg.currentSpaceOnly || hasMultiWindowApp(pids: rows.map { $0.cgWindowID != 0 ? $0.pid : nil })
+        cfg.spaceScope != .allSpaces || hasMultiWindowApp(pids: rows.map { $0.cgWindowID != 0 ? $0.pid : nil })
     }
 
     /// Pure core of `needsSpaceResolution`: true when any pid appears on two or
@@ -162,29 +162,42 @@ enum CatalogFilter {
     }
 
     /// Space membership resolved once per `filteredRows` call and shared by the
-    /// phantom filter and the current-Space filter, so neither re-queries
+    /// phantom filter and the Space-scope filter, so neither re-queries
     /// WindowServer for the same window. `spaceByWindow` maps each *resolved*
     /// window id to its single Space; `confirmedSpaceless` is the set of wids
     /// WindowServer positively reports as belonging to no Space (the phantom
     /// signal — never multi-Space/sticky or failed queries); `onScreen` is the
-    /// set of currently visible window ids; `activeSpace` is nil when the private
-    /// Space API is unavailable, in which case both filters no-op.
+    /// set of currently visible window ids; `allowedSpaces` is the set the
+    /// scope filter keeps (the focused Space, or every display's visible Space
+    /// — see `resolveSpaces`), and is empty when the private Space API is
+    /// unavailable, in which case both filters no-op.
     struct SpaceResolution {
         let spaceByWindow: [CGWindowID: UInt64]
         let confirmedSpaceless: Set<CGWindowID>
         let onScreen: Set<CGWindowID>
-        let activeSpace: UInt64?
+        let allowedSpaces: Set<UInt64>
 
         /// Space API unavailable — callers degrade to showing every window.
-        static let unavailable = SpaceResolution(spaceByWindow: [:], confirmedSpaceless: [], onScreen: [], activeSpace: nil)
+        static let unavailable = SpaceResolution(spaceByWindow: [:], confirmedSpaceless: [], onScreen: [], allowedSpaces: [])
     }
 
-    /// Resolve Space membership for `rows`. When `needsAllWindows` is true (the
-    /// current-Space filter is active) every window is queried; otherwise only
+    /// Resolve Space membership for `rows` under `scope`. A narrowing scope
+    /// (current/visible Spaces) queries every window; under `.allSpaces` only
     /// off-screen windows are — an on-screen window is by definition on a Space,
     /// so the phantom filter doesn't need it and we skip that per-window IPC.
-    static func resolveSpaces(_ rows: [SwitcherRow], needsAllWindows: Bool) -> SpaceResolution {
+    ///
+    /// `allowedSpaces` is the focused Space for `.currentSpace` (and
+    /// `.allSpaces`, where it only marks API availability), plus each display's
+    /// visible Space for `.visibleSpaces` (#57). The focused Space is always
+    /// included, so the visible-Spaces filter can never hide the Space the user
+    /// is looking at even if the display-spaces query comes back partial.
+    static func resolveSpaces(_ rows: [SwitcherRow], scope: SpaceScope) -> SpaceResolution {
         guard let active = PrivateAPI.activeSpace() else { return .unavailable }
+        var allowed: Set<UInt64> = [active]
+        if scope == .visibleSpaces {
+            allowed.formUnion(PrivateAPI.visibleSpaces())
+        }
+        let needsAllWindows = scope != .allSpaces
         let onScreen = onScreenWindowIDs()
         // Unique wids to resolve (browser-tab rows can share a parent wid).
         var wids = Set<CGWindowID>()
@@ -200,29 +213,30 @@ enum CatalogFilter {
             spaceByWindow: membership.resolved,
             confirmedSpaceless: membership.spaceless,
             onScreen: onScreen,
-            activeSpace: active
+            allowedSpaces: allowed
         )
     }
 
     /// Convenience for standalone callers outside the `filteredRows` pipeline
     /// (e.g. the windows-only scope path) that don't already hold a shared
-    /// `SpaceResolution`. Resolves every window's Space, then filters.
+    /// `SpaceResolution`. Resolves every window's Space, then filters to the
+    /// focused Space only.
     static func filterToCurrentSpace(_ rows: [SwitcherRow]) -> [SwitcherRow] {
-        filterToCurrentSpace(rows, resolveSpaces(rows, needsAllWindows: true))
+        filterToAllowedSpaces(rows, resolveSpaces(rows, scope: .currentSpace))
     }
 
-    /// Drop windows that live on a Space other than the one in focus. Rows
+    /// Drop windows that live on a Space outside `allowedSpaces`. Rows
     /// without a real window (windowless apps, launchables, recents) and any
     /// window whose Space can't be resolved — including multi-Space (All
     /// Desktops / sticky) windows, which `PrivateAPI.spaceMembership(forWindows:)`
     /// leaves unresolved — are kept, so the filter only ever hides windows it's
     /// certain are elsewhere. Reads Space membership from the shared
     /// `SpaceResolution`; degrades to a no-op when it's unavailable.
-    static func filterToCurrentSpace(_ rows: [SwitcherRow], _ spaces: SpaceResolution) -> [SwitcherRow] {
-        guard let active = spaces.activeSpace, !spaces.spaceByWindow.isEmpty else { return rows }
+    static func filterToAllowedSpaces(_ rows: [SwitcherRow], _ spaces: SpaceResolution) -> [SwitcherRow] {
+        guard !spaces.allowedSpaces.isEmpty, !spaces.spaceByWindow.isEmpty else { return rows }
         var dropOffsets = Set<Int>()
         for (offset, row) in rows.enumerated() where row.cgWindowID != 0 {
-            if let space = spaces.spaceByWindow[row.cgWindowID], space != active {
+            if let space = spaces.spaceByWindow[row.cgWindowID], !spaces.allowedSpaces.contains(space) {
                 dropOffsets.insert(offset)
             }
         }
@@ -259,7 +273,7 @@ enum CatalogFilter {
     /// Reads Space membership from the shared `SpaceResolution`; degrades to a
     /// no-op when it's unavailable.
     static func filterPhantomWindows(_ rows: [SwitcherRow], _ spaces: SpaceResolution) -> [SwitcherRow] {
-        guard spaces.activeSpace != nil else { return rows }
+        guard !spaces.allowedSpaces.isEmpty else { return rows }
 
         // Every window-bearing row tagged with whether WindowServer currently
         // shows it and whether it's minimized. The wid is the one captured at

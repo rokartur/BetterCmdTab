@@ -1732,10 +1732,10 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Filter `rows` to the active scope. Operates on already content-filtered
-    /// rows (the user's hide/minimized/space toggles still apply); the scope
-    /// narrows further. `.allAppsAllSpaces` only escapes the current-Space
-    /// toggle when that toggle is off (the cache already dropped other-Space
-    /// windows otherwise — documented edge case).
+    /// rows (the user's hide/minimized/Space-scope settings still apply); the
+    /// scope narrows further. `.allAppsAllSpaces` only escapes the global
+    /// Space scope when that scope is "all Spaces" (the cache already dropped
+    /// out-of-scope windows otherwise — documented edge case).
     private func scopeFiltered(_ rows: [SwitcherRow], scope: SwitchScope) -> [SwitcherRow] {
         let windowed = rows.filter { $0.window != nil }
         let filtered: [SwitcherRow]

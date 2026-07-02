@@ -191,6 +191,28 @@ enum SwitcherSortOrder: String, CaseIterable {
     }
 }
 
+/// Which Spaces the switcher shows windows from (#57). Raw values are
+/// persisted under `Keys.spaceScope`, so don't rename cases. Supersedes the
+/// legacy `Keys.currentSpaceOnly` bool, which is kept in sync for older
+/// builds/exports and used as the fallback when the new key is absent.
+enum SpaceScope: String, CaseIterable, Sendable {
+    /// Every window on every Space (default — classic ⌘Tab).
+    case allSpaces
+    /// Only windows on the single Space that has keyboard focus.
+    case currentSpace
+    /// Windows on every Space currently on screen — the active Space of each
+    /// display (#57, multi-monitor "what I can see").
+    case visibleSpaces
+
+    var displayName: String {
+        switch self {
+        case .allSpaces: return String(localized: "All Spaces")
+        case .currentSpace: return String(localized: "Current Space")
+        case .visibleSpaces: return String(localized: "Visible Spaces")
+        }
+    }
+}
+
 /// The subset of windows a scoped custom shortcut opens the switcher onto.
 /// Each user-defined scoped shortcut (Shortcuts settings) carries one of these;
 /// triggering it opens the switcher already filtered to that subset instead of
@@ -215,23 +237,26 @@ enum SwitchScope: String, CaseIterable {
     }
 }
 
-/// Per-shortcut override of the Space-scope behavioral option (#74). Tri-state so
-/// a shortcut can force "this Space only", force "all Spaces", or inherit the
-/// global `currentSpaceOnly` toggle. Stored as a raw string on `ShortcutOverride`.
+/// Per-shortcut override of the Space-scope behavioral option (#74). A shortcut
+/// can force any concrete `SpaceScope` or inherit the global `spaceScope`
+/// preference. Stored as a raw string on `ShortcutOverride` — don't rename cases.
 enum SpaceScopeOverride: String, CaseIterable, Sendable {
-    /// Use the global `currentSpaceOnly` preference. (Default.)
+    /// Use the global `spaceScope` preference. (Default.)
     case inherit
     /// Force the shortcut to only show windows on the current Space.
     case currentSpace
     /// Force the shortcut to show windows across all Spaces.
     case allSpaces
+    /// Force the shortcut to show windows on every visible Space (#57).
+    case visibleSpaces
 
-    /// The concrete `currentSpaceOnly` value, or `nil` when inheriting the global.
-    var resolvedCurrentSpaceOnly: Bool? {
+    /// The concrete scope, or `nil` when inheriting the global.
+    var resolvedScope: SpaceScope? {
         switch self {
         case .inherit: return nil
-        case .currentSpace: return true
-        case .allSpaces: return false
+        case .currentSpace: return .currentSpace
+        case .allSpaces: return .allSpaces
+        case .visibleSpaces: return .visibleSpaces
         }
     }
 
@@ -240,6 +265,7 @@ enum SpaceScopeOverride: String, CaseIterable, Sendable {
         case .inherit: return String(localized: "Use global default")
         case .currentSpace: return String(localized: "This Space only")
         case .allSpaces: return String(localized: "All Spaces")
+        case .visibleSpaces: return String(localized: "Visible Spaces")
         }
     }
 }
@@ -682,7 +708,12 @@ final class Preferences: ObservableObject {
         static let panelCornerRadius = "Switcher.panelCornerRadius"
         static let customAccentHex = "Switcher.customAccentHex"
         static let backdropMaterial = "Switcher.backdropMaterial"
+        /// Legacy pre-#57 bool ("only current Space"). Still written (in sync
+        /// with `spaceScope`) so older builds and old exports stay coherent;
+        /// read only as the fallback when `spaceScope` is absent.
         static let currentSpaceOnly = "Switcher.currentSpaceOnly"
+        /// `SpaceScope` raw value — which Spaces the switcher shows (#57).
+        static let spaceScope = "Switcher.spaceScope"
         static let directActivationBindings = "Switcher.directActivationBindings"
         static let scopedShortcutScopes = "Switcher.scopedShortcutScopes"
         /// The dynamic scoped-switch list (#74), as `[[String: String]]` of
@@ -1244,13 +1275,17 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// Show only windows that live on the currently active Space. Default off.
+    /// Which Spaces the switcher shows windows from (#57). Default all Spaces.
     /// Reads window Space membership via the same private APIs as instant Space
     /// switching; degrades to showing everything when those are unavailable.
-    @Published var currentSpaceOnly: Bool {
+    @Published var spaceScope: SpaceScope {
         didSet {
-            guard oldValue != currentSpaceOnly else { return }
-            UserDefaults.standard.set(currentSpaceOnly, forKey: Keys.currentSpaceOnly)
+            guard oldValue != spaceScope else { return }
+            let defaults = UserDefaults.standard
+            defaults.set(spaceScope.rawValue, forKey: Keys.spaceScope)
+            // Keep the legacy bool in step so pre-#57 builds and settings
+            // exports read a consistent value.
+            defaults.set(spaceScope == .currentSpace, forKey: Keys.currentSpaceOnly)
         }
     }
 
@@ -1331,6 +1366,19 @@ final class Preferences: ObservableObject {
 
     static func decodeScopedShortcuts(_ raw: [[String: String]]?) -> [ScopedShortcut] {
         (raw ?? []).compactMap(ScopedShortcut.init(dictionary:))
+    }
+
+    /// The stored Space scope (#57): the `spaceScope` key when present, else
+    /// derived from the legacy pre-#57 `currentSpaceOnly` bool (true → current
+    /// Space, absent/false → all Spaces). Pure read, no persisting — the key is
+    /// only written when the user changes the setting, so old-format settings
+    /// imports keep applying through the fallback. `nonisolated` because the
+    /// off-main catalog path (`CatalogFilter.config()`) shares it.
+    nonisolated static func storedSpaceScope(_ defaults: UserDefaults) -> SpaceScope {
+        if let scope = defaults.string(forKey: Keys.spaceScope).flatMap(SpaceScope.init(rawValue:)) {
+            return scope
+        }
+        return (defaults.object(forKey: Keys.currentSpaceOnly) as? Bool ?? false) ? .currentSpace : .allSpaces
     }
 
     /// Build the initial list from the legacy fixed `scopedShortcutScopes` (the
@@ -1647,7 +1695,7 @@ final class Preferences: ObservableObject {
         self.customAccentHex = defaults.string(forKey: Keys.customAccentHex)
         let materialRaw = defaults.string(forKey: Keys.backdropMaterial)
         self.backdropMaterial = materialRaw.flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
-        self.currentSpaceOnly = defaults.object(forKey: Keys.currentSpaceOnly) as? Bool ?? false
+        self.spaceScope = Self.storedSpaceScope(defaults)
         self.directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
         let legacyScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
         self.scopedShortcutScopes = legacyScopes
@@ -1758,7 +1806,7 @@ final class Preferences: ObservableObject {
         panelCornerRadius = Self.clampCornerRadius(defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0)
         customAccentHex = defaults.string(forKey: Keys.customAccentHex)
         backdropMaterial = defaults.string(forKey: Keys.backdropMaterial).flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
-        currentSpaceOnly = defaults.object(forKey: Keys.currentSpaceOnly) as? Bool ?? false
+        spaceScope = Self.storedSpaceScope(defaults)
         directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
         let reloadedScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
         scopedShortcutScopes = reloadedScopes
