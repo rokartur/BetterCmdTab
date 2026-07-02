@@ -230,12 +230,21 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         // without a real window (windowless apps, launchables, recents) keep the
         // app icon as their preview.
         //
+        // Prefer the CGWindowID captured at enumeration time: a live resolve off
+        // the cache-fed AX element returns 0 once the app invalidated it
+        // (Chromium does so aggressively), which painted the app icon even
+        // though the window's thumbnail sat in the cache under its real id
+        // (#82). The live resolve stays as a fallback for rows whose id didn't
+        // land during enumeration.
+        //
         // Browser tabs aren't separate windows: every tab of a browser window
         // shares the parent window's id, and a window screenshot only ever shows
         // the *active* tab — so requesting it would paint every tab tile with the
         // same, misleading thumbnail. Force the app-icon placeholder (id 0)
         // instead; the distinct tab title under the icon identifies each tab.
-        windowID = (row.browserTab == nil) ? (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0) : 0
+        windowID = (row.browserTab == nil)
+            ? (row.cgWindowID != 0 ? row.cgWindowID : (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0))
+            : 0
         if windowID != 0 {
             let scale = window?.backingScaleFactor ?? 2
             WindowThumbnailCache.shared.request(wid: windowID, pixelHeight: metrics.previewThumbHeight * scale)

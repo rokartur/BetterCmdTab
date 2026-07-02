@@ -9,6 +9,13 @@ import ScreenCaptureKit
 /// preview tile shows the app icon as a placeholder and swaps in the thumbnail
 /// via `onReady` once it lands.
 ///
+/// Storage is a deterministic LRU (`ThumbnailLRU`), not `NSCache`: NSCache
+/// evicts "for reasons of its own" — memory pressure, background-app purges —
+/// and this app is a permanent `.accessory`, so frames vanished between
+/// reveals and tiles flashed the app icon seemingly at random (#82). Entries
+/// now leave only via the count/cost limits or the real memory-pressure
+/// handler wired in `init`.
+///
 /// Capture uses `SCScreenshotManager` on macOS 14+ (the supported path) and
 /// falls back to the deprecated-but-functional `CGWindowListCreateImage` on
 /// macOS 13. Either path needs the Screen Recording permission; without it the
@@ -22,10 +29,16 @@ final class WindowThumbnailCache {
     /// `CGWindowID` whose image is now in the cache.
     var onReady: ((CGWindowID) -> Void)?
 
-    private let cache = NSCache<NSNumber, NSImage>()
+    // Preview mode rarely surfaces more than ~24 windows at once; cap at 32 so
+    // the cache holds a generous working set without retaining stale captures
+    // from long-past reveals that would never be reused. The cost ceiling is
+    // anchored to a typical Retina preview tile (~512×288 RGBA ≈ 590KB) × the
+    // count limit, with headroom for occasional wider previews, so a 4K frame
+    // can't single-handedly crowd out the rest.
+    private var cache = ThumbnailLRU(countLimit: 32, costLimit: 32 * 600_000)
     private var inFlight = Set<CGWindowID>()
-    private var capturedAt: [CGWindowID: Date] = [:]
     private var didRequestPermission = false
+    private let memoryPressure: DispatchSourceMemoryPressure
 
     /// How long a captured frame is reused before a reveal triggers a silent
     /// background recapture. Reopening the switcher within this window shows the
@@ -34,22 +47,21 @@ final class WindowThumbnailCache {
     private let refreshTTL: TimeInterval = 2.0
 
     private init() {
-        // Preview mode rarely surfaces more than ~24 windows at once (one row
-        // per visible window of the front app); cap at 32 so the cache holds
-        // a generous working set without retaining stale captures from
-        // long-past reveals that would never be reused.
-        cache.countLimit = 32
-        // Cost-side ceiling so a 4K thumbnail can't single-handedly evict the
-        // rest of the cache by counting as 32MB on its own. Anchored to a
-        // typical Retina preview tile (~512×288 RGBA ≈ 590KB) × the count
-        // limit, with headroom for occasional wider previews.
-        cache.totalCostLimit = 32 * 600_000
+        // The LRU never drops entries behind the app's back, so honour real
+        // memory pressure explicitly — thumbnails are the cheapest ~19MB to
+        // hand back, and they self-heal via recapture on the next reveal.
+        memoryPressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
+        memoryPressure.setEventHandler { [weak self] in
+            Task { @MainActor in self?.clear() }
+        }
+        memoryPressure.activate()
     }
 
-    /// Cached thumbnail for `wid`, or nil if not captured yet.
+    /// Cached thumbnail for `wid`, or nil if not captured yet. Bumps the
+    /// entry's recency: tiles that still ask for a frame are the working set.
     func image(for wid: CGWindowID) -> NSImage? {
         guard wid != 0 else { return nil }
-        return cache.object(forKey: NSNumber(value: wid))
+        return cache.image(for: wid)
     }
 
     /// Ensure `wid` has a reasonably fresh thumbnail. Skips work when a frame
@@ -61,8 +73,7 @@ final class WindowThumbnailCache {
     /// height so the capture stays crisp on Retina without over-allocating.
     func request(wid: CGWindowID, pixelHeight: CGFloat) {
         guard wid != 0, !inFlight.contains(wid) else { return }
-        if cache.object(forKey: NSNumber(value: wid)) != nil,
-           let ts = capturedAt[wid], Date().timeIntervalSince(ts) < refreshTTL {
+        if let ts = cache.capturedAt(for: wid), Date().timeIntervalSince(ts) < refreshTTL {
             return
         }
         inFlight.insert(wid)
@@ -76,20 +87,15 @@ final class WindowThumbnailCache {
         inFlight.remove(wid)
         guard let image else { return }
         let cost = Int(image.size.width * image.size.height * 4)
-        cache.setObject(image, forKey: NSNumber(value: wid), cost: cost)
-        capturedAt[wid] = Date()
-        // `capturedAt` isn't evicted by NSCache; cap it so it can't grow without
-        // bound over a long session (forces a one-off recapture round at most).
-        if capturedAt.count > 256 { capturedAt.removeAll(keepingCapacity: true) }
+        cache.set(image, cost: cost, capturedAt: Date(), for: wid)
         onReady?(wid)
     }
 
-    /// Drop every cached thumbnail (e.g. under memory pressure). Not called on
+    /// Drop every cached thumbnail (memory-pressure handler). Not called on
     /// dismiss — frames are kept warm across reveals so reopening the switcher
     /// shows them instantly instead of flashing app icons first.
     func clear() {
-        cache.removeAllObjects()
-        capturedAt.removeAll()
+        cache.removeAll()
         inFlight.removeAll()
     }
 
@@ -184,6 +190,80 @@ final class WindowThumbnailCache {
             return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
         }
         return NSImage(cgImage: scaled, size: NSSize(width: scaled.width, height: scaled.height))
+    }
+}
+
+/// Deterministic LRU store behind `WindowThumbnailCache`. Entries are evicted
+/// only when an insert pushes past the count or total-cost limit (least
+/// recently used first) or on an explicit `removeAll` — never spontaneously,
+/// which is the property NSCache couldn't guarantee (#82). Reads bump recency.
+///
+/// Sizes are tiny (≤ 32 entries), so recency is a plain array — the O(n)
+/// reshuffle on a bump is a few pointer moves, cheaper than any linked-list
+/// or generation-counter scheme at this scale.
+struct ThumbnailLRU {
+    private struct Entry {
+        let image: NSImage
+        let cost: Int
+        let capturedAt: Date
+    }
+
+    private var entries: [CGWindowID: Entry] = [:]
+    /// Recency order, index 0 = least recently used.
+    private var order: [CGWindowID] = []
+    private(set) var totalCost = 0
+    let countLimit: Int
+    let costLimit: Int
+
+    init(countLimit: Int, costLimit: Int) {
+        self.countLimit = countLimit
+        self.costLimit = costLimit
+    }
+
+    var count: Int { entries.count }
+
+    /// Cached image for `wid`, bumping its recency on a hit.
+    mutating func image(for wid: CGWindowID) -> NSImage? {
+        guard let entry = entries[wid] else { return nil }
+        bump(wid)
+        return entry.image
+    }
+
+    /// Capture timestamp for `wid` without touching recency (freshness checks
+    /// shouldn't keep an otherwise-unused entry alive).
+    func capturedAt(for wid: CGWindowID) -> Date? {
+        entries[wid]?.capturedAt
+    }
+
+    /// Insert or replace `wid`, then evict least-recently-used entries while
+    /// over either limit. The just-inserted entry is never evicted: one
+    /// oversized frame beats an empty cache.
+    mutating func set(_ image: NSImage, cost: Int, capturedAt: Date, for wid: CGWindowID) {
+        if let old = entries.removeValue(forKey: wid) {
+            totalCost -= old.cost
+            order.removeAll { $0 == wid }
+        }
+        entries[wid] = Entry(image: image, cost: cost, capturedAt: capturedAt)
+        order.append(wid)
+        totalCost += cost
+        while entries.count > 1, entries.count > countLimit || totalCost > costLimit {
+            let lru = order.removeFirst()
+            if let evicted = entries.removeValue(forKey: lru) {
+                totalCost -= evicted.cost
+            }
+        }
+    }
+
+    mutating func removeAll() {
+        entries.removeAll()
+        order.removeAll()
+        totalCost = 0
+    }
+
+    private mutating func bump(_ wid: CGWindowID) {
+        guard order.last != wid, let idx = order.firstIndex(of: wid) else { return }
+        order.remove(at: idx)
+        order.append(wid)
     }
 }
 
