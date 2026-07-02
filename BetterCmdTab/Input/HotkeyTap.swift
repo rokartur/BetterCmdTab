@@ -1003,20 +1003,39 @@ final class HotkeyTap {
         }
 
         if type == .leftMouseDown || type == .rightMouseDown || type == .otherMouseDown {
-            // Click-outside-to-dismiss: only while the switcher is open and the
-            // feature is enabled. A click inside the panel passes through so row
-            // clicks and hover-action buttons keep working; a click outside is
-            // swallowed (return nil) and dismisses the switcher, leaving the
-            // current window focused instead of activating whatever was clicked.
-            guard isSwitchingNow(), clickDismissFlag.withLock({ $0 }),
-                  let frame = switcherFrame.withLock({ $0 }) else {
+            // While the switcher is open, swallow every click inside the panel
+            // and re-post a copy to our own event queue. This prevents
+            // third-party apps (e.g. EasyMoveResize) which install system-wide
+            // event monitors from intercepting the click while the trigger
+            // modifier (⌘) is held, which would otherwise steal the click from
+            // the switcher and start a window-drag instead of selecting a row.
+            //
+            // Clicks strictly outside the panel that also pass the
+            // click-outside-to-dismiss gate swallow the event (no re-post) and
+            // dismiss the switcher, leaving the current window focused.
+            guard isSwitchingNow() else {
                 return Unmanaged.passUnretained(event)
             }
-            if frame.contains(event.location) {
-                return Unmanaged.passUnretained(event)
+            if let frame = switcherFrame.withLock({ $0 }) {
+                if frame.contains(event.location) {
+                    // Inside the panel: swallow + re-post to ourselves.
+                    if let copy = event.copy() {
+                        DispatchQueue.main.async {
+                            guard let nsEvent = NSEvent(cgEvent: copy) else { return }
+                            NSApp.postEvent(nsEvent, atStart: true)
+                        }
+                    }
+                    return nil
+                }
+                // Outside the panel: dismiss when the feature is enabled.
+                if clickDismissFlag.withLock({ $0 }) {
+                    deliver(.dismiss)
+                    return nil
+                }
             }
-            deliver(.dismiss)
-            return nil
+            // No frame available, or click outside with dismiss disabled:
+            // let the event pass through to its natural target.
+            return Unmanaged.passUnretained(event)
         }
 
         let cfg = config.withLock { $0 }
