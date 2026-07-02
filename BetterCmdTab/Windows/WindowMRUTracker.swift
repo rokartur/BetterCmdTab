@@ -69,15 +69,6 @@ final class WindowMRUTracker {
         if globalOrder.count > globalCap { globalOrder.removeLast(globalOrder.count - globalCap) }
     }
 
-    /// Promote the app's currently focused window to MRU front by querying AX
-    /// directly. Call this at the start of a Cmd+` chord so external focus
-    /// changes (user clicked a different window manually) are reflected before
-    /// rows get reordered.
-    func syncFrontWindow(pid: pid_t) {
-        let wid = Self.focusedWindowID(pid: pid)
-        if wid != 0 { bump(pid: pid, wid: wid) }
-    }
-
     /// Resolve the pid's focused-window CGWindowID via a blocking AX query.
     /// `nonisolated` so callers can run it off the main thread — the AX calls
     /// here can stall for the full messaging timeout if the target app is

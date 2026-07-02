@@ -2453,13 +2453,24 @@ final class SwitcherController: SwitcherViewDelegate {
             // focused-window AX bounds read when that is unavailable.
             let activeDisplayID = wantScreen ? PrivateAPI.activeMenuBarDisplayID() : nil
             let axBounds = (wantScreen && activeDisplayID == nil && window != nil) ? Activator.axBounds(of: window!) : nil
+            let wid = window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
             DispatchQueue.main.async { [weak self] in
+                guard let self, gen == self.focusedWindowCaptureGen else { return }
+                // Self-heal the window MRU with the chord anchor (#85): whatever
+                // window was focused when the chord started belongs at MRU front,
+                // even if the AX focus notification that should have put it there
+                // never arrived (new window, Dock click, link-driven app switch).
+                // The wid was resolved on the same off-main pass, so this costs
+                // the reveal path nothing. Skipped once the session is over
+                // (`.idle`): the commit already bumped its target, and a late
+                // stale anchor must not outrank it.
+                if wid != 0, self.phase != .idle { self.windowMRU.bump(pid: pid, wid: wid) }
                 // `.primed` only: reveal() consumes + nils this and flips to
                 // `.visible`, so a landing after reveal (or after a cancel to
                 // `.idle`) is unwanted and must be dropped — otherwise it would
                 // re-arm a stale capture that a later gesture/scoped open (which
                 // skip the primed prefetch) would adopt.
-                guard let self, gen == self.focusedWindowCaptureGen, self.phase == .primed else { return }
+                guard self.phase == .primed else { return }
                 self.prefetchedFocusedWindow = window
                 if let activeDisplayID, let s = self.screen(forDisplayID: activeDisplayID) {
                     self.prefetchedTargetScreen = s
@@ -2538,9 +2549,13 @@ final class SwitcherController: SwitcherViewDelegate {
                 let window = Activator.focusedWindow(pid: pid)
                 let activeDisplayID = wantScreen ? PrivateAPI.activeMenuBarDisplayID() : nil
                 let axBounds = (wantScreen && activeDisplayID == nil && window != nil) ? Activator.axBounds(of: window!) : nil
+                let wid = window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
                 DispatchQueue.main.async { [weak self] in
-                    guard let self, gen == self.focusedWindowCaptureGen,
-                          self.phase == .visible, self.openFocusedWindow == nil else { return }
+                    guard let self, gen == self.focusedWindowCaptureGen else { return }
+                    // Same MRU self-heal as the primed prefetch (#85) — this
+                    // branch serves gesture/scoped opens, which skip it.
+                    if wid != 0, self.phase != .idle { self.windowMRU.bump(pid: pid, wid: wid) }
+                    guard self.phase == .visible, self.openFocusedWindow == nil else { return }
                     self.openFocusedWindow = window
                     if let activeDisplayID, let resolved = self.screen(forDisplayID: activeDisplayID) {
                         self.openTargetScreen = resolved
@@ -2960,16 +2975,17 @@ final class SwitcherController: SwitcherViewDelegate {
         scheduleBrowserTabExpansion()
     }
 
-    /// pids with a focused-window resolve in flight, so a burst of focus-change
-    /// notifications for the same app collapses to one off-main AX read.
-    private var focusSyncInFlight: Set<pid_t> = []
+    /// Per-pid coalescing of focused-window resolves: a burst of focus-change
+    /// notifications for the same app collapses to one off-main AX read, and a
+    /// change arriving mid-flight re-runs one resolve so the newest focused
+    /// window is never dropped (#85).
+    private var focusSync = FocusSyncCoalescer()
 
     /// React to a focus change without blocking the main thread: resolve the
     /// pid's focused window off-main (the AX query can stall on an unresponsive
     /// app), then bump the window MRU on main. Coalesced per pid.
     private func handleFocusChange(pid: pid_t) {
-        guard !focusSyncInFlight.contains(pid) else { return }
-        focusSyncInFlight.insert(pid)
+        guard focusSync.begin(pid) else { return }
         // Feed the unified tab MRU too when the feature is on: an app/window switch
         // (including to/from a browser) is part of the same recency timeline as
         // in-browser tab switches (#39). Browsers key by (wid, active-tab title), so
@@ -2982,7 +2998,6 @@ final class SwitcherController: SwitcherViewDelegate {
             let wid = info?.wid ?? WindowMRUTracker.focusedWindowID(pid: pid)
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.focusSyncInFlight.remove(pid)
                 if wid != 0 { self.windowMRU.bump(pid: pid, wid: wid) }
                 if feedTabMRU, wid != 0 {
                     if isBrowser, let title = info?.title,
@@ -2992,6 +3007,7 @@ final class SwitcherController: SwitcherViewDelegate {
                         self.tabMRU.bump(.window(wid))
                     }
                 }
+                if self.focusSync.finish(pid) { self.handleFocusChange(pid: pid) }
             }
         }
     }
