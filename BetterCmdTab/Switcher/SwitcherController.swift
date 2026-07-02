@@ -4635,9 +4635,11 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// ⌘ (or another hold modifier) was released. Normally that commits the
-    /// current selection. In `.stayOpen` search mode the first release instead
-    /// detaches the switcher so it persists until Return / mouse selection;
-    /// once detached, further modifier releases are ignored.
+    /// current selection. In `.stayOpen` search mode — or when the firing
+    /// shortcut's stay-open option is on and the panel is visible (#77) — the
+    /// first release instead detaches the switcher so it persists until
+    /// Return / letter-jump / mouse selection; once detached, further modifier
+    /// releases are ignored.
     private func handleModifierRelease() {
         // Drill-in commits on release: the user picks the highlighted tab the
         // same way releasing ⌘ commits the highlighted app. Bypass the
@@ -4649,6 +4651,12 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         if stickyOpen { return }
         if searchActive, Preferences.shared.searchDismissMode == .stayOpen {
+            stickyOpen = true
+            return
+        }
+        // Stay-open (#77): only a `.visible` panel parks sticky — a release
+        // still in `.primed` keeps the classic quick-tap instant switch.
+        if phase == .visible, effective.stayOpenOnRelease {
             stickyOpen = true
             return
         }

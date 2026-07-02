@@ -30,6 +30,7 @@ struct EffectiveSettings {
     let applicationsOnly: Bool
     let expandBrowserTabsAsWindows: Bool
     let sortOrder: SwitcherSortOrder
+    let stayOpenOnRelease: Bool
 
     /// The all-global snapshot (no override). Cheap; reads `Preferences.shared`.
     @MainActor static var defaults: EffectiveSettings {
@@ -68,7 +69,8 @@ extension Preferences {
             letterHintsEnabled: override.letterHintsEnabled ?? letterHintsEnabled,
             applicationsOnly: override.applicationsOnly ?? applicationsOnly,
             expandBrowserTabsAsWindows: override.expandBrowserTabsAsWindows ?? expandBrowserTabsAsWindows,
-            sortOrder: override.sortOrder ?? sortOrder
+            sortOrder: override.sortOrder ?? sortOrder,
+            stayOpenOnRelease: override.stayOpenOnRelease ?? stayOpenOnRelease
         )
     }
 }

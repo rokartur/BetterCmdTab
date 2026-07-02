@@ -3475,6 +3475,34 @@
         }
       }
     },
+    "Keep the switcher on screen when you let go of the trigger — pick with Return, a quick-jump letter, or the mouse; Esc dismisses. A quick tap still switches instantly." : {
+      "localizations" : {
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącznik pozostaje na ekranie, gdy puścisz skrót — wybierz klawiszem Return, literą skoku lub myszą; Esc zamyka. Szybkie tapnięcie nadal przełącza natychmiast."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Umschalter bleibt auf dem Bildschirm, wenn du den Auslöser loslässt — wähle mit Return, einem Sprungbuchstaben oder der Maus; Esc schließt. Ein kurzes Antippen wechselt weiterhin sofort."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El selector permanece en pantalla al soltar el atajo — elige con Retorno, una letra de salto o el ratón; Esc lo cierra. Un toque rápido sigue cambiando al instante."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le sélecteur reste à l’écran quand vous relâchez le déclencheur — choisissez avec Retour, une lettre de saut ou la souris ; Échap ferme. Une pression rapide bascule toujours instantanément."
+          }
+        }
+      }
+    },
     "Large" : {
       "localizations" : {
         "de" : {
@@ -4929,6 +4957,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uprawnienia"
+          }
+        }
+      }
+    },
+    "Pick with Return, a quick-jump letter, or the mouse; Esc dismisses." : {
+      "localizations" : {
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz klawiszem Return, literą skoku lub myszą; Esc zamyka."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle mit Return, einem Sprungbuchstaben oder der Maus; Esc schließt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige con Retorno, una letra de salto o el ratón; Esc lo cierra."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez avec Retour, une lettre de saut ou la souris ; Échap ferme."
           }
         }
       }
@@ -7117,6 +7173,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchamianie"
+          }
+        }
+      }
+    },
+    "Stay open after releasing the modifier" : {
+      "localizations" : {
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozostaw otwarte po puszczeniu modyfikatora"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach dem Loslassen der Modifikatortaste geöffnet lassen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener abierto al soltar el modificador"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rester ouvert après le relâchement du modificateur"
           }
         }
       }

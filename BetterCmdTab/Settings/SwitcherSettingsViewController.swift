@@ -42,6 +42,7 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
     private let searchDismissModes: [SearchDismissMode] = SearchDismissMode.allCases
 
     // Navigation
+    private let stayOpenSwitch = NSSwitch()
     private let shiftTapBackSwitch = NSSwitch()
     private let scrollSwitch = NSSwitch()
     private let scrollReverseSwitch = NSSwitch()
@@ -190,6 +191,10 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
 
         // Navigation section — alternative ways to move the selection.
         let navigation = addSection(title: String(localized: "Navigation"), anchor: SettingsAnchor.navigation)
+        configureSwitch(stayOpenSwitch, action: #selector(toggleStayOpen(_:)))
+        addRow(to: navigation, title: String(localized: "Stay open after releasing the modifier"),
+               subtitle: String(localized: "Keep the switcher on screen when you let go of the trigger — pick with Return, a quick-jump letter, or the mouse; Esc dismisses. A quick tap still switches instantly."),
+               accessory: stayOpenSwitch, searchItemID: SearchID.stayOpen)
         configureSwitch(shiftTapBackSwitch, action: #selector(toggleShiftTapBack(_:)))
         addRow(to: navigation, title: String(localized: "Tap Shift to step backwards"),
                subtitle: String(localized: "While the switcher is open, a tap of the Shift key steps the selection backwards and holding Shift keeps stepping back until you let go — just like a held Tab. Turn this off to step back only with Shift held as you press the switch key (⌘⇧Tab)."),
@@ -283,6 +288,7 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
         fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
         launcherSwitch.state = prefs.searchIncludesLaunchableApps ? .on : .off
         selectSearchMode(prefs.searchDismissMode)
+        stayOpenSwitch.state = prefs.stayOpenOnRelease ? .on : .off
         shiftTapBackSwitch.state = prefs.shiftTapStepsBackward ? .on : .off
         scrollSwitch.state = prefs.scrollToSwitch ? .on : .off
         scrollReverseSwitch.state = prefs.scrollReverseDirection ? .on : .off
@@ -371,6 +377,10 @@ final class SwitcherSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleLauncher(_ sender: NSSwitch) {
         Preferences.shared.searchIncludesLaunchableApps = (sender.state == .on)
+    }
+
+    @objc private func toggleStayOpen(_ sender: NSSwitch) {
+        Preferences.shared.stayOpenOnRelease = (sender.state == .on)
     }
 
     @objc private func toggleShiftTapBack(_ sender: NSSwitch) {

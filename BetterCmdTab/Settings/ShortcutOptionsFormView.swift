@@ -72,6 +72,9 @@ final class ShortcutOptionsFormView: NSView {
         addBoolRow(to: behavior, title: String(localized: "Applications only"),
                    subtitle: String(localized: "One row per app instead of one per window."),
                    current: override.applicationsOnly) { [weak self] in self?.override.applicationsOnly = $0; self?.persist() }
+        addBoolRow(to: behavior, title: String(localized: "Stay open after releasing the modifier"),
+                   subtitle: String(localized: "Pick with Return, a quick-jump letter, or the mouse; Esc dismisses."),
+                   current: override.stayOpenOnRelease) { [weak self] in self?.override.stayOpenOnRelease = $0; self?.persist() }
         addBoolRow(to: behavior, title: String(localized: "Expand browser tabs as windows"), current: override.expandBrowserTabsAsWindows) { [weak self] in self?.override.expandBrowserTabsAsWindows = $0; self?.persist() }
         addCard(behavior)
 

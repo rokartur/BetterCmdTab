@@ -322,6 +322,7 @@ struct ShortcutOverride: Equatable, Sendable {
     var sortOrder: SwitcherSortOrder?
     var applicationsOnly: Bool?
     var expandBrowserTabsAsWindows: Bool?
+    var stayOpenOnRelease: Bool?
     // Appearance (resolved into `EffectiveSettings`).
     var layoutMode: SwitcherLayoutMode?
     var panelSize: PanelSize?
@@ -345,7 +346,8 @@ struct ShortcutOverride: Equatable, Sendable {
     var isEmpty: Bool {
         spaceScope == .inherit && showMinimized == nil && showHidden == nil
             && showWindowless == nil && sortOrder == nil && applicationsOnly == nil
-            && expandBrowserTabsAsWindows == nil && layoutMode == nil && panelSize == nil
+            && expandBrowserTabsAsWindows == nil && stayOpenOnRelease == nil
+            && layoutMode == nil && panelSize == nil
             && gridMaxColumns == nil && accentChoice == nil && customAccentHex == nil
             && panelOpacity == nil && panelCornerRadius == nil && backdropMaterial == nil
             && showWindowTitleLabel == nil && previewTitleAlignment == nil
@@ -367,6 +369,7 @@ struct ShortcutOverride: Equatable, Sendable {
         if let sortOrder { d["sortOrder"] = sortOrder.rawValue }
         put("applicationsOnly", applicationsOnly)
         put("expandBrowserTabsAsWindows", expandBrowserTabsAsWindows)
+        put("stayOpenOnRelease", stayOpenOnRelease)
         if let layoutMode { d["layoutMode"] = layoutMode.rawValue }
         if let panelSize { d["panelSize"] = panelSize.rawValue }
         put("gridMaxColumns", gridMaxColumns)
@@ -396,6 +399,7 @@ struct ShortcutOverride: Equatable, Sendable {
         sortOrder = dictionary["sortOrder"].flatMap(SwitcherSortOrder.init(rawValue:))
         applicationsOnly = bool("applicationsOnly")
         expandBrowserTabsAsWindows = bool("expandBrowserTabsAsWindows")
+        stayOpenOnRelease = bool("stayOpenOnRelease")
         layoutMode = dictionary["layoutMode"].flatMap(SwitcherLayoutMode.init(rawValue:))
         panelSize = dictionary["panelSize"].flatMap(PanelSize.init(rawValue:))
         gridMaxColumns = dictionary["gridMaxColumns"].flatMap(Int.init)
@@ -633,6 +637,7 @@ final class Preferences: ObservableObject {
         static let fuzzySearchEnabled = "Switcher.fuzzySearchEnabled"
         static let letterHintsEnabled = "Switcher.letterHintsEnabled"
         static let searchDismissMode = "Switcher.searchDismissMode"
+        static let stayOpenOnRelease = "Switcher.stayOpenOnRelease"
         static let searchIncludesLaunchableApps = "Switcher.searchIncludesLaunchableApps"
         static let showRecentlyClosed = "Switcher.showRecentlyClosed"
         static let recentlyClosedLimit = "Switcher.recentlyClosedLimit"
@@ -877,6 +882,17 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != searchDismissMode else { return }
             UserDefaults.standard.set(searchDismissMode.rawValue, forKey: Keys.searchDismissMode)
+        }
+    }
+
+    /// Keep the switcher open when the trigger modifier is released while the
+    /// panel is visible (#77) — pick with Return, a quick-jump letter, or the
+    /// mouse; Esc dismisses. A quick tap released before the panel appears
+    /// still commits instantly. Default off (classic release-to-pick).
+    @Published var stayOpenOnRelease: Bool {
+        didSet {
+            guard oldValue != stayOpenOnRelease else { return }
+            UserDefaults.standard.set(stayOpenOnRelease, forKey: Keys.stayOpenOnRelease)
         }
     }
 
@@ -1576,6 +1592,7 @@ final class Preferences: ObservableObject {
 
         let dismissRaw = defaults.string(forKey: Keys.searchDismissMode)
         self.searchDismissMode = dismissRaw.flatMap(SearchDismissMode.init(rawValue:)) ?? .holdModifier
+        self.stayOpenOnRelease = defaults.object(forKey: Keys.stayOpenOnRelease) as? Bool ?? false
 
         self.searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
         self.showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
@@ -1703,6 +1720,7 @@ final class Preferences: ObservableObject {
         fuzzySearchEnabled = defaults.object(forKey: Keys.fuzzySearchEnabled) as? Bool ?? true
         letterHintsEnabled = defaults.object(forKey: Keys.letterHintsEnabled) as? Bool ?? true
         searchDismissMode = defaults.string(forKey: Keys.searchDismissMode).flatMap(SearchDismissMode.init(rawValue:)) ?? .holdModifier
+        stayOpenOnRelease = defaults.object(forKey: Keys.stayOpenOnRelease) as? Bool ?? false
         searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
         showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
         recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5

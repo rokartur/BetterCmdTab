@@ -92,6 +92,7 @@ struct ShortcutOverrideTests {
         ov.sortOrder = .alphabetical
         ov.applicationsOnly = true
         ov.expandBrowserTabsAsWindows = false
+        ov.stayOpenOnRelease = true
         ov.layoutMode = .list
         ov.panelSize = .large
         ov.gridMaxColumns = 7
@@ -264,6 +265,18 @@ struct ShortcutOverrideTests {
         // Everything else still tracks the global.
         #expect(eff.panelSize == prefs.panelSize)
         #expect(eff.sortOrder == prefs.sortOrder)
+    }
+
+    @Test("stay-open resolves the override over the global (#77)")
+    func effectiveStayOpenOverride() {
+        let prefs = Preferences.shared
+        var ov = ShortcutOverride()
+        // Force the opposite of the current global so the assertion is real.
+        let target = !prefs.stayOpenOnRelease
+        ov.stayOpenOnRelease = target
+        #expect(prefs.effectiveSettings(for: ov).stayOpenOnRelease == target)
+        // Unset inherits the global.
+        #expect(prefs.effectiveSettings(for: ShortcutOverride()).stayOpenOnRelease == prefs.stayOpenOnRelease)
     }
 
     @Test("resolvedAccent honors an overridden custom hex")

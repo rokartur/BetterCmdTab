@@ -102,6 +102,7 @@ enum SearchID {
     static let scroll = "switcher.scroll"
     static let scrollReverse = "switcher.scrollReverse"
     static let clickDismiss = "switcher.clickDismiss"
+    static let stayOpen = "switcher.stayOpen"
     static let vimNavigation = "switcher.vimNavigation"
     static let hoverActions = "switcher.hoverActions"
     static let displayMonitor = "switcher.displayMonitor"
@@ -295,6 +296,8 @@ enum SettingsCatalog {
         item(SearchID.searchMode, .switcher, SettingsAnchor.search, String(localized: "Behavior"), String(localized: "Search"),
              String(localized: "When searching"), ["search mode", "hold", "stay open", "dismiss"]),
         // Switcher · Navigation
+        item(SearchID.stayOpen, .switcher, SettingsAnchor.navigation, String(localized: "Behavior"), String(localized: "Navigation"),
+             String(localized: "Stay open after releasing the modifier"), ["stay open", "sticky", "release", "modifier", "keep open", "hold"]),
         item(SearchID.shiftTapBack, .switcher, SettingsAnchor.navigation, String(localized: "Behavior"), String(localized: "Navigation"),
              String(localized: "Tap Shift to step backwards"), ["shift", "backwards", "back", "reverse", "tap shift", "cmd shift tab", "windows"]),
         item(SearchID.scroll, .switcher, SettingsAnchor.navigation, String(localized: "Behavior"), String(localized: "Navigation"),
