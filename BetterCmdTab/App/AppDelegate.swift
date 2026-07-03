@@ -63,6 +63,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in self?.updateStatusItem() }
             .store(in: &cancellables)
 
+        // Configure the updater before any BetterUpdater type is touched.
+        // Must run before the Settings auto-show below —
+        // GeneralSettingsViewController.viewWillAppear touches
+        // GitHubUpdater.shared, whose init traps if bootstrap has not run (#89).
+        // The pinned Ed25519 public key is the trust anchor for the signed
+        // repo-identity manifest (see BetterUpdater README).
+        BetterUpdater.bootstrap(configuration: .init(
+            owner: "rokartur",
+            repo: "BetterCmdTab",
+            displayName: AppInfo.displayName,
+            bundleIdentifier: "pro.bettercmdtab.BetterCmdTab",
+            pinnedPublicKeyBase64: "EdGQwfRFT04hggloIRmN2twIC/UIlM6yoAAzZ97jgcI=",
+            userAgentProduct: "BetterCmdTab-Updater",
+            manifestRequired: true
+        ))
+
         // With the menu bar icon hidden there's no in-menu way to reach
         // Settings, so a manual launch (Spotlight/Finder) surfaces it. Skip
         // the automatic login launch, which would otherwise pop Settings on
@@ -77,19 +93,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !missing.isEmpty {
             Log.priv.warning("Missing private symbols: \(missing.joined(separator: ", "), privacy: .public)")
         }
-
-        // Configure the updater before any BetterUpdater type is touched.
-        // The pinned Ed25519 public key is the trust anchor for the signed
-        // repo-identity manifest (see BetterUpdater README).
-        BetterUpdater.bootstrap(configuration: .init(
-            owner: "rokartur",
-            repo: "BetterCmdTab",
-            displayName: AppInfo.displayName,
-            bundleIdentifier: "pro.bettercmdtab.BetterCmdTab",
-            pinnedPublicKeyBase64: "EdGQwfRFT04hggloIRmN2twIC/UIlM6yoAAzZ97jgcI=",
-            userAgentProduct: "BetterCmdTab-Updater",
-            manifestRequired: true
-        ))
 
         // Refuse to start the switcher (and updater) while running from a
         // translocated mount — Gatekeeper Path Randomization will keep
