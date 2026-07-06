@@ -26,6 +26,12 @@
             "state" : "translated",
             "value" : "Użyj ustawienia globalnego"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用全局默认值"
+          }
         }
       }
     },
@@ -53,6 +59,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : " — zawsze pokazywane jako pierwsze."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " — 始终优先显示。"
           }
         }
       }
@@ -82,6 +94,12 @@
             "state" : "translated",
             "value" : " Dodaj aplikację…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " 添加应用…"
+          }
         }
       }
     },
@@ -109,6 +127,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cichy klik, gdy wybierasz aplikację."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择应用时发出轻柔点击声。"
           }
         }
       }
@@ -138,6 +162,12 @@
             "state" : "translated",
             "value" : "Stuknięcie, gdy wybierasz aplikację. Tylko gładziki Force Touch."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择应用时轻触反馈。仅限 Force Touch 触控板。"
+          }
         }
       }
     },
@@ -165,6 +195,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Informacje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于"
           }
         }
       }
@@ -194,6 +230,12 @@
             "state" : "translated",
             "value" : "Kolor akcentu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强调色"
+          }
         }
       }
     },
@@ -221,6 +263,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dostęp do Dostępności"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辅助功能权限"
           }
         }
       }
@@ -251,6 +299,12 @@
             "state" : "translated",
             "value" : "Wyłączono dostęp do funkcji Dostępność"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辅助功能权限已关闭"
+          }
         }
       }
     },
@@ -278,6 +332,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przyciski akcji po najechaniu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "悬停时显示操作按钮"
           }
         }
       }
@@ -307,6 +367,12 @@
             "state" : "translated",
             "value" : "Klawisze akcji podczas przełączania"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换时的操作按键"
+          }
         }
       }
     },
@@ -334,6 +400,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aktywuj aplikację"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "激活应用"
           }
         }
       }
@@ -363,6 +435,12 @@
             "state" : "translated",
             "value" : "Dodaj"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加"
+          }
         }
       }
     },
@@ -390,6 +468,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dodaj aplikację"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加应用"
           }
         }
       }
@@ -419,6 +503,12 @@
             "state" : "translated",
             "value" : "Wszystkie"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部"
+          }
         }
       }
     },
@@ -446,6 +536,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wszystkie okna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有窗口"
           }
         }
       }
@@ -475,6 +571,12 @@
             "state" : "translated",
             "value" : "Alfabetycznie"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按字母排序"
+          }
         }
       }
     },
@@ -502,6 +604,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj też pasujące aplikacje, które nie są jeszcze uruchomione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同时显示尚未运行的匹配应用。"
           }
         }
       }
@@ -531,6 +639,12 @@
             "state" : "translated",
             "value" : "Zawsze"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始终"
+          }
         }
       }
     },
@@ -558,6 +672,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reguły aplikacji"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用规则"
           }
         }
       }
@@ -587,6 +707,12 @@
             "state" : "translated",
             "value" : "Wygląd"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外观"
+          }
         }
       }
     },
@@ -614,6 +740,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tylko aplikacje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅应用"
           }
         }
       }
@@ -643,6 +775,12 @@
             "state" : "translated",
             "value" : "Dotyczy układów Siatka i Podglądy."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "适用于网格和预览布局。"
+          }
         }
       }
     },
@@ -670,6 +808,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplikacje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用"
           }
         }
       }
@@ -699,6 +843,12 @@
             "state" : "translated",
             "value" : "Widoczne aplikacje: %lld."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保持可见的应用：%lld。"
+          }
         }
       }
     },
@@ -726,6 +876,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rozmieść aktywne okno"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排列当前聚焦窗口"
           }
         }
       }
@@ -755,6 +911,12 @@
             "state" : "translated",
             "value" : "Rozmieść podświetlone okno"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排列高亮窗口"
+          }
         }
       }
     },
@@ -782,6 +944,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
           }
         }
       }
@@ -811,6 +979,12 @@
             "state" : "translated",
             "value" : "Automatycznie"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
+          }
         }
       }
     },
@@ -839,6 +1013,12 @@
             "state" : "translated",
             "value" : "Kopia zapasowa"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份"
+          }
         }
       }
     },
@@ -866,6 +1046,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zachowanie"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行为"
           }
         }
       }
@@ -896,6 +1082,12 @@
             "state" : "translated",
             "value" : "BetterCmdTab potrzebuje uprawnienia Dostępności, aby obsługiwać ⌘Tab. Włącz je ponownie w Ustawieniach systemowych, a przełącznik uaktywni się automatycznie."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BetterCmdTab 需要辅助功能权限才能处理 ⌘Tab。请在“系统设置”中重新启用，切换器会自动恢复。"
+          }
         }
       }
     },
@@ -923,6 +1115,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niebieski"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蓝色"
           }
         }
       }
@@ -952,6 +1150,12 @@
             "state" : "translated",
             "value" : "Przywróć wszystkie ukryte aplikacje."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复所有隐藏的应用。"
+          }
         }
       }
     },
@@ -979,6 +1183,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dostęp do kart przeglądarki"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浏览器标签页访问权限"
           }
         }
       }
@@ -1008,6 +1218,12 @@
             "state" : "translated",
             "value" : "Przeglądarki potrzebują zgody Apple Events, aby wyświetlić listę swoich kart. Kliknij, aby poprosić o nią każdą uruchomioną przeglądarkę (Safari, Chrome, Arc, Brave, Edge…). Trzeba to zrobić przy otwartym tym oknie."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列出浏览器标签页需要 Apple Events 授权。点击后会为每个正在运行的浏览器（Safari、Chrome、Arc、Brave、Edge…）请求权限。此窗口必须保持打开。"
+          }
         }
       }
     },
@@ -1035,6 +1251,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anuluj"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
           }
         }
       }
@@ -1064,6 +1286,12 @@
             "state" : "translated",
             "value" : "Wyśrodkuj"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "居中"
+          }
         }
       }
     },
@@ -1091,6 +1319,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sprawdzaj aktualizacje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查更新"
           }
         }
       }
@@ -1120,6 +1354,12 @@
             "state" : "translated",
             "value" : "Sprawdź dostępność uaktualnień"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查更新"
+          }
         }
       }
     },
@@ -1147,6 +1387,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaznaczone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已勾选"
           }
         }
       }
@@ -1176,6 +1422,12 @@
             "state" : "translated",
             "value" : "Sprawdzanie…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查…"
+          }
         }
       }
     },
@@ -1203,6 +1455,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择"
           }
         }
       }
@@ -1232,6 +1490,12 @@
             "state" : "translated",
             "value" : "Wybierz aplikację, dla której chcesz ustawić reguły przełącznika."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择要设置切换器规则的应用。"
+          }
         }
       }
     },
@@ -1259,6 +1523,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz aplikację, którą ten skrót aktywuje."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择此快捷键聚焦的应用。"
           }
         }
       }
@@ -1288,6 +1558,12 @@
             "state" : "translated",
             "value" : "Wybierz, które aplikacje pojawiają się w przełączniku, i pozwól niektórym aplikacjom zachować ⌘Tab dla siebie."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择哪些应用显示在切换器中，并允许部分应用保留自己的 ⌘Tab。"
+          }
         }
       }
     },
@@ -1315,6 +1591,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz, na którym ekranie ma się otwierać przełącznik, gdy masz więcej niż jeden ekran."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当有多台显示器时，选择切换器打开在哪个显示器上。"
           }
         }
       }
@@ -1344,6 +1626,12 @@
             "state" : "translated",
             "value" : "Wybierz…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择…"
+          }
         }
       }
     },
@@ -1371,6 +1659,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybrane aplikacje pozostają widoczne po uruchomieniu „Ukryj wszystkie okna”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "触发“隐藏所有窗口”时，选中的应用会保持可见。"
           }
         }
       }
@@ -1400,6 +1694,12 @@
             "state" : "translated",
             "value" : "Wyczyść"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除"
+          }
         }
       }
     },
@@ -1427,6 +1727,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kliknij w dowolnym miejscu poza przełącznikiem, aby go zamknąć, pozostawiając aktywne bieżące okno."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击切换器外任意位置即可关闭，并保持当前窗口聚焦。"
           }
         }
       }
@@ -1456,6 +1762,12 @@
             "state" : "translated",
             "value" : "Kliknij na zewnątrz, aby zamknąć"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击外部关闭"
+          }
         }
       }
     },
@@ -1483,6 +1795,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kliknij, aby skopiować informacje o wersji"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击复制版本信息"
           }
         }
       }
@@ -1512,6 +1830,12 @@
             "state" : "translated",
             "value" : "Zamknij okno"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭窗口"
+          }
         }
       }
     },
@@ -1539,6 +1863,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kolor podświetlenia zaznaczenia oraz liter skoku."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择高亮和跳转字母的颜色。"
           }
         }
       }
@@ -1568,6 +1898,12 @@
             "state" : "translated",
             "value" : "Zawartość"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内容"
+          }
         }
       }
     },
@@ -1595,6 +1931,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Określa, czy ten program pojawia się w przełączniku.\n\n• Zawsze — zawsze na liście.\n• Z otwartymi oknami — na liście tylko wtedy, gdy ma co najmniej jedno otwarte okno.\n• Nigdy — nigdy na liście (ukryty w przełączniku)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制此应用是否显示在切换器中。\n\n• 始终 — 始终列出。\n• 有打开窗口时 — 仅在至少有一个打开窗口时列出。\n• 从不 — 从不列出（在切换器中隐藏）。"
           }
         }
       }
@@ -1624,6 +1966,12 @@
             "state" : "translated",
             "value" : "Promień zaokrąglenia narożników"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "圆角半径"
+          }
         }
       }
     },
@@ -1651,6 +1999,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się wyeksportować ustawień"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法导出设置"
           }
         }
       }
@@ -1680,6 +2034,12 @@
             "state" : "translated",
             "value" : "Nie udało się zaimportować ustawień"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法导入设置"
+          }
         }
       }
     },
@@ -1707,6 +2067,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Okna bieżącej aplikacji"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前应用的窗口"
           }
         }
       }
@@ -1736,6 +2102,12 @@
             "state" : "translated",
             "value" : "Niestandardowy…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义…"
+          }
         }
       }
     },
@@ -1763,6 +2135,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przełączaj kolejno okna aplikacji, na której się znajdujesz."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在当前应用的窗口之间循环切换。"
           }
         }
       }
@@ -1792,6 +2170,12 @@
             "state" : "translated",
             "value" : "Przełączaj szerokości kafelków"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "循环平铺宽度"
+          }
         }
       }
     },
@@ -1819,6 +2203,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bezpośrednia aktywacja"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接激活"
           }
         }
       }
@@ -1848,6 +2238,12 @@
             "state" : "translated",
             "value" : "Bezpośrednia aktywacja %lld"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接激活 %lld"
+          }
         }
       }
     },
@@ -1875,6 +2271,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Klawisze bezpośredniej aktywacji"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接激活热键"
           }
         }
       }
@@ -1904,6 +2306,12 @@
             "state" : "translated",
             "value" : "Ekran"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示器"
+          }
         }
       }
     },
@@ -1931,6 +2339,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie ukrywaj"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不隐藏"
           }
         }
       }
@@ -1960,6 +2374,12 @@
             "state" : "translated",
             "value" : "Nie zaglądaj do moich okien"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不要查看我的窗口"
+          }
         }
       }
     },
@@ -1987,6 +2407,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gotowe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
           }
         }
       }
@@ -2016,6 +2442,12 @@
             "state" : "translated",
             "value" : "Pobieranie %d%%"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载 %d%%"
+          }
         }
       }
     },
@@ -2043,6 +2475,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eksperymentalne"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实验性"
           }
         }
       }
@@ -2072,6 +2510,12 @@
             "state" : "translated",
             "value" : "Eksportuj"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出"
+          }
         }
       }
     },
@@ -2099,6 +2543,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eksportuj ustawienia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出设置"
           }
         }
       }
@@ -2128,6 +2578,12 @@
             "state" : "translated",
             "value" : "Eksportuj ustawienia"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出设置"
+          }
         }
       }
     },
@@ -2155,6 +2611,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eksportuj…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出…"
           }
         }
       }
@@ -2184,6 +2646,12 @@
             "state" : "translated",
             "value" : "Szybsze przełączanie okien w systemie macOS"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更快的 macOS 窗口切换"
+          }
         }
       }
     },
@@ -2211,6 +2679,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reakcje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反馈"
           }
         }
       }
@@ -2240,6 +2714,12 @@
             "state" : "translated",
             "value" : "Wymuś zakończenie aplikacji"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制退出应用"
+          }
         }
       }
     },
@@ -2267,6 +2747,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pełny ekran"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全屏"
           }
         }
       }
@@ -2296,6 +2782,12 @@
             "state" : "translated",
             "value" : "Pełny ekran"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全屏"
+          }
         }
       }
     },
@@ -2323,6 +2815,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Okno na pełnym ekranie"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全屏窗口"
           }
         }
       }
@@ -2352,6 +2850,12 @@
             "state" : "translated",
             "value" : "Ogólne"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用"
+          }
         }
       }
     },
@@ -2379,6 +2883,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otrzymuj kompilacje przedpremierowe wcześniej. Mogą być niestabilne."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提前获取预发布版本。它们可能不稳定。"
           }
         }
       }
@@ -2408,6 +2918,12 @@
             "state" : "translated",
             "value" : "Przypisz skrótowi własny widok — wszystkie okna, tylko to biurko, okna bieżącej aplikacji lub tylko zminimalizowane."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为快捷键指定独立视图 — 所有窗口、仅此空间、当前应用窗口或仅最小化窗口。"
+          }
         }
       }
     },
@@ -2435,6 +2951,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przypisz skrót do jednej aplikacji — aktywuje on tę aplikację, otwierając ją najpierw, jeśli to konieczne."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "给某个应用分配快捷键 — 聚焦该应用，必要时先打开它。"
           }
         }
       }
@@ -2464,6 +2986,12 @@
             "state" : "translated",
             "value" : "Przyznaj dostęp"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授予权限"
+          }
         }
       }
     },
@@ -2491,6 +3019,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przyznaj dostęp Automatyzacji aplikacji %@ w Ustawieniach systemowych ▸ Prywatność"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“系统设置”▸“隐私”中授予 %@ 自动化权限"
           }
         }
       }
@@ -2520,6 +3054,12 @@
             "state" : "translated",
             "value" : "Przyznaj uprawnienia…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授予权限…"
+          }
         }
       }
     },
@@ -2547,6 +3087,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przyznano"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已授予"
           }
         }
       }
@@ -2576,6 +3122,12 @@
             "state" : "translated",
             "value" : "Grafitowy"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "石墨色"
+          }
         }
       }
     },
@@ -2603,6 +3155,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zielony"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "绿色"
           }
         }
       }
@@ -2632,6 +3190,12 @@
             "state" : "translated",
             "value" : "Kolumny siatki"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网格列数"
+          }
         }
       }
     },
@@ -2659,6 +3223,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Siatka"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网格视图"
           }
         }
       }
@@ -2688,6 +3258,12 @@
             "state" : "translated",
             "value" : "Reakcja haptyczna przy przełączaniu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换时触感反馈"
+          }
         }
       }
     },
@@ -2715,6 +3291,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ukryta aplikacja"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏的应用"
           }
         }
       }
@@ -2744,6 +3326,12 @@
             "state" : "translated",
             "value" : "Ukryj wszystkie okna"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏所有窗口"
+          }
         }
       }
     },
@@ -2771,6 +3359,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "„Ukryj wszystkie okna” ukrywa każdą aplikację, łącznie z Finderem. Wybierz aplikacje, które mają pozostać widoczne."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“隐藏所有窗口”会隐藏所有应用，包括 Finder。请选择要保持可见的应用。"
           }
         }
       }
@@ -2800,6 +3394,12 @@
             "state" : "translated",
             "value" : "Ukryj aplikację"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏应用"
+          }
         }
       }
     },
@@ -2827,6 +3427,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ukryj wszystkie aplikacje, aby pokazać pulpit. Działa w całym systemie."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏所有应用以显示桌面。全系统生效。"
           }
         }
       }
@@ -2856,6 +3462,12 @@
             "state" : "translated",
             "value" : "Ukryj ikonę paska menu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏菜单栏图标"
+          }
         }
       }
     },
@@ -2883,6 +3495,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ukryj ikonę ⌘. Otwórz to okno ponownie z poziomu Spotlight."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏 ⌘ 图标。可从 Spotlight 重新打开此窗口。"
           }
         }
       }
@@ -2912,6 +3530,12 @@
             "state" : "translated",
             "value" : "Ukrywa nazwę aplikacji we wszystkich układach; rozpoznawaj aplikacje po ikonie."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在所有布局中隐藏应用名称，仅通过图标识别应用。"
+          }
         }
       }
     },
@@ -2939,6 +3563,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ukryj przełącznik przed nagraniami ekranu i udostępnianymi ekranami (Zoom, Meet, Teams). Wymaga systemu macOS 14.6 lub nowszego."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在录屏和屏幕共享（Zoom、Meet、Teams）中隐藏切换器。需要 macOS 14.6 或更高版本。"
           }
         }
       }
@@ -2968,6 +3598,12 @@
             "state" : "translated",
             "value" : "Przytrzymaj ⌘"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住 ⌘"
+          }
         }
       }
     },
@@ -2995,6 +3631,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przytrzymaj ⌘: puść, aby wybrać. Pozostaw otwarte: wybierz klawiszem Return lub myszą."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住 ⌘：松开即选择。保持打开：用 Return 或鼠标选择。"
           }
         }
       }
@@ -3024,6 +3666,12 @@
             "state" : "translated",
             "value" : "Przytrzymaj modyfikator (domyślnie ⌘) i stukaj, aby poruszać się po otwartych aplikacjach."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住修饰键（默认 ⌘）并点按，在已打开的应用间移动。"
+          }
         }
       }
     },
@@ -3051,6 +3699,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Akcje po najechaniu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "悬停操作"
           }
         }
       }
@@ -3080,6 +3734,12 @@
             "state" : "translated",
             "value" : "Jak daleko trzeba przesunąć, aby przejść o jedną aplikację. Wyższa wartość oznacza, że krótsze przesunięcie przenosi dalej."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滑动多远移动一个应用。数值越高，较短滑动也会移动更远。"
+          }
         }
       }
     },
@@ -3107,6 +3767,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jak długo wpisana sekwencja liter pozostaje aktywna. Po wygaśnięciu wyróżnienie znika, a lista wraca do pierwotnej kolejności."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入的字母序列保持有效的时长。过期后高亮会清除，列表恢复原始顺序。"
           }
         }
       }
@@ -3136,6 +3802,12 @@
             "state" : "translated",
             "value" : "Ile ostatnio zamkniętych elementów wyświetlać."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近关闭项目的显示数量。"
+          }
         }
       }
     },
@@ -3163,6 +3835,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jak często sprawdzać automatycznie. Kanał beta zawsze sprawdza co godzinę."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动检查更新的频率。Beta 通道始终每小时检查。"
           }
         }
       }
@@ -3192,6 +3870,12 @@
             "state" : "translated",
             "value" : "HUD (domyślny)"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD（默认）"
+          }
         }
       }
     },
@@ -3219,6 +3903,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Importuj"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入"
           }
         }
       }
@@ -3248,6 +3938,12 @@
             "state" : "translated",
             "value" : "Importuj ustawienia"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入设置"
+          }
         }
       }
     },
@@ -3275,6 +3971,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Importuj ustawienia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入设置"
           }
         }
       }
@@ -3304,6 +4006,12 @@
             "state" : "translated",
             "value" : "Importuj…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入…"
+          }
         }
       }
     },
@@ -3331,6 +4039,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Na pełnym ekranie"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全屏时"
           }
         }
       }
@@ -3360,6 +4074,12 @@
             "state" : "translated",
             "value" : "Klawisze w panelu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面板内按键"
+          }
         }
       }
     },
@@ -3387,6 +4107,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uwzględniaj wersje beta"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含 Beta 版本"
           }
         }
       }
@@ -3416,6 +4142,12 @@
             "state" : "translated",
             "value" : "Instalowanie %d%%"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安装 %d%%"
+          }
         }
       }
     },
@@ -3443,6 +4175,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przeskocz prosto do aplikacji"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接跳到应用"
           }
         }
       }
@@ -3472,6 +4210,12 @@
             "state" : "translated",
             "value" : "Pozostaw aplikacje widoczne"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保持应用可见"
+          }
         }
       }
     },
@@ -3500,6 +4244,12 @@
             "state" : "translated",
             "value" : "Le sélecteur reste à l’écran quand vous relâchez le déclencheur — choisissez avec Retour, une lettre de saut ou la souris ; Échap ferme. Une pression rapide bascule toujours instantanément."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "松开触发键后仍让切换器停留在屏幕上 — 可用 Return、快速跳转字母或鼠标选择；Esc 关闭。快速点按仍会立即切换。"
+          }
         }
       }
     },
@@ -3527,6 +4277,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Duży"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大"
           }
         }
       }
@@ -3557,6 +4313,12 @@
             "state" : "translated",
             "value" : "Później"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稍后"
+          }
         }
       }
     },
@@ -3584,6 +4346,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchom"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动"
           }
         }
       }
@@ -3613,6 +4381,12 @@
             "state" : "translated",
             "value" : "Uruchom aplikację"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动应用"
+          }
         }
       }
     },
@@ -3640,6 +4414,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchamiaj aplikacje z wyszukiwania"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从搜索启动应用"
           }
         }
       }
@@ -3669,6 +4449,12 @@
             "state" : "translated",
             "value" : "Uruchamiaj przy logowaniu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录时启动"
+          }
         }
       }
     },
@@ -3696,6 +4482,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kolejność uruchamiania"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动顺序"
           }
         }
       }
@@ -3725,6 +4517,12 @@
             "state" : "translated",
             "value" : "Układ"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "布局"
+          }
         }
       }
     },
@@ -3752,6 +4550,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pozwala aplikacji BetterCmdTab przechwytywać skrót i odczytywać otwarte okna. Wymagane do działania."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许 BetterCmdTab 捕获快捷键并读取已打开的窗口。这是正常工作所必需的。"
           }
         }
       }
@@ -3781,6 +4585,12 @@
             "state" : "translated",
             "value" : "Pozwala programowi zachować ⌘Tab dla siebie: skrót jest przekazywany do programu, zamiast otwierać przełącznik. Przydatne dla programów z własnym przełączaniem okien — maszyn wirtualnych, zdalnego pulpitu, niektórych gier.\n\n• Nigdy — przełącznik otwiera się zawsze.\n• Zawsze — program zachowuje ⌘Tab zawsze, gdy jest aktywny.\n• Na pełnym ekranie — tylko gdy program jest na pełnym ekranie."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许应用保留自己的 ⌘Tab：该组合键会传递给应用，而不是打开切换器。适合拥有自身窗口切换的应用 — 虚拟机、远程桌面、部分游戏。\n\n• 从不 — 始终打开切换器。\n• 始终 — 只要该应用聚焦，就保留 ⌘Tab。\n• 全屏时 — 仅在该应用全屏时保留。"
+          }
         }
       }
     },
@@ -3808,6 +4618,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Limit czasu sekwencji liter"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字母链超时"
           }
         }
       }
@@ -3837,6 +4653,12 @@
             "state" : "translated",
             "value" : "Podpowiedzi literowe"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字母提示"
+          }
         }
       }
     },
@@ -3864,6 +4686,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unieś palce, aby przełączyć na podświetloną aplikację. Gdy wyłączone, wybierz kliknięciem lub klawiszem Return."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抬起手指即可切换到高亮应用。关闭后，请用点击或 Return 选择。"
           }
         }
       }
@@ -3893,6 +4721,12 @@
             "state" : "translated",
             "value" : "Lista"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列表"
+          }
         }
       }
     },
@@ -3920,6 +4754,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuje każdą kartę okna przeglądarki (Safari, Chrome, Arc, Brave, Edge, …) jako osobny wiersz obok pozostałych okien, zamiast jednego zwiniętego okna. Wymaga dostępu Apple Events (poniżej); wyłączone zachowuje jeden wiersz na okno — podejrzyj jego karty klawiszem \\."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将浏览器窗口（Safari、Chrome、Arc、Brave、Edge…）的每个标签页作为独立行显示，而不是折叠成一个窗口。需要下方的 Apple Events 权限；关闭时每个窗口保留一行 — 可用 \\ 查看其标签页。"
           }
         }
       }
@@ -3949,6 +4789,12 @@
             "state" : "translated",
             "value" : "Pokazuje każdą kartę okna z natywnymi kartami (Finder, Terminal, TextEdit, …) jako osobny wiersz, zamiast jednego zwiniętego okna. Wyłączone zachowuje jeden wiersz na okno — podejrzyj jego karty klawiszem \\."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将原生标签页窗口（Finder、终端、文本编辑…）的每个标签页作为独立行显示，而不是折叠成一个窗口。关闭时每个窗口保留一行 — 可用 \\ 查看其标签页。"
+          }
         }
       }
     },
@@ -3976,6 +4822,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyświetla aplikacje i okna, które właśnie zamknięto, aby można je było otworzyć ponownie."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列出刚关闭的应用和窗口，方便重新打开。"
           }
         }
       }
@@ -4005,6 +4857,12 @@
             "state" : "translated",
             "value" : "Ekran główny"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主显示器"
+          }
         }
       }
     },
@@ -4032,6 +4890,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zarządzaj programami"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理应用"
           }
         }
       }
@@ -4061,6 +4925,12 @@
             "state" : "translated",
             "value" : "Maksymalizuj"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大化"
+          }
         }
       }
     },
@@ -4088,6 +4958,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Średni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中"
           }
         }
       }
@@ -4117,6 +4993,12 @@
             "state" : "translated",
             "value" : "Menu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "菜单"
+          }
         }
       }
     },
@@ -4144,6 +5026,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zminimalizuj okno"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小化窗口"
           }
         }
       }
@@ -4173,6 +5061,12 @@
             "state" : "translated",
             "value" : "Zminimalizowane okno"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小化窗口"
+          }
         }
       }
     },
@@ -4200,6 +5094,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zminimalizowane okna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小化窗口"
           }
         }
       }
@@ -4229,6 +5129,12 @@
             "state" : "translated",
             "value" : "Ekran z aktywną przestrzenią"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前活动空间所在显示器"
+          }
         }
       }
     },
@@ -4256,6 +5162,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ekran ze wskaźnikiem"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "光标所在显示器"
           }
         }
       }
@@ -4285,6 +5197,12 @@
             "state" : "translated",
             "value" : "Więcej informacji"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多信息"
+          }
         }
       }
     },
@@ -4312,6 +5230,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ostatnio używane"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近使用"
           }
         }
       }
@@ -4341,6 +5265,12 @@
             "state" : "translated",
             "value" : "Ostatnio używane (okna)"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近使用（窗口）"
+          }
         }
       }
     },
@@ -4368,6 +5298,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ostatnio używane zachowuje klasyczną kolejność ⌘Tab; Ostatnio używane (okna) przeplata okna wszystkich aplikacji według ostatniego użycia; pozostałe pozostają na miejscu podczas przełączania."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“最近使用”保持经典 ⌘Tab 顺序；“最近使用（窗口）”按最近聚焦交错排列所有应用的窗口；其他排序在切换时保持不变。"
           }
         }
       }
@@ -4397,6 +5333,12 @@
             "state" : "translated",
             "value" : "Nawigacja"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导航"
+          }
         }
       }
     },
@@ -4424,6 +5366,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nigdy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从不"
           }
         }
       }
@@ -4453,6 +5401,12 @@
             "state" : "translated",
             "value" : "Nie dodano jeszcze żadnych aplikacji."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未添加应用。"
+          }
         }
       }
     },
@@ -4480,6 +5434,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brak dopasowań"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无匹配项"
           }
         }
       }
@@ -4509,6 +5469,12 @@
             "state" : "translated",
             "value" : "Brak otwartego okna"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有打开的窗口"
+          }
         }
       }
     },
@@ -4536,6 +5502,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brak otwartych okien"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有打开的窗口"
           }
         }
       }
@@ -4565,6 +5537,12 @@
             "state" : "translated",
             "value" : "Brak"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无"
+          }
         }
       }
     },
@@ -4593,6 +5571,12 @@
             "state" : "translated",
             "value" : "Domyślnie wyłączone. Mogą się zmienić lub przestać działać."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认关闭。它们可能会变更或失效。"
+          }
         }
       }
     },
@@ -4620,6 +5604,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好"
           }
         }
       }
@@ -4650,6 +5640,12 @@
             "state" : "translated",
             "value" : "Otwórz ustawienia Dostępności"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开辅助功能设置"
+          }
         }
       }
     },
@@ -4677,6 +5673,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwieraj BetterCmdTab automatycznie po zalogowaniu."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录时自动打开 BetterCmdTab。"
           }
         }
       }
@@ -4706,6 +5708,12 @@
             "state" : "translated",
             "value" : "Otwórz przełącznik"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开切换器"
+          }
         }
       }
     },
@@ -4733,6 +5741,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz przełącznik: przewijaj aplikacje (zatwierdź klawiszem Return lub kliknięciem, Esc anuluje). Przełącz biurka: przeskocz do biurka po tej stronie, po jednym na krok. Szybkie przełączanie: przerzuć do ostatniej aplikacji, jak szybkie stuknięcie ⌘Tab — przesuń ponownie, aby wrócić."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开切换器：滑动浏览应用（按 Return/点击确认，Esc 取消）。切换空间：跳到该方向的空间，每次一步。快速切换：切到上一个应用，类似快速点按 ⌘Tab — 再次滑动可切回。"
           }
         }
       }
@@ -4762,6 +5776,12 @@
             "state" : "translated",
             "value" : "Otwórz przełącznik na podzbiorze"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在子集上打开切换器"
+          }
         }
       }
     },
@@ -4789,6 +5809,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pomarańczowy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "橙色"
           }
         }
       }
@@ -4818,6 +5844,12 @@
             "state" : "translated",
             "value" : "Z włączonymi „Pokazuj karty przeglądarki jako osobne pozycje” i kolejnością „Ostatnio używane (okna)” ⌘Tab wraca do ostatnio używanej karty, a nie tylko do ostatniego okna. Wymaga stałego monitorowania przeglądarek, więc zużywa nieco energii."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启“将浏览器标签页显示为单独条目”并使用“最近使用（窗口）”排序时，⌘Tab 会回到你上次使用的标签页，而不只是上一个窗口。需要持续监控浏览器，因此会稍微耗电。"
+          }
         }
       }
     },
@@ -4845,6 +5877,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Krycie panelu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面板不透明度"
           }
         }
       }
@@ -4874,6 +5912,12 @@
             "state" : "translated",
             "value" : "Przekazuj ⌘Tab do programu, zamiast otwierać przełącznik — dla programów z własnym przełączaniem okien (maszyny wirtualne, zdalny pulpit, niektóre gry)."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 ⌘Tab 传递给应用，而不是打开切换器 — 适用于拥有自身窗口切换的应用（虚拟机、远程桌面、部分游戏）。"
+          }
         }
       }
     },
@@ -4901,6 +5945,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Podejrzyj karty klawiszem \\"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用 \\ 查看标签页"
           }
         }
       }
@@ -4930,6 +5980,12 @@
             "state" : "translated",
             "value" : "Uprawnienia"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "权限"
+          }
         }
       }
     },
@@ -4957,6 +6013,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisissez avec Retour, une lettre de saut ou la souris ; Échap ferme."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用 Return、快速跳转字母或鼠标选择；Esc 关闭。"
           }
         }
       }
@@ -4986,6 +6048,12 @@
             "state" : "translated",
             "value" : "Wybranie aplikacji na innym biurku lub na pełnym ekranie powoduje natychmiastowy przeskok, bez animacji przesuwania. Dotyczy też przełączania klawiaturą."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择另一个空间或全屏中的应用时立即跳转，不播放滑动动画。也适用于键盘切换。"
+          }
         }
       }
     },
@@ -5013,6 +6081,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Różowy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粉色"
           }
         }
       }
@@ -5042,6 +6116,12 @@
             "state" : "translated",
             "value" : "Przypięte"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已固定"
+          }
         }
       }
     },
@@ -5069,6 +6149,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przypięte aplikacje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定应用"
           }
         }
       }
@@ -5098,6 +6184,12 @@
             "state" : "translated",
             "value" : "Przypięte aplikacje"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定应用"
+          }
         }
       }
     },
@@ -5125,6 +6217,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Odtwarza dźwięk"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在播放音频"
           }
         }
       }
@@ -5154,6 +6252,12 @@
             "state" : "translated",
             "value" : "Popover"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弹出框"
+          }
         }
       }
     },
@@ -5181,6 +6285,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Naciśnij / w przełączniku, aby filtrować według nazwy aplikacji lub okna."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在切换器中按 / 可按应用或窗口名称筛选。"
           }
         }
       }
@@ -5210,6 +6320,12 @@
             "state" : "translated",
             "value" : "Naciśnij \\ na oknie z kartami, aby wyświetlić pasek pod przełącznikiem i wybrać kartę. Natywne karty używają Dostępności, a przeglądarki — Apple Events."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在有标签页的窗口上按 \\，会在切换器下方显示标签条并选择标签页。原生标签页使用辅助功能；浏览器使用 Apple Events。"
+          }
         }
       }
     },
@@ -5237,6 +6353,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Naciśnij ponownie Lewa połowa / Prawa połowa, aby przesuwać okno przez ½ → ⅔ → ⅓ ekranu po tej stronie."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再次按“平铺到左侧/右侧”可让窗口在该侧的 ½ → ⅔ → ⅓ 屏幕宽度之间切换。"
           }
         }
       }
@@ -5266,6 +6388,12 @@
             "state" : "translated",
             "value" : "Podglądy"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览"
+          }
         }
       }
     },
@@ -5293,6 +6421,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prywatność"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私"
           }
         }
       }
@@ -5322,6 +6456,12 @@
             "state" : "translated",
             "value" : "Fioletowy"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紫色"
+          }
         }
       }
     },
@@ -5349,6 +6489,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szybkie przełączanie (2 ostatnie aplikacje)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速切换（最近 2 个应用）"
           }
         }
       }
@@ -5378,6 +6524,12 @@
             "state" : "translated",
             "value" : "Opóźnienie szybkiego przełączania"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速切换延迟"
+          }
         }
       }
     },
@@ -5406,6 +6558,12 @@
             "state" : "translated",
             "value" : "Zakończ aplikację"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出应用"
+          }
         }
       }
     },
@@ -5433,6 +6591,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zakończ BetterCmdTab"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出 BetterCmdTab"
           }
         }
       }
@@ -5463,6 +6627,12 @@
             "state" : "translated",
             "value" : "Ponownie włącz systemowe ⌘Tab i ⌘` — np. jeśli zostały wyłączone po awarii. BetterCmdTab oddaje je systemowi macOS do następnego uruchomienia aplikacji."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新启用系统的 ⌘Tab 和 ⌘` — 例如崩溃后它们卡在关闭状态时。BetterCmdTab 会把它们交还给 macOS，直到你下次重新启动它。"
+          }
         }
       }
     },
@@ -5490,6 +6660,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ile ostatnio zamkniętych pokazywać"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示最近关闭项数量"
           }
         }
       }
@@ -5520,6 +6696,12 @@
             "state" : "translated",
             "value" : "Odzyskiwanie"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复"
+          }
         }
       }
     },
@@ -5547,6 +6729,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czerwony"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "红色"
           }
         }
       }
@@ -5576,6 +6764,12 @@
             "state" : "translated",
             "value" : "Wydania"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发布版本"
+          }
         }
       }
     },
@@ -5603,6 +6797,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usuń regułę"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除规则"
           }
         }
       }
@@ -5632,6 +6832,12 @@
             "state" : "translated",
             "value" : "Usuń tę regułę"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除此规则"
+          }
         }
       }
     },
@@ -5659,6 +6865,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz ponownie"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新打开"
           }
         }
       }
@@ -5688,6 +6900,12 @@
             "state" : "translated",
             "value" : "Otwórz ponownie ostatnio zamknięte"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新打开最近关闭项"
+          }
         }
       }
     },
@@ -5715,6 +6933,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zastąp bieżące ustawienia tymi z wcześniej wyeksportowanego pliku."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用之前导出的文件替换当前设置。"
           }
         }
       }
@@ -5744,6 +6968,12 @@
             "state" : "translated",
             "value" : "Zgłoś problem"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "报告问题"
+          }
         }
       }
     },
@@ -5772,6 +7002,12 @@
             "state" : "translated",
             "value" : "Wymagane"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必需"
+          }
         }
       }
     },
@@ -5799,6 +7035,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchom ponownie, aby uaktualnić"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重启以更新"
           }
         }
       }
@@ -5829,6 +7071,12 @@
             "state" : "translated",
             "value" : "Przywróć"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复"
+          }
         }
       }
     },
@@ -5858,6 +7106,12 @@
             "state" : "translated",
             "value" : "Przywróć skróty klawiszowe macOS"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复 macOS 键盘快捷键"
+          }
         }
       }
     },
@@ -5885,6 +7139,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przywróć poprzedni rozmiar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复之前大小"
           }
         }
       }
@@ -5914,6 +7174,12 @@
             "state" : "translated",
             "value" : "Pokazuj szybkie przyciski w wierszu, nad którym znajduje się wskaźnik."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在指针悬停的行上显示快速按钮。"
+          }
         }
       }
     },
@@ -5941,6 +7207,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Odwróć kierunek przewijania"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反转滚动方向"
           }
         }
       }
@@ -5970,6 +7242,12 @@
             "state" : "translated",
             "value" : "Odwróć kierunek przesunięcia"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反转滑动方向"
+          }
         }
       }
     },
@@ -5997,6 +7275,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaokrąglenie narożników panelu. Automatyczny dopasowuje się do rozmiaru panelu."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面板圆角大小。自动模式会随面板大小调整。"
           }
         }
       }
@@ -6026,6 +7310,12 @@
             "state" : "translated",
             "value" : "Uruchomione aplikacje bez otwartych okien."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有打开窗口的运行中应用。"
+          }
         }
       }
     },
@@ -6053,6 +7343,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zapisz wszystkie ustawienia do pliku, który możesz zarchiwizować lub przenieść na innego Maca."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将所有设置保存到文件，方便备份或迁移到另一台 Mac。"
           }
         }
       }
@@ -6082,6 +7378,12 @@
             "state" : "translated",
             "value" : "Skrót zakresowy %lld"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "范围快捷键 %lld"
+          }
         }
       }
     },
@@ -6109,6 +7411,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skróty zakresowe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "范围快捷键"
           }
         }
       }
@@ -6138,6 +7446,12 @@
             "state" : "translated",
             "value" : "Udostępnianie ekranu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕共享"
+          }
         }
       }
     },
@@ -6165,6 +7479,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przewijaj w górę, aby przejść do przodu, zamiast w dół."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "向上滚动前进，而不是向下。"
           }
         }
       }
@@ -6194,6 +7514,12 @@
             "state" : "translated",
             "value" : "Przewijaj w górę/w dół kółkiem myszy, aby przesuwać zaznaczenie, gdy przełącznik jest otwarty. Gładziki używają zamiast tego przesunięcia trzema palcami."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换器打开时，用鼠标滚轮上下滚动来移动选择。触控板请使用三指滑动。"
+          }
         }
       }
     },
@@ -6221,6 +7547,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szukaj"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索"
           }
         }
       }
@@ -6250,6 +7582,12 @@
             "state" : "translated",
             "value" : "Szukaj programów…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索应用…"
+          }
         }
       }
     },
@@ -6277,6 +7615,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybrane"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已选择"
           }
         }
       }
@@ -6306,6 +7650,12 @@
             "state" : "translated",
             "value" : "Wybrane aplikacje są wymuszane na początek przełącznika, przed ostatnio używanymi."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选中的应用会固定到切换器前方，排在最近使用之前。"
+          }
         }
       }
     },
@@ -6333,6 +7683,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wysyła SIGKILL — dla zawieszonych aplikacji, które ignorują polecenie Zakończ. ⌘+⌥+Q zawsze działa niezależnie od tego."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送 SIGKILL — 用于无视退出的卡死应用。⌘+⌥+Q 始终可用。"
           }
         }
       }
@@ -6362,6 +7718,12 @@
             "state" : "translated",
             "value" : "Ustawienia…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置…"
+          }
         }
       }
     },
@@ -6389,6 +7751,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skróty"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快捷键"
           }
         }
       }
@@ -6418,6 +7786,12 @@
             "state" : "translated",
             "value" : "Pokazuj"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示"
+          }
         }
       }
     },
@@ -6445,6 +7819,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj literę na każdym oknie i przeskocz do niego, wpisując tę literę."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在每个窗口上显示字母，输入该字母即可跳转。"
           }
         }
       }
@@ -6474,6 +7854,12 @@
             "state" : "translated",
             "value" : "Pokaż wszystkie okna"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示所有窗口"
+          }
         }
       }
     },
@@ -6501,6 +7887,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj nazwy aplikacji"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示应用名称"
           }
         }
       }
@@ -6530,6 +7922,12 @@
             "state" : "translated",
             "value" : "Pokazuj aplikacje bez okien"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示无窗口应用"
+          }
         }
       }
     },
@@ -6557,6 +7955,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj karty przeglądarki jako osobne pozycje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将浏览器标签页显示为单独条目"
           }
         }
       }
@@ -6586,6 +7990,12 @@
             "state" : "translated",
             "value" : "Pokazuj liczbę z plakietki w Docku każdej aplikacji (np. nieprzeczytane wiadomości w Mail) w jej wierszu."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在每个应用行上显示 Dock 徽标数量（例如邮件未读数）。"
+          }
         }
       }
     },
@@ -6613,6 +8023,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj tytuł każdego okna pod ikoną w układach Siatka i Podglądy."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在网格和预览布局中，于图标下方显示每个窗口标题。"
           }
         }
       }
@@ -6642,6 +8058,12 @@
             "state" : "translated",
             "value" : "Pokazuj ukryte aplikacje"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示隐藏的应用"
+          }
         }
       }
     },
@@ -6669,6 +8091,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj zminimalizowane okna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示最小化窗口"
           }
         }
       }
@@ -6698,6 +8126,12 @@
             "state" : "translated",
             "value" : "Pokazuj jeden wiersz na aplikację zamiast na okno — klasyczny ⌘Tab."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个应用显示一行，而不是每个窗口一行 — 经典 ⌘Tab。"
+          }
         }
       }
     },
@@ -6725,6 +8159,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj ostatnio zamknięte aplikacje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示最近关闭的应用"
           }
         }
       }
@@ -6754,6 +8194,12 @@
             "state" : "translated",
             "value" : "Pokaż przełącznik na"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换器显示在"
+          }
         }
       }
     },
@@ -6781,6 +8227,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj karty jako osobne pozycje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将标签页显示为单独条目"
           }
         }
       }
@@ -6810,6 +8262,12 @@
             "state" : "translated",
             "value" : "Pokazuj plakietki nieprzeczytanych"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示未读徽标"
+          }
         }
       }
     },
@@ -6837,6 +8295,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj tytuł okna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示窗口标题"
           }
         }
       }
@@ -6866,6 +8330,12 @@
             "state" : "translated",
             "value" : "Pasek boczny"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "侧边栏"
+          }
         }
       }
     },
@@ -6893,6 +8363,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rozmiar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大小"
           }
         }
       }
@@ -6922,6 +8398,12 @@
             "state" : "translated",
             "value" : "Przesuń w prawo, aby przejść w lewo, i w lewo, aby przejść w prawo."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "向右滑动向左移动，向左滑动向右移动。"
+          }
         }
       }
     },
@@ -6949,6 +8431,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przesuń trzema palcami w poziomie po gładziku. Odczytuje gładzik bezpośrednio, więc nie jest potrzebne żadne ustawienie systemowe."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在触控板上三指水平滑动。会直接读取触控板，因此无需系统设置。"
           }
         }
       }
@@ -6978,6 +8466,12 @@
             "state" : "translated",
             "value" : "Slot %lld"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置 %lld"
+          }
         }
       }
     },
@@ -7005,6 +8499,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mały"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小"
           }
         }
       }
@@ -7034,6 +8534,12 @@
             "state" : "translated",
             "value" : "Kolejność sortowania"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排序方式"
+          }
         }
       }
     },
@@ -7061,6 +8567,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dźwięk przy przełączaniu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换时播放声音"
           }
         }
       }
@@ -7090,6 +8602,12 @@
             "state" : "translated",
             "value" : "Kod źródłowy"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "源代码"
+          }
         }
       }
     },
@@ -7117,6 +8635,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchamianie"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动"
           }
         }
       }
@@ -7146,6 +8670,12 @@
             "state" : "translated",
             "value" : "Rester ouvert après le relâchement du modificateur"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "松开修饰键后保持打开"
+          }
         }
       }
     },
@@ -7173,6 +8703,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pozostaw otwarte, aż dokonam wyboru"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保持打开直到我选择"
           }
         }
       }
@@ -7202,6 +8738,12 @@
             "state" : "translated",
             "value" : "Działanie przesunięcia"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滑动操作"
+          }
         }
       }
     },
@@ -7229,6 +8771,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czułość przesunięcia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滑动灵敏度"
           }
         }
       }
@@ -7258,6 +8806,12 @@
             "state" : "translated",
             "value" : "Przełączaj aplikacje"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换应用"
+          }
         }
       }
     },
@@ -7285,6 +8839,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przełącz po puszczeniu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "松开时切换"
           }
         }
       }
@@ -7314,6 +8874,12 @@
             "state" : "translated",
             "value" : "Przełącz biurka"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换空间"
+          }
         }
       }
     },
@@ -7341,6 +8907,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przełączaj biurka bez animacji"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无动画切换空间"
           }
         }
       }
@@ -7370,6 +8942,12 @@
             "state" : "translated",
             "value" : "Przełączaj okna"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换窗口"
+          }
         }
       }
     },
@@ -7397,6 +8975,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przełączaj przewijaniem myszą"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用鼠标滚动切换"
           }
         }
       }
@@ -7426,6 +9010,12 @@
             "state" : "translated",
             "value" : "Przełącznik"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换器"
+          }
         }
       }
     },
@@ -7453,6 +9043,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przełączanie"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换"
           }
         }
       }
@@ -7482,6 +9078,12 @@
             "state" : "translated",
             "value" : "Systemowy"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统"
+          }
         }
       }
     },
@@ -7509,6 +9111,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Karty"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标签页"
           }
         }
       }
@@ -7538,6 +9146,12 @@
             "state" : "translated",
             "value" : "Cofaj tapnięciem Shift"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按 Shift 后退一步"
+          }
         }
       }
     },
@@ -7565,6 +9179,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stuknij, aby przełączyć od razu; przytrzymaj dłużej, aby otworzyć przełącznik."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按可立即切换；长按可打开切换器。"
           }
         }
       }
@@ -7594,6 +9214,12 @@
             "state" : "translated",
             "value" : "Działają one na podświetlone okno, gdy przełącznik jest otwarty. ⌘ jest przytrzymywany przez cały czas, więc zarejestrowany modyfikator jest ignorowany w panelu."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换器打开时，这些操作会作用于高亮窗口。⌘ 会全程保持按下，因此你录制的修饰键会在面板内被忽略。"
+          }
         }
       }
     },
@@ -7621,6 +9247,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Te funkcje są niestabilne"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些功能不稳定"
           }
         }
       }
@@ -7650,6 +9282,12 @@
             "state" : "translated",
             "value" : "ta przeglądarka"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此浏览器"
+          }
         }
       }
     },
@@ -7677,6 +9315,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ten plik nie jest prawidłowym eksportem ustawień BetterCmdTab."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此文件不是有效的 BetterCmdTab 设置导出文件。"
           }
         }
       }
@@ -7706,6 +9350,12 @@
             "state" : "translated",
             "value" : "Ten plik ustawień używa nowszego formatu (wersja %lld), niż potrafi odczytać ta wersja BetterCmdTab. Zaktualizuj aplikację i spróbuj ponownie."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设置文件使用了更新的格式（版本 %lld），当前版本的 BetterCmdTab 无法读取。请更新应用后重试。"
+          }
         }
       }
     },
@@ -7733,6 +9383,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przesunięcie trzema palcami"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "三指滑动"
           }
         }
       }
@@ -7762,6 +9418,12 @@
             "state" : "translated",
             "value" : "Lewy dolny róg"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平铺到左下角"
+          }
         }
       }
     },
@@ -7789,6 +9451,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prawy dolny róg"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平铺到右下角"
           }
         }
       }
@@ -7818,6 +9486,12 @@
             "state" : "translated",
             "value" : "Lewa połowa"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平铺到左半边"
+          }
         }
       }
     },
@@ -7845,6 +9519,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prawa połowa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平铺到右半边"
           }
         }
       }
@@ -7874,6 +9554,12 @@
             "state" : "translated",
             "value" : "Przyciągnij do połowy lub narożnika, zmaksymalizuj albo wyśrodkuj okno na pierwszym planie. Działa w całym systemie."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将最前面的窗口平铺到半屏或角落、最大化或居中。全系统生效。"
+          }
         }
       }
     },
@@ -7901,6 +9587,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lewy górny róg"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平铺到左上角"
           }
         }
       }
@@ -7930,6 +9622,12 @@
             "state" : "translated",
             "value" : "Prawy górny róg"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平铺到右上角"
+          }
         }
       }
     },
@@ -7957,6 +9655,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przezroczystość panelu przełącznika."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换器面板的透明度。"
           }
         }
       }
@@ -7986,6 +9690,12 @@
             "state" : "translated",
             "value" : "Pisz, aby filtrować programy i okna…"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入以筛选应用和窗口…"
+          }
         }
       }
     },
@@ -8013,6 +9723,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyszukiwanie przez pisanie"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入筛选搜索"
           }
         }
       }
@@ -8042,6 +9758,12 @@
             "state" : "translated",
             "value" : "Niezaznaczone"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未勾选"
+          }
         }
       }
     },
@@ -8069,6 +9791,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pod oknem"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“窗口”下"
           }
         }
       }
@@ -8098,6 +9826,12 @@
             "state" : "translated",
             "value" : "Bez tytułu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未命名"
+          }
         }
       }
     },
@@ -8125,6 +9859,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aktualizacje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新"
           }
         }
       }
@@ -8154,6 +9894,12 @@
             "state" : "translated",
             "value" : "Używaj h / j / k / l jak klawiszy strzałek, gdy przełącznik jest otwarty. h zastępuje przypisanie Ukryj, a j / k / l zastępują skok literowy; tryb wyszukiwania nadal wpisuje te litery."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换器打开时，可像方向键一样使用 h / j / k / l。h 会覆盖隐藏绑定，j / k / l 会覆盖字母跳转；搜索模式下仍会输入这些字母。"
+          }
         }
       }
     },
@@ -8181,6 +9927,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "v%@  ·  Kompilacja %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@  ·  构建 %@"
           }
         }
       }
@@ -8210,6 +9962,12 @@
             "state" : "translated",
             "value" : "v%@ — Wyświetl aktualizację"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@ — 查看更新"
+          }
         }
       }
     },
@@ -8237,6 +9995,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Klawisze vim (h j k l)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vim 按键（h j k l）"
           }
         }
       }
@@ -8266,6 +10030,12 @@
             "state" : "translated",
             "value" : "Gdy pełny ekran"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全屏时"
+          }
         }
       }
     },
@@ -8293,6 +10063,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gdy brak otwartych okien"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有打开窗口时"
           }
         }
       }
@@ -8322,6 +10098,12 @@
             "state" : "translated",
             "value" : "Podczas wyszukiwania"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索时"
+          }
         }
       }
     },
@@ -8349,6 +10131,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gdy ten program pojawia się w przełączniku"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此应用显示在切换器中时"
           }
         }
       }
@@ -8378,6 +10166,12 @@
             "state" : "translated",
             "value" : "Gdy przełącznik jest otwarty, tapnięcie klawisza Shift cofa zaznaczenie o jedną pozycję, a przytrzymanie Shift cofa dalej, aż go puścisz — tak jak przytrzymany Tab. Wyłącz tę opcję, aby cofać tylko przez przytrzymanie Shift podczas naciskania klawisza przełączania (⌘⇧Tab)."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换器打开时，点按 Shift 会让选择后退一步，按住 Shift 会持续后退直到松开 — 就像按住 Tab 一样。关闭后，只有在按切换键时同时按住 Shift（⌘⇧Tab）才会后退。"
+          }
         }
       }
     },
@@ -8405,6 +10199,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zarządzanie oknami"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "窗口管理"
           }
         }
       }
@@ -8434,6 +10234,12 @@
             "state" : "translated",
             "value" : "Okna na tym pulpicie"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此空间中的窗口"
+          }
         }
       }
     },
@@ -8461,6 +10267,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Z otwartymi oknami"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有打开窗口时"
           }
         }
       }
@@ -8490,6 +10302,12 @@
             "state" : "translated",
             "value" : "Żółty"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "黄色"
+          }
         }
       }
     },
@@ -8517,6 +10335,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Masz najnowszą wersję!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已是最新版本！"
           }
         }
       }
@@ -8546,6 +10370,12 @@
             "state" : "translated",
             "value" : "Powiększ okno"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缩放窗口"
+          }
         }
       }
     },
@@ -8573,6 +10403,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wszystkie biurka"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有空间"
           }
         }
       }
@@ -8602,6 +10438,12 @@
             "state" : "translated",
             "value" : "Bieżące biurko"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前空间"
+          }
         }
       }
     },
@@ -8629,6 +10471,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Widoczne biurka"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可见空间"
           }
         }
       }
@@ -8658,6 +10506,12 @@
             "state" : "translated",
             "value" : "Pokazuj okna z"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示窗口来源"
+          }
         }
       }
     },
@@ -8685,6 +10539,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "„Wszystkie biurka” pokazuje wszystko; „Bieżące biurko” tylko biurko, które właśnie widzisz; „Widoczne biurka” to, co widać na wszystkich monitorach."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“所有空间”显示全部；“当前空间”仅显示正在查看的空间；“可见空间”显示所有显示器屏幕上的内容。"
           }
         }
       }
@@ -8714,6 +10574,12 @@
             "state" : "translated",
             "value" : "Ogranicz ten skrót do bieżącego biurka lub widocznych biurek, albo pokazuj wszystkie biurka."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将此快捷键限制为当前空间、所有可见空间，或显示所有空间。"
+          }
         }
       }
     },
@@ -8741,6 +10607,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Klawiatura"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "键盘"
           }
         }
       }
@@ -8770,6 +10642,12 @@
             "state" : "translated",
             "value" : "Mysz"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鼠标"
+          }
         }
       }
     },
@@ -8797,6 +10675,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Etykiety"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标签"
           }
         }
       }
@@ -8826,6 +10710,12 @@
             "state" : "translated",
             "value" : "Panel"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面板"
+          }
         }
       }
     },
@@ -8853,6 +10743,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przesunięcie po gładziku"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "触控板滑动"
           }
         }
       }
@@ -8882,6 +10778,12 @@
             "state" : "translated",
             "value" : "Biurka"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空间"
+          }
         }
       }
     },
@@ -8909,6 +10811,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Karty przeglądarki"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浏览器标签页"
           }
         }
       }
