@@ -164,7 +164,7 @@ final class ShortcutsEditorView: NSView {
     /// shortcut. Empty when nothing is recorded yet.
     private func detail(for target: SwitchTarget) -> String {
         var parts: [String] = []
-        if let shortcut = betterShortcutsName(for: target).shortcut { parts.append("\(shortcut)") }
+        if let shortcut = betterShortcutsName(for: target).shortcut { parts.append(shortcut.presentableDescription) }
         if case .scoped(let id) = target,
            let scope = Preferences.shared.scopedShortcuts.first(where: { $0.id == id })?.scope {
             parts.append(scope.displayName)
