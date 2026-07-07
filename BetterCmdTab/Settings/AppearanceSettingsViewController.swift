@@ -8,6 +8,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private var layoutRadio: SettingsRadioGroupView!
     private var sizeRadio: SettingsRadioGroupView!
     private var titleAlignmentRadio: SettingsRadioGroupView!
+    private var truncationRadio: SettingsRadioGroupView!
     private let gridPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let accentPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let windowTitleSwitch = NSSwitch()
@@ -23,6 +24,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     // Ordered option models backing the popups (index ↔ value).
     private let layoutModes: [SwitcherLayoutMode] = [.gridView, .list, .windowPreview]
     private let titleAlignments: [PreviewTitleAlignment] = [.leading, .center, .trailing]
+    private let truncationModes: [TitleTruncationMode] = [.head, .middle, .tail]
     private let panelSizes: [PanelSize] = PanelSize.allCases
     private let gridValues: [Int] = [0, 2, 3, 4, 5, 6] // 0 = automatic
     private let accents: [SwitcherAccent] = SwitcherAccent.allCases
@@ -55,6 +57,11 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         addRow(to: labels, title: String(localized: "Title alignment"),
                subtitle: String(localized: "Position of the title under each Previews tile."),
                accessory: titleAlignmentRadio, searchItemID: SearchID.titleAlignment)
+
+        truncationRadio = makeTruncationRadio()
+        addRow(to: labels, title: String(localized: "Ellipsis position"),
+               subtitle: String(localized: "Which part of a long title is shortened with an ellipsis."),
+               accessory: truncationRadio, searchItemID: SearchID.titleTruncation)
 
         configureSwitch(boldSelectedSwitch, action: #selector(toggleBoldSelected(_:)))
         addRow(to: labels, title: String(localized: "Bold selected title"),
@@ -195,6 +202,18 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         return group
     }
 
+    private func makeTruncationRadio() -> SettingsRadioGroupView {
+        let options = truncationModes.map { mode in
+            SettingsRadioGroupView.Option(identifier: mode.rawValue, title: mode.displayName)
+        }
+        let group = SettingsRadioGroupView(options: options, orientation: .horizontal)
+        group.onSelectionChange = { id in
+            guard let mode = TitleTruncationMode(rawValue: id) else { return }
+            Preferences.shared.titleTruncationMode = mode
+        }
+        return group
+    }
+
     private func configurePopup(_ popup: NSPopUpButton, titles: [String], action: Selector) {
         popup.controlSize = .small
         popup.translatesAutoresizingMaskIntoConstraints = false
@@ -238,6 +257,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.selectTitleAlignment($0) }
             .store(in: &cancellables)
+        prefs.$titleTruncationMode
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.selectTruncationMode($0) }
+            .store(in: &cancellables)
         prefs.$boldSelectedLabel
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.boldSelectedSwitch.state = $0 ? .on : .off }
@@ -279,6 +302,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         selectAccent(prefs.accentChoice)
         windowTitleSwitch.state = prefs.showWindowTitleLabel ? .on : .off
         selectTitleAlignment(prefs.previewTitleAlignment)
+        selectTruncationMode(prefs.titleTruncationMode)
         boldSelectedSwitch.state = prefs.boldSelectedLabel ? .on : .off
         appNamesSwitch.state = prefs.showApplicationNames ? .on : .off
         applyOpacity(prefs.panelOpacity)
@@ -345,6 +369,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private func selectTitleAlignment(_ alignment: PreviewTitleAlignment) {
         titleAlignmentRadio.select(identifier: alignment.rawValue)
+    }
+
+    private func selectTruncationMode(_ mode: TitleTruncationMode) {
+        truncationRadio.select(identifier: mode.rawValue)
     }
 
     @objc private func opacityChanged(_ sender: NSSlider) {

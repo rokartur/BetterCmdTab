@@ -173,6 +173,12 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
 
     func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
         self.effective = effective
+        // Ellipsis position for long titles (#90). Guarded set — one enum read,
+        // no work when unchanged.
+        let truncation = effective.titleTruncationMode.lineBreakMode
+        if titleLabel.lineBreakMode != truncation {
+            titleLabel.lineBreakMode = truncation
+        }
         if metrics != self.metrics {
             applyMetrics(metrics)
         }
