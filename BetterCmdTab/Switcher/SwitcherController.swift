@@ -2003,7 +2003,7 @@ final class SwitcherController: SwitcherViewDelegate {
             session: switchSessionKind,
             backtickReversesAppSwitching: Preferences.shared.backtickReversesAppSwitching
         ) {
-            advance(by: -1, wrap: true)
+            advance(by: -delta, wrap: true)
         } else {
             advanceWindowsOnly(by: delta)
         }
