@@ -42,6 +42,21 @@ struct SwitcherPhaseTests {
     }
 }
 
+/// Pure-logic coverage for the quick-tap stay-open gate (#91): a chord release
+/// landing while still `.primed` (mouse-mapped shortcuts synthesize a quick
+/// press+release before the panel appears) parks the panel only when BOTH
+/// stay-open opt-ins are on — the quick-tap instant flip is protected shipped
+/// behavior (#77), so neither option alone may change it.
+@Suite("Switcher quick-tap stay-open gate")
+struct SwitcherQuickReleaseParkTests {
+    @Test func quickReleaseParkGate() {
+        #expect(!SwitcherController.quickReleaseParks(stayOpenOnRelease: false, stayOpenOnQuickTap: false))
+        #expect(!SwitcherController.quickReleaseParks(stayOpenOnRelease: true, stayOpenOnQuickTap: false))
+        #expect(!SwitcherController.quickReleaseParks(stayOpenOnRelease: false, stayOpenOnQuickTap: true))
+        #expect(SwitcherController.quickReleaseParks(stayOpenOnRelease: true, stayOpenOnQuickTap: true))
+    }
+}
+
 /// Pure-logic coverage for the fast-tap rescue: when the ⌘-release was dropped by
 /// the tap (it gates `.releaseCmd` on `isSwitchingNow()`, set only once the main
 /// thread reaches `.primed`), the controller re-reads the live modifier state and
