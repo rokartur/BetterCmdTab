@@ -845,8 +845,12 @@ final class SwitcherController: SwitcherViewDelegate {
             cache.scheduleFullRefresh()
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
             guard !primedApps.isEmpty else { return }
-            primedIndex = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : primedApps.count - 1)
-            primedStepDelta = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
+            // Anchor on the global sort: this path never resolves per-shortcut
+            // options, so `effective` is a stale snapshot here (#88).
+            let anchor = primedAnchor(for: Preferences.shared.sortOrder)
+            let step = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
+            primedIndex = Self.primedStartIndex(count: primedApps.count, step: step, anchor: anchor)
+            primedStepDelta = step
             primedByHeldChord = false
             phase = .primed
             reveal()
@@ -2105,6 +2109,22 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    /// Start index for the first primed step. `anchor` is the frontmost app's
+    /// position in the primed list under a stable sort (#88); nil reproduces
+    /// the legacy head-anchored start (step 1 → 1, step -1 → count-1).
+    nonisolated static func primedStartIndex(count: Int, step: Int, anchor: Int?) -> Int {
+        guard count > 1 else { return 0 }
+        return ((((anchor ?? 0) + step) % count) + count) % count
+    }
+
+    /// Position of the frontmost app in `primedApps` for sorts that anchor on
+    /// it; nil under MRU sorts (frontmost already leads the list) or when the
+    /// frontmost app was filtered out of the primed list.
+    private func primedAnchor(for sort: SwitcherSortOrder) -> Int? {
+        guard sort.anchorsPrimedOnFrontmost, let front = mru.order.first else { return nil }
+        return primedApps.firstIndex { $0.processIdentifier == front }
+    }
+
     private func advance(by delta: Int, wrap: Bool) {
         switch phase {
         case .idle:
@@ -2119,16 +2139,10 @@ final class SwitcherController: SwitcherViewDelegate {
             resolveActiveOptions(for: .switchApps)
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
             guard !primedApps.isEmpty else { return }
-            if primedApps.count == 1 {
-                primedIndex = 0
-                primedStepDelta = 0
-            } else if delta > 0 {
-                primedIndex = 1
-                primedStepDelta = 1
-            } else {
-                primedIndex = primedApps.count - 1
-                primedStepDelta = -1
-            }
+            let anchor = primedAnchor(for: effective.sortOrder)
+            let step = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
+            primedIndex = Self.primedStartIndex(count: primedApps.count, step: step, anchor: anchor)
+            primedStepDelta = step
             schedulePrimedReveal()
         case .primed:
             guard !primedApps.isEmpty else { return }
