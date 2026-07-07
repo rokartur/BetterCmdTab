@@ -97,6 +97,8 @@ struct ShortcutOverrideTests {
         ov.stayOpenOnQuickTap = false
         ov.layoutMode = .list
         ov.panelSize = .large
+        ov.fontScale = .small
+        ov.fontFace = .monospaced
         ov.gridMaxColumns = 7
         ov.accentChoice = .custom
         ov.customAccentHex = "#1A2B3C"
@@ -294,6 +296,24 @@ struct ShortcutOverrideTests {
         #expect(prefs.effectiveSettings(for: ov).stayOpenOnQuickTap == target)
         // Unset inherits the global.
         #expect(prefs.effectiveSettings(for: ShortcutOverride()).stayOpenOnQuickTap == prefs.stayOpenOnQuickTap)
+    }
+
+    @Test("text size and font face resolve the override over the global (#62)")
+    func effectiveFontOverride() {
+        let prefs = Preferences.shared
+        var ov = ShortcutOverride()
+        // Force values that differ from the current globals so the assertions are real.
+        let scaleTarget: SwitcherFontScale = prefs.fontScale == .large ? .small : .large
+        let faceTarget: SwitcherFontFace = prefs.fontFace == .monospaced ? .rounded : .monospaced
+        ov.fontScale = scaleTarget
+        ov.fontFace = faceTarget
+        let eff = prefs.effectiveSettings(for: ov)
+        #expect(eff.fontScale == scaleTarget)
+        #expect(eff.fontFace == faceTarget)
+        // Unset inherits the globals.
+        let inherited = prefs.effectiveSettings(for: ShortcutOverride())
+        #expect(inherited.fontScale == prefs.fontScale)
+        #expect(inherited.fontFace == prefs.fontFace)
     }
 
     @Test("title truncation resolves the override over the global (#90)")
