@@ -807,6 +807,7 @@ final class Preferences: ObservableObject {
         /// and is deliberately not migrated: everyone, including users who never
         /// touched the old toggle, gets the peek on by default now.
         static let tabDrillEnabled = "Switcher.tabDrillEnabled"
+        static let windowDrillEnabled = "Switcher.windowDrillEnabled"
         /// Expand native-system-tab windows (Finder, Terminal, TextEdit, …) into
         /// one switcher row per tab instead of a single collapsed window row.
         /// Default off — the collapsed row + `\` peek is the default.
@@ -1314,6 +1315,16 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != tabDrillEnabled else { return }
             UserDefaults.standard.set(tabDrillEnabled, forKey: Keys.tabDrillEnabled)
+        }
+    }
+
+    /// Window drill-down (#80): in applications-only mode, `↓` or `\` on an app
+    /// with several windows opens the strip UI listing that app's windows —
+    /// native ⌘Tab parity. Cache-sourced and keypress-driven. Default on.
+    @Published var windowDrillEnabled: Bool {
+        didSet {
+            guard oldValue != windowDrillEnabled else { return }
+            UserDefaults.standard.set(windowDrillEnabled, forKey: Keys.windowDrillEnabled)
         }
     }
 
@@ -1831,6 +1842,7 @@ final class Preferences: ObservableObject {
         self.cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         self.experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
+        self.windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         self.experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
@@ -1960,6 +1972,7 @@ final class Preferences: ObservableObject {
         cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
+        windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false

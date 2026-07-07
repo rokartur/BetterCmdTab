@@ -31,6 +31,8 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     private let sortOrderPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
 
+    private let windowDrillSwitch = NSSwitch()
+
     // Tabs
     private let tabDrillSwitch = NSSwitch()
     private let expandTabsSwitch = NSSwitch()
@@ -126,6 +128,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         addRow(to: contents, title: String(localized: "Applications only"),
                subtitle: String(localized: "Show one row per app instead of one per window — classic ⌘Tab."),
                accessory: applicationsOnlySwitch, searchItemID: SearchID.applicationsOnly)
+        configureSwitch(windowDrillSwitch, action: #selector(toggleWindowDrill(_:)))
+        addRow(to: contents, title: String(localized: "Peek windows with ↓"),
+               subtitle: String(localized: "In applications-only mode, press ↓ or \\ on an app with several windows to show its windows in a strip below the switcher and pick one."),
+               accessory: windowDrillSwitch, searchItemID: SearchID.windowDrill)
         configureSwitch(badgesSwitch, action: #selector(toggleBadges(_:)))
         addRow(to: contents, title: String(localized: "Show unread badges"),
                subtitle: String(localized: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row."),
@@ -322,6 +328,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         selectRecentlyClosedLimit(prefs.recentlyClosedLimit)
         recentlyClosedLimitPopup.isEnabled = prefs.showRecentlyClosed
         tabDrillSwitch.state = prefs.tabDrillEnabled ? .on : .off
+        windowDrillSwitch.state = prefs.windowDrillEnabled ? .on : .off
         expandTabsSwitch.state = prefs.expandTabsAsWindows ? .on : .off
         expandBrowserTabsSwitch.state = prefs.expandBrowserTabsAsWindows ? .on : .off
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off
@@ -545,6 +552,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleApplicationsOnly(_ sender: NSSwitch) {
         Preferences.shared.applicationsOnly = (sender.state == .on)
+    }
+
+    @objc private func toggleWindowDrill(_ sender: NSSwitch) {
+        Preferences.shared.windowDrillEnabled = (sender.state == .on)
     }
 
     @objc private func toggleBadges(_ sender: NSSwitch) {
