@@ -123,6 +123,8 @@ enum SearchID {
     static let windowTitle = "appearance.windowTitle"
     static let titleAlignment = "appearance.titleAlignment"
     static let titleTruncation = "appearance.titleTruncation"
+    static let textSize = "appearance.textSize"
+    static let fontFace = "appearance.fontFace"
     static let boldSelected = "appearance.boldSelected"
     static let opacity = "appearance.opacity"
     static let cornerRadius = "appearance.cornerRadius"
@@ -337,6 +339,10 @@ enum SettingsCatalog {
         item(SearchID.gridColumns, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Grid columns"), ["grid", "columns"]),
         // Appearance · Labels
+        item(SearchID.textSize, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Text size"), ["text size", "font size", "smaller", "larger", "text", "scale"]),
+        item(SearchID.fontFace, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Font"), ["font", "typeface", "face", "monospaced", "fixed width", "mono", "rounded", "serif"]),
         item(SearchID.windowTitle, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
              String(localized: "Show window title"), ["window title", "title", "label", "name"]),
         item(SearchID.titleAlignment, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
