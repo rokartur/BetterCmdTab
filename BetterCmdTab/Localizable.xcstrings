@@ -113,6 +113,34 @@
         }
       }
     },
+    "In applications-only mode, press ↓ or \\ on an app with several windows to show its windows in a strip below the switcher and pick one." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Nur-Apps-Modus ↓ oder \\ auf einer App mit mehreren Fenstern drücken, um ihre Fenster in einer Leiste unter dem Umschalter anzuzeigen und eines auszuwählen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En el modo de solo aplicaciones, pulsa ↓ o \\ en una app con varias ventanas para mostrar sus ventanas en una franja bajo el selector y elegir una."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En mode applications uniquement, appuyez sur ↓ ou \\ sur une app ayant plusieurs fenêtres pour afficher ses fenêtres dans une bande sous le sélecteur et en choisir une."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W trybie tylko aplikacje naciśnij ↓ lub \\ na aplikacji z kilkoma oknami, aby pokazać jej okna na pasku pod przełącznikiem i wybrać jedno."
+          }
+        }
+      }
+    },
     "Monospaced" : {
       "localizations" : {
         "de" : {
@@ -137,6 +165,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O stałej szerokości"
+          }
+        }
+      }
+    },
+    "Peek windows with ↓" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster mit ↓ einblenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver ventanas con ↓"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les fenêtres avec ↓"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podejrzyj okna klawiszem ↓"
           }
         }
       }

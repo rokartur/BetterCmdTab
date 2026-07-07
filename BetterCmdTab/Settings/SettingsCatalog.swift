@@ -94,6 +94,7 @@ enum SearchID {
     static let showRecentlyClosed = "switcher.showRecentlyClosed"
     static let recentlyClosedLimit = "switcher.recentlyClosedLimit"
     static let tabDrill = "switcher.tabDrill"
+    static let windowDrill = "switcher.windowDrill"
     static let expandTabs = "switcher.expandTabs"
     static let expandBrowserTabs = "switcher.expandBrowserTabs"
     static let tabPermissions = "switcher.tabPermissions"
@@ -372,6 +373,9 @@ enum SettingsCatalog {
         item(SearchID.applicationsOnly, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Applications only"),
              ["applications only", "apps only", "one per app", "per app", "command tab", "classic", "group windows"]),
+        item(SearchID.windowDrill, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Peek windows with ↓"),
+             ["windows", "window", "drill", "peek", "down arrow", "applications only", "app windows", "expose"]),
         item(SearchID.showBadges, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Show unread badges"), ["badge", "unread", "dock badge", "count"]),
         item(SearchID.spaceScope, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),

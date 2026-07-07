@@ -257,9 +257,16 @@ final class SwitcherController: SwitcherViewDelegate {
     /// `BrowserTabs.activateTab`. `accessibility` → AX press on
     /// `liveTabElements[tabIndex]`. `windows` → native window tabs: each
     /// `liveTabElements[i]` is a real NSWindow; raising it selects that tab.
-    /// Picked once per drill, never crossed.
-    private enum TabDrillBackend { case appleScript, accessibility, windows }
+    /// `appWindows` → applications-only window drill (#80): the strip lists the
+    /// selected app's catalogued windows; committing activates
+    /// `drillWindowRows[tabIndex]`. Picked once per drill, never crossed.
+    private enum TabDrillBackend { case appleScript, accessibility, windows, appWindows }
     private var tabDrillBackend: TabDrillBackend = .accessibility
+    /// The pid-filtered, window-MRU-sorted rows the `.appWindows` strip was
+    /// built from, index-aligned with `tabTitles`. Non-empty only while an
+    /// `.appWindows` strip is up; each row carries its enumeration-time
+    /// CGWindowID so the SLPS raise fallback survives a stale AX element.
+    private var drillWindowRows: [SwitcherRow] = []
     /// The window `applyDrill` built the current tab strip against. `commitTab`
     /// re-validates that the selected row still points at this window before
     /// pairing it with the captured tab elements — a background refresh can move
@@ -1807,6 +1814,17 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    /// True when the visible list is collapsed to one row per app — the exact
+    /// gate `applyApplicationsOnly` applies. The window drill (#80) only makes
+    /// sense then: everywhere else each window already has its own row.
+    private var applicationsCollapseActive: Bool {
+        guard effective.applicationsOnly, !windowsOnlyMode else { return false }
+        switch activeScope {
+        case .currentAppWindows, .minimizedOnly: return false
+        case .allAppsAllSpaces, .allAppsCurrentSpace, .none: return true
+        }
+    }
+
     private func prewarmPanel() {
         let placeholder = SwitcherRow(
             app: NSRunningApplication.current,
@@ -1920,6 +1938,13 @@ final class SwitcherController: SwitcherViewDelegate {
         case .prevWindow:
             if tabDrillActive { advanceTab(by: -1) } else { advanceWindowsOnly(by: -1) }
         case .nextRow:
+            // Native ⌘Tab parity (#80): ↓ peeks the selected app's windows, but
+            // only where it was a redundant linear wrap — list and multi-row
+            // grids keep their vertical navigation.
+            if DrillRouting.downArrowOpensWindowDrill(layoutMode: currentMetrics.layoutMode, rowsPerColumn: view.rowsPerColumn, searchActive: searchActive, tabDrillActive: tabDrillActive),
+               enterWindowDrillIfEligible() {
+                break
+            }
             advanceVerticalOrLinear(by: 1)
         case .prevRow:
             advanceVerticalOrLinear(by: -1)
@@ -1982,7 +2007,10 @@ final class SwitcherController: SwitcherViewDelegate {
         case .forceQuitApp:
             performForceQuitAction()
         case .enterTabDrill:
-            enterTabDrill()
+            // On a collapsed multi-window row the window strip wins `\` (#80):
+            // each window may itself own a tab set, so windows are the outer
+            // level. Single-window rows keep the existing tab drill.
+            if !enterWindowDrillIfEligible() { enterTabDrill() }
         case .exitTabDrill:
             exitTabDrill()
         case .tabPrev:
@@ -3608,6 +3636,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabDrillHint = nil
         tabTitles = []
         liveTabElements = []
+        drillWindowRows = []
         tabIndex = 0
         drillWindow = nil
         hotkey.setTabDrillActive(false)
@@ -3762,6 +3791,39 @@ final class SwitcherController: SwitcherViewDelegate {
     ///   group.
     /// Both run off-main; the strip appears once titles land. Silently
     /// no-ops if no tabs are found.
+    /// Window drill-down (#80): in applications-only mode, open the strip UI
+    /// with the selected app's catalogued windows. Everything is sourced from
+    /// the warm cache and window-MRU order (exactly like `pickWindowsOnlyTarget`)
+    /// on the keypress — no AX walk, nothing added to the reveal path. Returns
+    /// false when ineligible so the caller can fall through to its old action.
+    @discardableResult
+    private func enterWindowDrillIfEligible() -> Bool {
+        // Cheap gates first — the candidate build below is the only real work,
+        // and this runs on every ↓ / `\` keypress.
+        guard Preferences.shared.windowDrillEnabled,
+              applicationsCollapseActive,
+              phase == .visible, rows.indices.contains(index) else { return false }
+        let row = rows[index]
+        // An inline browser-tab row is already a leaf (mirrors enterTabDrill),
+        // and a windowless app has nothing to list.
+        guard row.browserTab == nil, let pid = row.pid, let anchor = row.window else { return false }
+        // Warm cache ONLY, same filter config as the visible list so the strip
+        // agrees with the panel on minimized/Space-scope windows.
+        var candidates = cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
+            .filter { $0.pid == pid && $0.window != nil }
+        // A 1-window strip is useless: committing it equals committing the row.
+        guard candidates.count >= 2 else { return false }
+        candidates = windowMRU.sortRows(candidates, forPid: pid)
+        drillWindowRows = candidates
+        applyDrill(
+            titles: candidates.map { DrillRouting.stripTitle(windowTitle: $0.windowTitle, appName: $0.appName) },
+            liveTabs: candidates.compactMap(\.window),
+            backend: .appWindows,
+            window: anchor
+        )
+        return true
+    }
+
     private func enterTabDrill() {
         guard Preferences.shared.tabDrillEnabled else { return }
         guard phase == .visible, rows.indices.contains(index) else { return }
@@ -3802,6 +3864,10 @@ final class SwitcherController: SwitcherViewDelegate {
             let result = Self.fetchTabsBlocking(app: app, window: window, title: title, isBrowser: isBrowser, prefetchedTabs: prefetchedTabs)
             DispatchQueue.main.async {
                 guard let self, gen == self.revealGeneration, self.phase == .visible else { return }
+                // A window drill (#80) opened while this fetch was in flight owns
+                // the strip — a late tab result must not overwrite it (the strip
+                // would show tabs while `drillWindowRows` stays populated).
+                guard !(self.tabDrillActive && self.tabDrillBackend == .appWindows) else { return }
                 guard self.rows.indices.contains(self.index),
                       let currentWindow = self.rows[self.index].window,
                       CFEqual(currentWindow, window) else { return }
@@ -3851,7 +3917,12 @@ final class SwitcherController: SwitcherViewDelegate {
         hotkey.setTabDrillActive(true)
         refreshDisplay()
         resyncSecureInputChords()
-        tabPrefetchCache[AXRef(element: window)] = TabPrefetch(titles: titles, liveTabs: liveTabs, backend: backend)
+        // `.appWindows` strips must never enter the TAB prefetch cache: a later
+        // `\` tab drill on the same window would replay window rows as tabs
+        // against stale `drillWindowRows` (#80).
+        if backend != .appWindows {
+            tabPrefetchCache[AXRef(element: window)] = TabPrefetch(titles: titles, liveTabs: liveTabs, backend: backend)
+        }
     }
 
     /// Blocking tab fetch suitable for a background queue. Returns nil for a
@@ -3967,6 +4038,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabDrillHint = nil
         tabTitles = []
         liveTabElements = []
+        drillWindowRows = []
         tabIndex = 0
         drillWindow = nil
         // Restore the pre-drill detach state so a `\`-toggle exit while ⌘ is held
@@ -4013,9 +4085,18 @@ final class SwitcherController: SwitcherViewDelegate {
             commit()
             return
         }
+        // `.appWindows` (#80) activates `drillWindowRows[chosen]` — same bail
+        // shape as the missing target element above.
+        if backend == .appWindows, !drillWindowRows.indices.contains(chosen) {
+            exitTabDrill()
+            commit()
+            return
+        }
         let instantSpace = Preferences.shared.experimentalInstantSpaceSwitch
         if let pid = row.pid { mru.bump(pid) }
-        bumpWindowMRUIfPossible(for: row)
+        // Window MRU follows the window the user actually lands on: for the
+        // window drill that's the chosen strip entry, not the collapsed row.
+        bumpWindowMRUIfPossible(for: backend == .appWindows ? drillWindowRows[chosen] : row)
 
         revealGeneration &+= 1
         phase = .idle
@@ -4045,6 +4126,13 @@ final class SwitcherController: SwitcherViewDelegate {
                 let tabRow = SwitcherRow(app: app, window: tabWindow, windowTitle: row.windowTitle, isMinimized: false, cgWindowID: cachedWid)
                 Activator.activate(tabRow, instantSpace: instantSpace)
             }
+        case .appWindows:
+            // The strip lists the app's own windows (#80). The chosen row was
+            // captured from the warm cache with its enumeration-time
+            // CGWindowID, so activating it keeps the SLPS raise fallback for
+            // stale AX elements (Electron) — never rebuild it from
+            // `liveTabElements`, which would drop that id.
+            Activator.activate(drillWindowRows[chosen], instantSpace: instantSpace)
         }
         panel.dismiss()
         // Activating the chosen tab's app above; nothing to restore.
@@ -4052,6 +4140,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabDrillActive = false
         tabTitles = []
         liveTabElements = []
+        drillWindowRows = []
         tabIndex = 0
         drillWindow = nil
         hotkey.setTabDrillActive(false)
