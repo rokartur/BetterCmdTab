@@ -42,6 +42,32 @@ enum PreviewTitleAlignment: String, CaseIterable {
     }
 }
 
+/// Which part of a long title is elided with an ellipsis (#90). Users with
+/// meaningful info at both ends of a title (URLs, project paths) can move the
+/// ellipsis; default `.tail` keeps the historical truncate-at-end behavior.
+/// Raw values mirror `NSLineBreakMode` semantics and are frozen on release.
+enum TitleTruncationMode: String, CaseIterable {
+    case head
+    case middle
+    case tail
+
+    var displayName: String {
+        switch self {
+        case .head: return String(localized: "Beginning")
+        case .middle: return String(localized: "Middle")
+        case .tail: return String(localized: "End")
+        }
+    }
+
+    var lineBreakMode: NSLineBreakMode {
+        switch self {
+        case .head: return .byTruncatingHead
+        case .middle: return .byTruncatingMiddle
+        case .tail: return .byTruncatingTail
+        }
+    }
+}
+
 /// Which display the switcher panel opens on (#22).
 enum SwitcherDisplayMode: String, CaseIterable {
     /// Screen under the mouse pointer. Default — matches pre-#22 behavior.
@@ -187,6 +213,19 @@ enum SwitcherSortOrder: String, CaseIterable {
         case .mruWindows: return String(localized: "Most recent (windows)")
         case .alphabetical: return String(localized: "Alphabetical")
         case .launchOrder: return String(localized: "Launch order")
+        }
+    }
+
+    /// Sorts whose list order is independent of recency: the frontmost app is
+    /// not at index 0, so the first primed ⌘Tab step must anchor on its
+    /// position instead of the list head (#88). MRU sorts return false — the
+    /// frontmost app already leads the list after `mru.syncFrontmost()`, and
+    /// `.mruWindows` steps by `primedStepDelta` over windows, not apps.
+    /// Exhaustive on purpose: a new sort case must consciously pick a side.
+    var anchorsPrimedOnFrontmost: Bool {
+        switch self {
+        case .alphabetical, .launchOrder: return true
+        case .mru, .mruWindows: return false
         }
     }
 }
@@ -349,9 +388,12 @@ struct ShortcutOverride: Equatable, Sendable {
     var applicationsOnly: Bool?
     var expandBrowserTabsAsWindows: Bool?
     var stayOpenOnRelease: Bool?
+    var stayOpenOnQuickTap: Bool?
     // Appearance (resolved into `EffectiveSettings`).
     var layoutMode: SwitcherLayoutMode?
     var panelSize: PanelSize?
+    var fontScale: SwitcherFontScale?
+    var fontFace: SwitcherFontFace?
     var gridMaxColumns: Int?
     var accentChoice: SwitcherAccent?
     var customAccentHex: String?
@@ -360,6 +402,7 @@ struct ShortcutOverride: Equatable, Sendable {
     var backdropMaterial: BackdropMaterial?
     var showWindowTitleLabel: Bool?
     var previewTitleAlignment: PreviewTitleAlignment?
+    var titleTruncationMode: TitleTruncationMode?
     var boldSelectedLabel: Bool?
     var showApplicationNames: Bool?
     var showUnreadBadges: Bool?
@@ -373,10 +416,13 @@ struct ShortcutOverride: Equatable, Sendable {
         spaceScope == .inherit && showMinimized == nil && showHidden == nil
             && showWindowless == nil && sortOrder == nil && applicationsOnly == nil
             && expandBrowserTabsAsWindows == nil && stayOpenOnRelease == nil
+            && stayOpenOnQuickTap == nil
             && layoutMode == nil && panelSize == nil
+            && fontScale == nil && fontFace == nil
             && gridMaxColumns == nil && accentChoice == nil && customAccentHex == nil
             && panelOpacity == nil && panelCornerRadius == nil && backdropMaterial == nil
             && showWindowTitleLabel == nil && previewTitleAlignment == nil
+            && titleTruncationMode == nil
             && boldSelectedLabel == nil && showApplicationNames == nil
             && showUnreadBadges == nil && letterHintsEnabled == nil
     }
@@ -396,8 +442,11 @@ struct ShortcutOverride: Equatable, Sendable {
         put("applicationsOnly", applicationsOnly)
         put("expandBrowserTabsAsWindows", expandBrowserTabsAsWindows)
         put("stayOpenOnRelease", stayOpenOnRelease)
+        put("stayOpenOnQuickTap", stayOpenOnQuickTap)
         if let layoutMode { d["layoutMode"] = layoutMode.rawValue }
         if let panelSize { d["panelSize"] = panelSize.rawValue }
+        if let fontScale { d["fontScale"] = fontScale.rawValue }
+        if let fontFace { d["fontFace"] = fontFace.rawValue }
         put("gridMaxColumns", gridMaxColumns)
         if let accentChoice { d["accentChoice"] = accentChoice.rawValue }
         if let customAccentHex { d["customAccentHex"] = customAccentHex }
@@ -406,6 +455,7 @@ struct ShortcutOverride: Equatable, Sendable {
         if let backdropMaterial { d["backdropMaterial"] = backdropMaterial.rawValue }
         put("showWindowTitleLabel", showWindowTitleLabel)
         if let previewTitleAlignment { d["previewTitleAlignment"] = previewTitleAlignment.rawValue }
+        if let titleTruncationMode { d["titleTruncationMode"] = titleTruncationMode.rawValue }
         put("boldSelectedLabel", boldSelectedLabel)
         put("showApplicationNames", showApplicationNames)
         put("showUnreadBadges", showUnreadBadges)
@@ -426,8 +476,11 @@ struct ShortcutOverride: Equatable, Sendable {
         applicationsOnly = bool("applicationsOnly")
         expandBrowserTabsAsWindows = bool("expandBrowserTabsAsWindows")
         stayOpenOnRelease = bool("stayOpenOnRelease")
+        stayOpenOnQuickTap = bool("stayOpenOnQuickTap")
         layoutMode = dictionary["layoutMode"].flatMap(SwitcherLayoutMode.init(rawValue:))
         panelSize = dictionary["panelSize"].flatMap(PanelSize.init(rawValue:))
+        fontScale = dictionary["fontScale"].flatMap(SwitcherFontScale.init(rawValue:))
+        fontFace = dictionary["fontFace"].flatMap(SwitcherFontFace.init(rawValue:))
         gridMaxColumns = dictionary["gridMaxColumns"].flatMap(Int.init)
         accentChoice = dictionary["accentChoice"].flatMap(SwitcherAccent.init(rawValue:))
         customAccentHex = dictionary["customAccentHex"]
@@ -436,6 +489,7 @@ struct ShortcutOverride: Equatable, Sendable {
         backdropMaterial = dictionary["backdropMaterial"].flatMap(BackdropMaterial.init(rawValue:))
         showWindowTitleLabel = bool("showWindowTitleLabel")
         previewTitleAlignment = dictionary["previewTitleAlignment"].flatMap(PreviewTitleAlignment.init(rawValue:))
+        titleTruncationMode = dictionary["titleTruncationMode"].flatMap(TitleTruncationMode.init(rawValue:))
         boldSelectedLabel = bool("boldSelectedLabel")
         showApplicationNames = bool("showApplicationNames")
         showUnreadBadges = bool("showUnreadBadges")
@@ -519,6 +573,67 @@ enum PanelSize: String, CaseIterable {
         case .small: return String(localized: "Small")
         case .standard: return String(localized: "Medium")
         case .large: return String(localized: "Large")
+        }
+    }
+}
+
+/// Multiplier applied to the switcher's name/title text only, independent of
+/// the panel size (#62). On very wide displays the screen-adaptive clamp in
+/// `SwitcherMetrics.forScreen` renders text at up to 1.8× base even at panel
+/// size Small; this lets users shrink (or grow) just the text while icons,
+/// tiles, and spacing keep following the panel size.
+enum SwitcherFontScale: String, CaseIterable, Sendable {
+    case extraSmall
+    case small
+    case standard
+    case large
+    case extraLarge
+
+    var multiplier: CGFloat {
+        switch self {
+        case .extraSmall: return 0.7
+        case .small: return 0.85
+        case .standard: return 1.0
+        case .large: return 1.15
+        case .extraLarge: return 1.3
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .extraSmall: return String(localized: "Extra small")
+        case .small: return String(localized: "Small")
+        case .standard: return String(localized: "Default")
+        case .large: return String(localized: "Large")
+        case .extraLarge: return String(localized: "Extra large")
+        }
+    }
+}
+
+/// Typeface for the switcher's name/title text (#62), expressed as a system
+/// font design so every weight/size stays available and nothing ships a font.
+/// Jump letters and count badges keep their dedicated system/monospaced fonts.
+enum SwitcherFontFace: String, CaseIterable, Sendable {
+    case system
+    case rounded
+    case serif
+    case monospaced
+
+    var systemDesign: NSFontDescriptor.SystemDesign {
+        switch self {
+        case .system: return .default
+        case .rounded: return .rounded
+        case .serif: return .serif
+        case .monospaced: return .monospaced
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .system: return String(localized: "System")
+        case .rounded: return String(localized: "Rounded")
+        case .serif: return String(localized: "Serif")
+        case .monospaced: return String(localized: "Monospaced")
         }
     }
 }
@@ -648,6 +763,8 @@ final class Preferences: ObservableObject {
         static let revealDelayMs = "Switcher.revealDelayMs"
         static let letterChainTimeoutMs = "Switcher.letterChainTimeoutMs"
         static let panelSize = "Switcher.panelSize"
+        static let fontScale = "Switcher.fontScale"
+        static let fontFace = "Switcher.fontFace"
         static let gridMaxColumns = "Switcher.gridMaxColumns"
         static let appExceptions = "Switcher.appExceptions"
         /// Pre-Exceptions key: a plain bundle-ID array of always-hidden apps.
@@ -664,6 +781,7 @@ final class Preferences: ObservableObject {
         static let letterHintsEnabled = "Switcher.letterHintsEnabled"
         static let searchDismissMode = "Switcher.searchDismissMode"
         static let stayOpenOnRelease = "Switcher.stayOpenOnRelease"
+        static let stayOpenOnQuickTap = "Switcher.stayOpenOnQuickTap"
         static let searchIncludesLaunchableApps = "Switcher.searchIncludesLaunchableApps"
         static let showRecentlyClosed = "Switcher.showRecentlyClosed"
         static let recentlyClosedLimit = "Switcher.recentlyClosedLimit"
@@ -689,6 +807,7 @@ final class Preferences: ObservableObject {
         /// and is deliberately not migrated: everyone, including users who never
         /// touched the old toggle, gets the peek on by default now.
         static let tabDrillEnabled = "Switcher.tabDrillEnabled"
+        static let windowDrillEnabled = "Switcher.windowDrillEnabled"
         /// Expand native-system-tab windows (Finder, Terminal, TextEdit, …) into
         /// one switcher row per tab instead of a single collapsed window row.
         /// Default off — the collapsed row + `\` peek is the default.
@@ -742,6 +861,7 @@ final class Preferences: ObservableObject {
         static let backtickReversesAppSwitching = "Switcher.backtickReversesAppSwitching"
         static let switcherDisplayMode = "Switcher.displayMode"
         static let previewTitleAlignment = "Switcher.previewTitleAlignment"
+        static let titleTruncationMode = "Switcher.titleTruncationMode"
         static let boldSelectedLabel = "Switcher.boldSelectedLabel"
     }
 
@@ -802,6 +922,24 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != panelSize else { return }
             UserDefaults.standard.set(panelSize.rawValue, forKey: Keys.panelSize)
+        }
+    }
+
+    /// Multiplier applied to the switcher's name/title text only (#62) — icons,
+    /// tiles, and spacing keep following `panelSize`. Default `.standard` (1.0×,
+    /// identical to the pre-#62 rendering).
+    @Published var fontScale: SwitcherFontScale {
+        didSet {
+            guard oldValue != fontScale else { return }
+            UserDefaults.standard.set(fontScale.rawValue, forKey: Keys.fontScale)
+        }
+    }
+
+    /// Typeface for the switcher's name/title text (#62). Default `.system`.
+    @Published var fontFace: SwitcherFontFace {
+        didSet {
+            guard oldValue != fontFace else { return }
+            UserDefaults.standard.set(fontFace.rawValue, forKey: Keys.fontFace)
         }
     }
 
@@ -925,6 +1063,18 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != stayOpenOnRelease else { return }
             UserDefaults.standard.set(stayOpenOnRelease, forKey: Keys.stayOpenOnRelease)
+        }
+    }
+
+    /// Also park the panel open when the trigger chord is released *before*
+    /// the panel appears (#91) — shortcuts mapped to mouse buttons or gestures
+    /// synthesize a quick press+release, so the release lands pre-visible and
+    /// would otherwise commit instantly. Only takes effect when
+    /// `stayOpenOnRelease` is also on. Default off.
+    @Published var stayOpenOnQuickTap: Bool {
+        didSet {
+            guard oldValue != stayOpenOnQuickTap else { return }
+            UserDefaults.standard.set(stayOpenOnQuickTap, forKey: Keys.stayOpenOnQuickTap)
         }
     }
 
@@ -1180,6 +1330,16 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Window drill-down (#80): in applications-only mode, `↓` or `\` on an app
+    /// with several windows opens the strip UI listing that app's windows —
+    /// native ⌘Tab parity. Cache-sourced and keypress-driven. Default on.
+    @Published var windowDrillEnabled: Bool {
+        didSet {
+            guard oldValue != windowDrillEnabled else { return }
+            UserDefaults.standard.set(windowDrillEnabled, forKey: Keys.windowDrillEnabled)
+        }
+    }
+
     /// Show each native-system-tab window's tabs as their own switcher rows
     /// (one entry per tab) instead of a single collapsed window row. Applies to
     /// apps that expose AppKit `AXTabs` (Finder, Terminal, TextEdit, Ghostty,
@@ -1228,6 +1388,15 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != previewTitleAlignment else { return }
             UserDefaults.standard.set(previewTitleAlignment.rawValue, forKey: Keys.previewTitleAlignment)
+        }
+    }
+
+    /// Which part of a long title is shortened with an ellipsis, in every
+    /// layout and the tab strip (#90). Default `.tail` — unchanged from before.
+    @Published var titleTruncationMode: TitleTruncationMode {
+        didSet {
+            guard oldValue != titleTruncationMode else { return }
+            UserDefaults.standard.set(titleTruncationMode.rawValue, forKey: Keys.titleTruncationMode)
         }
     }
 
@@ -1623,6 +1792,9 @@ final class Preferences: ObservableObject {
         let sizeRaw = defaults.string(forKey: Keys.panelSize)
         self.panelSize = sizeRaw.flatMap(PanelSize.init(rawValue:)) ?? .standard
 
+        self.fontScale = defaults.string(forKey: Keys.fontScale).flatMap(SwitcherFontScale.init(rawValue:)) ?? .standard
+        self.fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system
+
         self.gridMaxColumns = defaults.object(forKey: Keys.gridMaxColumns) as? Int ?? 0
 
         // Exceptions: honor the new key if present, otherwise build a first-run
@@ -1653,6 +1825,7 @@ final class Preferences: ObservableObject {
         let dismissRaw = defaults.string(forKey: Keys.searchDismissMode)
         self.searchDismissMode = dismissRaw.flatMap(SearchDismissMode.init(rawValue:)) ?? .holdModifier
         self.stayOpenOnRelease = defaults.object(forKey: Keys.stayOpenOnRelease) as? Bool ?? false
+        self.stayOpenOnQuickTap = defaults.object(forKey: Keys.stayOpenOnQuickTap) as? Bool ?? false
 
         self.searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
         self.showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
@@ -1682,6 +1855,7 @@ final class Preferences: ObservableObject {
         self.cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         self.experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
+        self.windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         self.experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
@@ -1700,6 +1874,8 @@ final class Preferences: ObservableObject {
         self.showApplicationNames = defaults.object(forKey: Keys.showApplicationNames) as? Bool ?? true
         self.previewTitleAlignment = defaults.string(forKey: Keys.previewTitleAlignment)
             .flatMap(PreviewTitleAlignment.init(rawValue:)) ?? .center
+        self.titleTruncationMode = defaults.string(forKey: Keys.titleTruncationMode)
+            .flatMap(TitleTruncationMode.init(rawValue:)) ?? .tail
         self.boldSelectedLabel = defaults.object(forKey: Keys.boldSelectedLabel) as? Bool ?? true
         let opacity = defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100
         self.panelOpacity = Self.clampOpacity(opacity)
@@ -1764,6 +1940,8 @@ final class Preferences: ObservableObject {
         revealDelayMs = Self.clampDelay(defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs)
         letterChainTimeoutMs = Self.clampLetterChainTimeout(defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs)
         panelSize = defaults.string(forKey: Keys.panelSize).flatMap(PanelSize.init(rawValue:)) ?? .standard
+        fontScale = defaults.string(forKey: Keys.fontScale).flatMap(SwitcherFontScale.init(rawValue:)) ?? .standard
+        fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system
         gridMaxColumns = defaults.object(forKey: Keys.gridMaxColumns) as? Int ?? 0
 
         if let stored = defaults.array(forKey: Keys.appExceptions) as? [[String: String]] {
@@ -1782,6 +1960,7 @@ final class Preferences: ObservableObject {
         letterHintsEnabled = defaults.object(forKey: Keys.letterHintsEnabled) as? Bool ?? true
         searchDismissMode = defaults.string(forKey: Keys.searchDismissMode).flatMap(SearchDismissMode.init(rawValue:)) ?? .holdModifier
         stayOpenOnRelease = defaults.object(forKey: Keys.stayOpenOnRelease) as? Bool ?? false
+        stayOpenOnQuickTap = defaults.object(forKey: Keys.stayOpenOnQuickTap) as? Bool ?? false
         searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
         showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
         recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5
@@ -1807,6 +1986,7 @@ final class Preferences: ObservableObject {
         cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
+        windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
@@ -1815,6 +1995,7 @@ final class Preferences: ObservableObject {
         showWindowTitleLabel = defaults.object(forKey: Keys.showWindowTitleLabel) as? Bool ?? true
         showApplicationNames = defaults.object(forKey: Keys.showApplicationNames) as? Bool ?? true
         previewTitleAlignment = defaults.string(forKey: Keys.previewTitleAlignment).flatMap(PreviewTitleAlignment.init(rawValue:)) ?? .center
+        titleTruncationMode = defaults.string(forKey: Keys.titleTruncationMode).flatMap(TitleTruncationMode.init(rawValue:)) ?? .tail
         boldSelectedLabel = defaults.object(forKey: Keys.boldSelectedLabel) as? Bool ?? true
         panelOpacity = Self.clampOpacity(defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100)
         panelCornerRadius = Self.clampCornerRadius(defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0)

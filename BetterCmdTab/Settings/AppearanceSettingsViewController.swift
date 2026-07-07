@@ -8,7 +8,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private var layoutRadio: SettingsRadioGroupView!
     private var sizeRadio: SettingsRadioGroupView!
     private var titleAlignmentRadio: SettingsRadioGroupView!
+    private var truncationRadio: SettingsRadioGroupView!
     private let gridPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let fontSizePopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let fontFacePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let accentPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let windowTitleSwitch = NSSwitch()
     private let appNamesSwitch = NSSwitch()
@@ -23,6 +26,9 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     // Ordered option models backing the popups (index ↔ value).
     private let layoutModes: [SwitcherLayoutMode] = [.gridView, .list, .windowPreview]
     private let titleAlignments: [PreviewTitleAlignment] = [.leading, .center, .trailing]
+    private let truncationModes: [TitleTruncationMode] = [.head, .middle, .tail]
+    private let fontScales: [SwitcherFontScale] = SwitcherFontScale.allCases
+    private let fontFaces: [SwitcherFontFace] = SwitcherFontFace.allCases
     private let panelSizes: [PanelSize] = PanelSize.allCases
     private let gridValues: [Int] = [0, 2, 3, 4, 5, 6] // 0 = automatic
     private let accents: [SwitcherAccent] = SwitcherAccent.allCases
@@ -46,6 +52,16 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         // Labels section — the text on each row/tile.
         let labels = addSection(title: String(localized: "Labels"), anchor: SettingsAnchor.appearanceLabels)
 
+        configurePopup(fontSizePopup, titles: fontScales.map(\.displayName), action: #selector(fontScaleChanged))
+        addRow(to: labels, title: String(localized: "Text size"),
+               subtitle: String(localized: "Size of names and titles, independent of the panel size."),
+               accessory: fontSizePopup, searchItemID: SearchID.textSize)
+
+        configurePopup(fontFacePopup, titles: fontFaces.map(\.displayName), action: #selector(fontFaceChanged))
+        addRow(to: labels, title: String(localized: "Font"),
+               subtitle: String(localized: "Typeface for names and titles."),
+               accessory: fontFacePopup, searchItemID: SearchID.fontFace)
+
         configureSwitch(windowTitleSwitch, action: #selector(toggleWindowTitle(_:)))
         addRow(to: labels, title: String(localized: "Show window title"),
                subtitle: String(localized: "Show each window's title under the icon in the Grid and Previews layouts."),
@@ -55,6 +71,11 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         addRow(to: labels, title: String(localized: "Title alignment"),
                subtitle: String(localized: "Position of the title under each Previews tile."),
                accessory: titleAlignmentRadio, searchItemID: SearchID.titleAlignment)
+
+        truncationRadio = makeTruncationRadio()
+        addRow(to: labels, title: String(localized: "Ellipsis position"),
+               subtitle: String(localized: "Which part of a long title is shortened with an ellipsis."),
+               accessory: truncationRadio, searchItemID: SearchID.titleTruncation)
 
         configureSwitch(boldSelectedSwitch, action: #selector(toggleBoldSelected(_:)))
         addRow(to: labels, title: String(localized: "Bold selected title"),
@@ -195,6 +216,18 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         return group
     }
 
+    private func makeTruncationRadio() -> SettingsRadioGroupView {
+        let options = truncationModes.map { mode in
+            SettingsRadioGroupView.Option(identifier: mode.rawValue, title: mode.displayName)
+        }
+        let group = SettingsRadioGroupView(options: options, orientation: .horizontal)
+        group.onSelectionChange = { id in
+            guard let mode = TitleTruncationMode(rawValue: id) else { return }
+            Preferences.shared.titleTruncationMode = mode
+        }
+        return group
+    }
+
     private func configurePopup(_ popup: NSPopUpButton, titles: [String], action: Selector) {
         popup.controlSize = .small
         popup.translatesAutoresizingMaskIntoConstraints = false
@@ -238,6 +271,18 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.selectTitleAlignment($0) }
             .store(in: &cancellables)
+        prefs.$titleTruncationMode
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.selectTruncationMode($0) }
+            .store(in: &cancellables)
+        prefs.$fontScale
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.selectFontScale($0) }
+            .store(in: &cancellables)
+        prefs.$fontFace
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.selectFontFace($0) }
+            .store(in: &cancellables)
         prefs.$boldSelectedLabel
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.boldSelectedSwitch.state = $0 ? .on : .off }
@@ -279,6 +324,9 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         selectAccent(prefs.accentChoice)
         windowTitleSwitch.state = prefs.showWindowTitleLabel ? .on : .off
         selectTitleAlignment(prefs.previewTitleAlignment)
+        selectTruncationMode(prefs.titleTruncationMode)
+        selectFontScale(prefs.fontScale)
+        selectFontFace(prefs.fontFace)
         boldSelectedSwitch.state = prefs.boldSelectedLabel ? .on : .off
         appNamesSwitch.state = prefs.showApplicationNames ? .on : .off
         applyOpacity(prefs.panelOpacity)
@@ -345,6 +393,30 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private func selectTitleAlignment(_ alignment: PreviewTitleAlignment) {
         titleAlignmentRadio.select(identifier: alignment.rawValue)
+    }
+
+    private func selectTruncationMode(_ mode: TitleTruncationMode) {
+        truncationRadio.select(identifier: mode.rawValue)
+    }
+
+    private func selectFontScale(_ scale: SwitcherFontScale) {
+        if let i = fontScales.firstIndex(of: scale) { fontSizePopup.selectItem(at: i) }
+    }
+
+    private func selectFontFace(_ face: SwitcherFontFace) {
+        if let i = fontFaces.firstIndex(of: face) { fontFacePopup.selectItem(at: i) }
+    }
+
+    @objc private func fontScaleChanged() {
+        let i = fontSizePopup.indexOfSelectedItem
+        guard fontScales.indices.contains(i) else { return }
+        Preferences.shared.fontScale = fontScales[i]
+    }
+
+    @objc private func fontFaceChanged() {
+        let i = fontFacePopup.indexOfSelectedItem
+        guard fontFaces.indices.contains(i) else { return }
+        Preferences.shared.fontFace = fontFaces[i]
     }
 
     @objc private func opacityChanged(_ sender: NSSlider) {

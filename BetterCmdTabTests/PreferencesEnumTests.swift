@@ -97,6 +97,59 @@ struct PreferencesEnumTests {
         #expect(PreviewTitleAlignment.trailing.rawValue == "trailing")
     }
 
+    @Test("TitleTruncationMode raw values round-trip and map to NSLineBreakMode")
+    func titleTruncationModeRoundTrip() {
+        for mode in TitleTruncationMode.allCases {
+            #expect(TitleTruncationMode(rawValue: mode.rawValue) == mode)
+            #expect(!mode.displayName.isEmpty)
+        }
+        #expect(TitleTruncationMode(rawValue: "garbage") == nil)
+        // Stable raw values (persisted to UserDefaults / exported settings).
+        #expect(TitleTruncationMode.head.rawValue == "head")
+        #expect(TitleTruncationMode.middle.rawValue == "middle")
+        #expect(TitleTruncationMode.tail.rawValue == "tail")
+        // Exact NSLineBreakMode mapping — this is what the item views apply (#90).
+        #expect(TitleTruncationMode.head.lineBreakMode == .byTruncatingHead)
+        #expect(TitleTruncationMode.middle.lineBreakMode == .byTruncatingMiddle)
+        #expect(TitleTruncationMode.tail.lineBreakMode == .byTruncatingTail)
+        // The stored-value fallback in Preferences (init/reloadFromDefaults) is
+        // .tail, so a fresh install keeps the historical truncate-at-end look.
+        let defaults = UserDefaults(suiteName: "titleTruncationModeRoundTripTests")
+        defaults?.removePersistentDomain(forName: "titleTruncationModeRoundTripTests")
+        let fresh = defaults?.string(forKey: Preferences.Keys.titleTruncationMode)
+            .flatMap(TitleTruncationMode.init(rawValue:)) ?? .tail
+        #expect(fresh == .tail)
+    }
+
+    @Test("SwitcherFontScale raw values round-trip and multipliers strictly increase")
+    func fontScaleRoundTrip() {
+        for scale in SwitcherFontScale.allCases {
+            #expect(SwitcherFontScale(rawValue: scale.rawValue) == scale)
+            #expect(!scale.displayName.isEmpty)
+        }
+        // allCases is ordered smallest → largest; the multipliers must agree so
+        // the settings popup reads as a monotonic size ramp.
+        let multipliers = SwitcherFontScale.allCases.map(\.multiplier)
+        #expect(multipliers == multipliers.sorted())
+        #expect(Set(multipliers).count == multipliers.count)
+        #expect(SwitcherFontScale.standard.multiplier == 1.0)
+        // Unknown raw value → nil, so the init read falls back to .standard.
+        #expect(SwitcherFontScale(rawValue: "huge") == nil)
+    }
+
+    @Test("SwitcherFontFace raw values round-trip and map to SystemDesign")
+    func fontFaceRoundTrip() {
+        for face in SwitcherFontFace.allCases {
+            #expect(SwitcherFontFace(rawValue: face.rawValue) == face)
+            #expect(!face.displayName.isEmpty)
+        }
+        #expect(SwitcherFontFace.system.systemDesign == .default)
+        #expect(SwitcherFontFace.rounded.systemDesign == .rounded)
+        #expect(SwitcherFontFace.serif.systemDesign == .serif)
+        #expect(SwitcherFontFace.monospaced.systemDesign == .monospaced)
+        #expect(SwitcherFontFace(rawValue: "papyrus") == nil)
+    }
+
     @MainActor
     @Test("titleGroupOriginX places the preview title at the chosen edge")
     func titleGroupOriginX() {

@@ -15,12 +15,15 @@ struct EffectiveSettings {
     let resolvedAccent: NSColor
     let layoutMode: SwitcherLayoutMode
     let panelSize: PanelSize
+    let fontScale: SwitcherFontScale
+    let fontFace: SwitcherFontFace
     let gridMaxColumns: Int
     let panelOpacity: Int
     let panelCornerRadius: Int
     let backdropMaterial: BackdropMaterial
     let showWindowTitleLabel: Bool
     let previewTitleAlignment: PreviewTitleAlignment
+    let titleTruncationMode: TitleTruncationMode
     let boldSelectedLabel: Bool
     let showApplicationNames: Bool
     let showUnreadBadges: Bool
@@ -31,6 +34,7 @@ struct EffectiveSettings {
     let expandBrowserTabsAsWindows: Bool
     let sortOrder: SwitcherSortOrder
     let stayOpenOnRelease: Bool
+    let stayOpenOnQuickTap: Bool
 
     /// The all-global snapshot (no override). Cheap; reads `Preferences.shared`.
     @MainActor static var defaults: EffectiveSettings {
@@ -57,12 +61,15 @@ extension Preferences {
             resolvedAccent: accent,
             layoutMode: override.layoutMode ?? switcherLayoutMode,
             panelSize: override.panelSize ?? panelSize,
+            fontScale: override.fontScale ?? fontScale,
+            fontFace: override.fontFace ?? fontFace,
             gridMaxColumns: override.gridMaxColumns ?? gridMaxColumns,
             panelOpacity: override.panelOpacity ?? panelOpacity,
             panelCornerRadius: override.panelCornerRadius ?? panelCornerRadius,
             backdropMaterial: override.backdropMaterial ?? backdropMaterial,
             showWindowTitleLabel: override.showWindowTitleLabel ?? showWindowTitleLabel,
             previewTitleAlignment: override.previewTitleAlignment ?? previewTitleAlignment,
+            titleTruncationMode: override.titleTruncationMode ?? titleTruncationMode,
             boldSelectedLabel: override.boldSelectedLabel ?? boldSelectedLabel,
             showApplicationNames: override.showApplicationNames ?? showApplicationNames,
             showUnreadBadges: override.showUnreadBadges ?? showUnreadBadges,
@@ -70,7 +77,8 @@ extension Preferences {
             applicationsOnly: override.applicationsOnly ?? applicationsOnly,
             expandBrowserTabsAsWindows: override.expandBrowserTabsAsWindows ?? expandBrowserTabsAsWindows,
             sortOrder: override.sortOrder ?? sortOrder,
-            stayOpenOnRelease: override.stayOpenOnRelease ?? stayOpenOnRelease
+            stayOpenOnRelease: override.stayOpenOnRelease ?? stayOpenOnRelease,
+            stayOpenOnQuickTap: override.stayOpenOnQuickTap ?? stayOpenOnQuickTap
         )
     }
 }

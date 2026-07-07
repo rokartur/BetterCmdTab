@@ -75,6 +75,9 @@ final class ShortcutOptionsFormView: NSView {
         addBoolRow(to: behavior, title: String(localized: "Stay open after releasing the modifier"),
                    subtitle: String(localized: "Pick with Return, a quick-jump letter, or the mouse; Esc dismisses."),
                    current: override.stayOpenOnRelease) { [weak self] in self?.override.stayOpenOnRelease = $0; self?.persist() }
+        addBoolRow(to: behavior, title: String(localized: "Also stay open after a quick tap"),
+                   subtitle: String(localized: "Only applies while \u{201C}Stay open after releasing the modifier\u{201D} is on for this shortcut."),
+                   current: override.stayOpenOnQuickTap) { [weak self] in self?.override.stayOpenOnQuickTap = $0; self?.persist() }
         addBoolRow(to: behavior, title: String(localized: "Expand browser tabs as windows"), current: override.expandBrowserTabsAsWindows) { [weak self] in self?.override.expandBrowserTabsAsWindows = $0; self?.persist() }
         addCard(behavior)
 
@@ -82,12 +85,15 @@ final class ShortcutOptionsFormView: NSView {
         let appearance = SettingsSectionView(title: String(localized: "Appearance"))
         addEnumRow(to: appearance, title: String(localized: "Layout"), options: [.gridView, .list, .windowPreview] as [SwitcherLayoutMode], display: { $0.displayName }, current: override.layoutMode) { [weak self] in self?.override.layoutMode = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Size"), options: PanelSize.allCases, display: { $0.displayName }, current: override.panelSize) { [weak self] in self?.override.panelSize = $0; self?.persist() }
+        addEnumRow(to: appearance, title: String(localized: "Text size"), options: SwitcherFontScale.allCases, display: { $0.displayName }, current: override.fontScale) { [weak self] in self?.override.fontScale = $0; self?.persist() }
+        addEnumRow(to: appearance, title: String(localized: "Font"), options: SwitcherFontFace.allCases, display: { $0.displayName }, current: override.fontFace) { [weak self] in self?.override.fontFace = $0; self?.persist() }
         addIntRow(to: appearance, title: String(localized: "Grid columns"),
                   subtitle: String(localized: "Applies to the Grid and Previews layouts."),
                   values: [0, 2, 3, 4, 5, 6], display: { $0 == 0 ? String(localized: "Automatic") : "\($0)" }, current: override.gridMaxColumns) { [weak self] in self?.override.gridMaxColumns = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Accent color"), options: SwitcherAccent.allCases.filter { $0 != .custom }, display: { $0.displayName }, current: override.accentChoice) { [weak self] in self?.override.accentChoice = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Backdrop material"), options: BackdropMaterial.allCases, display: { $0.displayName }, current: override.backdropMaterial) { [weak self] in self?.override.backdropMaterial = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Title alignment"), options: [.leading, .center, .trailing] as [PreviewTitleAlignment], display: { $0.displayName }, current: override.previewTitleAlignment) { [weak self] in self?.override.previewTitleAlignment = $0; self?.persist() }
+        addEnumRow(to: appearance, title: String(localized: "Ellipsis position"), options: TitleTruncationMode.allCases, display: { $0.displayName }, current: override.titleTruncationMode) { [weak self] in self?.override.titleTruncationMode = $0; self?.persist() }
         addIntRow(to: appearance, title: String(localized: "Panel opacity"), values: [100, 90, 80, 70, 60, 50, 40, 30], display: { "\($0)%" }, current: override.panelOpacity) { [weak self] in self?.override.panelOpacity = $0; self?.persist() }
         addIntRow(to: appearance, title: String(localized: "Corner radius"), values: [0, 5, 10, 15, 20, 25, 30, 35, 40], display: { $0 == 0 ? String(localized: "Automatic") : "\($0) pt" }, current: override.panelCornerRadius) { [weak self] in self?.override.panelCornerRadius = $0; self?.persist() }
         addBoolRow(to: appearance, title: String(localized: "Show window title"), current: override.showWindowTitleLabel) { [weak self] in self?.override.showWindowTitleLabel = $0; self?.persist() }

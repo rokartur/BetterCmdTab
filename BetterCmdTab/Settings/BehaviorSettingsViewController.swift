@@ -31,6 +31,8 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     private let sortOrderPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
 
+    private let windowDrillSwitch = NSSwitch()
+
     // Tabs
     private let tabDrillSwitch = NSSwitch()
     private let expandTabsSwitch = NSSwitch()
@@ -47,6 +49,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
 
     // Keyboard
     private let stayOpenSwitch = NSSwitch()
+    private let stayOpenQuickTapSwitch = NSSwitch()
     private let shiftTapBackSwitch = NSSwitch()
     private let backtickReverseSwitch = NSSwitch()
     private let vimNavSwitch = NSSwitch()
@@ -126,6 +129,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         addRow(to: contents, title: String(localized: "Applications only"),
                subtitle: String(localized: "Show one row per app instead of one per window — classic ⌘Tab."),
                accessory: applicationsOnlySwitch, searchItemID: SearchID.applicationsOnly)
+        configureSwitch(windowDrillSwitch, action: #selector(toggleWindowDrill(_:)))
+        addRow(to: contents, title: String(localized: "Peek windows with ↓"),
+               subtitle: String(localized: "In applications-only mode, press ↓ or \\ on an app with several windows to show its windows in a strip below the switcher and pick one."),
+               accessory: windowDrillSwitch, searchItemID: SearchID.windowDrill)
         configureSwitch(badgesSwitch, action: #selector(toggleBadges(_:)))
         addRow(to: contents, title: String(localized: "Show unread badges"),
                subtitle: String(localized: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row."),
@@ -228,6 +235,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         addRow(to: keyboard, title: String(localized: "Stay open after releasing the modifier"),
                subtitle: String(localized: "Keep the switcher on screen when you let go of the trigger — pick with Return, a quick-jump letter, or the mouse; Esc dismisses. A quick tap still switches instantly."),
                accessory: stayOpenSwitch, searchItemID: SearchID.stayOpen)
+        configureSwitch(stayOpenQuickTapSwitch, action: #selector(toggleStayOpenQuickTap(_:)))
+        addRow(to: keyboard, title: String(localized: "Also stay open after a quick tap"),
+               subtitle: String(localized: "Keep the switcher on screen even when the shortcut is pressed and released in one quick tap — for shortcuts mapped to mouse buttons or gestures. Requires \u{201C}Stay open after releasing the modifier\u{201D}."),
+               accessory: stayOpenQuickTapSwitch, searchItemID: SearchID.stayOpenQuickTap)
         configureSwitch(shiftTapBackSwitch, action: #selector(toggleShiftTapBack(_:)))
         addRow(to: keyboard, title: String(localized: "Tap Shift to step backwards"),
                subtitle: String(localized: "While the switcher is open, a tap of the Shift key steps the selection backwards and holding Shift keeps stepping back until you let go — just like a held Tab. Turn this off to step back only with Shift held as you press the switch key (⌘⇧Tab)."),
@@ -322,6 +333,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         selectRecentlyClosedLimit(prefs.recentlyClosedLimit)
         recentlyClosedLimitPopup.isEnabled = prefs.showRecentlyClosed
         tabDrillSwitch.state = prefs.tabDrillEnabled ? .on : .off
+        windowDrillSwitch.state = prefs.windowDrillEnabled ? .on : .off
         expandTabsSwitch.state = prefs.expandTabsAsWindows ? .on : .off
         expandBrowserTabsSwitch.state = prefs.expandBrowserTabsAsWindows ? .on : .off
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off
@@ -331,6 +343,8 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         launcherSwitch.state = prefs.searchIncludesLaunchableApps ? .on : .off
         selectSearchMode(prefs.searchDismissMode)
         stayOpenSwitch.state = prefs.stayOpenOnRelease ? .on : .off
+        stayOpenQuickTapSwitch.state = prefs.stayOpenOnQuickTap ? .on : .off
+        stayOpenQuickTapSwitch.isEnabled = prefs.stayOpenOnRelease
         shiftTapBackSwitch.state = prefs.shiftTapStepsBackward ? .on : .off
         backtickReverseSwitch.state = prefs.backtickReversesAppSwitching ? .on : .off
         scrollSwitch.state = prefs.scrollToSwitch ? .on : .off
@@ -437,7 +451,15 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func toggleStayOpen(_ sender: NSSwitch) {
-        Preferences.shared.stayOpenOnRelease = (sender.state == .on)
+        let on = (sender.state == .on)
+        Preferences.shared.stayOpenOnRelease = on
+        // Quick-tap stay-open only takes effect while stay-open itself is on
+        // (#91), so gray it out to match.
+        stayOpenQuickTapSwitch.isEnabled = on
+    }
+
+    @objc private func toggleStayOpenQuickTap(_ sender: NSSwitch) {
+        Preferences.shared.stayOpenOnQuickTap = (sender.state == .on)
     }
 
     @objc private func toggleShiftTapBack(_ sender: NSSwitch) {
@@ -540,6 +562,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleApplicationsOnly(_ sender: NSSwitch) {
         Preferences.shared.applicationsOnly = (sender.state == .on)
+    }
+
+    @objc private func toggleWindowDrill(_ sender: NSSwitch) {
+        Preferences.shared.windowDrillEnabled = (sender.state == .on)
     }
 
     @objc private func toggleBadges(_ sender: NSSwitch) {
