@@ -739,6 +739,7 @@ final class Preferences: ObservableObject {
         static let hideFromScreenSharing = "Switcher.hideFromScreenSharing"
         static let vimNavigationEnabled = "Switcher.vimNavigationEnabled"
         static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
+        static let backtickReversesAppSwitching = "Switcher.backtickReversesAppSwitching"
         static let switcherDisplayMode = "Switcher.displayMode"
         static let previewTitleAlignment = "Switcher.previewTitleAlignment"
         static let boldSelectedLabel = "Switcher.boldSelectedLabel"
@@ -1086,6 +1087,17 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != shiftTapStepsBackward else { return }
             UserDefaults.standard.set(shiftTapStepsBackward, forKey: Keys.shiftTapStepsBackward)
+        }
+    }
+
+    /// While an app-switch session is already open, treat the window-switch key
+    /// (`⌘`` by default) as a backwards app step. Default off so the shortcut
+    /// keeps its existing window-switch meaning unless the user opts into
+    /// native-like app-switcher reverse navigation.
+    @Published var backtickReversesAppSwitching: Bool {
+        didSet {
+            guard oldValue != backtickReversesAppSwitching else { return }
+            UserDefaults.standard.set(backtickReversesAppSwitching, forKey: Keys.backtickReversesAppSwitching)
         }
     }
 
@@ -1666,6 +1678,7 @@ final class Preferences: ObservableObject {
         self.clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
         self.vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
         self.shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true
+        self.backtickReversesAppSwitching = defaults.object(forKey: Keys.backtickReversesAppSwitching) as? Bool ?? false
         self.cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         self.experimentalInstantSpaceSwitch = defaults.object(forKey: Keys.experimentalInstantSpaceSwitch) as? Bool ?? false
         self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
@@ -1788,6 +1801,7 @@ final class Preferences: ObservableObject {
         clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
         vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
         shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true
+        backtickReversesAppSwitching = defaults.object(forKey: Keys.backtickReversesAppSwitching) as? Bool ?? false
         mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
         mouseClickSelectionEnabled = defaults.object(forKey: Keys.mouseClickSelectionEnabled) as? Bool ?? true
         cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false

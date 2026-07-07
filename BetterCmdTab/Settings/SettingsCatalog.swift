@@ -104,6 +104,7 @@ enum SearchID {
     static let searchMode = "switcher.searchMode"
     static let letterChainTimeout = "switcher.letterChainTimeout"
     static let shiftTapBack = "switcher.shiftTapBack"
+    static let backtickReverse = "switcher.backtickReverse"
     static let scroll = "switcher.scroll"
     static let scrollReverse = "switcher.scrollReverse"
     static let clickDismiss = "switcher.clickDismiss"
@@ -307,6 +308,8 @@ enum SettingsCatalog {
              String(localized: "Stay open after releasing the modifier"), ["stay open", "sticky", "release", "modifier", "keep open", "hold"]),
         item(SearchID.shiftTapBack, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
              String(localized: "Tap Shift to step backwards"), ["shift", "backwards", "back", "reverse", "tap shift", "cmd shift tab", "windows"]),
+        item(SearchID.backtickReverse, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
+             String(localized: "Use window-switch shortcut to step backwards"), ["backtick", "tilde", "cmd backtick", "command backtick", "window shortcut", "reverse", "backwards", "native"]),
         item(SearchID.vimNavigation, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
              String(localized: "Vim keys (h j k l)"), ["vim", "hjkl", "h j k l", "keyboard", "arrows", "navigation"]),
         // Behavior · Mouse

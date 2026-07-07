@@ -26,6 +26,12 @@ final class SwitcherController: SwitcherViewDelegate {
         var isPrimed: Bool { self == .primed }
     }
 
+    enum SwitchSessionKind {
+        case none
+        case appSwitching
+        case windowSwitching
+    }
+
     private let hotkey = HotkeyTap()
     /// Secure-input-immune fallback trigger (see CarbonHotkeyTrigger). Opens and
     /// steps the switcher via a Carbon hot key when the tap is bypassed because
@@ -79,6 +85,7 @@ final class SwitcherController: SwitcherViewDelegate {
     private let view: SwitcherView
 
     private var _phase: Phase = .idle
+    private var switchSessionKind: SwitchSessionKind = .none
     private var primedApps: [NSRunningApplication] = []
     private var primedIndex: Int = 0
     /// Net number of primed ⌘Tab steps (forward positive, backward negative).
@@ -848,6 +855,7 @@ final class SwitcherController: SwitcherViewDelegate {
             primedIndex = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : primedApps.count - 1)
             primedStepDelta = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
             primedByHeldChord = false
+            switchSessionKind = .none
             phase = .primed
             reveal()
             // After reveal lands the panel in `.visible`, detach from any
@@ -1657,6 +1665,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // ⌘Tab is unfiltered. Single chokepoint — every exit path (commit,
             // cancel, dismiss) flows through here.
             if newValue == .idle {
+                switchSessionKind = .none
                 activeScope = nil
                 scopeFrontPid = nil
                 // Drop the per-shortcut override (#74) so the next plain ⌘Tab
@@ -1721,6 +1730,7 @@ final class SwitcherController: SwitcherViewDelegate {
         primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
         primedIndex = 0
         primedStepDelta = 0
+        switchSessionKind = .none
         // Scoped opens are sticky and never release-to-commit; the bound chord
         // may not include the trigger's hold modifier, so the missed-release
         // backstop must not run.
@@ -1889,9 +1899,9 @@ final class SwitcherController: SwitcherViewDelegate {
         case .prevApp:
             if tabDrillActive { advanceTab(by: -1) } else { advance(by: -1, wrap: true) }
         case .nextWindow:
-            if tabDrillActive { advanceTab(by: 1) } else { advanceWindowsOnly(by: 1) }
+            handleWindowTrigger(delta: 1)
         case .prevWindow:
-            if tabDrillActive { advanceTab(by: -1) } else { advanceWindowsOnly(by: -1) }
+            handleWindowTrigger(delta: -1)
         case .nextRow:
             advanceVerticalOrLinear(by: 1)
         case .prevRow:
@@ -1976,6 +1986,26 @@ final class SwitcherController: SwitcherViewDelegate {
             if let ch = KeyboardLayout.character(for: UInt16(keyCode)) {
                 handleSearchInput(ch)
             }
+        }
+    }
+
+    nonisolated static func windowTriggerStepsAppsBackward(
+        session: SwitchSessionKind,
+        backtickReversesAppSwitching: Bool
+    ) -> Bool {
+        backtickReversesAppSwitching && session == .appSwitching
+    }
+
+    private func handleWindowTrigger(delta: Int) {
+        if tabDrillActive {
+            advanceTab(by: delta)
+        } else if Self.windowTriggerStepsAppsBackward(
+            session: switchSessionKind,
+            backtickReversesAppSwitching: Preferences.shared.backtickReversesAppSwitching
+        ) {
+            advance(by: -1, wrap: true)
+        } else {
+            advanceWindowsOnly(by: delta)
         }
     }
 
@@ -2091,6 +2121,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // timer), so it can land asynchronously and still order this chord.
             handleFocusChange(pid: front.processIdentifier)
             resolveActiveOptions(for: .switchWindows)
+            switchSessionKind = .windowSwitching
             windowsOnlyMode = true
             windowsOnlyPid = front.processIdentifier
             windowsOnlyPrimedDelta = delta
@@ -2119,6 +2150,7 @@ final class SwitcherController: SwitcherViewDelegate {
             resolveActiveOptions(for: .switchApps)
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
             guard !primedApps.isEmpty else { return }
+            switchSessionKind = .appSwitching
             if primedApps.count == 1 {
                 primedIndex = 0
                 primedStepDelta = 0
