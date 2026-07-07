@@ -85,6 +85,8 @@ final class ShortcutOptionsFormView: NSView {
         let appearance = SettingsSectionView(title: String(localized: "Appearance"))
         addEnumRow(to: appearance, title: String(localized: "Layout"), options: [.gridView, .list, .windowPreview] as [SwitcherLayoutMode], display: { $0.displayName }, current: override.layoutMode) { [weak self] in self?.override.layoutMode = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Size"), options: PanelSize.allCases, display: { $0.displayName }, current: override.panelSize) { [weak self] in self?.override.panelSize = $0; self?.persist() }
+        addEnumRow(to: appearance, title: String(localized: "Text size"), options: SwitcherFontScale.allCases, display: { $0.displayName }, current: override.fontScale) { [weak self] in self?.override.fontScale = $0; self?.persist() }
+        addEnumRow(to: appearance, title: String(localized: "Font"), options: SwitcherFontFace.allCases, display: { $0.displayName }, current: override.fontFace) { [weak self] in self?.override.fontFace = $0; self?.persist() }
         addIntRow(to: appearance, title: String(localized: "Grid columns"),
                   subtitle: String(localized: "Applies to the Grid and Previews layouts."),
                   values: [0, 2, 3, 4, 5, 6], display: { $0 == 0 ? String(localized: "Automatic") : "\($0)" }, current: override.gridMaxColumns) { [weak self] in self?.override.gridMaxColumns = $0; self?.persist() }
