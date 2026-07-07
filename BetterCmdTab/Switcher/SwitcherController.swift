@@ -1188,6 +1188,29 @@ final class SwitcherController: SwitcherViewDelegate {
         return phase == .visible && primedByHeldChord && (!stickyOpen || tabDrillActive)
     }
 
+    /// Pure: should a chord release that lands while still `.primed` (before the
+    /// panel is on screen) reveal + park the panel instead of committing (#91)?
+    /// Shortcuts mapped to mouse buttons/gestures synthesize a quick
+    /// press+release, so the release always lands pre-visible. The AND is
+    /// deliberate — the quick-tap instant flip is protected shipped behavior
+    /// (#77/0e61378), so parking a pre-visible release requires BOTH opt-ins.
+    /// Isolated so the gate stays unit-testable.
+    nonisolated static func quickReleaseParks(
+        stayOpenOnRelease: Bool,
+        stayOpenOnQuickTap: Bool
+    ) -> Bool {
+        stayOpenOnRelease && stayOpenOnQuickTap
+    }
+
+    /// `quickReleaseParks` over the firing shortcut's resolved settings — one
+    /// bool read on the release edge, nothing else.
+    private var quickReleaseParksSticky: Bool {
+        Self.quickReleaseParks(
+            stayOpenOnRelease: effective.stayOpenOnRelease,
+            stayOpenOnQuickTap: effective.stayOpenOnQuickTap
+        )
+    }
+
     /// Pure: on a backstop tick, should an idle `.visible` panel be force-closed?
     /// Fires while `CGEventSource.flagsState` can stick reporting ⌘-held — the sole
     /// state where the no-interaction ceiling is the only flagsState-independent way
@@ -2367,9 +2390,11 @@ final class SwitcherController: SwitcherViewDelegate {
         // tap now catches any *later* release — but a release that already happened
         // is only recoverable here: re-read the live modifier state and, if neither
         // hold modifier is still down, commit the primed pick now instead of
-        // revealing a stranded panel.
+        // revealing a stranded panel. Route through handleModifierRelease so the
+        // quick-tap stay-open opt-in (#91) can park instead — with the option
+        // off it reaches commit() through identical inert branches.
         if holdReleaseAlreadyMissed() {
-            commit()
+            handleModifierRelease()
             return
         }
         // Resolve the user's current window off-main now, while we wait out the
@@ -2517,7 +2542,9 @@ final class SwitcherController: SwitcherViewDelegate {
         // only: gesture/scoped sessions hold no modifier, so the live flags
         // read would always look like a missed release and commit instantly
         // instead of presenting (they open sticky and never release-commit).
-        if primedByHeldChord, holdReleaseAlreadyMissed() {
+        // With quick-tap stay-open (#91) a release landing during reveal()'s
+        // own run falls through to present; the post-present rescue parks it.
+        if primedByHeldChord, holdReleaseAlreadyMissed(), !quickReleaseParksSticky {
             commit()
             return
         }
@@ -4683,6 +4710,23 @@ final class SwitcherController: SwitcherViewDelegate {
         if stickyOpen { return }
         if searchActive, Preferences.shared.searchDismissMode == .stayOpen {
             stickyOpen = true
+            return
+        }
+        // Quick-tap stay-open (#91): a chord release landing while still
+        // `.primed` (mouse-mapped shortcuts synthesize press+release before the
+        // panel appears) reveals + parks instead of committing — but only when
+        // BOTH stay-open opt-ins are on (see `quickReleaseParks`). Guard the
+        // park on `.visible` like openScoped()/triggerFromGesture(): reveal()
+        // can cancel to `.idle` (empty rows) and an unguarded assignment would
+        // strand stickyOpen=true into the next session. Benign re-entrancy:
+        // the synchronous reveal() can reach the post-present rescue, which
+        // re-enters handleModifierRelease and parks via the `.visible` branch
+        // first — idempotent.
+        if phase == .primed, primedByHeldChord, quickReleaseParksSticky {
+            revealTimer?.invalidate()
+            revealTimer = nil
+            reveal()
+            if phase == .visible { stickyOpen = true }
             return
         }
         // Stay-open (#77): only a `.visible` panel parks sticky — a release

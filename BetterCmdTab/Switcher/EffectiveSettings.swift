@@ -31,6 +31,7 @@ struct EffectiveSettings {
     let expandBrowserTabsAsWindows: Bool
     let sortOrder: SwitcherSortOrder
     let stayOpenOnRelease: Bool
+    let stayOpenOnQuickTap: Bool
 
     /// The all-global snapshot (no override). Cheap; reads `Preferences.shared`.
     @MainActor static var defaults: EffectiveSettings {
@@ -70,7 +71,8 @@ extension Preferences {
             applicationsOnly: override.applicationsOnly ?? applicationsOnly,
             expandBrowserTabsAsWindows: override.expandBrowserTabsAsWindows ?? expandBrowserTabsAsWindows,
             sortOrder: override.sortOrder ?? sortOrder,
-            stayOpenOnRelease: override.stayOpenOnRelease ?? stayOpenOnRelease
+            stayOpenOnRelease: override.stayOpenOnRelease ?? stayOpenOnRelease,
+            stayOpenOnQuickTap: override.stayOpenOnQuickTap ?? stayOpenOnQuickTap
         )
     }
 }
