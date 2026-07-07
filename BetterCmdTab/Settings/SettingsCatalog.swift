@@ -108,6 +108,7 @@ enum SearchID {
     static let scrollReverse = "switcher.scrollReverse"
     static let clickDismiss = "switcher.clickDismiss"
     static let stayOpen = "switcher.stayOpen"
+    static let stayOpenQuickTap = "switcher.stayOpenQuickTap"
     static let vimNavigation = "switcher.vimNavigation"
     static let hoverActions = "switcher.hoverActions"
     static let displayMonitor = "switcher.displayMonitor"
@@ -305,6 +306,8 @@ enum SettingsCatalog {
         // Behavior · Keyboard
         item(SearchID.stayOpen, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
              String(localized: "Stay open after releasing the modifier"), ["stay open", "sticky", "release", "modifier", "keep open", "hold"]),
+        item(SearchID.stayOpenQuickTap, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
+             String(localized: "Also stay open after a quick tap"), ["quick tap", "mouse", "mouse button", "gesture", "stay open", "sticky", "tap"]),
         item(SearchID.shiftTapBack, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
              String(localized: "Tap Shift to step backwards"), ["shift", "backwards", "back", "reverse", "tap shift", "cmd shift tab", "windows"]),
         item(SearchID.vimNavigation, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),

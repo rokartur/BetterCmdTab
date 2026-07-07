@@ -506,6 +506,34 @@
         }
       }
     },
+    "Also stay open after a quick tap" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auch nach kurzem Antippen geöffnet lassen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener abierto también tras un toque rápido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rester ouvert aussi après une pression rapide"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozostaw otwarte także po szybkim naciśnięciu"
+          }
+        }
+      }
+    },
     "Always" : {
       "localizations" : {
         "de" : {
@@ -3475,6 +3503,34 @@
         }
       }
     },
+    "Keep the switcher on screen even when the shortcut is pressed and released in one quick tap — for shortcuts mapped to mouse buttons or gestures. Requires “Stay open after releasing the modifier”." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Umschalter bleibt auch dann auf dem Bildschirm, wenn der Kurzbefehl mit einem kurzen Antippen gedrückt und losgelassen wird — für Kurzbefehle, die auf Maustasten oder Gesten gelegt sind. Erfordert „Nach dem Loslassen der Modifikatortaste geöffnet lassen“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El selector permanece en pantalla incluso cuando el atajo se pulsa y se suelta en un solo toque rápido — para atajos asignados a botones del ratón o gestos. Requiere «Mantener abierto al soltar el modificador»."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le sélecteur reste à l’écran même quand le raccourci est pressé et relâché en une pression rapide — pour les raccourcis associés à des boutons de souris ou à des gestes. Nécessite « Rester ouvert après le relâchement du modificateur »."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącznik pozostaje na ekranie nawet po szybkim naciśnięciu i puszczeniu skrótu — dla skrótów mapowanych na przyciski myszy lub gesty. Wymaga „Pozostaw otwarte po puszczeniu modyfikatora”."
+          }
+        }
+      }
+    },
     "Keep the switcher on screen when you let go of the trigger — pick with Return, a quick-jump letter, or the mouse; Esc dismisses. A quick tap still switches instantly." : {
       "localizations" : {
         "pl" : {
@@ -4620,6 +4676,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "Only applies while “Stay open after releasing the modifier” is on for this shortcut." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gilt nur, solange „Nach dem Loslassen der Modifikatortaste geöffnet lassen“ für diesen Kurzbefehl aktiviert ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo se aplica mientras «Mantener abierto al soltar el modificador» esté activado para este atajo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne s’applique que lorsque « Rester ouvert après le relâchement du modificateur » est activé pour ce raccourci."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Działa tylko, gdy „Pozostaw otwarte po puszczeniu modyfikatora” jest włączone dla tego skrótu."
           }
         }
       }
