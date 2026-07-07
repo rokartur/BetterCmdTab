@@ -362,6 +362,7 @@ struct ShortcutOverride: Equatable, Sendable {
     var applicationsOnly: Bool?
     var expandBrowserTabsAsWindows: Bool?
     var stayOpenOnRelease: Bool?
+    var stayOpenOnQuickTap: Bool?
     // Appearance (resolved into `EffectiveSettings`).
     var layoutMode: SwitcherLayoutMode?
     var panelSize: PanelSize?
@@ -386,6 +387,7 @@ struct ShortcutOverride: Equatable, Sendable {
         spaceScope == .inherit && showMinimized == nil && showHidden == nil
             && showWindowless == nil && sortOrder == nil && applicationsOnly == nil
             && expandBrowserTabsAsWindows == nil && stayOpenOnRelease == nil
+            && stayOpenOnQuickTap == nil
             && layoutMode == nil && panelSize == nil
             && gridMaxColumns == nil && accentChoice == nil && customAccentHex == nil
             && panelOpacity == nil && panelCornerRadius == nil && backdropMaterial == nil
@@ -409,6 +411,7 @@ struct ShortcutOverride: Equatable, Sendable {
         put("applicationsOnly", applicationsOnly)
         put("expandBrowserTabsAsWindows", expandBrowserTabsAsWindows)
         put("stayOpenOnRelease", stayOpenOnRelease)
+        put("stayOpenOnQuickTap", stayOpenOnQuickTap)
         if let layoutMode { d["layoutMode"] = layoutMode.rawValue }
         if let panelSize { d["panelSize"] = panelSize.rawValue }
         put("gridMaxColumns", gridMaxColumns)
@@ -439,6 +442,7 @@ struct ShortcutOverride: Equatable, Sendable {
         applicationsOnly = bool("applicationsOnly")
         expandBrowserTabsAsWindows = bool("expandBrowserTabsAsWindows")
         stayOpenOnRelease = bool("stayOpenOnRelease")
+        stayOpenOnQuickTap = bool("stayOpenOnQuickTap")
         layoutMode = dictionary["layoutMode"].flatMap(SwitcherLayoutMode.init(rawValue:))
         panelSize = dictionary["panelSize"].flatMap(PanelSize.init(rawValue:))
         gridMaxColumns = dictionary["gridMaxColumns"].flatMap(Int.init)
@@ -677,6 +681,7 @@ final class Preferences: ObservableObject {
         static let letterHintsEnabled = "Switcher.letterHintsEnabled"
         static let searchDismissMode = "Switcher.searchDismissMode"
         static let stayOpenOnRelease = "Switcher.stayOpenOnRelease"
+        static let stayOpenOnQuickTap = "Switcher.stayOpenOnQuickTap"
         static let searchIncludesLaunchableApps = "Switcher.searchIncludesLaunchableApps"
         static let showRecentlyClosed = "Switcher.showRecentlyClosed"
         static let recentlyClosedLimit = "Switcher.recentlyClosedLimit"
@@ -937,6 +942,18 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != stayOpenOnRelease else { return }
             UserDefaults.standard.set(stayOpenOnRelease, forKey: Keys.stayOpenOnRelease)
+        }
+    }
+
+    /// Also park the panel open when the trigger chord is released *before*
+    /// the panel appears (#91) — shortcuts mapped to mouse buttons or gestures
+    /// synthesize a quick press+release, so the release lands pre-visible and
+    /// would otherwise commit instantly. Only takes effect when
+    /// `stayOpenOnRelease` is also on. Default off.
+    @Published var stayOpenOnQuickTap: Bool {
+        didSet {
+            guard oldValue != stayOpenOnQuickTap else { return }
+            UserDefaults.standard.set(stayOpenOnQuickTap, forKey: Keys.stayOpenOnQuickTap)
         }
     }
 
@@ -1654,6 +1671,7 @@ final class Preferences: ObservableObject {
         let dismissRaw = defaults.string(forKey: Keys.searchDismissMode)
         self.searchDismissMode = dismissRaw.flatMap(SearchDismissMode.init(rawValue:)) ?? .holdModifier
         self.stayOpenOnRelease = defaults.object(forKey: Keys.stayOpenOnRelease) as? Bool ?? false
+        self.stayOpenOnQuickTap = defaults.object(forKey: Keys.stayOpenOnQuickTap) as? Bool ?? false
 
         self.searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
         self.showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
@@ -1782,6 +1800,7 @@ final class Preferences: ObservableObject {
         letterHintsEnabled = defaults.object(forKey: Keys.letterHintsEnabled) as? Bool ?? true
         searchDismissMode = defaults.string(forKey: Keys.searchDismissMode).flatMap(SearchDismissMode.init(rawValue:)) ?? .holdModifier
         stayOpenOnRelease = defaults.object(forKey: Keys.stayOpenOnRelease) as? Bool ?? false
+        stayOpenOnQuickTap = defaults.object(forKey: Keys.stayOpenOnQuickTap) as? Bool ?? false
         searchIncludesLaunchableApps = defaults.object(forKey: Keys.searchIncludesLaunchableApps) as? Bool ?? true
         showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
         recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5
