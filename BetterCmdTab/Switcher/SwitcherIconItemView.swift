@@ -193,6 +193,14 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
 
     func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
         self.effective = effective
+        // Ellipsis position for long titles (#90). Guarded set — one enum read,
+        // no work when unchanged. (The attributed title's paragraph style in
+        // `buildTitle` is what actually governs truncation; this keeps the
+        // field property consistent.)
+        let truncation = effective.titleTruncationMode.lineBreakMode
+        if titleLabel.lineBreakMode != truncation {
+            titleLabel.lineBreakMode = truncation
+        }
         if metrics != self.metrics {
             applyMetrics(metrics)
         }
@@ -330,7 +338,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
             indicators: indicators,
             text: text,
             fontSize: metrics.tileTitleFontSize,
-            accentKey: accentKey
+            accentKey: accentKey,
+            truncation: effective.titleTruncationMode
         )
         return Self.titleCache.value(for: key) {
             self.buildTitle(indicators: indicators, text: text)
@@ -341,7 +350,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         let font = NSFont.systemFont(ofSize: metrics.tileTitleFontSize, weight: .regular)
         let para = NSMutableParagraphStyle()
         para.alignment = .center
-        para.lineBreakMode = .byTruncatingTail
+        para.lineBreakMode = effective.titleTruncationMode.lineBreakMode
 
         let result = NSMutableAttributedString()
         for (i, indicator) in indicators.enumerated() {
@@ -415,6 +424,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         let text: String
         let fontSize: CGFloat
         let accentKey: String
+        let truncation: TitleTruncationMode
     }
     /// The fully assembled secondary line (tinted glyph attachments + text) is
     /// the same immutable string for any tile with the same inputs, so memoize

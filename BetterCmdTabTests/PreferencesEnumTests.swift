@@ -97,6 +97,30 @@ struct PreferencesEnumTests {
         #expect(PreviewTitleAlignment.trailing.rawValue == "trailing")
     }
 
+    @Test("TitleTruncationMode raw values round-trip and map to NSLineBreakMode")
+    func titleTruncationModeRoundTrip() {
+        for mode in TitleTruncationMode.allCases {
+            #expect(TitleTruncationMode(rawValue: mode.rawValue) == mode)
+            #expect(!mode.displayName.isEmpty)
+        }
+        #expect(TitleTruncationMode(rawValue: "garbage") == nil)
+        // Stable raw values (persisted to UserDefaults / exported settings).
+        #expect(TitleTruncationMode.head.rawValue == "head")
+        #expect(TitleTruncationMode.middle.rawValue == "middle")
+        #expect(TitleTruncationMode.tail.rawValue == "tail")
+        // Exact NSLineBreakMode mapping — this is what the item views apply (#90).
+        #expect(TitleTruncationMode.head.lineBreakMode == .byTruncatingHead)
+        #expect(TitleTruncationMode.middle.lineBreakMode == .byTruncatingMiddle)
+        #expect(TitleTruncationMode.tail.lineBreakMode == .byTruncatingTail)
+        // The stored-value fallback in Preferences (init/reloadFromDefaults) is
+        // .tail, so a fresh install keeps the historical truncate-at-end look.
+        let defaults = UserDefaults(suiteName: "titleTruncationModeRoundTripTests")
+        defaults?.removePersistentDomain(forName: "titleTruncationModeRoundTripTests")
+        let fresh = defaults?.string(forKey: Preferences.Keys.titleTruncationMode)
+            .flatMap(TitleTruncationMode.init(rawValue:)) ?? .tail
+        #expect(fresh == .tail)
+    }
+
     @MainActor
     @Test("titleGroupOriginX places the preview title at the chosen edge")
     func titleGroupOriginX() {

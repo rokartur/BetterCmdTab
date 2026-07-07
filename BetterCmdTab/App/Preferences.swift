@@ -42,6 +42,32 @@ enum PreviewTitleAlignment: String, CaseIterable {
     }
 }
 
+/// Which part of a long title is elided with an ellipsis (#90). Users with
+/// meaningful info at both ends of a title (URLs, project paths) can move the
+/// ellipsis; default `.tail` keeps the historical truncate-at-end behavior.
+/// Raw values mirror `NSLineBreakMode` semantics and are frozen on release.
+enum TitleTruncationMode: String, CaseIterable {
+    case head
+    case middle
+    case tail
+
+    var displayName: String {
+        switch self {
+        case .head: return String(localized: "Beginning")
+        case .middle: return String(localized: "Middle")
+        case .tail: return String(localized: "End")
+        }
+    }
+
+    var lineBreakMode: NSLineBreakMode {
+        switch self {
+        case .head: return .byTruncatingHead
+        case .middle: return .byTruncatingMiddle
+        case .tail: return .byTruncatingTail
+        }
+    }
+}
+
 /// Which display the switcher panel opens on (#22).
 enum SwitcherDisplayMode: String, CaseIterable {
     /// Screen under the mouse pointer. Default — matches pre-#22 behavior.
@@ -374,6 +400,7 @@ struct ShortcutOverride: Equatable, Sendable {
     var backdropMaterial: BackdropMaterial?
     var showWindowTitleLabel: Bool?
     var previewTitleAlignment: PreviewTitleAlignment?
+    var titleTruncationMode: TitleTruncationMode?
     var boldSelectedLabel: Bool?
     var showApplicationNames: Bool?
     var showUnreadBadges: Bool?
@@ -392,6 +419,7 @@ struct ShortcutOverride: Equatable, Sendable {
             && gridMaxColumns == nil && accentChoice == nil && customAccentHex == nil
             && panelOpacity == nil && panelCornerRadius == nil && backdropMaterial == nil
             && showWindowTitleLabel == nil && previewTitleAlignment == nil
+            && titleTruncationMode == nil
             && boldSelectedLabel == nil && showApplicationNames == nil
             && showUnreadBadges == nil && letterHintsEnabled == nil
     }
@@ -422,6 +450,7 @@ struct ShortcutOverride: Equatable, Sendable {
         if let backdropMaterial { d["backdropMaterial"] = backdropMaterial.rawValue }
         put("showWindowTitleLabel", showWindowTitleLabel)
         if let previewTitleAlignment { d["previewTitleAlignment"] = previewTitleAlignment.rawValue }
+        if let titleTruncationMode { d["titleTruncationMode"] = titleTruncationMode.rawValue }
         put("boldSelectedLabel", boldSelectedLabel)
         put("showApplicationNames", showApplicationNames)
         put("showUnreadBadges", showUnreadBadges)
@@ -453,6 +482,7 @@ struct ShortcutOverride: Equatable, Sendable {
         backdropMaterial = dictionary["backdropMaterial"].flatMap(BackdropMaterial.init(rawValue:))
         showWindowTitleLabel = bool("showWindowTitleLabel")
         previewTitleAlignment = dictionary["previewTitleAlignment"].flatMap(PreviewTitleAlignment.init(rawValue:))
+        titleTruncationMode = dictionary["titleTruncationMode"].flatMap(TitleTruncationMode.init(rawValue:))
         boldSelectedLabel = bool("boldSelectedLabel")
         showApplicationNames = bool("showApplicationNames")
         showUnreadBadges = bool("showUnreadBadges")
@@ -759,6 +789,7 @@ final class Preferences: ObservableObject {
         static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
         static let switcherDisplayMode = "Switcher.displayMode"
         static let previewTitleAlignment = "Switcher.previewTitleAlignment"
+        static let titleTruncationMode = "Switcher.titleTruncationMode"
         static let boldSelectedLabel = "Switcher.boldSelectedLabel"
     }
 
@@ -1249,6 +1280,15 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Which part of a long title is shortened with an ellipsis, in every
+    /// layout and the tab strip (#90). Default `.tail` — unchanged from before.
+    @Published var titleTruncationMode: TitleTruncationMode {
+        didSet {
+            guard oldValue != titleTruncationMode else { return }
+            UserDefaults.standard.set(titleTruncationMode.rawValue, forKey: Keys.titleTruncationMode)
+        }
+    }
+
     /// Bold the selected row's title in the Grid and Previews layouts. Default
     /// on. When off, the selected title only brightens (white) with no weight or
     /// width change — avoids the "text grows on select" wobble (#72).
@@ -1718,6 +1758,8 @@ final class Preferences: ObservableObject {
         self.showApplicationNames = defaults.object(forKey: Keys.showApplicationNames) as? Bool ?? true
         self.previewTitleAlignment = defaults.string(forKey: Keys.previewTitleAlignment)
             .flatMap(PreviewTitleAlignment.init(rawValue:)) ?? .center
+        self.titleTruncationMode = defaults.string(forKey: Keys.titleTruncationMode)
+            .flatMap(TitleTruncationMode.init(rawValue:)) ?? .tail
         self.boldSelectedLabel = defaults.object(forKey: Keys.boldSelectedLabel) as? Bool ?? true
         let opacity = defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100
         self.panelOpacity = Self.clampOpacity(opacity)
@@ -1833,6 +1875,7 @@ final class Preferences: ObservableObject {
         showWindowTitleLabel = defaults.object(forKey: Keys.showWindowTitleLabel) as? Bool ?? true
         showApplicationNames = defaults.object(forKey: Keys.showApplicationNames) as? Bool ?? true
         previewTitleAlignment = defaults.string(forKey: Keys.previewTitleAlignment).flatMap(PreviewTitleAlignment.init(rawValue:)) ?? .center
+        titleTruncationMode = defaults.string(forKey: Keys.titleTruncationMode).flatMap(TitleTruncationMode.init(rawValue:)) ?? .tail
         boldSelectedLabel = defaults.object(forKey: Keys.boldSelectedLabel) as? Bool ?? true
         panelOpacity = Self.clampOpacity(defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100)
         panelCornerRadius = Self.clampCornerRadius(defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0)

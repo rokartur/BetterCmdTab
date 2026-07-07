@@ -88,10 +88,16 @@ final class TabStripView: NSView {
             stack.removeArrangedSubview(cell)
             cell.removeFromSuperview()
         }
+        // Ellipsis position for long titles (#90): global preference only (the
+        // per-shortcut override deliberately does not reach the strip). Cells
+        // are pooled across configures, so apply it here — one enum read per
+        // drill-in — rather than once in `TabStripCell.init`.
+        let truncation = Preferences.shared.titleTruncationMode.lineBreakMode
         for (i, title) in titles.enumerated() {
             cells[i].configure(title: title.isEmpty ? String(localized: "Untitled") : title,
                                selected: i == selectedIndex,
-                               accent: accent)
+                               accent: accent,
+                               truncation: truncation)
         }
         scrollSelectedIntoView()
     }
@@ -166,7 +172,10 @@ private final class TabStripCell: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
-    func configure(title: String, selected: Bool, accent: NSColor) {
+    func configure(title: String, selected: Bool, accent: NSColor, truncation: NSLineBreakMode) {
+        if label.lineBreakMode != truncation {
+            label.lineBreakMode = truncation
+        }
         label.stringValue = title
         isSelected = selected
         accentColor = accent

@@ -21,6 +21,7 @@ struct EffectiveSettings {
     let backdropMaterial: BackdropMaterial
     let showWindowTitleLabel: Bool
     let previewTitleAlignment: PreviewTitleAlignment
+    let titleTruncationMode: TitleTruncationMode
     let boldSelectedLabel: Bool
     let showApplicationNames: Bool
     let showUnreadBadges: Bool
@@ -64,6 +65,7 @@ extension Preferences {
             backdropMaterial: override.backdropMaterial ?? backdropMaterial,
             showWindowTitleLabel: override.showWindowTitleLabel ?? showWindowTitleLabel,
             previewTitleAlignment: override.previewTitleAlignment ?? previewTitleAlignment,
+            titleTruncationMode: override.titleTruncationMode ?? titleTruncationMode,
             boldSelectedLabel: override.boldSelectedLabel ?? boldSelectedLabel,
             showApplicationNames: override.showApplicationNames ?? showApplicationNames,
             showUnreadBadges: override.showUnreadBadges ?? showUnreadBadges,

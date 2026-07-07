@@ -105,6 +105,7 @@ struct ShortcutOverrideTests {
         ov.backdropMaterial = .sidebar
         ov.showWindowTitleLabel = false
         ov.previewTitleAlignment = .leading
+        ov.titleTruncationMode = .middle
         ov.boldSelectedLabel = false
         ov.showApplicationNames = true
         ov.showUnreadBadges = false
@@ -293,6 +294,18 @@ struct ShortcutOverrideTests {
         #expect(prefs.effectiveSettings(for: ov).stayOpenOnQuickTap == target)
         // Unset inherits the global.
         #expect(prefs.effectiveSettings(for: ShortcutOverride()).stayOpenOnQuickTap == prefs.stayOpenOnQuickTap)
+    }
+
+    @Test("title truncation resolves the override over the global (#90)")
+    func effectiveTitleTruncationOverride() {
+        let prefs = Preferences.shared
+        var ov = ShortcutOverride()
+        // Pick a mode that differs from the current global so the assertion is real.
+        let target: TitleTruncationMode = prefs.titleTruncationMode == .head ? .middle : .head
+        ov.titleTruncationMode = target
+        #expect(prefs.effectiveSettings(for: ov).titleTruncationMode == target)
+        // Unset inherits the global.
+        #expect(prefs.effectiveSettings(for: ShortcutOverride()).titleTruncationMode == prefs.titleTruncationMode)
     }
 
     @Test("resolvedAccent honors an overridden custom hex")

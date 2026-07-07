@@ -122,6 +122,7 @@ enum SearchID {
     static let quickSwitchDelay = "appearance.quickSwitchDelay"
     static let windowTitle = "appearance.windowTitle"
     static let titleAlignment = "appearance.titleAlignment"
+    static let titleTruncation = "appearance.titleTruncation"
     static let boldSelected = "appearance.boldSelected"
     static let opacity = "appearance.opacity"
     static let cornerRadius = "appearance.cornerRadius"
@@ -339,7 +340,9 @@ enum SettingsCatalog {
         item(SearchID.windowTitle, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
              String(localized: "Show window title"), ["window title", "title", "label", "name"]),
         item(SearchID.titleAlignment, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
-             String(localized: "Title alignment"), ["title", "alignment", "align", "left", "center", "centre", "right", "position", "ellipsis"]),
+             String(localized: "Title alignment"), ["title", "alignment", "align", "left", "center", "centre", "right", "position"]),
+        item(SearchID.titleTruncation, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Ellipsis position"), ["ellipsis", "truncate", "truncation", "beginning", "middle", "end", "long title", "shorten", "title"]),
         item(SearchID.boldSelected, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
              String(localized: "Bold selected title"), ["bold", "selected", "title", "weight", "highlight", "label"]),
         item(SearchID.applicationNames, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
