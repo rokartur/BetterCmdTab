@@ -88,16 +88,22 @@ final class TabStripView: NSView {
             stack.removeArrangedSubview(cell)
             cell.removeFromSuperview()
         }
-        // Ellipsis position for long titles (#90): global preference only (the
-        // per-shortcut override deliberately does not reach the strip). Cells
-        // are pooled across configures, so apply it here — one enum read per
-        // drill-in — rather than once in `TabStripCell.init`.
-        let truncation = Preferences.shared.titleTruncationMode.lineBreakMode
+        // Ellipsis position (#90) and text size/face (#62): global preferences
+        // only (the per-shortcut override deliberately does not reach the
+        // strip). Cells are pooled across configures, so apply both here — one
+        // pref read + one memoized font resolve per drill-in — rather than once
+        // in `TabStripCell.init`.
+        let prefs = Preferences.shared
+        let truncation = prefs.titleTruncationMode.lineBreakMode
+        let font = SwitcherFont.font(ofSize: round(12 * prefs.fontScale.multiplier),
+                                     weight: .medium,
+                                     design: prefs.fontFace)
         for (i, title) in titles.enumerated() {
             cells[i].configure(title: title.isEmpty ? String(localized: "Untitled") : title,
                                selected: i == selectedIndex,
                                accent: accent,
-                               truncation: truncation)
+                               truncation: truncation,
+                               font: font)
         }
         scrollSelectedIntoView()
     }
@@ -172,9 +178,12 @@ private final class TabStripCell: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
-    func configure(title: String, selected: Bool, accent: NSColor, truncation: NSLineBreakMode) {
+    func configure(title: String, selected: Bool, accent: NSColor, truncation: NSLineBreakMode, font: NSFont) {
         if label.lineBreakMode != truncation {
             label.lineBreakMode = truncation
+        }
+        if label.font != font {
+            label.font = font
         }
         label.stringValue = title
         isSelected = selected

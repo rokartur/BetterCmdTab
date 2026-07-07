@@ -392,6 +392,8 @@ struct ShortcutOverride: Equatable, Sendable {
     // Appearance (resolved into `EffectiveSettings`).
     var layoutMode: SwitcherLayoutMode?
     var panelSize: PanelSize?
+    var fontScale: SwitcherFontScale?
+    var fontFace: SwitcherFontFace?
     var gridMaxColumns: Int?
     var accentChoice: SwitcherAccent?
     var customAccentHex: String?
@@ -416,6 +418,7 @@ struct ShortcutOverride: Equatable, Sendable {
             && expandBrowserTabsAsWindows == nil && stayOpenOnRelease == nil
             && stayOpenOnQuickTap == nil
             && layoutMode == nil && panelSize == nil
+            && fontScale == nil && fontFace == nil
             && gridMaxColumns == nil && accentChoice == nil && customAccentHex == nil
             && panelOpacity == nil && panelCornerRadius == nil && backdropMaterial == nil
             && showWindowTitleLabel == nil && previewTitleAlignment == nil
@@ -442,6 +445,8 @@ struct ShortcutOverride: Equatable, Sendable {
         put("stayOpenOnQuickTap", stayOpenOnQuickTap)
         if let layoutMode { d["layoutMode"] = layoutMode.rawValue }
         if let panelSize { d["panelSize"] = panelSize.rawValue }
+        if let fontScale { d["fontScale"] = fontScale.rawValue }
+        if let fontFace { d["fontFace"] = fontFace.rawValue }
         put("gridMaxColumns", gridMaxColumns)
         if let accentChoice { d["accentChoice"] = accentChoice.rawValue }
         if let customAccentHex { d["customAccentHex"] = customAccentHex }
@@ -474,6 +479,8 @@ struct ShortcutOverride: Equatable, Sendable {
         stayOpenOnQuickTap = bool("stayOpenOnQuickTap")
         layoutMode = dictionary["layoutMode"].flatMap(SwitcherLayoutMode.init(rawValue:))
         panelSize = dictionary["panelSize"].flatMap(PanelSize.init(rawValue:))
+        fontScale = dictionary["fontScale"].flatMap(SwitcherFontScale.init(rawValue:))
+        fontFace = dictionary["fontFace"].flatMap(SwitcherFontFace.init(rawValue:))
         gridMaxColumns = dictionary["gridMaxColumns"].flatMap(Int.init)
         accentChoice = dictionary["accentChoice"].flatMap(SwitcherAccent.init(rawValue:))
         customAccentHex = dictionary["customAccentHex"]
@@ -566,6 +573,67 @@ enum PanelSize: String, CaseIterable {
         case .small: return String(localized: "Small")
         case .standard: return String(localized: "Medium")
         case .large: return String(localized: "Large")
+        }
+    }
+}
+
+/// Multiplier applied to the switcher's name/title text only, independent of
+/// the panel size (#62). On very wide displays the screen-adaptive clamp in
+/// `SwitcherMetrics.forScreen` renders text at up to 1.8× base even at panel
+/// size Small; this lets users shrink (or grow) just the text while icons,
+/// tiles, and spacing keep following the panel size.
+enum SwitcherFontScale: String, CaseIterable, Sendable {
+    case extraSmall
+    case small
+    case standard
+    case large
+    case extraLarge
+
+    var multiplier: CGFloat {
+        switch self {
+        case .extraSmall: return 0.7
+        case .small: return 0.85
+        case .standard: return 1.0
+        case .large: return 1.15
+        case .extraLarge: return 1.3
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .extraSmall: return String(localized: "Extra small")
+        case .small: return String(localized: "Small")
+        case .standard: return String(localized: "Default")
+        case .large: return String(localized: "Large")
+        case .extraLarge: return String(localized: "Extra large")
+        }
+    }
+}
+
+/// Typeface for the switcher's name/title text (#62), expressed as a system
+/// font design so every weight/size stays available and nothing ships a font.
+/// Jump letters and count badges keep their dedicated system/monospaced fonts.
+enum SwitcherFontFace: String, CaseIterable, Sendable {
+    case system
+    case rounded
+    case serif
+    case monospaced
+
+    var systemDesign: NSFontDescriptor.SystemDesign {
+        switch self {
+        case .system: return .default
+        case .rounded: return .rounded
+        case .serif: return .serif
+        case .monospaced: return .monospaced
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .system: return String(localized: "System")
+        case .rounded: return String(localized: "Rounded")
+        case .serif: return String(localized: "Serif")
+        case .monospaced: return String(localized: "Monospaced")
         }
     }
 }
@@ -695,6 +763,8 @@ final class Preferences: ObservableObject {
         static let revealDelayMs = "Switcher.revealDelayMs"
         static let letterChainTimeoutMs = "Switcher.letterChainTimeoutMs"
         static let panelSize = "Switcher.panelSize"
+        static let fontScale = "Switcher.fontScale"
+        static let fontFace = "Switcher.fontFace"
         static let gridMaxColumns = "Switcher.gridMaxColumns"
         static let appExceptions = "Switcher.appExceptions"
         /// Pre-Exceptions key: a plain bundle-ID array of always-hidden apps.
@@ -850,6 +920,24 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != panelSize else { return }
             UserDefaults.standard.set(panelSize.rawValue, forKey: Keys.panelSize)
+        }
+    }
+
+    /// Multiplier applied to the switcher's name/title text only (#62) — icons,
+    /// tiles, and spacing keep following `panelSize`. Default `.standard` (1.0×,
+    /// identical to the pre-#62 rendering).
+    @Published var fontScale: SwitcherFontScale {
+        didSet {
+            guard oldValue != fontScale else { return }
+            UserDefaults.standard.set(fontScale.rawValue, forKey: Keys.fontScale)
+        }
+    }
+
+    /// Typeface for the switcher's name/title text (#62). Default `.system`.
+    @Published var fontFace: SwitcherFontFace {
+        didSet {
+            guard oldValue != fontFace else { return }
+            UserDefaults.standard.set(fontFace.rawValue, forKey: Keys.fontFace)
         }
     }
 
@@ -1681,6 +1769,9 @@ final class Preferences: ObservableObject {
         let sizeRaw = defaults.string(forKey: Keys.panelSize)
         self.panelSize = sizeRaw.flatMap(PanelSize.init(rawValue:)) ?? .standard
 
+        self.fontScale = defaults.string(forKey: Keys.fontScale).flatMap(SwitcherFontScale.init(rawValue:)) ?? .standard
+        self.fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system
+
         self.gridMaxColumns = defaults.object(forKey: Keys.gridMaxColumns) as? Int ?? 0
 
         // Exceptions: honor the new key if present, otherwise build a first-run
@@ -1824,6 +1915,8 @@ final class Preferences: ObservableObject {
         revealDelayMs = Self.clampDelay(defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs)
         letterChainTimeoutMs = Self.clampLetterChainTimeout(defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs)
         panelSize = defaults.string(forKey: Keys.panelSize).flatMap(PanelSize.init(rawValue:)) ?? .standard
+        fontScale = defaults.string(forKey: Keys.fontScale).flatMap(SwitcherFontScale.init(rawValue:)) ?? .standard
+        fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system
         gridMaxColumns = defaults.object(forKey: Keys.gridMaxColumns) as? Int ?? 0
 
         if let stored = defaults.array(forKey: Keys.appExceptions) as? [[String: String]] {
