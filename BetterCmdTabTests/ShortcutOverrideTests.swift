@@ -94,6 +94,7 @@ struct ShortcutOverrideTests {
         ov.applicationsOnly = true
         ov.expandBrowserTabsAsWindows = false
         ov.stayOpenOnRelease = true
+        ov.stayOpenOnQuickTap = false
         ov.layoutMode = .list
         ov.panelSize = .large
         ov.gridMaxColumns = 7
@@ -280,6 +281,18 @@ struct ShortcutOverrideTests {
         #expect(prefs.effectiveSettings(for: ov).stayOpenOnRelease == target)
         // Unset inherits the global.
         #expect(prefs.effectiveSettings(for: ShortcutOverride()).stayOpenOnRelease == prefs.stayOpenOnRelease)
+    }
+
+    @Test("quick-tap stay-open resolves the override over the global (#91)")
+    func effectiveQuickTapOverride() {
+        let prefs = Preferences.shared
+        var ov = ShortcutOverride()
+        // Force the opposite of the current global so the assertion is real.
+        let target = !prefs.stayOpenOnQuickTap
+        ov.stayOpenOnQuickTap = target
+        #expect(prefs.effectiveSettings(for: ov).stayOpenOnQuickTap == target)
+        // Unset inherits the global.
+        #expect(prefs.effectiveSettings(for: ShortcutOverride()).stayOpenOnQuickTap == prefs.stayOpenOnQuickTap)
     }
 
     @Test("resolvedAccent honors an overridden custom hex")
