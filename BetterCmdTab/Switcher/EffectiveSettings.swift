@@ -15,6 +15,8 @@ struct EffectiveSettings {
     let resolvedAccent: NSColor
     let layoutMode: SwitcherLayoutMode
     let panelSize: PanelSize
+    let fontScale: SwitcherFontScale
+    let fontFace: SwitcherFontFace
     let gridMaxColumns: Int
     let panelOpacity: Int
     let panelCornerRadius: Int
@@ -59,6 +61,8 @@ extension Preferences {
             resolvedAccent: accent,
             layoutMode: override.layoutMode ?? switcherLayoutMode,
             panelSize: override.panelSize ?? panelSize,
+            fontScale: override.fontScale ?? fontScale,
+            fontFace: override.fontFace ?? fontFace,
             gridMaxColumns: override.gridMaxColumns ?? gridMaxColumns,
             panelOpacity: override.panelOpacity ?? panelOpacity,
             panelCornerRadius: override.panelCornerRadius ?? panelCornerRadius,

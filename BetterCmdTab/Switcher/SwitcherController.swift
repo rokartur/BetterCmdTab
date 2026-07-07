@@ -2438,7 +2438,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// in `handleScreenParametersChange()`; `refreshDisplay()` re-presents.
     private func applySessionScreen(_ screen: NSScreen) {
         panel.targetScreen = screen
-        currentMetrics = SwitcherMetrics.forScreen(screen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        currentMetrics = SwitcherMetrics.forScreen(screen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, fontScale: effective.fontScale.multiplier, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
         refreshDisplay()
     }
 
@@ -2749,7 +2749,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
-        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, fontScale: effective.fontScale.multiplier, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
@@ -2857,7 +2857,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
-        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, fontScale: effective.fontScale.multiplier, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
         panel.present(opacity: effective.panelOpacity)
         phase = .visible

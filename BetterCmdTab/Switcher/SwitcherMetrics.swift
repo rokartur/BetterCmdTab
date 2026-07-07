@@ -3,6 +3,9 @@ import AppKit
 struct SwitcherMetrics: Equatable {
     let layoutMode: SwitcherLayoutMode
     let scale: CGFloat
+    /// Extra multiplier applied to text sizes (and the areas that hold text)
+    /// only (#62) — icons, tiles, and spacing keep following `scale`.
+    let fontScale: CGFloat
     let rowHeight: CGFloat
     let rowWidth: CGFloat
     let iconSize: CGFloat
@@ -98,20 +101,26 @@ struct SwitcherMetrics: Equatable {
 
     static let baseline = SwitcherMetrics.forScale(1.0, layoutMode: .list)
 
-    static func forScreen(_ screen: NSScreen?, layoutMode: SwitcherLayoutMode = .list, userScale: CGFloat = 1.0, letterHints: Bool = true, showAppNames: Bool = true, showWindowTitles: Bool = true, hoverActionCount: Int = 0, browserTabsExpanded: Bool = false) -> SwitcherMetrics {
+    static func forScreen(_ screen: NSScreen?, layoutMode: SwitcherLayoutMode = .list, userScale: CGFloat = 1.0, fontScale: CGFloat = 1.0, letterHints: Bool = true, showAppNames: Bool = true, showWindowTitles: Bool = true, hoverActionCount: Int = 0, browserTabsExpanded: Bool = false) -> SwitcherMetrics {
         let width = screen?.frame.width ?? referenceWidth
         let raw = width / referenceWidth
         // Screen-adaptive clamp first (keep base size on small displays, cap on
         // huge ones), then fold in the user's size preference as a free multiplier
         // so "Small" can shrink below the 1.0 floor.
         let clamped = max(1.0, min(1.8, raw)) * userScale
-        return forScale(clamped, layoutMode: layoutMode, letterHints: letterHints, showAppNames: showAppNames, showWindowTitles: showWindowTitles, hoverActionCount: hoverActionCount, browserTabsExpanded: browserTabsExpanded)
+        return forScale(clamped, layoutMode: layoutMode, fontScale: fontScale, letterHints: letterHints, showAppNames: showAppNames, showWindowTitles: showWindowTitles, hoverActionCount: hoverActionCount, browserTabsExpanded: browserTabsExpanded)
     }
 
     /// `letterHints == false` collapses the space the jump-letter occupies — the
     /// top strip on tiles and the left column in the list — so the panel reflows
     /// tighter when the user turned letter hints off.
-    static func forScale(_ scale: CGFloat, layoutMode: SwitcherLayoutMode = .list, letterHints: Bool = true, showAppNames: Bool = true, showWindowTitles: Bool = true, hoverActionCount: Int = 0, browserTabsExpanded: Bool = false) -> SwitcherMetrics {
+    static func forScale(_ scale: CGFloat, layoutMode: SwitcherLayoutMode = .list, fontScale: CGFloat = 1.0, letterHints: Bool = true, showAppNames: Bool = true, showWindowTitles: Bool = true, hoverActionCount: Int = 0, browserTabsExpanded: Bool = false) -> SwitcherMetrics {
+        // Text-only multiplier (#62): every *font* size scales by `f`, and every
+        // container whose height/width exists to hold that text scales by
+        // `scale * f` so text never clips. Icon sizes, tile geometry, paddings,
+        // and gaps stay on `scale` alone. Row height floors at `f == 1` so
+        // shrinking text never squeezes the icon-driven row.
+        let f = fontScale
         let outerPadding: CGFloat
         let cornerRadius: CGFloat
         switch layoutMode {
@@ -123,7 +132,7 @@ struct SwitcherMetrics: Equatable {
             cornerRadius = round(baseTileCornerRadius * scale)
         }
 
-        let letterColumnW = letterHints ? round(baseLetterColumnWidth * scale) : 0
+        let letterColumnW = letterHints ? round(baseLetterColumnWidth * scale * f) : 0
 
         // Hiding app names removes the List layout's dedicated name column so the
         // panel narrows. But the hover action bar floats over that column; with no
@@ -157,9 +166,9 @@ struct SwitcherMetrics: Equatable {
         if layoutMode == .gridView, !showAppNames, !showWindowTitles {
             tileLabelAreaH = 0
         } else if layoutMode == .gridView, !(showAppNames && showWindowTitles) {
-            tileLabelAreaH = round(baseTileCompactLabelArea * scale)
+            tileLabelAreaH = round(baseTileCompactLabelArea * scale * f)
         } else {
-            tileLabelAreaH = round(baseTileLabelArea * scale)
+            tileLabelAreaH = round(baseTileLabelArea * scale * f)
         }
 
         // Preview tiles carry a single label row: small app icon + window title.
@@ -173,34 +182,35 @@ struct SwitcherMetrics: Equatable {
         // heights stay aligned) even with the title otherwise hidden.
         let previewLabelAreaH = (layoutMode == .windowPreview && !showWindowTitles && !browserTabsExpanded)
             ? 0
-            : round(basePreviewLabelArea * scale)
+            : round(basePreviewLabelArea * scale * f)
 
         return SwitcherMetrics(
             layoutMode: layoutMode,
             scale: scale,
-            rowHeight: round(baseRowHeight * scale),
+            fontScale: f,
+            rowHeight: round(baseRowHeight * scale * max(1.0, f)),
             rowWidth: rowW,
             iconSize: round(baseIconSize * scale),
             appNameWidth: appNameW,
             interGap: round(baseInterGap * scale),
             horizontalInset: round(baseHorizontalInset * scale),
-            fontSize: baseFontSize * scale,
+            fontSize: baseFontSize * scale * f,
             outerPadding: outerPadding,
             cornerRadius: cornerRadius,
             highlightCornerRadius: round(baseHighlightCornerRadius * scale),
             highlightInset: round(baseHighlightInset * scale),
-            labelHeight: round(baseLabelHeight * scale),
+            labelHeight: round(baseLabelHeight * scale * f),
             letterColumnWidth: letterColumnW,
-            letterFontSize: baseLetterFontSize * scale,
+            letterFontSize: baseLetterFontSize * scale * f,
             tileSize: round(baseTileSize * scale),
             tileIconSize: round(baseTileIconSize * scale),
             tileGap: round(baseTileGap * scale),
             tileLabelArea: tileLabelAreaH,
-            tileLetterArea: letterHints ? round(baseTileLetterArea * scale) : 0,
-            tileNameFontSize: baseTileNameFontSize * scale,
-            tileTitleFontSize: baseTileTitleFontSize * scale,
-            tileLetterFontSize: baseTileLetterFontSize * scale,
-            tileLetterBadgeSize: round(baseTileLetterBadgeSize * scale),
+            tileLetterArea: letterHints ? round(baseTileLetterArea * scale * f) : 0,
+            tileNameFontSize: baseTileNameFontSize * scale * f,
+            tileTitleFontSize: baseTileTitleFontSize * scale * f,
+            tileLetterFontSize: baseTileLetterFontSize * scale * f,
+            tileLetterBadgeSize: round(baseTileLetterBadgeSize * scale * f),
             tileStatusIconSize: round(baseTileStatusIconSize * scale),
             tileSelectionInset: round(baseTileSelectionInset * scale),
             tileSelectionCornerRadius: round(baseTileSelectionCornerRadius * scale),
@@ -208,9 +218,9 @@ struct SwitcherMetrics: Equatable {
             previewThumbHeight: round(basePreviewThumbHeight * scale),
             previewGap: round(basePreviewGap * scale),
             previewLabelArea: previewLabelAreaH,
-            previewLetterArea: letterHints ? round(baseTileLetterArea * scale) : 0,
+            previewLetterArea: letterHints ? round(baseTileLetterArea * scale * f) : 0,
             previewIconSize: round(basePreviewIconSize * scale),
-            previewNameFontSize: basePreviewNameFontSize * scale,
+            previewNameFontSize: basePreviewNameFontSize * scale * f,
             previewThumbCornerRadius: round(basePreviewThumbCornerRadius * scale),
             previewSelectionInset: round(basePreviewSelectionInset * scale),
             previewSelectionCornerRadius: round(basePreviewSelectionCornerRadius * scale)

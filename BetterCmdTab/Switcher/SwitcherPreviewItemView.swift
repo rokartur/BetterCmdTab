@@ -189,6 +189,10 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         windowID = 0
     }
 
+    /// Last face the font pass ran with — pooled views must re-apply fonts when
+    /// the user changes the face pref even though `metrics` is unchanged (#62).
+    private var appliedFace: SwitcherFontFace = .system
+
     func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
         self.effective = effective
         // Ellipsis position for long titles (#90). Guarded set — one enum read,
@@ -197,7 +201,11 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         if nameLabel.lineBreakMode != truncation {
             nameLabel.lineBreakMode = truncation
         }
-        if metrics != self.metrics {
+        // Font face (#62) is not part of `metrics` and views are pooled across
+        // reveals, so track the applied face and re-run the font pass on change.
+        let faceChanged = appliedFace != effective.fontFace
+        if faceChanged { appliedFace = effective.fontFace }
+        if faceChanged || metrics != self.metrics {
             applyMetrics(metrics)
         }
         if self.accent != accent {
@@ -294,7 +302,7 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     private func applyMetrics(_ metrics: SwitcherMetrics) {
         self.metrics = metrics
         letterLabel.font = NSFont.monospacedSystemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
-        nameLabel.font = NSFont.systemFont(ofSize: metrics.previewNameFontSize, weight: .medium)
+        nameLabel.font = SwitcherFont.font(ofSize: metrics.previewNameFontSize, weight: .medium, design: effective.fontFace)
         thumbContainer.layer?.cornerRadius = metrics.previewThumbCornerRadius
         selectionBackdrop.layer?.cornerRadius = metrics.previewSelectionCornerRadius
         needsLayout = true
@@ -306,9 +314,10 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         // The selected title brightens to `labelColor`; bolding it is optional so
         // users who dislike the on-select width wobble keep a steady weight (#72).
         let bold = isSelected && effective.boldSelectedLabel
-        nameLabel.font = NSFont.systemFont(
+        nameLabel.font = SwitcherFont.font(
             ofSize: metrics.previewNameFontSize,
-            weight: bold ? .semibold : .medium
+            weight: bold ? .semibold : .medium,
+            design: effective.fontFace
         )
     }
 
@@ -420,7 +429,9 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
             // sized for .medium clipping a later semibold render. The bold width fits
             // the medium render too (~1pt slack); the outer `min` still clamps to the
             // tile's free width. Constant weight also keeps this off the pref read path.
-            let measureFont = NSFont.systemFont(ofSize: m.previewNameFontSize, weight: .semibold)
+            // Same face as the render (#62) or the ellipsis math breaks —
+            // monospaced faces are wider than the system face at equal size.
+            let measureFont = SwitcherFont.font(ofSize: m.previewNameFontSize, weight: .semibold, design: effective.fontFace)
             let textW = (nameLabel.stringValue as NSString).size(withAttributes: [.font: measureFont]).width
             let nameW = min(ceil(textW) + Self.labelCellInset, w - iconSize - 6 - badgeSlot)
             let groupW = iconSize + 4 + nameW + badgeSlot

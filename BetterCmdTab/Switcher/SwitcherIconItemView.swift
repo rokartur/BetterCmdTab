@@ -191,6 +191,10 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         imageView.image = nil
     }
 
+    /// Last face the font pass ran with — pooled views must re-apply fonts when
+    /// the user changes the face pref even though `metrics` is unchanged (#62).
+    private var appliedFace: SwitcherFontFace = .system
+
     func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
         self.effective = effective
         // Ellipsis position for long titles (#90). Guarded set — one enum read,
@@ -201,7 +205,11 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         if titleLabel.lineBreakMode != truncation {
             titleLabel.lineBreakMode = truncation
         }
-        if metrics != self.metrics {
+        // Font face (#62) is not part of `metrics` and views are pooled across
+        // reveals, so track the applied face and re-run the font pass on change.
+        let faceChanged = appliedFace != effective.fontFace
+        if faceChanged { appliedFace = effective.fontFace }
+        if faceChanged || metrics != self.metrics {
             applyMetrics(metrics)
         }
         if self.accent != accent {
@@ -339,7 +347,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
             text: text,
             fontSize: metrics.tileTitleFontSize,
             accentKey: accentKey,
-            truncation: effective.titleTruncationMode
+            truncation: effective.titleTruncationMode,
+            face: effective.fontFace
         )
         return Self.titleCache.value(for: key) {
             self.buildTitle(indicators: indicators, text: text)
@@ -347,7 +356,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     }
 
     private func buildTitle(indicators: [SwitcherIndicator], text: String) -> NSAttributedString {
-        let font = NSFont.systemFont(ofSize: metrics.tileTitleFontSize, weight: .regular)
+        let font = SwitcherFont.font(ofSize: metrics.tileTitleFontSize, weight: .regular, design: effective.fontFace)
         let para = NSMutableParagraphStyle()
         para.alignment = .center
         para.lineBreakMode = effective.titleTruncationMode.lineBreakMode
@@ -382,8 +391,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         self.metrics = metrics
         letterLabel.font = NSFont.monospacedSystemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
         badgeLabel.font = NSFont.systemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
-        nameLabel.font = NSFont.systemFont(ofSize: metrics.tileNameFontSize, weight: .medium)
-        titleLabel.font = NSFont.systemFont(ofSize: metrics.tileTitleFontSize, weight: .regular)
+        nameLabel.font = SwitcherFont.font(ofSize: metrics.tileNameFontSize, weight: .medium, design: effective.fontFace)
+        titleLabel.font = SwitcherFont.font(ofSize: metrics.tileTitleFontSize, weight: .regular, design: effective.fontFace)
         selectionBackdrop.layer?.cornerRadius = metrics.tileSelectionCornerRadius
         needsLayout = true
     }
@@ -394,9 +403,10 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         // Bolding the selected name is optional (#72) — off keeps a steady weight
         // so the label doesn't grow/shrink as selection moves; it still brightens.
         let bold = isSelected && effective.boldSelectedLabel
-        nameLabel.font = NSFont.systemFont(
+        nameLabel.font = SwitcherFont.font(
             ofSize: metrics.tileNameFontSize,
-            weight: bold ? .semibold : .medium
+            weight: bold ? .semibold : .medium,
+            design: effective.fontFace
         )
         // The jump letter doesn't depend on selection, so it is rendered once in
         // `configure` rather than re-built on every selection move.
@@ -425,6 +435,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         let fontSize: CGFloat
         let accentKey: String
         let truncation: TitleTruncationMode
+        let face: SwitcherFontFace
     }
     /// The fully assembled secondary line (tinted glyph attachments + text) is
     /// the same immutable string for any tile with the same inputs, so memoize
