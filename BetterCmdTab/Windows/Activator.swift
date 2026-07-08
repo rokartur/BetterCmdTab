@@ -616,6 +616,7 @@ enum Activator {
     static func minimizeWindow(_ row: SwitcherRow) {
         guard let window = row.window, let app = row.app else { return }
         let wasMinimized = row.isMinimized
+        let wasFullscreen = row.isFullscreen
 
         let apply = {
             if wasMinimized {
@@ -629,6 +630,29 @@ enum Activator {
                 }
                 return
             }
+            if wasFullscreen {
+                _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, kCFBooleanFalse)
+                try? await Task.sleep(nanoseconds: 450_000_000)
+            }
+            AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+        }
+        let applyOnMain = {
+            if wasMinimized {
+                AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+                if #available(macOS 14.0, *) {
+                    _ = app.activate(from: NSRunningApplication.current, options: [])
+                } else {
+                    app.activate(options: [.activateIgnoringOtherApps])
+                }
+                return
+            }
+            if wasFullscreen {
+                _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, kCFBooleanFalse)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+                }
+                return
+            }
             AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
         }
 
@@ -636,9 +660,9 @@ enum Activator {
         // (same window-management constraint as closeWindow). Other apps stay
         // off-main so a slow cross-process AX call never blocks ours.
         if app.processIdentifier == getpid() {
-            DispatchQueue.main.async(execute: apply)
+            DispatchQueue.main.async(execute: applyOnMain)
         } else {
-            DispatchQueue.global(qos: .userInitiated).async(execute: apply)
+            Task.detached(priority: .userInitiated, operation: apply)
         }
     }
 
