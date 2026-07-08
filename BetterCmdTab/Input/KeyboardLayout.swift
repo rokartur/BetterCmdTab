@@ -49,12 +49,26 @@ enum KeyboardLayout {
 
     /// Re-read the current keyboard layout. Safe to call from any thread.
     static func reload() {
-        guard let src = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
-              let prop = TISGetInputSourceProperty(src, kTISPropertyUnicodeKeyLayoutData) else {
-            return
+        guard let data = currentOrFallbackLayoutData() else { return }
+        layoutData.withLock { $0 = data }
+    }
+
+    static func currentOrFallbackLayoutData() -> Data? {
+        if let src = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
+           let data = layoutData(from: src) {
+            return data
         }
-        let cfData = Unmanaged<CFData>.fromOpaque(prop).takeUnretainedValue()
-        layoutData.withLock { $0 = cfData as Data }
+        if let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue() {
+            return layoutData(from: src)
+        }
+        return nil
+    }
+
+    private static func layoutData(from source: TISInputSource) -> Data? {
+        guard let prop = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData) else {
+            return nil
+        }
+        return Unmanaged<CFData>.fromOpaque(prop).takeUnretainedValue() as Data
     }
 
     private static func ensureLoaded() {
