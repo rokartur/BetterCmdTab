@@ -2956,25 +2956,51 @@ final class SwitcherController: SwitcherViewDelegate {
     ///
     /// Scoped to the window-recency sort with tabs expanded (the app-grouped `.mru`
     /// order deliberately keeps an app's tabs together, so it must not sink them).
-    /// A stable partition — O(n), no allocations beyond the two buckets. A window
-    /// whose active-tab index isn't cached yet stays whole (safe until the next scan).
+    /// A window whose active-tab index isn't cached yet stays whole (safe until the
+    /// next scan).
     private func sinkInactiveBrowserTabs(_ rows: [SwitcherRow]) -> [SwitcherRow] {
         guard effective.sortOrder == .mruWindows,
               effective.expandBrowserTabsAsWindows,
               !effective.applicationsOnly else { return rows }
+        return Self.sinkInactiveBrowserTabs(
+            rows,
+            activeIndex: browserTabsActiveIndex,
+            pinnedIDs: Preferences.shared.pinnedBundleIDs
+        )
+    }
+
+    /// Static core of `sinkInactiveBrowserTabs` (split out for unit tests). A stable
+    /// O(n) partition; if nothing sank, the input is returned untouched. When tabs
+    /// did sink, re-bucket by status and re-pin exactly like the tab-MRU branch of
+    /// `applyBrowserTabMRU`: a sunk (visible) tab must land BEFORE the hidden/
+    /// minimized bucket, not behind it, and pinned apps must get the front back —
+    /// the pin guarantee outranks the sink.
+    static func sinkInactiveBrowserTabs(
+        _ rows: [SwitcherRow],
+        activeIndex: [AXRef: Int],
+        pinnedIDs: [String]
+    ) -> [SwitcherRow] {
         var active: [SwitcherRow] = []
         var inactive: [SwitcherRow] = []
         active.reserveCapacity(rows.count)
         for row in rows {
             if let bt = row.browserTab, let win = row.window,
-               let activeIdx = browserTabsActiveIndex[AXRef(element: win)],
+               let activeIdx = activeIndex[AXRef(element: win)],
                bt.index != activeIdx {
                 inactive.append(row)
             } else {
                 active.append(row)
             }
         }
-        return inactive.isEmpty ? rows : active + inactive
+        guard !inactive.isEmpty else { return rows }
+        let bucketed = (active + inactive).enumerated()
+            .sorted { lhs, rhs in
+                let lp = AppCatalogCache.statusPriority(lhs.element)
+                let rp = AppCatalogCache.statusPriority(rhs.element)
+                return lp != rp ? lp < rp : lhs.offset < rhs.offset
+            }
+            .map(\.element)
+        return CatalogFilter.pinnedToFront(bucketed, pinnedIDs)
     }
 
     private func applyFullSnapshot(_ fresh: [SwitcherRow], anchorPid: pid_t?) {
