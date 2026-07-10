@@ -796,16 +796,9 @@ final class HotkeyTap {
     }
 
     private func loadKeyboardLayout() {
-        guard let sourceRef = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else {
-            Log.hotkey.warning("TISCopyCurrentKeyboardInputSource returned nil")
-            return
-        }
-        guard let prop = TISGetInputSourceProperty(sourceRef, kTISPropertyUnicodeKeyLayoutData) else {
-            Log.hotkey.warning("TISGetInputSourceProperty kTISPropertyUnicodeKeyLayoutData nil")
-            return
-        }
-        let cfData = Unmanaged<CFData>.fromOpaque(prop).takeUnretainedValue()
-        let data = cfData as Data
+        // Failure branches are logged inside currentOrFallbackLayoutData();
+        // keep the previous cache (possibly nil) rather than clearing it.
+        guard let data = KeyboardLayout.currentOrFallbackLayoutData() else { return }
         layoutData.withLock { $0 = data }
         // Reserved letters are layout-dependent (a bound keycode maps to a
         // different letter per layout) — re-derive them on every layout change.
