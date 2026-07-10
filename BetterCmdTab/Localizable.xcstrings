@@ -26,6 +26,12 @@
             "state" : "translated",
             "value" : "Domyślny"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认"
+          }
         }
       }
     },
@@ -53,6 +59,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bardzo duży"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "特大"
           }
         }
       }
@@ -82,6 +94,12 @@
             "state" : "translated",
             "value" : "Bardzo mały"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "特小"
+          }
         }
       }
     },
@@ -109,6 +127,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czcionka"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字体"
           }
         }
       }
@@ -138,6 +162,12 @@
             "state" : "translated",
             "value" : "W trybie tylko aplikacje naciśnij ↓ lub \\ na aplikacji z kilkoma oknami, aby pokazać jej okna na pasku pod przełącznikiem i wybrać jedno."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在仅应用模式下，在有多个窗口的应用上按 ↓ 或 \\，会在切换器下方的条带中显示其窗口并从中选择。"
+          }
         }
       }
     },
@@ -165,6 +195,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O stałej szerokości"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等宽"
           }
         }
       }
@@ -194,6 +230,12 @@
             "state" : "translated",
             "value" : "Podejrzyj okna klawiszem ↓"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按 ↓ 查看窗口"
+          }
         }
       }
     },
@@ -221,6 +263,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaokrąglona"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "圆体"
           }
         }
       }
@@ -250,6 +298,12 @@
             "state" : "translated",
             "value" : "Szeryfowa"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "衬线"
+          }
         }
       }
     },
@@ -277,6 +331,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rozmiar nazw i tytułów, niezależny od rozmiaru panelu."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称和标题的文字大小，与面板大小无关。"
           }
         }
       }
@@ -306,6 +366,12 @@
             "state" : "translated",
             "value" : "Rozmiar tekstu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字大小"
+          }
         }
       }
     },
@@ -333,6 +399,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Krój pisma nazw i tytułów."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称和标题所用的字体。"
           }
         }
       }
@@ -975,6 +1047,12 @@
             "state" : "translated",
             "value" : "Pozostaw otwarte także po szybkim naciśnięciu"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速点按后也保持打开"
+          }
         }
       }
     },
@@ -1410,6 +1488,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Początek"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开头"
           }
         }
       }
@@ -2868,6 +2952,12 @@
             "state" : "translated",
             "value" : "Położenie wielokropka"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "省略号位置"
+          }
         }
       }
     },
@@ -2895,6 +2985,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Koniec"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "末尾"
           }
         }
       }
@@ -4692,6 +4788,12 @@
             "state" : "translated",
             "value" : "Przełącznik pozostaje na ekranie nawet po szybkim naciśnięciu i puszczeniu skrótu — dla skrótów mapowanych na przyciski myszy lub gesty. Wymaga „Pozostaw otwarte po puszczeniu modyfikatora”."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即使快捷键被快速按下并松开，也让切换器停留在屏幕上 — 适用于映射到鼠标按键或手势的快捷键。需要开启“松开修饰键后保持打开”。"
+          }
         }
       }
     },
@@ -5503,6 +5605,12 @@
             "state" : "translated",
             "value" : "Środek"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中间"
+          }
         }
       }
     },
@@ -6142,6 +6250,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Działa tylko, gdy „Pozostaw otwarte po puszczeniu modyfikatora” jest włączone dla tego skrótu."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在此快捷键开启“松开修饰键后保持打开”时生效。"
           }
         }
       }
@@ -10460,6 +10574,12 @@
             "state" : "translated",
             "value" : "Cofaj skrótem przełączania okien"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用窗口切换快捷键后退一步"
+          }
         }
       }
     },
@@ -10726,6 +10846,12 @@
             "state" : "translated",
             "value" : "Która część długiego tytułu jest skracana wielokropkiem."
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "过长标题的哪一部分会用省略号缩短。"
+          }
         }
       }
     },
@@ -10753,6 +10879,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gdy przełącznik aplikacji jest otwarty, naciśnij swój skrót przełączania okien (domyślnie ⌘`), aby cofać się między aplikacjami. Otwarcie przełącznika tym skrótem nadal przełącza kolejno okna."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用切换器打开时，按窗口切换快捷键（默认 ⌘`）可在应用间后退。用该快捷键打开切换器时仍会循环切换窗口。"
           }
         }
       }
