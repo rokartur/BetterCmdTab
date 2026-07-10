@@ -8689,6 +8689,11 @@
         }
       }
     },
+    "Use window-switch shortcut to step backwards" : {
+      "localizations" : {
+
+      }
+    },
     "v%@  ·  Build %@" : {
       "localizations" : {
         "de" : {
@@ -8911,6 +8916,11 @@
             "value" : "Która część długiego tytułu jest skracana wielokropkiem."
           }
         }
+      }
+    },
+    "While the app switcher is open, press your window-switch shortcut (⌘` by default) to move backwards through apps. Opening the switcher with that shortcut still cycles windows." : {
+      "localizations" : {
+
       }
     },
     "While the switcher is open, a tap of the Shift key steps the selection backwards and holding Shift keeps stepping back until you let go — just like a held Tab. Turn this off to step back only with Shift held as you press the switch key (⌘⇧Tab)." : {

@@ -51,6 +51,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     private let stayOpenSwitch = NSSwitch()
     private let stayOpenQuickTapSwitch = NSSwitch()
     private let shiftTapBackSwitch = NSSwitch()
+    private let backtickReverseSwitch = NSSwitch()
     private let vimNavSwitch = NSSwitch()
 
     // Mouse
@@ -242,6 +243,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         addRow(to: keyboard, title: String(localized: "Tap Shift to step backwards"),
                subtitle: String(localized: "While the switcher is open, a tap of the Shift key steps the selection backwards and holding Shift keeps stepping back until you let go — just like a held Tab. Turn this off to step back only with Shift held as you press the switch key (⌘⇧Tab)."),
                accessory: shiftTapBackSwitch, searchItemID: SearchID.shiftTapBack)
+        configureSwitch(backtickReverseSwitch, action: #selector(toggleBacktickReverse(_:)))
+        addRow(to: keyboard, title: String(localized: "Use window-switch shortcut to step backwards"),
+               subtitle: String(localized: "While the app switcher is open, press your window-switch shortcut (⌘` by default) to move backwards through apps. Opening the switcher with that shortcut still cycles windows."),
+               accessory: backtickReverseSwitch, searchItemID: SearchID.backtickReverse)
         configureSwitch(vimNavSwitch, action: #selector(toggleVimNavigation(_:)))
         addRow(to: keyboard, title: String(localized: "Vim keys (h j k l)"),
                subtitle: String(localized: "Use h / j / k / l like the arrow keys while the switcher is open. h overrides the Hide binding and j / k / l override letter-jump; search mode still types those letters."),
@@ -341,6 +346,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         stayOpenQuickTapSwitch.state = prefs.stayOpenOnQuickTap ? .on : .off
         stayOpenQuickTapSwitch.isEnabled = prefs.stayOpenOnRelease
         shiftTapBackSwitch.state = prefs.shiftTapStepsBackward ? .on : .off
+        backtickReverseSwitch.state = prefs.backtickReversesAppSwitching ? .on : .off
         scrollSwitch.state = prefs.scrollToSwitch ? .on : .off
         scrollReverseSwitch.state = prefs.scrollReverseDirection ? .on : .off
         scrollReverseSwitch.isEnabled = prefs.scrollToSwitch
@@ -458,6 +464,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleShiftTapBack(_ sender: NSSwitch) {
         Preferences.shared.shiftTapStepsBackward = (sender.state == .on)
+    }
+
+    @objc private func toggleBacktickReverse(_ sender: NSSwitch) {
+        Preferences.shared.backtickReversesAppSwitching = (sender.state == .on)
     }
 
     @objc private func toggleScroll(_ sender: NSSwitch) {
