@@ -10,7 +10,9 @@ import os
 /// fired chord's keycode into the same letter/search character the tap would
 /// have produced. The ~15 lines of `UCKeyTranslate` glue are intentionally
 /// duplicated rather than shared out of `HotkeyTap`, to keep the hot-path tap
-/// untouched (its cache is read on its own thread under its own lock).
+/// untouched (its cache is read on its own thread under its own lock); only
+/// the cold-path layout *loading* is shared via
+/// `currentOrFallbackLayoutData()`.
 ///
 /// The layout snapshot is loaded lazily and refreshed on the system
 /// input-source-changed notification, so a mid-session layout switch stays
@@ -58,9 +60,14 @@ enum KeyboardLayout {
            let data = layoutData(from: src) {
             return data
         }
-        if let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue() {
-            return layoutData(from: src)
+        // Typical for IMEs without kTISPropertyUnicodeKeyLayoutData — fall back
+        // to the most recently used ASCII-capable keyboard layout.
+        if let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue(),
+           let data = layoutData(from: src) {
+            Log.hotkey.info("Current input source has no Unicode layout data — using ASCII-capable fallback")
+            return data
         }
+        Log.hotkey.warning("No Unicode layout data on current or ASCII-capable input source")
         return nil
     }
 

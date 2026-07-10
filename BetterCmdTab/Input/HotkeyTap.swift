@@ -796,10 +796,9 @@ final class HotkeyTap {
     }
 
     private func loadKeyboardLayout() {
-        guard let data = KeyboardLayout.currentOrFallbackLayoutData() else {
-            Log.hotkey.warning("No keyboard layout data available")
-            return
-        }
+        // Failure branches are logged inside currentOrFallbackLayoutData();
+        // keep the previous cache (possibly nil) rather than clearing it.
+        guard let data = KeyboardLayout.currentOrFallbackLayoutData() else { return }
         layoutData.withLock { $0 = data }
         // Reserved letters are layout-dependent (a bound keycode maps to a
         // different letter per layout) — re-derive them on every layout change.
