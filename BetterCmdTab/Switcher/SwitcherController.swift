@@ -1892,7 +1892,7 @@ final class SwitcherController: SwitcherViewDelegate {
         case .close:
             performCloseAction()
         case .minimize:
-            performOnVisibleTarget { Activator.minimizeWindow($0) }
+            performMinimizeAction()
         case .maximize:
             performOnVisibleTarget { Activator.zoomWindow($0) }
         case .hide:
@@ -1997,7 +1997,7 @@ final class SwitcherController: SwitcherViewDelegate {
         case .closeWindow:
             performCloseAction()
         case .minimizeWindow:
-            performOnVisibleTarget { Activator.minimizeWindow($0) }
+            performMinimizeAction()
         case .fullscreen:
             performOnVisibleTarget { Activator.toggleFullscreen($0) }
         case .hideApp:
@@ -3737,13 +3737,31 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
-    private func performOnVisibleTarget(_ action: (SwitcherRow) -> Void) {
-        guard phase == .visible, rows.indices.contains(index) else { return }
+    private var visibleActionTarget: SwitcherRow? {
+        guard phase == .visible, rows.indices.contains(index) else { return nil }
         // System permission/consent windows can't be acted on from the switcher
         // (close/quit/minimize/hide) — the user must enter them and click
         // Deny / Open Settings themselves.
-        guard !rows[index].isSystemDialog else { return }
-        action(rows[index])
+        guard !rows[index].isSystemDialog else { return nil }
+        return rows[index]
+    }
+
+    /// Full-screen minimization is a multi-stage AX operation. Refresh only
+    /// after Activator reports that the final mutation ran; scheduling the usual
+    /// 250 ms refresh when the key is pressed would race the Space transition
+    /// and leave `isMinimized` stale in the still-visible switcher.
+    private func performMinimizeAction() {
+        guard let row = visibleActionTarget else { return }
+        let gen = revealGeneration
+        Activator.minimizeWindow(row) { [weak self] in
+            guard let self, gen == self.revealGeneration, self.phase == .visible else { return }
+            self.scheduleVisibleRefresh(after: 0.25)
+        }
+    }
+
+    private func performOnVisibleTarget(_ action: (SwitcherRow) -> Void) {
+        guard let row = visibleActionTarget else { return }
+        action(row)
         scheduleVisibleRefresh(after: 0.25)
     }
 

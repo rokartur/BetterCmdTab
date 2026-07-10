@@ -613,32 +613,159 @@ enum Activator {
         return AXUIElementPerformAction(buttonValue as! AXUIElement, kAXPressAction as CFString) == .success
     }
 
-    static func minimizeWindow(_ row: SwitcherRow) {
-        guard let window = row.window, let app = row.app else { return }
-        let wasMinimized = row.isMinimized
+    enum FullscreenMinimizeDecision: Equatable {
+        case waitForExit
+        case requestMinimize
+        case complete
+        case finalAttempt
+    }
 
-        let apply = {
+    /// Pure decision core for the asynchronous full-screen -> minimized
+    /// transition. `AXFullScreen = false` only requests a Space transition; it
+    /// does not guarantee that the window is ready to accept `AXMinimized` when
+    /// the setter returns. Keep polling until full screen is observably off,
+    /// then retry minimization until AX confirms it. A bounded final attempt
+    /// prevents a broken target app from keeping the action alive forever.
+    static func fullscreenMinimizeDecision(
+        fullscreen: Bool?,
+        minimized: Bool?,
+        timedOut: Bool
+    ) -> FullscreenMinimizeDecision {
+        if minimized == true { return .complete }
+        if timedOut { return .finalAttempt }
+        if fullscreen == false { return .requestMinimize }
+        return .waitForExit
+    }
+
+    private static let fullscreenMinimizePollInterval: TimeInterval = 0.05
+    private static let fullscreenMinimizeTimeout: TimeInterval = 2.0
+
+    /// Toggle a window's minimized state. `completion` always runs on the main
+    /// actor after the final AX mutation (and, for a full-screen window, after
+    /// AX confirms minimization or the bounded fallback fires). This lets the
+    /// switcher refresh from completed state instead of racing a fixed timer.
+    static func minimizeWindow(
+        _ row: SwitcherRow,
+        completion: @escaping @MainActor () -> Void = {}
+    ) {
+        guard let window = row.window, let app = row.app else {
+            finishMinimize(completion)
+            return
+        }
+        let wasMinimized = row.isMinimized
+        let wasFullscreen = row.isFullscreen
+
+        // In-process AX writes drive AppKit window-management code and must run
+        // on the main thread. Cross-process AX stays off-main so a slow target
+        // never stalls our UI. GCD is used for both paths so every poll remains
+        // on the executor appropriate for that window.
+        let queue = app.processIdentifier == getpid()
+            ? DispatchQueue.main
+            : DispatchQueue.global(qos: .userInitiated)
+        queue.async {
             if wasMinimized {
                 AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
-                DispatchQueue.main.async {
-                    if #available(macOS 14.0, *) {
-                        _ = app.activate(from: NSRunningApplication.current, options: [])
-                    } else {
-                        app.activate(options: [.activateIgnoringOtherApps])
-                    }
-                }
+                activateAndFinish(app, completion: completion)
                 return
             }
-            AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
-        }
 
-        // Mutating AX state on our own window must happen on the main thread
-        // (same window-management constraint as closeWindow). Other apps stay
-        // off-main so a slow cross-process AX call never blocks ours.
-        if app.processIdentifier == getpid() {
-            DispatchQueue.main.async(execute: apply)
-        } else {
-            DispatchQueue.global(qos: .userInitiated).async(execute: apply)
+            guard wasFullscreen else {
+                AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+                finishMinimize(completion)
+                return
+            }
+
+            let retryFullscreenExit = AXUIElementSetAttributeValue(
+                window,
+                "AXFullScreen" as CFString,
+                kCFBooleanFalse
+            ) != .success
+            let deadline = DispatchTime.now() + fullscreenMinimizeTimeout
+            scheduleFullscreenMinimizePoll(
+                window: window,
+                on: queue,
+                deadline: deadline,
+                retryFullscreenExit: retryFullscreenExit,
+                completion: completion
+            )
+        }
+    }
+
+    private static func scheduleFullscreenMinimizePoll(
+        window: AXUIElement,
+        on queue: DispatchQueue,
+        deadline: DispatchTime,
+        retryFullscreenExit: Bool,
+        completion: @escaping @MainActor () -> Void
+    ) {
+        queue.asyncAfter(deadline: .now() + fullscreenMinimizePollInterval) {
+            let fullscreen = booleanAttribute("AXFullScreen" as CFString, of: window)
+            let minimized = fullscreen == true
+                ? nil
+                : booleanAttribute(kAXMinimizedAttribute as CFString, of: window)
+            let timedOut = DispatchTime.now().uptimeNanoseconds >= deadline.uptimeNanoseconds
+
+            switch fullscreenMinimizeDecision(
+                fullscreen: fullscreen,
+                minimized: minimized,
+                timedOut: timedOut
+            ) {
+            case .waitForExit:
+                // Retry only when the initial setter was rejected. Once AX
+                // accepts the request, polling observes the asynchronous Space
+                // transition without repeatedly restarting the same mutation.
+                let stillNeedsExitRetry = retryFullscreenExit
+                    && AXUIElementSetAttributeValue(
+                        window,
+                        "AXFullScreen" as CFString,
+                        kCFBooleanFalse
+                    ) != .success
+                scheduleFullscreenMinimizePoll(
+                    window: window,
+                    on: queue,
+                    deadline: deadline,
+                    retryFullscreenExit: stillNeedsExitRetry,
+                    completion: completion
+                )
+            case .requestMinimize:
+                _ = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+                scheduleFullscreenMinimizePoll(
+                    window: window,
+                    on: queue,
+                    deadline: deadline,
+                    retryFullscreenExit: false,
+                    completion: completion
+                )
+            case .complete:
+                finishMinimize(completion)
+            case .finalAttempt:
+                Log.activator.warning("Timed out confirming full-screen minimization; applying one final AXMinimized request")
+                if fullscreen != false {
+                    _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, kCFBooleanFalse)
+                }
+                _ = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+                finishMinimize(completion)
+            }
+        }
+    }
+
+    private static func activateAndFinish(
+        _ app: NSRunningApplication,
+        completion: @escaping @MainActor () -> Void
+    ) {
+        DispatchQueue.main.async {
+            if #available(macOS 14.0, *) {
+                _ = app.activate(from: NSRunningApplication.current, options: [])
+            } else {
+                app.activate(options: [.activateIgnoringOtherApps])
+            }
+            completion()
+        }
+    }
+
+    private static func finishMinimize(_ completion: @escaping @MainActor () -> Void) {
+        DispatchQueue.main.async {
+            completion()
         }
     }
 
@@ -1070,13 +1197,16 @@ enum Activator {
         AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value)
     }
 
+    private static func booleanAttribute(_ attribute: CFString, of window: AXUIElement) -> Bool? {
+        var ref: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(window, attribute, &ref) == .success else { return nil }
+        return ref as? Bool
+    }
+
     /// Read a window's native full-screen state. Best-effort: any AX failure or a
     /// window that doesn't expose `AXFullScreen` reads as not-full-screen.
     private static func isFullscreen(window: AXUIElement) -> Bool {
-        var ref: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window, "AXFullScreen" as CFString, &ref) == .success,
-              let flag = ref as? Bool else { return false }
-        return flag
+        booleanAttribute("AXFullScreen" as CFString, of: window) ?? false
     }
 
     /// Put `window` back to its `PreviousFrameStore` snapshot. Re-enters full
