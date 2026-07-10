@@ -6,7 +6,7 @@
 
 **The ⌘+Tab macOS deserves.**
 
-Fast · Native · Liquid Glass · Zero telemetry · Free forever
+Fast · Native · Zero telemetry · Free forever
 
 [![image](https://img.shields.io/badge/Download_Latest_Release-F5F5F4?style=for-the-badge&logo=apple&logoColor=black)](https://github.com/rokartur/BetterCmdTab/releases/latest)
 
