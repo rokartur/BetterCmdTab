@@ -10,6 +10,66 @@ struct ScreenSelectionTests {
     private let screenA = CGRect(x: 0, y: 0, width: 1000, height: 1000)
     private let screenB = CGRect(x: 1000, y: 0, width: 1000, height: 1000)
 
+    @Test("cursor on the second screen picks that screen")
+    func cursorOnSecondScreen() {
+        #expect(ScreenSelection.index(
+            containing: CGPoint(x: 1500, y: 500),
+            in: [screenA, screenB],
+            frame: { $0 }
+        ) == 1)
+    }
+
+    @Test("cursor selection supports displays in every direction")
+    func cursorOnOffsetScreens() {
+        let left = CGRect(x: -1000, y: 0, width: 1000, height: 1000)
+        let above = CGRect(x: 0, y: 1000, width: 1000, height: 1000)
+        let below = CGRect(x: 0, y: -1000, width: 1000, height: 1000)
+
+        #expect(ScreenSelection.index(
+            containing: CGPoint(x: -500, y: 500), in: [screenA, left], frame: { $0 }
+        ) == 1)
+        #expect(ScreenSelection.index(
+            containing: CGPoint(x: 500, y: 1500), in: [screenA, above], frame: { $0 }
+        ) == 1)
+        #expect(ScreenSelection.index(
+            containing: CGPoint(x: 500, y: -500), in: [screenA, below], frame: { $0 }
+        ) == 1)
+    }
+
+    @Test("cursor in a gap between displays has no screen")
+    func cursorInDisplayGap() {
+        let separated = CGRect(x: 1200, y: 0, width: 1000, height: 1000)
+        #expect(ScreenSelection.index(
+            containing: CGPoint(x: 1100, y: 500), in: [screenA, separated], frame: { $0 }
+        ) == nil)
+    }
+
+    @Test("cursor on a shared edge belongs to only the adjoining screen")
+    func cursorOnSharedEdge() {
+        #expect(ScreenSelection.index(
+            containing: CGPoint(x: 1000, y: 500), in: [screenA, screenB], frame: { $0 }
+        ) == 1)
+    }
+
+    @Test("cursor at the top edge of a display belongs to that display")
+    func cursorOnTopEdge() {
+        // NSEvent.mouseLocation reports y == frame.maxY when the cursor rests
+        // against the top of a screen (e.g. flung toward the menu bar), so the
+        // top edge must be inside — CGRect.contains semantics return nil here
+        // and silently fall back to the main display (#93).
+        #expect(ScreenSelection.index(
+            containing: CGPoint(x: 500, y: 1000), in: [screenA, screenB], frame: { $0 }
+        ) == 0)
+    }
+
+    @Test("stacked displays: the shared horizontal edge belongs to the lower screen")
+    func cursorOnStackedSharedEdge() {
+        let above = CGRect(x: 0, y: 1000, width: 1000, height: 1000)
+        #expect(ScreenSelection.index(
+            containing: CGPoint(x: 500, y: 1000), in: [above, screenA], frame: { $0 }
+        ) == 1)
+    }
+
     @Test("window fully on the second screen picks that screen")
     func fullyOnSecond() {
         let win = CGRect(x: 1200, y: 200, width: 400, height: 300)
