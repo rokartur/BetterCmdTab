@@ -4537,7 +4537,11 @@ final class SwitcherController: SwitcherViewDelegate {
                 // Collapse to one row per app when "Applications only" is on — the
                 // reveal paths do this; without it the first in-panel window action's
                 // refresh would re-expand the panel to one row per window.
-                self.baseRows = self.expandBrowserTabs(self.applyApplicationsOnly(self.applyPerAppWindowMRU(fresh)))
+                // Sort through the same pipeline as `applyFullSnapshot`
+                // (`applyWindowMRUSort` + `applyBrowserTabMRU`) so a refresh in
+                // the window-recency sort doesn't fall back to app-grouped cache
+                // order and expanded browser tabs keep their sink/MRU order (#110).
+                self.baseRows = self.applyBrowserTabMRU(self.expandBrowserTabs(self.applyApplicationsOnly(self.applyPerAppWindowMRU(self.applyWindowMRUSort(fresh)))))
                 self.baseLabels = RowLabels.labels(for: self.baseRows)
                 self.refreshDisplay()
                 self.scheduleBrowserTabExpansion()
