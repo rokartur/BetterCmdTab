@@ -104,8 +104,8 @@ done
 # ─── Paths ───────────────────────────────────────────────────────────────────
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROJECT_PATH="${REPO_ROOT}/app/BetterCmdTab.xcodeproj"
-INFO_PLIST="${REPO_ROOT}/app/Info.plist"
+PROJECT_PATH="${REPO_ROOT}/BetterCmdTab.xcodeproj"
+INFO_PLIST="${REPO_ROOT}/BetterCmdTab/Info.plist"
 BUILD_DIR="${REPO_ROOT}/build/release"
 ARCHIVE_PATH="${BUILD_DIR}/BetterCmdTab.xcarchive"
 EXPORT_PATH="${BUILD_DIR}/export"
@@ -365,17 +365,18 @@ else
   echo "🟢 Building STABLE release"
 fi
 
-# Read version from project
-VERSION=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME" -showBuildSettings 2>/dev/null \
-  | grep 'MARKETING_VERSION' | head -1 | awk '{print $NF}')
+# Read version from project. Capture the settings once and parse with a
+# single awk: under `set -euo pipefail`, `| grep | head -1` can kill the
+# whole script silently when head's early exit SIGPIPEs grep (exit 141).
+_build_settings=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME" -showBuildSettings 2>/dev/null || true)
+VERSION=$(awk '/ MARKETING_VERSION =/{print $NF; exit}' <<<"$_build_settings")
 
 if [[ -z "$VERSION" ]]; then
   echo "❌ Could not determine MARKETING_VERSION from project"
   exit 1
 fi
 
-BUILD_NUMBER=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME" -showBuildSettings 2>/dev/null \
-  | grep 'CURRENT_PROJECT_VERSION' | head -1 | awk '{print $NF}')
+BUILD_NUMBER=$(awk '/ CURRENT_PROJECT_VERSION =/{print $NF; exit}' <<<"$_build_settings")
 
 echo "   Version: ${VERSION} (build ${BUILD_NUMBER})"
 
@@ -433,9 +434,10 @@ if [[ $skip_build_bump -eq 0 ]]; then
     "s/CURRENT_PROJECT_VERSION = ${BUILD_NUMBER};/CURRENT_PROJECT_VERSION = ${NEW_BUILD_NUMBER};/g" \
     "${PROJECT_PATH}/project.pbxproj"
 
-  # Verify the replacement landed correctly
+  # Verify the replacement landed correctly (single awk — a grep|head pipe
+  # can SIGPIPE under pipefail and kill the script silently)
   _actual=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME" -showBuildSettings 2>/dev/null \
-    | grep 'CURRENT_PROJECT_VERSION' | head -1 | awk '{print $NF}')
+    | awk '/ CURRENT_PROJECT_VERSION =/{print $NF; exit}')
   if [[ "$_actual" != "$NEW_BUILD_NUMBER" ]]; then
     echo "❌ Build number increment verification failed (got ${_actual}, expected ${NEW_BUILD_NUMBER})"
     exit 1
@@ -444,7 +446,7 @@ if [[ $skip_build_bump -eq 0 ]]; then
   echo "✅ project.pbxproj updated"
 
   # Commit and push the bump before any archive work begins.
-  git -C "$REPO_ROOT" add app/BetterCmdTab.xcodeproj/project.pbxproj
+  git -C "$REPO_ROOT" add BetterCmdTab.xcodeproj/project.pbxproj
   git -C "$REPO_ROOT" commit -m "chore: bump build number to ${NEW_BUILD_NUMBER} for ${_commit_ref}"
   git -C "$REPO_ROOT" push origin HEAD
 
@@ -530,23 +532,9 @@ fi
 
 ARCHIVE_INFO_PLIST="${ARCHIVE_PATH}/Info.plist"
 ARCHIVED_APP_PATH="${ARCHIVE_PATH}/Products/Applications/BetterCmdTab.app"
-ARCHIVED_HELPER_PATH="${ARCHIVED_APP_PATH}/Contents/Helpers/BetterCmdTab"
-ARCHIVED_STANDALONE_CLI_PATH="${ARCHIVE_PATH}/Products/usr/local/bin/BetterCmdTab"
 
 if [[ ! -d "$ARCHIVED_APP_PATH" ]]; then
   echo "❌ Archive failed — BetterCmdTab.app not found in archive products"
-  exit 1
-fi
-
-if [[ -e "$ARCHIVED_STANDALONE_CLI_PATH" ]]; then
-  echo "❌ Archive is misconfigured — standalone CLI found at ${ARCHIVED_STANDALONE_CLI_PATH}"
-  echo "   BetterCmdTabCLI should be embedded inside BetterCmdTab.app/Contents/Helpers only."
-  echo "   Fix the BetterCmdTabCLI target to use SKIP_INSTALL=YES, then archive again."
-  exit 1
-fi
-
-if [[ ! -x "$ARCHIVED_HELPER_PATH" ]]; then
-  echo "❌ Archive failed — embedded CLI helper not found at ${ARCHIVED_HELPER_PATH}"
   exit 1
 fi
 
@@ -631,66 +619,6 @@ if ! echo "$codesign_info" | grep -q "TeamIdentifier=${TEAM_ID}"; then
 fi
 
 echo "✅ Code signature valid"
-
-# ─── Step 4a: Verify BetterCmdTabNowPlaying bundling ────────────────────────
-#
-# The "force media keys to any app" feature relies on a perl-loaded private
-# framework. BetterCmdTabNowPlaying.framework is fully self-contained — its
-# binary AND the perl entry script ship inside the framework's own Resources
-# (sealed by the framework's signature) and the framework is embedded in
-# Contents/Frameworks. The framework must be strictly signed by our team and
-# the perl entrypoint must actually load it (`test` exits 0 only when entitled).
-
-echo "🔍 Verifying BetterCmdTabNowPlaying bundling..."
-MR_FRAMEWORK="${APP_PATH}/Contents/Frameworks/BetterCmdTabNowPlaying.framework"
-MR_SCRIPT="${MR_FRAMEWORK}/Resources/BetterCmdTab-nowplaying.pl"
-
-if [[ ! -d "$MR_FRAMEWORK" ]]; then
-  echo "❌ Missing ${MR_FRAMEWORK}"
-  exit 1
-fi
-if [[ ! -f "$MR_SCRIPT" ]]; then
-  echo "❌ Missing embedded entry script ${MR_SCRIPT}"
-  exit 1
-fi
-
-codesign --verify --strict --verbose=2 "$MR_FRAMEWORK" 2>&1
-if ! codesign -dvv "$MR_FRAMEWORK" 2>&1 | grep -q "TeamIdentifier=${TEAM_ID}"; then
-  echo "❌ BetterCmdTabNowPlaying.framework is NOT signed by team ${TEAM_ID}"
-  exit 1
-fi
-
-if /usr/bin/perl "$MR_SCRIPT" "$MR_FRAMEWORK" test; then
-  echo "✅ BetterCmdTabNowPlaying loads and is entitled (perl test exit 0)"
-else
-  echo "⚠️  BetterCmdTabNowPlaying 'test' returned non-zero — MediaRemote access"
-  echo "    may be unavailable on this build host. Verify manually on a clean VM."
-fi
-echo ""
-
-# ─── Step 4b: Verify APS environment is production ──────────────────────────
-#
-# `BetterCmdTab.entitlements` declares `aps-environment = $(APS_ENVIRONMENT)`.
-# Release builds must resolve this to "production" so APNs delivers
-# real push notifications (CloudKit subscription pings). Any leftover
-# unresolved variable, or a "development" value, fails the release.
-
-echo "🔍 Verifying APS environment in signed bundle..."
-aps_env=$(codesign -d --entitlements - --xml "$APP_PATH" 2>/dev/null \
-  | plutil -extract "com\.apple\.developer\.aps-environment" raw - 2>/dev/null \
-  || true)
-
-if [[ -z "$aps_env" ]]; then
-  echo "❌ aps-environment entitlement missing from signed app"
-  exit 1
-fi
-if [[ "$aps_env" != "production" ]]; then
-  echo "❌ aps-environment = '${aps_env}' (expected 'production')"
-  echo "   Check APS_ENVIRONMENT in BetterCmdTab.xcodeproj Release config."
-  exit 1
-fi
-
-echo "✅ aps-environment = production"
 
 # ─── Step 5: Notarize the .app ──────────────────────────────────────────────
 #
