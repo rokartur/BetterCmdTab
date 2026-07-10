@@ -163,6 +163,23 @@ struct SettingsPortabilityTests {
         #expect(prefs.shiftTapStepsBackward == false)
     }
 
+    @Test("round-trip: backtickReversesAppSwitching survives export/import")
+    func backtickReversesAppSwitchingRoundTrip() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.backtickReversesAppSwitching
+        defer {
+            try? prefs.importSettings(from: envelope([
+                Preferences.Keys.backtickReversesAppSwitching: saved
+            ]))
+        }
+        // Flip away from the default (off), export, flip live back, import.
+        prefs.backtickReversesAppSwitching = true
+        let data = try prefs.exportedJSONData()
+        prefs.backtickReversesAppSwitching = false
+        try prefs.importSettings(from: data)
+        #expect(prefs.backtickReversesAppSwitching == true)
+    }
+
     @Test("import missing switcherDisplayMode leaves the current value untouched")
     func displayModePartialImport() throws {
         let prefs = Preferences.shared

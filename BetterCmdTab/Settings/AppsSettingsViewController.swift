@@ -28,8 +28,10 @@ final class AppsSettingsViewController: SettingsTabViewController {
 
     private let rulesCard = SettingsSectionView()
 
-    private let pinnedButton = NSButton(title: String(localized: "Manage apps"), target: nil, action: nil)
-    private var pinnedRow: SettingsRowView!
+    private let pinnedCard = SettingsSectionView()
+    private let pinnedList = PinnedAppsListView()
+    /// Working copy of the pin order, persisted to `Preferences` on every mutation.
+    private var pinned: [String] = Preferences.shared.pinnedBundleIDs
     private var appsSheet: AppsPickerSheetWindowController?
     private var addSheet: AppsPickerSheetWindowController?
 
@@ -82,12 +84,60 @@ final class AppsSettingsViewController: SettingsTabViewController {
             directButtons.append(button)
         }
 
-        // Pinned apps — a lightweight chooser (a picker, not an editor).
-        let pinned = addSection(title: String(localized: "Pinned"), anchor: SettingsAnchor.pinned)
-        configureManageButton(pinnedButton, action: #selector(managePinned))
-        pinnedRow = addRow(to: pinned, title: String(localized: "Pinned apps"),
-                           subtitle: Self.pinnedDescription(Preferences.shared.pinnedBundleIDs.count),
-                           accessory: pinnedButton, searchItemID: SearchID.pinnedApps)
+        // Pinned apps — a titled group above a reorderable card. Drag rows to set
+        // the order pinned apps appear at the front of the switcher; "Add App…"
+        // opens the picker for bulk add/remove.
+        let pinnedHeader = makeGroupHeader(
+            title: String(localized: "Pinned"),
+            description: String(localized: "Pinned apps are forced to the front of the switcher, before recents. Drag to set their order.")
+        )
+        let pinnedBlock = NSStackView(views: [pinnedHeader, pinnedCard])
+        pinnedBlock.orientation = .vertical
+        pinnedBlock.alignment = .leading
+        pinnedBlock.spacing = 10
+        pinnedBlock.translatesAutoresizingMaskIntoConstraints = false
+        addArrangedSubview(pinnedBlock)
+        pinnedHeader.widthAnchor.constraint(equalTo: pinnedBlock.widthAnchor).isActive = true
+        pinnedCard.widthAnchor.constraint(equalTo: pinnedBlock.widthAnchor).isActive = true
+        register(section: pinnedBlock, anchor: SettingsAnchor.pinned)
+        register(searchTarget: pinnedCard, itemID: SearchID.pinnedApps)
+        pinnedList.onReorder = { [weak self] order in
+            self?.pinned = order
+            Preferences.shared.pinnedBundleIDs = order
+        }
+        pinnedList.onRemove = { [weak self] bundleID in
+            guard let self else { return }
+            self.pinned.removeAll { $0 == bundleID }
+            Preferences.shared.pinnedBundleIDs = self.pinned
+            self.rebuildPinnedCard()
+        }
+        rebuildPinnedCard()
+    }
+
+    /// Rebuild the pinned card: the reorderable list (or an empty-state label)
+    /// above an "Add App…" row. Called on add/remove and on external changes —
+    /// not during a drag, where the table animates in place.
+    private func rebuildPinnedCard() {
+        let stack = pinnedCard.contentStack
+        for sub in stack.arrangedSubviews {
+            stack.removeArrangedSubview(sub)
+            sub.removeFromSuperview()
+        }
+
+        if pinned.isEmpty {
+            let empty = NSTextField(labelWithString: String(localized: "No pinned apps yet."))
+            empty.font = .systemFont(ofSize: 12)
+            empty.textColor = .tertiaryLabelColor
+            pinnedCard.addContent(empty)
+        } else {
+            pinnedList.reload(pinned)
+            pinnedCard.addContent(pinnedList)
+        }
+        pinnedCard.addDivider()
+
+        let addRow = AddAppRowView()
+        addRow.onClick = { [weak self] in self?.managePinned() }
+        pinnedCard.addContent(addRow)
     }
 
     // MARK: - Direct activation slots
@@ -154,13 +204,6 @@ final class AppsSettingsViewController: SettingsTabViewController {
         stack.edgeInsets = NSEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
         descLabel.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -8).isActive = true
         return stack
-    }
-
-    private func configureManageButton(_ button: NSButton, action: Selector) {
-        button.bezelStyle = .rounded
-        button.controlSize = .small
-        button.target = self
-        button.action = action
     }
 
     // MARK: - App rules card
@@ -275,10 +318,20 @@ final class AppsSettingsViewController: SettingsTabViewController {
             rebuildRulesCard()
         }
         refreshDirectSlots()
-        updatePinnedCount()
+        // Same stale-snapshot guard for the pin order (Import / other panes).
+        if Preferences.shared.pinnedBundleIDs != pinned {
+            pinned = Preferences.shared.pinnedBundleIDs
+            rebuildPinnedCard()
+        }
         Preferences.shared.$pinnedBundleIDs
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.pinnedRow?.update(subtitle: Self.pinnedDescription($0.count)) }
+            .sink { [weak self] ids in
+                // Skip our own writes (reorder/remove already updated the view);
+                // rebuild only for external changes.
+                guard let self, ids != self.pinned else { return }
+                self.pinned = ids
+                self.rebuildPinnedCard()
+            }
             .store(in: &cancellables)
     }
 
@@ -310,21 +363,14 @@ final class AppsSettingsViewController: SettingsTabViewController {
             Preferences.shared.pinnedBundleIDs = order
         }
         controller.onDidDismiss = { [weak self] in
-            self?.appsSheet = nil
-            self?.updatePinnedCount()
+            guard let self else { return }
+            self.appsSheet = nil
+            self.pinned = Preferences.shared.pinnedBundleIDs
+            self.rebuildPinnedCard()
         }
         appsSheet = controller
         trackForRelease(controller)
         controller.present(asSheetFor: window)
-    }
-
-    private func updatePinnedCount() {
-        pinnedRow?.update(subtitle: Self.pinnedDescription(Preferences.shared.pinnedBundleIDs.count))
-    }
-
-    private static func pinnedDescription(_ count: Int) -> String {
-        let prefix = count == 0 ? String(localized: "None") : "\(count) app\(count == 1 ? "" : "s")"
-        return "\(prefix)\(String(localized: " — always shown first."))"
     }
 
     // MARK: - Helpers
@@ -333,7 +379,7 @@ final class AppsSettingsViewController: SettingsTabViewController {
     /// `nonisolated` so it can run off the main actor: it only touches
     /// `NSWorkspace.shared`, whose `urlForApplication`/`icon(forFile:)` are
     /// thread-safe, plus an `NSImage` symbol lookup.
-    nonisolated private static func appInfo(for bundleID: String) -> (name: String, icon: NSImage) {
+    nonisolated static func appInfo(for bundleID: String) -> (name: String, icon: NSImage) {
         if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
             return (url.deletingPathExtension().lastPathComponent, NSWorkspace.shared.icon(forFile: url.path))
         }

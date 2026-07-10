@@ -171,9 +171,23 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         imageView.image = nil
     }
 
+    /// Last face the font pass ran with — pooled views must re-apply fonts when
+    /// the user changes the face pref even though `metrics` is unchanged (#62).
+    private var appliedFace: SwitcherFontFace = .system
+
     func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
         self.effective = effective
-        if metrics != self.metrics {
+        // Ellipsis position for long titles (#90). Guarded set — one enum read,
+        // no work when unchanged.
+        let truncation = effective.titleTruncationMode.lineBreakMode
+        if titleLabel.lineBreakMode != truncation {
+            titleLabel.lineBreakMode = truncation
+        }
+        // Font face (#62) is not part of `metrics` and views are pooled across
+        // reveals, so track the applied face and re-run the font pass on change.
+        let faceChanged = appliedFace != effective.fontFace
+        if faceChanged { appliedFace = effective.fontFace }
+        if faceChanged || metrics != self.metrics {
             applyMetrics(metrics)
         }
         if self.accent != accent {
@@ -253,7 +267,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
 
     private func applyMetrics(_ metrics: SwitcherMetrics) {
         self.metrics = metrics
-        let font = NSFont.systemFont(ofSize: metrics.fontSize)
+        let font = SwitcherFont.font(ofSize: metrics.fontSize, weight: .regular, design: effective.fontFace)
         appNameLabel.font = font
         titleLabel.font = font
         badgeLabel.font = NSFont.systemFont(ofSize: max(9, metrics.fontSize - 2), weight: .bold)

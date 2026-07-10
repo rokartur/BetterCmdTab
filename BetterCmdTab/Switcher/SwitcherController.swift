@@ -26,6 +26,12 @@ final class SwitcherController: SwitcherViewDelegate {
         var isPrimed: Bool { self == .primed }
     }
 
+    enum SwitchSessionKind {
+        case none
+        case appSwitching
+        case windowSwitching
+    }
+
     private let hotkey = HotkeyTap()
     /// Secure-input-immune fallback trigger (see CarbonHotkeyTrigger). Opens and
     /// steps the switcher via a Carbon hot key when the tap is bypassed because
@@ -79,6 +85,7 @@ final class SwitcherController: SwitcherViewDelegate {
     private let view: SwitcherView
 
     private var _phase: Phase = .idle
+    private var switchSessionKind: SwitchSessionKind = .none
     private var primedApps: [NSRunningApplication] = []
     private var primedIndex: Int = 0
     /// Net number of primed ⌘Tab steps (forward positive, backward negative).
@@ -257,9 +264,16 @@ final class SwitcherController: SwitcherViewDelegate {
     /// `BrowserTabs.activateTab`. `accessibility` → AX press on
     /// `liveTabElements[tabIndex]`. `windows` → native window tabs: each
     /// `liveTabElements[i]` is a real NSWindow; raising it selects that tab.
-    /// Picked once per drill, never crossed.
-    private enum TabDrillBackend { case appleScript, accessibility, windows }
+    /// `appWindows` → applications-only window drill (#80): the strip lists the
+    /// selected app's catalogued windows; committing activates
+    /// `drillWindowRows[tabIndex]`. Picked once per drill, never crossed.
+    private enum TabDrillBackend { case appleScript, accessibility, windows, appWindows }
     private var tabDrillBackend: TabDrillBackend = .accessibility
+    /// The pid-filtered, window-MRU-sorted rows the `.appWindows` strip was
+    /// built from, index-aligned with `tabTitles`. Non-empty only while an
+    /// `.appWindows` strip is up; each row carries its enumeration-time
+    /// CGWindowID so the SLPS raise fallback survives a stale AX element.
+    private var drillWindowRows: [SwitcherRow] = []
     /// The window `applyDrill` built the current tab strip against. `commitTab`
     /// re-validates that the selected row still points at this window before
     /// pairing it with the captured tab elements — a background refresh can move
@@ -487,11 +501,13 @@ final class SwitcherController: SwitcherViewDelegate {
         // The active Space flipping (full-screen enter/exit is its own Space)
         // affects trigger suppression, and is also the moment the WindowServer
         // can drop the panel's canJoinAllSpaces sticky tag (a full-screen app
-        // quitting destroys its Space — #46/#64). While the panel is hidden,
-        // `isOnActiveSpace` reports whether ordering it in would land on the
-        // active Space, so a false here means the tag is stale — re-assert it
-        // before the next reveal. present() re-checks after order-front as the
-        // backstop.
+        // quitting destroys its Space — #46/#64; switching onto a live
+        // full-screen Space while the panel is hidden rots it too — #94).
+        // `isOnActiveSpace` can keep reporting true for a canJoinAllSpaces
+        // window even after the WindowServer has lost the tag, so it can't
+        // gate this — re-assert unconditionally whenever the panel is hidden.
+        // Two collectionBehavior writes per Space change, off the reveal hot
+        // path. present() re-checks after order-front as the backstop.
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil,
@@ -500,8 +516,7 @@ final class SwitcherController: SwitcherViewDelegate {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.updateTriggerSuppression()
-                if self.phase != .visible, !self.panel.isOnActiveSpace {
-                    Log.ui.info("stale Space tag on hidden panel — re-asserting canJoinAllSpaces (#46/#64)")
+                if self.phase != .visible {
                     self.panel.reassertAllSpacesTag()
                 }
             }
@@ -844,9 +859,14 @@ final class SwitcherController: SwitcherViewDelegate {
             cache.scheduleFullRefresh()
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
             guard !primedApps.isEmpty else { return }
-            primedIndex = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : primedApps.count - 1)
-            primedStepDelta = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
+            // Anchor on the global sort: this path never resolves per-shortcut
+            // options, so `effective` is a stale snapshot here (#88).
+            let anchor = primedAnchor(for: Preferences.shared.sortOrder)
+            let step = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
+            primedIndex = Self.primedStartIndex(count: primedApps.count, step: step, anchor: anchor)
+            primedStepDelta = step
             primedByHeldChord = false
+            switchSessionKind = .none
             phase = .primed
             reveal()
             // After reveal lands the panel in `.visible`, detach from any
@@ -1181,6 +1201,29 @@ final class SwitcherController: SwitcherViewDelegate {
         // is kept as a parameter for the unit matrix and future use.
         _ = secureInputActive
         return phase == .visible && primedByHeldChord && (!stickyOpen || tabDrillActive)
+    }
+
+    /// Pure: should a chord release that lands while still `.primed` (before the
+    /// panel is on screen) reveal + park the panel instead of committing (#91)?
+    /// Shortcuts mapped to mouse buttons/gestures synthesize a quick
+    /// press+release, so the release always lands pre-visible. The AND is
+    /// deliberate — the quick-tap instant flip is protected shipped behavior
+    /// (#77/0e61378), so parking a pre-visible release requires BOTH opt-ins.
+    /// Isolated so the gate stays unit-testable.
+    nonisolated static func quickReleaseParks(
+        stayOpenOnRelease: Bool,
+        stayOpenOnQuickTap: Bool
+    ) -> Bool {
+        stayOpenOnRelease && stayOpenOnQuickTap
+    }
+
+    /// `quickReleaseParks` over the firing shortcut's resolved settings — one
+    /// bool read on the release edge, nothing else.
+    private var quickReleaseParksSticky: Bool {
+        Self.quickReleaseParks(
+            stayOpenOnRelease: effective.stayOpenOnRelease,
+            stayOpenOnQuickTap: effective.stayOpenOnQuickTap
+        )
     }
 
     /// Pure: on a backstop tick, should an idle `.visible` panel be force-closed?
@@ -1656,6 +1699,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // ⌘Tab is unfiltered. Single chokepoint — every exit path (commit,
             // cancel, dismiss) flows through here.
             if newValue == .idle {
+                switchSessionKind = .none
                 activeScope = nil
                 scopeFrontPid = nil
                 // Drop the per-shortcut override (#74) so the next plain ⌘Tab
@@ -1720,6 +1764,7 @@ final class SwitcherController: SwitcherViewDelegate {
         primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
         primedIndex = 0
         primedStepDelta = 0
+        switchSessionKind = .none
         // Scoped opens are sticky and never release-to-commit; the bound chord
         // may not include the trigger's hold modifier, so the missed-release
         // backstop must not run.
@@ -1776,6 +1821,17 @@ final class SwitcherController: SwitcherViewDelegate {
             return rows
         case .allAppsAllSpaces, .allAppsCurrentSpace, .none:
             return CatalogFilter.collapseToApplications(rows)
+        }
+    }
+
+    /// True when the visible list is collapsed to one row per app — the exact
+    /// gate `applyApplicationsOnly` applies. The window drill (#80) only makes
+    /// sense then: everywhere else each window already has its own row.
+    private var applicationsCollapseActive: Bool {
+        guard effective.applicationsOnly, !windowsOnlyMode else { return false }
+        switch activeScope {
+        case .currentAppWindows, .minimizedOnly: return false
+        case .allAppsAllSpaces, .allAppsCurrentSpace, .none: return true
         }
     }
 
@@ -1846,7 +1902,7 @@ final class SwitcherController: SwitcherViewDelegate {
         case .close:
             performCloseAction()
         case .minimize:
-            performOnVisibleTarget { Activator.minimizeWindow($0) }
+            performMinimizeAction()
         case .maximize:
             performOnVisibleTarget { Activator.zoomWindow($0) }
         case .hide:
@@ -1888,10 +1944,17 @@ final class SwitcherController: SwitcherViewDelegate {
         case .prevApp:
             if tabDrillActive { advanceTab(by: -1) } else { advance(by: -1, wrap: true) }
         case .nextWindow:
-            if tabDrillActive { advanceTab(by: 1) } else { advanceWindowsOnly(by: 1) }
+            handleWindowTrigger(delta: 1)
         case .prevWindow:
-            if tabDrillActive { advanceTab(by: -1) } else { advanceWindowsOnly(by: -1) }
+            handleWindowTrigger(delta: -1)
         case .nextRow:
+            // Native ⌘Tab parity (#80): ↓ peeks the selected app's windows, but
+            // only where it was a redundant linear wrap — list and multi-row
+            // grids keep their vertical navigation.
+            if DrillRouting.downArrowOpensWindowDrill(layoutMode: currentMetrics.layoutMode, rowsPerColumn: view.rowsPerColumn, searchActive: searchActive, tabDrillActive: tabDrillActive),
+               enterWindowDrillIfEligible() {
+                break
+            }
             advanceVerticalOrLinear(by: 1)
         case .prevRow:
             advanceVerticalOrLinear(by: -1)
@@ -1944,7 +2007,7 @@ final class SwitcherController: SwitcherViewDelegate {
         case .closeWindow:
             performCloseAction()
         case .minimizeWindow:
-            performOnVisibleTarget { Activator.minimizeWindow($0) }
+            performMinimizeAction()
         case .fullscreen:
             performOnVisibleTarget { Activator.toggleFullscreen($0) }
         case .hideApp:
@@ -1954,7 +2017,10 @@ final class SwitcherController: SwitcherViewDelegate {
         case .forceQuitApp:
             performForceQuitAction()
         case .enterTabDrill:
-            enterTabDrill()
+            // On a collapsed multi-window row the window strip wins `\` (#80):
+            // each window may itself own a tab set, so windows are the outer
+            // level. Single-window rows keep the existing tab drill.
+            if !enterWindowDrillIfEligible() { enterTabDrill() }
         case .exitTabDrill:
             exitTabDrill()
         case .tabPrev:
@@ -1975,6 +2041,26 @@ final class SwitcherController: SwitcherViewDelegate {
             if let ch = KeyboardLayout.character(for: UInt16(keyCode)) {
                 handleSearchInput(ch)
             }
+        }
+    }
+
+    nonisolated static func windowTriggerStepsAppsBackward(
+        session: SwitchSessionKind,
+        backtickReversesAppSwitching: Bool
+    ) -> Bool {
+        backtickReversesAppSwitching && session == .appSwitching
+    }
+
+    private func handleWindowTrigger(delta: Int) {
+        if tabDrillActive {
+            advanceTab(by: delta)
+        } else if Self.windowTriggerStepsAppsBackward(
+            session: switchSessionKind,
+            backtickReversesAppSwitching: Preferences.shared.backtickReversesAppSwitching
+        ) {
+            advance(by: -delta, wrap: true)
+        } else {
+            advanceWindowsOnly(by: delta)
         }
     }
 
@@ -2090,6 +2176,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // timer), so it can land asynchronously and still order this chord.
             handleFocusChange(pid: front.processIdentifier)
             resolveActiveOptions(for: .switchWindows)
+            switchSessionKind = .windowSwitching
             windowsOnlyMode = true
             windowsOnlyPid = front.processIdentifier
             windowsOnlyPrimedDelta = delta
@@ -2102,6 +2189,22 @@ final class SwitcherController: SwitcherViewDelegate {
         case .visible:
             advanceLinearVisible(by: delta, wrap: true)
         }
+    }
+
+    /// Start index for the first primed step. `anchor` is the frontmost app's
+    /// position in the primed list under a stable sort (#88); nil reproduces
+    /// the legacy head-anchored start (step 1 → 1, step -1 → count-1).
+    nonisolated static func primedStartIndex(count: Int, step: Int, anchor: Int?) -> Int {
+        guard count > 1 else { return 0 }
+        return ((((anchor ?? 0) + step) % count) + count) % count
+    }
+
+    /// Position of the frontmost app in `primedApps` for sorts that anchor on
+    /// it; nil under MRU sorts (frontmost already leads the list) or when the
+    /// frontmost app was filtered out of the primed list.
+    private func primedAnchor(for sort: SwitcherSortOrder) -> Int? {
+        guard sort.anchorsPrimedOnFrontmost, let front = mru.order.first else { return nil }
+        return primedApps.firstIndex { $0.processIdentifier == front }
     }
 
     private func advance(by delta: Int, wrap: Bool) {
@@ -2118,16 +2221,11 @@ final class SwitcherController: SwitcherViewDelegate {
             resolveActiveOptions(for: .switchApps)
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
             guard !primedApps.isEmpty else { return }
-            if primedApps.count == 1 {
-                primedIndex = 0
-                primedStepDelta = 0
-            } else if delta > 0 {
-                primedIndex = 1
-                primedStepDelta = 1
-            } else {
-                primedIndex = primedApps.count - 1
-                primedStepDelta = -1
-            }
+            switchSessionKind = .appSwitching
+            let anchor = primedAnchor(for: effective.sortOrder)
+            let step = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
+            primedIndex = Self.primedStartIndex(count: primedApps.count, step: step, anchor: anchor)
+            primedStepDelta = step
             schedulePrimedReveal()
         case .primed:
             guard !primedApps.isEmpty else { return }
@@ -2352,9 +2450,11 @@ final class SwitcherController: SwitcherViewDelegate {
         // tap now catches any *later* release — but a release that already happened
         // is only recoverable here: re-read the live modifier state and, if neither
         // hold modifier is still down, commit the primed pick now instead of
-        // revealing a stranded panel.
+        // revealing a stranded panel. Route through handleModifierRelease so the
+        // quick-tap stay-open opt-in (#91) can park instead — with the option
+        // off it reaches commit() through identical inert branches.
         if holdReleaseAlreadyMissed() {
-            commit()
+            handleModifierRelease()
             return
         }
         // Resolve the user's current window off-main now, while we wait out the
@@ -2398,7 +2498,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// in `handleScreenParametersChange()`; `refreshDisplay()` re-presents.
     private func applySessionScreen(_ screen: NSScreen) {
         panel.targetScreen = screen
-        currentMetrics = SwitcherMetrics.forScreen(screen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        currentMetrics = SwitcherMetrics.forScreen(screen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, fontScale: effective.fontScale.multiplier, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
         refreshDisplay()
     }
 
@@ -2502,7 +2602,9 @@ final class SwitcherController: SwitcherViewDelegate {
         // only: gesture/scoped sessions hold no modifier, so the live flags
         // read would always look like a missed release and commit instantly
         // instead of presenting (they open sticky and never release-commit).
-        if primedByHeldChord, holdReleaseAlreadyMissed() {
+        // With quick-tap stay-open (#91) a release landing during reveal()'s
+        // own run falls through to present; the post-present rescue parks it.
+        if primedByHeldChord, holdReleaseAlreadyMissed(), !quickReleaseParksSticky {
             commit()
             return
         }
@@ -2707,7 +2809,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
-        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, fontScale: effective.fontScale.multiplier, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
@@ -2815,7 +2917,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
-        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+        currentMetrics = SwitcherMetrics.forScreen(sessionScreen, layoutMode: effective.layoutMode, userScale: effective.panelSize.scale, fontScale: effective.fontScale.multiplier, letterHints: effective.letterHintsEnabled, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
@@ -2925,8 +3027,12 @@ final class SwitcherController: SwitcherViewDelegate {
     /// AFTER `expandBrowserTabs` (unlike `applyWindowMRUSort`, which runs before),
     /// then re-buckets status and re-pins exactly like the window sort so hidden/
     /// minimized rows still sink and pinned apps stay at the front.
+    ///
+    /// When the experimental tab MRU is off, falls back to `sinkInactiveBrowserTabs`
+    /// so a browser window's tabs don't flood the front of the window-recency list
+    /// as one block (worst with single-window browsers like Arc).
     private func applyBrowserTabMRU(_ rows: [SwitcherRow]) -> [SwitcherRow] {
-        guard browserTabMRUActive else { return rows }
+        guard browserTabMRUActive else { return sinkInactiveBrowserTabs(rows) }
         let ranked = tabMRU.sortRows(rows)
         let bucketed = ranked.enumerated()
             .sorted { lhs, rhs in
@@ -2936,6 +3042,66 @@ final class SwitcherController: SwitcherViewDelegate {
             }
             .map(\.element)
         return CatalogFilter.pinnedToFront(bucketed, Preferences.shared.pinnedBundleIDs)
+    }
+
+    /// Keep only a browser window's ACTIVE tab at the window's window-recency slot
+    /// and sink its inactive tabs to the back, preserving their relative order.
+    ///
+    /// `applyWindowMRUSort` runs before expansion, so every tab of a window inherits
+    /// its parent window's rank and `expandBrowserTabs` drops them in as one
+    /// contiguous block. For a single-window browser (Arc bundles every tab into one
+    /// window) that block is the entire tab set, so switching to it buries the
+    /// previously-used app under every inactive tab — a single ⌘Tab lands on another
+    /// Arc tab instead of the prior app. Demoting the inactive tabs restores "only
+    /// the current tab up front" and keeps the prior app one step away.
+    ///
+    /// Scoped to the window-recency sort with tabs expanded (the app-grouped `.mru`
+    /// order deliberately keeps an app's tabs together, so it must not sink them).
+    /// A window whose active-tab index isn't cached yet stays whole (safe until the
+    /// next scan).
+    private func sinkInactiveBrowserTabs(_ rows: [SwitcherRow]) -> [SwitcherRow] {
+        guard effective.sortOrder == .mruWindows,
+              effective.expandBrowserTabsAsWindows,
+              !effective.applicationsOnly else { return rows }
+        return Self.sinkInactiveBrowserTabs(
+            rows,
+            activeIndex: browserTabsActiveIndex,
+            pinnedIDs: Preferences.shared.pinnedBundleIDs
+        )
+    }
+
+    /// Static core of `sinkInactiveBrowserTabs` (split out for unit tests). A stable
+    /// O(n) partition; if nothing sank, the input is returned untouched. When tabs
+    /// did sink, re-bucket by status and re-pin exactly like the tab-MRU branch of
+    /// `applyBrowserTabMRU`: a sunk (visible) tab must land BEFORE the hidden/
+    /// minimized bucket, not behind it, and pinned apps must get the front back —
+    /// the pin guarantee outranks the sink.
+    static func sinkInactiveBrowserTabs(
+        _ rows: [SwitcherRow],
+        activeIndex: [AXRef: Int],
+        pinnedIDs: [String]
+    ) -> [SwitcherRow] {
+        var active: [SwitcherRow] = []
+        var inactive: [SwitcherRow] = []
+        active.reserveCapacity(rows.count)
+        for row in rows {
+            if let bt = row.browserTab, let win = row.window,
+               let activeIdx = activeIndex[AXRef(element: win)],
+               bt.index != activeIdx {
+                inactive.append(row)
+            } else {
+                active.append(row)
+            }
+        }
+        guard !inactive.isEmpty else { return rows }
+        let bucketed = (active + inactive).enumerated()
+            .sorted { lhs, rhs in
+                let lp = AppCatalogCache.statusPriority(lhs.element)
+                let rp = AppCatalogCache.statusPriority(rhs.element)
+                return lp != rp ? lp < rp : lhs.offset < rhs.offset
+            }
+            .map(\.element)
+        return CatalogFilter.pinnedToFront(bucketed, pinnedIDs)
     }
 
     private func applyFullSnapshot(_ fresh: [SwitcherRow], anchorPid: pid_t?) {
@@ -3566,6 +3732,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabDrillHint = nil
         tabTitles = []
         liveTabElements = []
+        drillWindowRows = []
         tabIndex = 0
         drillWindow = nil
         hotkey.setTabDrillActive(false)
@@ -3602,13 +3769,31 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
-    private func performOnVisibleTarget(_ action: (SwitcherRow) -> Void) {
-        guard phase == .visible, rows.indices.contains(index) else { return }
+    private var visibleActionTarget: SwitcherRow? {
+        guard phase == .visible, rows.indices.contains(index) else { return nil }
         // System permission/consent windows can't be acted on from the switcher
         // (close/quit/minimize/hide) — the user must enter them and click
         // Deny / Open Settings themselves.
-        guard !rows[index].isSystemDialog else { return }
-        action(rows[index])
+        guard !rows[index].isSystemDialog else { return nil }
+        return rows[index]
+    }
+
+    /// Full-screen minimization is a multi-stage AX operation. Refresh only
+    /// after Activator reports that the final mutation ran; scheduling the usual
+    /// 250 ms refresh when the key is pressed would race the Space transition
+    /// and leave `isMinimized` stale in the still-visible switcher.
+    private func performMinimizeAction() {
+        guard let row = visibleActionTarget else { return }
+        let gen = revealGeneration
+        Activator.minimizeWindow(row) { [weak self] in
+            guard let self, gen == self.revealGeneration, self.phase == .visible else { return }
+            self.scheduleVisibleRefresh(after: 0.25)
+        }
+    }
+
+    private func performOnVisibleTarget(_ action: (SwitcherRow) -> Void) {
+        guard let row = visibleActionTarget else { return }
+        action(row)
         scheduleVisibleRefresh(after: 0.25)
     }
 
@@ -3720,6 +3905,39 @@ final class SwitcherController: SwitcherViewDelegate {
     ///   group.
     /// Both run off-main; the strip appears once titles land. Silently
     /// no-ops if no tabs are found.
+    /// Window drill-down (#80): in applications-only mode, open the strip UI
+    /// with the selected app's catalogued windows. Everything is sourced from
+    /// the warm cache and window-MRU order (exactly like `pickWindowsOnlyTarget`)
+    /// on the keypress — no AX walk, nothing added to the reveal path. Returns
+    /// false when ineligible so the caller can fall through to its old action.
+    @discardableResult
+    private func enterWindowDrillIfEligible() -> Bool {
+        // Cheap gates first — the candidate build below is the only real work,
+        // and this runs on every ↓ / `\` keypress.
+        guard Preferences.shared.windowDrillEnabled,
+              applicationsCollapseActive,
+              phase == .visible, rows.indices.contains(index) else { return false }
+        let row = rows[index]
+        // An inline browser-tab row is already a leaf (mirrors enterTabDrill),
+        // and a windowless app has nothing to list.
+        guard row.browserTab == nil, let pid = row.pid, let anchor = row.window else { return false }
+        // Warm cache ONLY, same filter config as the visible list so the strip
+        // agrees with the panel on minimized/Space-scope windows.
+        var candidates = cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
+            .filter { $0.pid == pid && $0.window != nil }
+        // A 1-window strip is useless: committing it equals committing the row.
+        guard candidates.count >= 2 else { return false }
+        candidates = windowMRU.sortRows(candidates, forPid: pid)
+        drillWindowRows = candidates
+        applyDrill(
+            titles: candidates.map { DrillRouting.stripTitle(windowTitle: $0.windowTitle, appName: $0.appName) },
+            liveTabs: candidates.compactMap(\.window),
+            backend: .appWindows,
+            window: anchor
+        )
+        return true
+    }
+
     private func enterTabDrill() {
         guard Preferences.shared.tabDrillEnabled else { return }
         guard phase == .visible, rows.indices.contains(index) else { return }
@@ -3760,6 +3978,10 @@ final class SwitcherController: SwitcherViewDelegate {
             let result = Self.fetchTabsBlocking(app: app, window: window, title: title, isBrowser: isBrowser, prefetchedTabs: prefetchedTabs)
             DispatchQueue.main.async {
                 guard let self, gen == self.revealGeneration, self.phase == .visible else { return }
+                // A window drill (#80) opened while this fetch was in flight owns
+                // the strip — a late tab result must not overwrite it (the strip
+                // would show tabs while `drillWindowRows` stays populated).
+                guard !(self.tabDrillActive && self.tabDrillBackend == .appWindows) else { return }
                 guard self.rows.indices.contains(self.index),
                       let currentWindow = self.rows[self.index].window,
                       CFEqual(currentWindow, window) else { return }
@@ -3809,7 +4031,12 @@ final class SwitcherController: SwitcherViewDelegate {
         hotkey.setTabDrillActive(true)
         refreshDisplay()
         resyncSecureInputChords()
-        tabPrefetchCache[AXRef(element: window)] = TabPrefetch(titles: titles, liveTabs: liveTabs, backend: backend)
+        // `.appWindows` strips must never enter the TAB prefetch cache: a later
+        // `\` tab drill on the same window would replay window rows as tabs
+        // against stale `drillWindowRows` (#80).
+        if backend != .appWindows {
+            tabPrefetchCache[AXRef(element: window)] = TabPrefetch(titles: titles, liveTabs: liveTabs, backend: backend)
+        }
     }
 
     /// Blocking tab fetch suitable for a background queue. Returns nil for a
@@ -3925,6 +4152,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabDrillHint = nil
         tabTitles = []
         liveTabElements = []
+        drillWindowRows = []
         tabIndex = 0
         drillWindow = nil
         // Restore the pre-drill detach state so a `\`-toggle exit while ⌘ is held
@@ -3971,9 +4199,18 @@ final class SwitcherController: SwitcherViewDelegate {
             commit()
             return
         }
+        // `.appWindows` (#80) activates `drillWindowRows[chosen]` — same bail
+        // shape as the missing target element above.
+        if backend == .appWindows, !drillWindowRows.indices.contains(chosen) {
+            exitTabDrill()
+            commit()
+            return
+        }
         let instantSpace = Preferences.shared.experimentalInstantSpaceSwitch
         if let pid = row.pid { mru.bump(pid) }
-        bumpWindowMRUIfPossible(for: row)
+        // Window MRU follows the window the user actually lands on: for the
+        // window drill that's the chosen strip entry, not the collapsed row.
+        bumpWindowMRUIfPossible(for: backend == .appWindows ? drillWindowRows[chosen] : row)
 
         revealGeneration &+= 1
         phase = .idle
@@ -4003,6 +4240,13 @@ final class SwitcherController: SwitcherViewDelegate {
                 let tabRow = SwitcherRow(app: app, window: tabWindow, windowTitle: row.windowTitle, isMinimized: false, cgWindowID: cachedWid)
                 Activator.activate(tabRow, instantSpace: instantSpace)
             }
+        case .appWindows:
+            // The strip lists the app's own windows (#80). The chosen row was
+            // captured from the warm cache with its enumeration-time
+            // CGWindowID, so activating it keeps the SLPS raise fallback for
+            // stale AX elements (Electron) — never rebuild it from
+            // `liveTabElements`, which would drop that id.
+            Activator.activate(drillWindowRows[chosen], instantSpace: instantSpace)
         }
         panel.dismiss()
         // Activating the chosen tab's app above; nothing to restore.
@@ -4010,6 +4254,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabDrillActive = false
         tabTitles = []
         liveTabElements = []
+        drillWindowRows = []
         tabIndex = 0
         drillWindow = nil
         hotkey.setTabDrillActive(false)
@@ -4668,6 +4913,23 @@ final class SwitcherController: SwitcherViewDelegate {
         if stickyOpen { return }
         if searchActive, Preferences.shared.searchDismissMode == .stayOpen {
             stickyOpen = true
+            return
+        }
+        // Quick-tap stay-open (#91): a chord release landing while still
+        // `.primed` (mouse-mapped shortcuts synthesize press+release before the
+        // panel appears) reveals + parks instead of committing — but only when
+        // BOTH stay-open opt-ins are on (see `quickReleaseParks`). Guard the
+        // park on `.visible` like openScoped()/triggerFromGesture(): reveal()
+        // can cancel to `.idle` (empty rows) and an unguarded assignment would
+        // strand stickyOpen=true into the next session. Benign re-entrancy:
+        // the synchronous reveal() can reach the post-present rescue, which
+        // re-enters handleModifierRelease and parks via the `.visible` branch
+        // first — idempotent.
+        if phase == .primed, primedByHeldChord, quickReleaseParksSticky {
+            revealTimer?.invalidate()
+            revealTimer = nil
+            reveal()
+            if phase == .visible { stickyOpen = true }
             return
         }
         // Stay-open (#77): only a `.visible` panel parks sticky — a release

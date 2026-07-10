@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/3e4bbb67-ef7d-4619-8068-1458d8460331" width="160" height="160" alt="BetterCmdTab" />
+<img src="https://github.com/user-attachments/assets/3e4bbb67-ef7d-4619-8068-1458d8460331" width="128" height="128" alt="BetterCmdTab" />
 
 # BetterCmdTab
 
 **The ⌘+Tab macOS deserves.**
 
-Fast · Native · Liquid Glass · Zero telemetry · Free forever
+Fast · Native · Zero telemetry · Free forever
 
 [![image](https://img.shields.io/badge/Download_Latest_Release-F5F5F4?style=for-the-badge&logo=apple&logoColor=black)](https://github.com/rokartur/BetterCmdTab/releases/latest)
 

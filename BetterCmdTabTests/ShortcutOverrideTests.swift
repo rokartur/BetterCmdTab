@@ -94,8 +94,11 @@ struct ShortcutOverrideTests {
         ov.applicationsOnly = true
         ov.expandBrowserTabsAsWindows = false
         ov.stayOpenOnRelease = true
+        ov.stayOpenOnQuickTap = false
         ov.layoutMode = .list
         ov.panelSize = .large
+        ov.fontScale = .small
+        ov.fontFace = .monospaced
         ov.gridMaxColumns = 7
         ov.accentChoice = .custom
         ov.customAccentHex = "#1A2B3C"
@@ -104,6 +107,7 @@ struct ShortcutOverrideTests {
         ov.backdropMaterial = .sidebar
         ov.showWindowTitleLabel = false
         ov.previewTitleAlignment = .leading
+        ov.titleTruncationMode = .middle
         ov.boldSelectedLabel = false
         ov.showApplicationNames = true
         ov.showUnreadBadges = false
@@ -280,6 +284,48 @@ struct ShortcutOverrideTests {
         #expect(prefs.effectiveSettings(for: ov).stayOpenOnRelease == target)
         // Unset inherits the global.
         #expect(prefs.effectiveSettings(for: ShortcutOverride()).stayOpenOnRelease == prefs.stayOpenOnRelease)
+    }
+
+    @Test("quick-tap stay-open resolves the override over the global (#91)")
+    func effectiveQuickTapOverride() {
+        let prefs = Preferences.shared
+        var ov = ShortcutOverride()
+        // Force the opposite of the current global so the assertion is real.
+        let target = !prefs.stayOpenOnQuickTap
+        ov.stayOpenOnQuickTap = target
+        #expect(prefs.effectiveSettings(for: ov).stayOpenOnQuickTap == target)
+        // Unset inherits the global.
+        #expect(prefs.effectiveSettings(for: ShortcutOverride()).stayOpenOnQuickTap == prefs.stayOpenOnQuickTap)
+    }
+
+    @Test("text size and font face resolve the override over the global (#62)")
+    func effectiveFontOverride() {
+        let prefs = Preferences.shared
+        var ov = ShortcutOverride()
+        // Force values that differ from the current globals so the assertions are real.
+        let scaleTarget: SwitcherFontScale = prefs.fontScale == .large ? .small : .large
+        let faceTarget: SwitcherFontFace = prefs.fontFace == .monospaced ? .rounded : .monospaced
+        ov.fontScale = scaleTarget
+        ov.fontFace = faceTarget
+        let eff = prefs.effectiveSettings(for: ov)
+        #expect(eff.fontScale == scaleTarget)
+        #expect(eff.fontFace == faceTarget)
+        // Unset inherits the globals.
+        let inherited = prefs.effectiveSettings(for: ShortcutOverride())
+        #expect(inherited.fontScale == prefs.fontScale)
+        #expect(inherited.fontFace == prefs.fontFace)
+    }
+
+    @Test("title truncation resolves the override over the global (#90)")
+    func effectiveTitleTruncationOverride() {
+        let prefs = Preferences.shared
+        var ov = ShortcutOverride()
+        // Pick a mode that differs from the current global so the assertion is real.
+        let target: TitleTruncationMode = prefs.titleTruncationMode == .head ? .middle : .head
+        ov.titleTruncationMode = target
+        #expect(prefs.effectiveSettings(for: ov).titleTruncationMode == target)
+        // Unset inherits the global.
+        #expect(prefs.effectiveSettings(for: ShortcutOverride()).titleTruncationMode == prefs.titleTruncationMode)
     }
 
     @Test("resolvedAccent honors an overridden custom hex")

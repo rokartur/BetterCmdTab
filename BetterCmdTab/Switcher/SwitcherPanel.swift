@@ -220,15 +220,31 @@ final class SwitcherPanel: NSPanel {
 
     /// The WindowServer can lose the `.canJoinAllSpaces` sticky tag when the
     /// Space topology changes while the panel is ordered out — e.g. quitting a
-    /// full-screen app destroys its Space (#46, #64). The next order-front then
+    /// full-screen app destroys its Space (#46, #64), or the active Space flips
+    /// onto a live full-screen app's Space (#94). The next order-front then
     /// puts the panel only on its original Space: switching still works, but
-    /// the panel is invisible everywhere else. `isOnActiveSpace` exposes that
-    /// broken state once the panel is nominally on screen, so re-assert the
-    /// tag and re-order onto the now-active Space. Runs on the runloop turn
-    /// after `present()`; the healthy path costs a single property read.
-    private func healSpaceAssignmentIfNeeded() {
-        guard isVisible, !isOnActiveSpace else { return }
-        Log.ui.error("panel not on active Space after present — re-asserting canJoinAllSpaces (#46/#64)")
+    /// the panel is invisible everywhere else. `isOnActiveSpace` alone can't
+    /// detect this — for a canJoinAllSpaces window it can keep reporting true
+    /// after the WindowServer has dropped the tag (#94) — so also require the
+    /// panel to actually composite (`occlusionState.visible`; at `.popUpMenu`
+    /// level nothing covers it, so on the active Space it is always visible).
+    /// Occlusion state is delivered asynchronously from the WindowServer and
+    /// may still be stale one runloop turn after order-front, so a
+    /// not-visible verdict is confirmed by a single re-check 50 ms later
+    /// before healing — otherwise every present would flicker through a
+    /// spurious re-order. Runs after `present()`; the healthy path costs two
+    /// property reads.
+    private func healSpaceAssignmentIfNeeded(isRetry: Bool = false) {
+        guard isVisible else { return }
+        let onActiveSpace = isOnActiveSpace
+        if onActiveSpace, occlusionState.contains(.visible) { return }
+        if onActiveSpace, !isRetry {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                self?.healSpaceAssignmentIfNeeded(isRetry: true)
+            }
+            return
+        }
+        Log.ui.error("panel \(onActiveSpace ? "not compositing on active Space" : "not on active Space") after present — re-asserting canJoinAllSpaces (#46/#64/#94)")
         reassertAllSpacesTag()
         orderOut(nil)
         makeKeyAndOrderFront(nil)

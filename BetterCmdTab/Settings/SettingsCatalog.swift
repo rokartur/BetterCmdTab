@@ -94,6 +94,7 @@ enum SearchID {
     static let showRecentlyClosed = "switcher.showRecentlyClosed"
     static let recentlyClosedLimit = "switcher.recentlyClosedLimit"
     static let tabDrill = "switcher.tabDrill"
+    static let windowDrill = "switcher.windowDrill"
     static let expandTabs = "switcher.expandTabs"
     static let expandBrowserTabs = "switcher.expandBrowserTabs"
     static let tabPermissions = "switcher.tabPermissions"
@@ -104,10 +105,12 @@ enum SearchID {
     static let searchMode = "switcher.searchMode"
     static let letterChainTimeout = "switcher.letterChainTimeout"
     static let shiftTapBack = "switcher.shiftTapBack"
+    static let backtickReverse = "switcher.backtickReverse"
     static let scroll = "switcher.scroll"
     static let scrollReverse = "switcher.scrollReverse"
     static let clickDismiss = "switcher.clickDismiss"
     static let stayOpen = "switcher.stayOpen"
+    static let stayOpenQuickTap = "switcher.stayOpenQuickTap"
     static let vimNavigation = "switcher.vimNavigation"
     static let hoverActions = "switcher.hoverActions"
     static let displayMonitor = "switcher.displayMonitor"
@@ -121,6 +124,9 @@ enum SearchID {
     static let quickSwitchDelay = "appearance.quickSwitchDelay"
     static let windowTitle = "appearance.windowTitle"
     static let titleAlignment = "appearance.titleAlignment"
+    static let titleTruncation = "appearance.titleTruncation"
+    static let textSize = "appearance.textSize"
+    static let fontFace = "appearance.fontFace"
     static let boldSelected = "appearance.boldSelected"
     static let opacity = "appearance.opacity"
     static let cornerRadius = "appearance.cornerRadius"
@@ -305,8 +311,12 @@ enum SettingsCatalog {
         // Behavior · Keyboard
         item(SearchID.stayOpen, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
              String(localized: "Stay open after releasing the modifier"), ["stay open", "sticky", "release", "modifier", "keep open", "hold"]),
+        item(SearchID.stayOpenQuickTap, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
+             String(localized: "Also stay open after a quick tap"), ["quick tap", "mouse", "mouse button", "gesture", "stay open", "sticky", "tap"]),
         item(SearchID.shiftTapBack, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
              String(localized: "Tap Shift to step backwards"), ["shift", "backwards", "back", "reverse", "tap shift", "cmd shift tab", "windows"]),
+        item(SearchID.backtickReverse, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
+             String(localized: "Use window-switch shortcut to step backwards"), ["backtick", "tilde", "cmd backtick", "command backtick", "window shortcut", "reverse", "backwards", "native"]),
         item(SearchID.vimNavigation, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
              String(localized: "Vim keys (h j k l)"), ["vim", "hjkl", "h j k l", "keyboard", "arrows", "navigation"]),
         // Behavior · Mouse
@@ -333,10 +343,16 @@ enum SettingsCatalog {
         item(SearchID.gridColumns, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Grid columns"), ["grid", "columns"]),
         // Appearance · Labels
+        item(SearchID.textSize, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Text size"), ["text size", "font size", "smaller", "larger", "text", "scale"]),
+        item(SearchID.fontFace, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Font"), ["font", "typeface", "face", "monospaced", "fixed width", "mono", "rounded", "serif"]),
         item(SearchID.windowTitle, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
              String(localized: "Show window title"), ["window title", "title", "label", "name"]),
         item(SearchID.titleAlignment, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
-             String(localized: "Title alignment"), ["title", "alignment", "align", "left", "center", "centre", "right", "position", "ellipsis"]),
+             String(localized: "Title alignment"), ["title", "alignment", "align", "left", "center", "centre", "right", "position"]),
+        item(SearchID.titleTruncation, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Ellipsis position"), ["ellipsis", "truncate", "truncation", "beginning", "middle", "end", "long title", "shorten", "title"]),
         item(SearchID.boldSelected, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
              String(localized: "Bold selected title"), ["bold", "selected", "title", "weight", "highlight", "label"]),
         item(SearchID.applicationNames, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
@@ -360,6 +376,9 @@ enum SettingsCatalog {
         item(SearchID.applicationsOnly, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Applications only"),
              ["applications only", "apps only", "one per app", "per app", "command tab", "classic", "group windows"]),
+        item(SearchID.windowDrill, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Peek windows with ↓"),
+             ["windows", "window", "drill", "peek", "down arrow", "applications only", "app windows", "expose"]),
         item(SearchID.showBadges, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
              String(localized: "Show unread badges"), ["badge", "unread", "dock badge", "count"]),
         item(SearchID.spaceScope, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),

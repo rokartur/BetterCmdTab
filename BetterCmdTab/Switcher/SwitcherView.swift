@@ -150,6 +150,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         self.accent = effective.resolvedAccent
         self.selectedIndex = selectedIndex
         searchBar.update(query: searchQuery)
+        searchBar.applyFont(fontScale: metrics.fontScale, face: effective.fontFace)
         searchBar.isHidden = !searchActive
         if let titles = tabStripTitles, !titles.isEmpty {
             tabStrip.configure(titles: titles, selectedIndex: tabStripSelectedIndex, accent: accent)
@@ -169,7 +170,7 @@ final class SwitcherView: NSView, TabStripDelegate {
             emptyTitle.stringValue = searchActive
                 ? String(localized: "No matches")
                 : String(localized: "No open windows")
-            emptyTitle.font = .systemFont(ofSize: round(14 * metrics.scale), weight: .semibold)
+            emptyTitle.font = SwitcherFont.font(ofSize: round(14 * metrics.scale * metrics.fontScale), weight: .semibold, design: effective.fontFace)
         }
         emptyIcon.isHidden = !rows.isEmpty
         emptyTitle.isHidden = !rows.isEmpty
@@ -655,7 +656,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         var candidate = base
         while scale > minScale + 0.001 {
             scale = max(minScale, scale - 0.05)
-            candidate = SwitcherMetrics.forScale(scale, layoutMode: base.layoutMode, letterHints: letterHints, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+            candidate = SwitcherMetrics.forScale(scale, layoutMode: base.layoutMode, fontScale: effective.fontScale.multiplier, letterHints: letterHints, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
             if fits(candidate) { return candidate }
         }
         return candidate
@@ -958,6 +959,8 @@ private final class SwitcherSearchBarView: NSView {
         field.font = .systemFont(ofSize: 14, weight: .medium)
         field.lineBreakMode = .byTruncatingTail
         field.translatesAutoresizingMaskIntoConstraints = false
+        // Text size/face applied per reveal via `applyFont` (#62) — the bar is
+        // created once, so the init font is only the pre-first-reveal default.
 
         addSubview(icon)
         addSubview(field)
@@ -999,6 +1002,15 @@ private final class SwitcherSearchBarView: NSView {
             field.stringValue = query
             field.textColor = .labelColor
         }
+    }
+
+    /// Text size/face for the query text (#62), applied per reveal — the bar is
+    /// created once and pooled, so a pref change must reach the live field.
+    /// Guarded: `SwitcherFont` memoizes, so the common no-change path is one
+    /// dictionary hit + pointer compare.
+    func applyFont(fontScale: CGFloat, face: SwitcherFontFace) {
+        let font = SwitcherFont.font(ofSize: round(14 * fontScale), weight: .medium, design: face)
+        if field.font != font { field.font = font }
     }
 
     private func updateAppearance() {

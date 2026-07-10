@@ -1,6 +1,342 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Default" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predeterminado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par défaut"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Domyślny"
+          }
+        }
+      }
+    },
+    "Extra large" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sehr groß"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muy grande"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Très grand"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bardzo duży"
+          }
+        }
+      }
+    },
+    "Extra small" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sehr klein"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muy pequeño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Très petit"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bardzo mały"
+          }
+        }
+      }
+    },
+    "Font" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schrift"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipo de letra"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Police"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czcionka"
+          }
+        }
+      }
+    },
+    "In applications-only mode, press ↓ or \\ on an app with several windows to show its windows in a strip below the switcher and pick one." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Nur-Apps-Modus ↓ oder \\ auf einer App mit mehreren Fenstern drücken, um ihre Fenster in einer Leiste unter dem Umschalter anzuzeigen und eines auszuwählen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En el modo de solo aplicaciones, pulsa ↓ o \\ en una app con varias ventanas para mostrar sus ventanas en una franja bajo el selector y elegir una."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En mode applications uniquement, appuyez sur ↓ ou \\ sur une app ayant plusieurs fenêtres pour afficher ses fenêtres dans une bande sous le sélecteur et en choisir une."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W trybie tylko aplikacje naciśnij ↓ lub \\ na aplikacji z kilkoma oknami, aby pokazać jej okna na pasku pod przełącznikiem i wybrać jedno."
+          }
+        }
+      }
+    },
+    "Monospaced" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monospace"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monoespaciada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À chasse fixe"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O stałej szerokości"
+          }
+        }
+      }
+    },
+    "Peek windows with ↓" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster mit ↓ einblenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver ventanas con ↓"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les fenêtres avec ↓"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podejrzyj okna klawiszem ↓"
+          }
+        }
+      }
+    },
+    "Rounded" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgerundet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redondeada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrondie"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaokrąglona"
+          }
+        }
+      }
+    },
+    "Serif" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serifen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serifa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sérif"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szeryfowa"
+          }
+        }
+      }
+    },
+    "Size of names and titles, independent of the panel size." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Größe der Namen und Titel, unabhängig von der Panelgröße."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamaño de los nombres y títulos, independiente del tamaño del panel."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille des noms et des titres, indépendante de la taille du panneau."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozmiar nazw i tytułów, niezależny od rozmiaru panelu."
+          }
+        }
+      }
+    },
+    "Text size" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Textgröße"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamaño del texto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille du texte"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozmiar tekstu"
+          }
+        }
+      }
+    },
+    "Typeface for names and titles." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schriftart für Namen und Titel."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipo de letra de los nombres y títulos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Police des noms et des titres."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Krój pisma nazw i tytułów."
+          }
+        }
+      }
+    },
     "Use global default" : {
       "localizations" : {
         "de" : {
@@ -614,6 +950,34 @@
         }
       }
     },
+    "Also stay open after a quick tap" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auch nach kurzem Antippen geöffnet lassen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener abierto también tras un toque rápido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rester ouvert aussi après une pression rapide"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozostaw otwarte także po szybkim naciśnięciu"
+          }
+        }
+      }
+    },
     "Always" : {
       "localizations" : {
         "de" : {
@@ -1018,6 +1382,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备份"
+          }
+        }
+      }
+    },
+    "Beginning" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfang"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Début"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Początek"
           }
         }
       }
@@ -2447,6 +2839,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在下载 %d%%"
+          }
+        }
+      }
+    },
+    "Ellipsis position" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position der Auslassungspunkte"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posición de los puntos suspensivos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position des points de suspension"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Położenie wielokropka"
+          }
+        }
+      }
+    },
+    "End" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ende"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fin"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koniec"
           }
         }
       }
@@ -4219,6 +4667,34 @@
         }
       }
     },
+    "Keep the switcher on screen even when the shortcut is pressed and released in one quick tap — for shortcuts mapped to mouse buttons or gestures. Requires “Stay open after releasing the modifier”." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Umschalter bleibt auch dann auf dem Bildschirm, wenn der Kurzbefehl mit einem kurzen Antippen gedrückt und losgelassen wird — für Kurzbefehle, die auf Maustasten oder Gesten gelegt sind. Erfordert „Nach dem Loslassen der Modifikatortaste geöffnet lassen“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El selector permanece en pantalla incluso cuando el atajo se pulsa y se suelta en un solo toque rápido — para atajos asignados a botones del ratón o gestos. Requiere «Mantener abierto al soltar el modificador»."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le sélecteur reste à l’écran même quand le raccourci est pressé et relâché en une pression rapide — pour les raccourcis associés à des boutons de souris ou à des gestes. Nécessite « Rester ouvert après le relâchement du modificateur »."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącznik pozostaje na ekranie nawet po szybkim naciśnięciu i puszczeniu skrótu — dla skrótów mapowanych na przyciski myszy lub gesty. Wymaga „Pozostaw otwarte po puszczeniu modyfikatora”."
+          }
+        }
+      }
+    },
     "Keep the switcher on screen when you let go of the trigger — pick with Return, a quick-jump letter, or the mouse; Esc dismisses. A quick tap still switches instantly." : {
       "localizations" : {
         "pl" : {
@@ -5002,6 +5478,34 @@
         }
       }
     },
+    "Middle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitte"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Milieu"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Środek"
+          }
+        }
+      }
+    },
     "Minimize window" : {
       "localizations" : {
         "de" : {
@@ -5610,6 +6114,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
+          }
+        }
+      }
+    },
+    "Only applies while “Stay open after releasing the modifier” is on for this shortcut." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gilt nur, solange „Nach dem Loslassen der Modifikatortaste geöffnet lassen“ für diesen Kurzbefehl aktiviert ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo se aplica mientras «Mantener abierto al soltar el modificador» esté activado para este atajo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne s’applique que lorsque « Rester ouvert après le relâchement du modificateur » est activé pour ce raccourci."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Działa tylko, gdy „Pozostaw otwarte po puszczeniu modyfikatora” jest włączone dla tego skrótu."
           }
         }
       }
@@ -9903,6 +10435,34 @@
         }
       }
     },
+    "Use window-switch shortcut to step backwards" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit dem Fensterwechsel-Kurzbefehl rückwärts wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar el atajo de cambio de ventana para retroceder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser le raccourci de changement de fenêtre pour reculer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofaj skrótem przełączania okien"
+          }
+        }
+      }
+    },
     "v%@  ·  Build %@" : {
       "localizations" : {
         "de" : {
@@ -10137,6 +10697,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此应用显示在切换器中时"
+          }
+        }
+      }
+    },
+    "Which part of a long title is shortened with an ellipsis." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcher Teil eines langen Titels mit Auslassungspunkten gekürzt wird."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qué parte de un título largo se acorta con puntos suspensivos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelle partie d'un titre long est raccourcie par des points de suspension."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Która część długiego tytułu jest skracana wielokropkiem."
+          }
+        }
+      }
+    },
+    "While the app switcher is open, press your window-switch shortcut (⌘` by default) to move backwards through apps. Opening the switcher with that shortcut still cycles windows." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei geöffnetem App-Umschalter geht dein Fensterwechsel-Kurzbefehl (standardmäßig ⌘`) rückwärts durch die Apps. Öffnest du den Umschalter mit diesem Kurzbefehl, blättert er weiterhin durch die Fenster."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mientras el selector de apps está abierto, pulsa tu atajo de cambio de ventana (⌘` de forma predeterminada) para retroceder entre las apps. Abrir el selector con ese atajo sigue recorriendo las ventanas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsque le sélecteur d’apps est ouvert, appuyez sur votre raccourci de changement de fenêtre (⌘` par défaut) pour reculer parmi les apps. Ouvrir le sélecteur avec ce raccourci continue de parcourir les fenêtres."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy przełącznik aplikacji jest otwarty, naciśnij swój skrót przełączania okien (domyślnie ⌘`), aby cofać się między aplikacjami. Otwarcie przełącznika tym skrótem nadal przełącza kolejno okna."
           }
         }
       }

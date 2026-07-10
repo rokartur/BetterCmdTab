@@ -157,6 +157,54 @@ struct SwitcherMetricsTests {
     func userScaleDefault() {
         #expect(SwitcherMetrics.forScreen(nil) == SwitcherMetrics.forScreen(nil, userScale: 1.0))
     }
+
+    @Test("fontScale defaults to 1.0 (no behavior change)")
+    func fontScaleDefaultIdentity() {
+        #expect(SwitcherMetrics.forScale(1.2) == SwitcherMetrics.forScale(1.2, fontScale: 1.0))
+        #expect(SwitcherMetrics.forScreen(nil) == SwitcherMetrics.forScreen(nil, fontScale: 1.0))
+    }
+
+    @Test("fontScale multiplies every font size (#62)")
+    func fontScaleScalesAllFonts() {
+        let m = SwitcherMetrics.forScale(1.0, fontScale: 1.3)
+        #expect(m.fontSize == SwitcherMetrics.baseFontSize * 1.3)
+        #expect(m.letterFontSize == SwitcherMetrics.baseLetterFontSize * 1.3)
+        #expect(m.tileNameFontSize == SwitcherMetrics.baseTileNameFontSize * 1.3)
+        #expect(m.tileTitleFontSize == SwitcherMetrics.baseTileTitleFontSize * 1.3)
+        #expect(m.tileLetterFontSize == SwitcherMetrics.baseTileLetterFontSize * 1.3)
+        #expect(m.previewNameFontSize == SwitcherMetrics.basePreviewNameFontSize * 1.3)
+    }
+
+    @Test("fontScale grows the areas that hold text, not the tile geometry")
+    func fontScaleGrowsTextAreas() {
+        let m = SwitcherMetrics.forScale(1.0, fontScale: 1.3)
+        #expect(m.labelHeight == round(SwitcherMetrics.baseLabelHeight * 1.3))
+        #expect(m.letterColumnWidth == round(SwitcherMetrics.baseLetterColumnWidth * 1.3))
+        #expect(m.previewLabelArea == round(SwitcherMetrics.basePreviewLabelArea * 1.3))
+        let grid = SwitcherMetrics.forScale(1.0, layoutMode: .gridView, fontScale: 1.3)
+        #expect(grid.tileLabelArea == round(SwitcherMetrics.baseTileLabelArea * 1.3))
+        #expect(grid.tileLetterArea == round(SwitcherMetrics.baseTileLetterArea * 1.3))
+        // Icon/tile geometry stays on the panel scale alone.
+        #expect(grid.tileSize == SwitcherMetrics.baseTileSize)
+        #expect(grid.tileIconSize == SwitcherMetrics.baseTileIconSize)
+        #expect(m.iconSize == SwitcherMetrics.baseIconSize)
+    }
+
+    @Test("shrinking text keeps the icon-driven row height, growing raises it")
+    func fontScaleShrinkKeepsRowHeight() {
+        let small = SwitcherMetrics.forScale(1.0, fontScale: 0.85)
+        #expect(small.fontSize == SwitcherMetrics.baseFontSize * 0.85)
+        #expect(small.rowHeight == SwitcherMetrics.baseRowHeight)
+        let big = SwitcherMetrics.forScale(1.0, fontScale: 1.3)
+        #expect(big.rowHeight == round(SwitcherMetrics.baseRowHeight * 1.3))
+    }
+
+    @Test("forScreen passes fontScale through to the fonts")
+    func forScreenPassesFontScale() {
+        let m = SwitcherMetrics.forScreen(nil, userScale: 1.0, fontScale: 0.85)
+        #expect(m.fontSize == SwitcherMetrics.baseFontSize * 0.85)
+        #expect(m.fontScale == 0.85)
+    }
 }
 
 @Suite("Switcher grid/preview column fitting")

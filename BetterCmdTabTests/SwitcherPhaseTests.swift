@@ -42,6 +42,21 @@ struct SwitcherPhaseTests {
     }
 }
 
+/// Pure-logic coverage for the quick-tap stay-open gate (#91): a chord release
+/// landing while still `.primed` (mouse-mapped shortcuts synthesize a quick
+/// press+release before the panel appears) parks the panel only when BOTH
+/// stay-open opt-ins are on — the quick-tap instant flip is protected shipped
+/// behavior (#77), so neither option alone may change it.
+@Suite("Switcher quick-tap stay-open gate")
+struct SwitcherQuickReleaseParkTests {
+    @Test func quickReleaseParkGate() {
+        #expect(!SwitcherController.quickReleaseParks(stayOpenOnRelease: false, stayOpenOnQuickTap: false))
+        #expect(!SwitcherController.quickReleaseParks(stayOpenOnRelease: true, stayOpenOnQuickTap: false))
+        #expect(!SwitcherController.quickReleaseParks(stayOpenOnRelease: false, stayOpenOnQuickTap: true))
+        #expect(SwitcherController.quickReleaseParks(stayOpenOnRelease: true, stayOpenOnQuickTap: true))
+    }
+}
+
 /// Pure-logic coverage for the fast-tap rescue: when the ⌘-release was dropped by
 /// the tap (it gates `.releaseCmd` on `isSwitchingNow()`, set only once the main
 /// thread reaches `.primed`), the controller re-reads the live modifier state and
@@ -274,5 +289,47 @@ struct SwitcherActiveBrowserTabTests {
         let rows = [SwitcherRow(app: hostApp, window: nil, windowTitle: "", isMinimized: false)]
         #expect(SwitcherController.activeBrowserTabIndex(
             in: rows, window: AXRef(element: win), activeTabIndex: 0) == nil)
+    }
+}
+
+/// Under a stable sort (alphabetical / launch order) the primed list is not
+/// MRU-ordered, so the old `primedIndex = 1` start always landed on the second
+/// app A→Z regardless of which app was focused (#88). The first step now
+/// anchors on the frontmost app's position and wraps from there; a nil anchor
+/// (frontmost filtered out, or an MRU sort) reproduces the legacy start.
+@Suite("Primed start anchor (#88)")
+struct PrimedStartAnchorTests {
+    @Test func legacyHeadAnchor_whenAnchorNil() {
+        #expect(SwitcherController.primedStartIndex(count: 5, step: 1, anchor: nil) == 1)
+        #expect(SwitcherController.primedStartIndex(count: 5, step: -1, anchor: nil) == 4)
+    }
+
+    @Test func anchorForward_selectsNeighborAfterFrontmost() {
+        #expect(SwitcherController.primedStartIndex(count: 5, step: 1, anchor: 2) == 3)
+    }
+
+    @Test func anchorReverse_selectsNeighborBefore() {
+        #expect(SwitcherController.primedStartIndex(count: 5, step: -1, anchor: 2) == 1)
+    }
+
+    @Test func anchorWraps_bothDirections() {
+        // Frontmost is last A→Z → forward wraps to the head.
+        #expect(SwitcherController.primedStartIndex(count: 5, step: 1, anchor: 4) == 0)
+        // Frontmost is first → shift-reverse wraps to the tail.
+        #expect(SwitcherController.primedStartIndex(count: 5, step: -1, anchor: 0) == 4)
+    }
+
+    @Test func singleApp_alwaysZero() {
+        for step in [-1, 0, 1] {
+            #expect(SwitcherController.primedStartIndex(count: 1, step: step, anchor: nil) == 0)
+            #expect(SwitcherController.primedStartIndex(count: 1, step: step, anchor: 0) == 0)
+        }
+    }
+
+    @Test func gate_onlyStableSortsAnchor() {
+        #expect(SwitcherSortOrder.alphabetical.anchorsPrimedOnFrontmost)
+        #expect(SwitcherSortOrder.launchOrder.anchorsPrimedOnFrontmost)
+        #expect(!SwitcherSortOrder.mru.anchorsPrimedOnFrontmost)
+        #expect(!SwitcherSortOrder.mruWindows.anchorsPrimedOnFrontmost)
     }
 }
