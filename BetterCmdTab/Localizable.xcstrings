@@ -8691,7 +8691,30 @@
     },
     "Use window-switch shortcut to step backwards" : {
       "localizations" : {
-
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit dem Fensterwechsel-Kurzbefehl rückwärts wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar el atajo de cambio de ventana para retroceder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser le raccourci de changement de fenêtre pour reculer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofaj skrótem przełączania okien"
+          }
+        }
       }
     },
     "v%@  ·  Build %@" : {
@@ -8920,7 +8943,30 @@
     },
     "While the app switcher is open, press your window-switch shortcut (⌘` by default) to move backwards through apps. Opening the switcher with that shortcut still cycles windows." : {
       "localizations" : {
-
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei geöffnetem App-Umschalter geht dein Fensterwechsel-Kurzbefehl (standardmäßig ⌘`) rückwärts durch die Apps. Öffnest du den Umschalter mit diesem Kurzbefehl, blättert er weiterhin durch die Fenster."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mientras el selector de apps está abierto, pulsa tu atajo de cambio de ventana (⌘` de forma predeterminada) para retroceder entre las apps. Abrir el selector con ese atajo sigue recorriendo las ventanas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsque le sélecteur d’apps est ouvert, appuyez sur votre raccourci de changement de fenêtre (⌘` par défaut) pour reculer parmi les apps. Ouvrir le sélecteur avec ce raccourci continue de parcourir les fenêtres."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy przełącznik aplikacji jest otwarty, naciśnij swój skrót przełączania okien (domyślnie ⌘`), aby cofać się między aplikacjami. Otwarcie przełącznika tym skrótem nadal przełącza kolejno okna."
+          }
+        }
       }
     },
     "While the switcher is open, a tap of the Shift key steps the selection backwards and holding Shift keeps stepping back until you let go — just like a held Tab. Turn this off to step back only with Shift held as you press the switch key (⌘⇧Tab)." : {
