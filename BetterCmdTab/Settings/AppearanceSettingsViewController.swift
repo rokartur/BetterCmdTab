@@ -17,7 +17,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private let appNamesSwitch = NSSwitch()
     private let boldSelectedSwitch = NSSwitch()
     private let opacitySlider = NSSlider()
-    private let opacityValueLabel = NSTextField(labelWithString: "")
+    private let opacityValueField = NSTextField()
     private let radiusSlider = NSSlider()
     private let radiusValueLabel = NSTextField(labelWithString: "")
 
@@ -98,11 +98,26 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Color of the selection highlight and jump letters."),
                accessory: accentPopup, searchItemID: SearchID.accent)
 
-        let opacityStack = makeSliderControl(
-            opacitySlider, valueLabel: opacityValueLabel,
-            range: Preferences.panelOpacityRange, action: #selector(opacityChanged(_:))
-        )
-        addRow(to: panel, title: String(localized: "Panel opacity"),
+        let opacityTitle = String(localized: "Panel opacity")
+        opacitySlider.minValue = Double(Preferences.panelOpacityRange.lowerBound)
+        opacitySlider.maxValue = Double(Preferences.panelOpacityRange.upperBound)
+        opacitySlider.isContinuous = true
+        opacitySlider.controlSize = .small
+        opacitySlider.target = self
+        opacitySlider.action = #selector(opacityChanged(_:))
+        opacitySlider.translatesAutoresizingMaskIntoConstraints = false
+        opacitySlider.setAccessibilityLabel(opacityTitle)
+        configureIntegerField(opacityValueField,
+                              action: #selector(opacityValueCommitted(_:)),
+                              accessibilityLabel: opacityTitle)
+        let opacityStack = NSStackView(views: [opacitySlider, unitInput(for: opacityValueField, unit: "%")])
+        opacityStack.orientation = .horizontal
+        opacityStack.spacing = 8
+        opacityStack.alignment = .centerY
+        NSLayoutConstraint.activate([
+            opacitySlider.widthAnchor.constraint(equalToConstant: 140),
+        ])
+        addRow(to: panel, title: opacityTitle,
                subtitle: String(localized: "Translucency of the switcher panel."),
                accessory: opacityStack, searchItemID: SearchID.opacity)
 
@@ -421,7 +436,17 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     @objc private func opacityChanged(_ sender: NSSlider) {
         Preferences.shared.panelOpacity = sender.integerValue
-        opacityValueLabel.stringValue = "\(sender.integerValue)%"
+        applyOpacity(sender.integerValue)
+    }
+
+    @objc private func opacityValueCommitted(_ sender: NSTextField) {
+        guard let value = committedInteger(from: sender) else {
+            applyOpacity(Preferences.shared.panelOpacity)
+            return
+        }
+        let clamped = Preferences.clampOpacity(value)
+        Preferences.shared.panelOpacity = clamped
+        applyOpacity(clamped)
     }
 
     @objc private func radiusChanged(_ sender: NSSlider) {
@@ -431,7 +456,8 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private func applyOpacity(_ value: Int) {
         if opacitySlider.integerValue != value { opacitySlider.integerValue = value }
-        opacityValueLabel.stringValue = "\(value)%"
+        let text = String(value)
+        if opacityValueField.stringValue != text { opacityValueField.stringValue = text }
     }
 
     private func applyRadius(_ value: Int) {

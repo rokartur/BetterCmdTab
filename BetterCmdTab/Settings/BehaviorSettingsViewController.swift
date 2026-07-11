@@ -42,7 +42,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     // Search
     private let letterHintsSwitch = NSSwitch()
     private let letterTimeoutSlider = NSSlider()
-    private let letterTimeoutValueLabel = NSTextField(labelWithString: "")
+    private let letterTimeoutValueField = NSTextField()
     private let fuzzySwitch = NSSwitch()
     private let launcherSwitch = NSSwitch()
     private let searchModePopup = NSPopUpButton(frame: .zero, pullsDown: false)
@@ -105,7 +105,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         configureIntegerField(delayValueField,
                               action: #selector(delayValueCommitted(_:)),
                               accessibilityLabel: quickSwitchDelayTitle)
-        let delayStack = NSStackView(views: [delaySlider, millisecondsInput(for: delayValueField)])
+        let delayStack = NSStackView(views: [delaySlider, unitInput(for: delayValueField, unit: "ms")])
         delayStack.orientation = .horizontal
         delayStack.spacing = 8
         delayStack.alignment = .centerY
@@ -130,7 +130,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         configureIntegerField(titleRefreshValueField,
                               action: #selector(titleRefreshValueCommitted(_:)),
                               accessibilityLabel: titleRefreshDelayTitle)
-        let titleRefreshStack = NSStackView(views: [titleRefreshSlider, millisecondsInput(for: titleRefreshValueField)])
+        let titleRefreshStack = NSStackView(views: [titleRefreshSlider, unitInput(for: titleRefreshValueField, unit: "ms")])
         titleRefreshStack.orientation = .horizontal
         titleRefreshStack.spacing = 8
         titleRefreshStack.alignment = .centerY
@@ -216,6 +216,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Show a letter on each window and jump to it by typing that letter. Turn it off to start typing and filter the list instead, without pressing / — action keys like W or Q then type into the search rather than acting on a window."),
                accessory: letterHintsSwitch, searchItemID: SearchID.letterHints)
 
+        let letterTimeoutTitle = String(localized: "Letter chain timeout")
         letterTimeoutSlider.minValue = Double(Preferences.letterChainTimeoutRange.lowerBound)
         letterTimeoutSlider.maxValue = Double(Preferences.letterChainTimeoutRange.upperBound)
         letterTimeoutSlider.isContinuous = true
@@ -223,20 +224,18 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         letterTimeoutSlider.target = self
         letterTimeoutSlider.action = #selector(letterTimeoutChanged(_:))
         letterTimeoutSlider.translatesAutoresizingMaskIntoConstraints = false
-        letterTimeoutValueLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-        letterTimeoutValueLabel.textColor = .secondaryLabelColor
-        letterTimeoutValueLabel.alignment = .right
-        letterTimeoutValueLabel.translatesAutoresizingMaskIntoConstraints = false
-        letterTimeoutValueLabel.setContentHuggingPriority(.required, for: .horizontal)
-        let letterTimeoutStack = NSStackView(views: [letterTimeoutSlider, letterTimeoutValueLabel])
+        letterTimeoutSlider.setAccessibilityLabel(letterTimeoutTitle)
+        configureIntegerField(letterTimeoutValueField,
+                              action: #selector(letterTimeoutValueCommitted(_:)),
+                              accessibilityLabel: letterTimeoutTitle)
+        let letterTimeoutStack = NSStackView(views: [letterTimeoutSlider, unitInput(for: letterTimeoutValueField, unit: "ms")])
         letterTimeoutStack.orientation = .horizontal
         letterTimeoutStack.spacing = 8
         letterTimeoutStack.alignment = .centerY
         NSLayoutConstraint.activate([
             letterTimeoutSlider.widthAnchor.constraint(equalToConstant: 140),
-            letterTimeoutValueLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 52),
         ])
-        addRow(to: search, title: String(localized: "Letter chain timeout"),
+        addRow(to: search, title: letterTimeoutTitle,
                subtitle: String(localized: "How long a typed letter sequence stays active. When it expires, the highlight clears and the list returns to its original order."),
                accessory: letterTimeoutStack, searchItemID: SearchID.letterChainTimeout)
 
@@ -347,34 +346,6 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         popup.action = action
     }
 
-    private func configureIntegerField(_ field: NSTextField,
-                                       action: Selector,
-                                       accessibilityLabel: String) {
-        field.controlSize = .small
-        field.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-        field.alignment = .right
-        field.target = self
-        field.action = action
-        field.cell?.sendsActionOnEndEditing = true
-        field.translatesAutoresizingMaskIntoConstraints = false
-        field.setContentHuggingPriority(.required, for: .horizontal)
-        field.setAccessibilityLabel(accessibilityLabel)
-        field.widthAnchor.constraint(equalToConstant: 52).isActive = true
-    }
-
-    private func millisecondsInput(for field: NSTextField) -> NSStackView {
-        let unitLabel = NSTextField(labelWithString: "ms")
-        unitLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-        unitLabel.textColor = .secondaryLabelColor
-        unitLabel.setContentHuggingPriority(.required, for: .horizontal)
-
-        let stack = NSStackView(views: [field, unitLabel])
-        stack.orientation = .horizontal
-        stack.spacing = 4
-        stack.alignment = .centerY
-        return stack
-    }
-
     override func viewWillAppear() {
         super.viewWillAppear()
 
@@ -399,6 +370,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off
         applyLetterTimeout(prefs.letterChainTimeoutMs)
         letterTimeoutSlider.isEnabled = prefs.letterHintsEnabled
+        letterTimeoutValueField.isEnabled = prefs.letterHintsEnabled
         fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
         launcherSwitch.state = prefs.searchIncludesLaunchableApps ? .on : .off
         selectSearchMode(prefs.searchDismissMode)
@@ -465,7 +437,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func delayValueCommitted(_ sender: NSTextField) {
-        guard let value = Int(sender.stringValue) else {
+        guard let value = committedInteger(from: sender) else {
             applyDelay(Preferences.shared.revealDelayMs)
             return
         }
@@ -487,7 +459,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func titleRefreshValueCommitted(_ sender: NSTextField) {
-        guard let value = Int(sender.stringValue) else {
+        guard let value = committedInteger(from: sender) else {
             applyTitleRefresh(Preferences.shared.titleRefreshIntervalMs)
             return
         }
@@ -532,6 +504,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         // The chain timeout only matters while letter-jump is on (typing a letter
         // is a no-op otherwise), so gray it out to match.
         letterTimeoutSlider.isEnabled = on
+        letterTimeoutValueField.isEnabled = on
     }
 
     @objc private func letterTimeoutChanged(_ sender: NSSlider) {
@@ -539,9 +512,20 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         applyLetterTimeout(sender.integerValue)
     }
 
+    @objc private func letterTimeoutValueCommitted(_ sender: NSTextField) {
+        guard let value = committedInteger(from: sender) else {
+            applyLetterTimeout(Preferences.shared.letterChainTimeoutMs)
+            return
+        }
+        let ms = Preferences.clampLetterChainTimeout(value)
+        Preferences.shared.letterChainTimeoutMs = ms
+        applyLetterTimeout(ms)
+    }
+
     private func applyLetterTimeout(_ ms: Int) {
         if Int(letterTimeoutSlider.intValue) != ms { letterTimeoutSlider.integerValue = ms }
-        letterTimeoutValueLabel.stringValue = String(format: "%.1f s", Double(ms) / 1000.0)
+        let value = String(ms)
+        if letterTimeoutValueField.stringValue != value { letterTimeoutValueField.stringValue = value }
     }
 
     @objc private func toggleFuzzy(_ sender: NSSwitch) {
@@ -705,7 +689,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func recentlyClosedLimitCommitted(_ sender: NSTextField) {
-        guard let value = Int(sender.stringValue) else {
+        guard let value = committedInteger(from: sender) else {
             applyRecentlyClosedLimit(Preferences.shared.recentlyClosedLimit)
             return
         }
