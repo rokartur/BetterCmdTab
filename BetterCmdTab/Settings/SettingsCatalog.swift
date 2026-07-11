@@ -123,7 +123,6 @@ enum SearchID {
     static let layout = "appearance.layout"
     static let size = "appearance.size"
     static let gridColumns = "appearance.gridColumns"
-    static let accent = "appearance.accent"
     static let quickSwitchDelay = "appearance.quickSwitchDelay"
     static let windowTitle = "appearance.windowTitle"
     static let titleAlignment = "appearance.titleAlignment"
@@ -367,8 +366,6 @@ enum SettingsCatalog {
              String(localized: "Show application names"),
              ["application names", "app name", "app names", "name", "label", "icon only", "hide name"]),
         // Appearance · Panel
-        item(SearchID.accent, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
-             String(localized: "Accent color"), ["accent", "color", "highlight", "tint"]),
         item(SearchID.opacity, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
              String(localized: "Panel opacity"), ["opacity", "transparency", "alpha", "translucent"]),
         item(SearchID.cornerRadius, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),

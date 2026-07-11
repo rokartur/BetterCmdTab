@@ -82,7 +82,7 @@ Fast · Native · Zero telemetry · Free forever
 ### Appearance & Customization
 
 - **Liquid Glass** — system material on macOS 26.
-- **Theming** — panel opacity, corner radius, background material, and a custom accent color.
+- **Theming** — panel opacity, corner radius, and background material; the selection highlight follows your macOS accent color.
 - **Preview titles** — choose how window titles align in previews and whether the selected name is bold.
 - **Configurable** — custom hotkey, size, scale, layout, grid columns, and reveal delay.
 

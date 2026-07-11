@@ -90,7 +90,6 @@ final class ShortcutOptionsFormView: NSView {
         addIntRow(to: appearance, title: String(localized: "Grid columns"),
                   subtitle: String(localized: "Applies to the Grid and Previews layouts."),
                   values: [0, 2, 3, 4, 5, 6], display: { $0 == 0 ? String(localized: "Automatic") : "\($0)" }, current: override.gridMaxColumns) { [weak self] in self?.override.gridMaxColumns = $0; self?.persist() }
-        addEnumRow(to: appearance, title: String(localized: "Accent color"), options: SwitcherAccent.allCases.filter { $0 != .custom }, display: { $0.displayName }, current: override.accentChoice) { [weak self] in self?.override.accentChoice = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Backdrop material"), options: BackdropMaterial.allCases, display: { $0.displayName }, current: override.backdropMaterial) { [weak self] in self?.override.backdropMaterial = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Title alignment"), options: [.leading, .center, .trailing] as [PreviewTitleAlignment], display: { $0.displayName }, current: override.previewTitleAlignment) { [weak self] in self?.override.previewTitleAlignment = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Ellipsis position"), options: TitleTruncationMode.allCases, display: { $0.displayName }, current: override.titleTruncationMode) { [weak self] in self?.override.titleTruncationMode = $0; self?.persist() }

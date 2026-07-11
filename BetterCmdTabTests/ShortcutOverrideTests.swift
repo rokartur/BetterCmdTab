@@ -100,8 +100,6 @@ struct ShortcutOverrideTests {
         ov.fontScale = .small
         ov.fontFace = .monospaced
         ov.gridMaxColumns = 7
-        ov.accentChoice = .custom
-        ov.customAccentHex = "#1A2B3C"
         ov.panelOpacity = 80
         ov.panelCornerRadius = 12
         ov.backdropMaterial = .sidebar
@@ -128,11 +126,23 @@ struct ShortcutOverrideTests {
         #expect(parsed?.applicationsOnly == nil)
     }
 
-    @Test("unknown keys are ignored on decode")
-    func dictionaryIgnoresUnknownKeys() {
+    @Test("unknown keys survive the round-trip instead of being stripped")
+    func dictionaryPassesThroughUnknownKeys() {
         let parsed = ShortcutOverride(dictionary: ["spaceScope": "allSpaces", "futureField": "42"])
         #expect(parsed?.spaceScope == .allSpaces)
         #expect(parsed?.isEmpty == false)
+        // The unknown key rides along in `passthrough` and is re-emitted, so
+        // re-saving on this build doesn't destroy another build's data.
+        #expect(parsed?.passthrough == ["futureField": "42"])
+        #expect(parsed?.dictionary["futureField"] == "42")
+        // An entry whose only content is unknown keys (e.g. a retired accent
+        // override) is not "empty" — it must survive storage, not be dropped.
+        let foreignOnly = ShortcutOverride(dictionary: ["accentChoice": "green"])
+        #expect(foreignOnly?.isEmpty == false)
+        #expect(foreignOnly?.dictionary == ["accentChoice": "green"])
+        // The "target" envelope key stamped by the codec is not passthrough.
+        let stamped = ShortcutOverride(dictionary: ["target": "switchApps", "spaceScope": "allSpaces"])
+        #expect(stamped?.passthrough.isEmpty == true)
     }
 
     // MARK: - CatalogFilter.overlay
@@ -326,16 +336,5 @@ struct ShortcutOverrideTests {
         #expect(prefs.effectiveSettings(for: ov).titleTruncationMode == target)
         // Unset inherits the global.
         #expect(prefs.effectiveSettings(for: ShortcutOverride()).titleTruncationMode == prefs.titleTruncationMode)
-    }
-
-    @Test("resolvedAccent honors an overridden custom hex")
-    func effectiveCustomAccent() {
-        let prefs = Preferences.shared
-        var ov = ShortcutOverride()
-        ov.accentChoice = .custom
-        ov.customAccentHex = "#FF0000"
-        let eff = prefs.effectiveSettings(for: ov)
-        let expected = NSColor(hexString: "#FF0000")!
-        #expect(eff.resolvedAccent.hexString == expected.hexString)
     }
 }

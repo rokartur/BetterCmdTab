@@ -12,7 +12,6 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private let gridPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let fontSizePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let fontFacePopup = NSPopUpButton(frame: .zero, pullsDown: false)
-    private let accentPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let windowTitleSwitch = NSSwitch()
     private let appNamesSwitch = NSSwitch()
     private let boldSelectedSwitch = NSSwitch()
@@ -31,7 +30,6 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private let fontFaces: [SwitcherFontFace] = SwitcherFontFace.allCases
     private let panelSizes: [PanelSize] = PanelSize.allCases
     private let gridValues: [Int] = [0, 2, 3, 4, 5, 6] // 0 = automatic
-    private let accents: [SwitcherAccent] = SwitcherAccent.allCases
 
     override func setupContent() {
         // Layout section — the panel's shape: which layout, how big, how many
@@ -87,16 +85,9 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Hide the app name in every layout; identify apps by their icon."),
                accessory: appNamesSwitch, searchItemID: SearchID.applicationNames)
 
-        // Panel section — the chrome: accent, translucency, rounding.
+        // Panel section — the chrome: translucency, rounding. The selection
+        // accent always follows the user's macOS accent color.
         let panel = addSection(title: String(localized: "Panel"), anchor: SettingsAnchor.appearancePanel)
-
-        configurePopup(accentPopup, titles: accents.map(\.displayName), action: #selector(accentChanged))
-        for (i, accent) in accents.enumerated() {
-            accentPopup.item(at: i)?.image = Self.swatch(for: accent)
-        }
-        addRow(to: panel, title: String(localized: "Accent color"),
-               subtitle: String(localized: "Color of the selection highlight and jump letters."),
-               accessory: accentPopup, searchItemID: SearchID.accent)
 
         let opacityTitle = String(localized: "Panel opacity")
         opacitySlider.minValue = Double(Preferences.panelOpacityRange.lowerBound)
@@ -166,33 +157,6 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             valueLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 52),
         ])
         return stack
-    }
-
-    /// Small filled-circle swatch shown beside each accent menu item. The
-    /// `.system` choice is drawn with the live accent color so it always
-    /// previews the user's macOS setting.
-    private static func swatch(for accent: SwitcherAccent) -> NSImage {
-        let size = NSSize(width: 12, height: 12)
-        let image = NSImage(size: size)
-        image.isTemplate = false
-        image.lockFocus()
-        let rect = NSRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5)
-        let path = NSBezierPath(ovalIn: rect)
-        // The custom choice previews the stored hex so its swatch tracks the
-        // user's pick instead of the system accent fallback in `resolved`.
-        let fill: NSColor
-        if accent == .custom {
-            fill = Preferences.shared.customAccentHex.flatMap(NSColor.init(hexString:)) ?? .controlAccentColor
-        } else {
-            fill = accent.resolved
-        }
-        fill.setFill()
-        path.fill()
-        NSColor.black.withAlphaComponent(0.15).setStroke()
-        path.lineWidth = 1
-        path.stroke()
-        image.unlockFocus()
-        return image
     }
 
     private func makeLayoutRadio() -> SettingsRadioGroupView {
@@ -270,14 +234,6 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.selectGrid($0) }
             .store(in: &cancellables)
-        prefs.$accentChoice
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.selectAccent($0) }
-            .store(in: &cancellables)
-        prefs.$customAccentHex
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.refreshCustomSwatch() }
-            .store(in: &cancellables)
         prefs.$showWindowTitleLabel
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.windowTitleSwitch.state = $0 ? .on : .off }
@@ -319,16 +275,6 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     override func viewWillDisappear() {
         super.viewWillDisappear()
         cancellables.removeAll()
-        // The shared color panel keeps a non-zeroing target/action. The settings
-        // window is `.releaseOnClose`, so leaving this wired would let a later
-        // color change message a deallocated controller (EXC_BAD_ACCESS). Detach
-        // ourselves whenever we own the panel (NSColorPanel exposes no target
-        // getter, so we track ownership explicitly).
-        if ownsColorPanel {
-            NSColorPanel.shared.setTarget(nil)
-            NSColorPanel.shared.setAction(nil)
-            ownsColorPanel = false
-        }
     }
 
     private func syncFromPreferences() {
@@ -336,7 +282,6 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         selectLayout(prefs.switcherLayoutMode)
         selectSize(prefs.panelSize)
         selectGrid(prefs.gridMaxColumns)
-        selectAccent(prefs.accentChoice)
         windowTitleSwitch.state = prefs.showWindowTitleLabel ? .on : .off
         selectTitleAlignment(prefs.previewTitleAlignment)
         selectTruncationMode(prefs.titleTruncationMode)
@@ -346,7 +291,6 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         appNamesSwitch.state = prefs.showApplicationNames ? .on : .off
         applyOpacity(prefs.panelOpacity)
         applyRadius(prefs.panelCornerRadius)
-        refreshCustomSwatch()
     }
 
     private func selectLayout(_ mode: SwitcherLayoutMode) {
@@ -376,22 +320,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         }
     }
 
-    private func selectAccent(_ accent: SwitcherAccent) {
-        if let i = accents.firstIndex(of: accent) { accentPopup.selectItem(at: i) }
-    }
-
     @objc private func gridChanged() {
         let i = gridPopup.indexOfSelectedItem
         guard gridValues.indices.contains(i) else { return }
         Preferences.shared.gridMaxColumns = gridValues[i]
-    }
-
-    @objc private func accentChanged() {
-        let i = accentPopup.indexOfSelectedItem
-        guard accents.indices.contains(i) else { return }
-        let choice = accents[i]
-        Preferences.shared.accentChoice = choice
-        if choice == .custom { presentColorPanel() }
     }
 
     @objc private func toggleWindowTitle(_ sender: NSSwitch) {
@@ -465,32 +397,4 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         radiusValueLabel.stringValue = value == 0 ? String(localized: "Auto") : "\(value) pt"
     }
 
-    /// Repaints the custom accent menu item's swatch from the stored hex.
-    private func refreshCustomSwatch() {
-        guard let i = accents.firstIndex(of: .custom) else { return }
-        accentPopup.item(at: i)?.image = Self.swatch(for: .custom)
-    }
-
-    // MARK: - Custom accent color
-
-    /// Tracks whether we currently own the shared color panel's target/action,
-    /// so `viewWillDisappear` can detach before this controller is released.
-    private var ownsColorPanel = false
-
-    private func presentColorPanel() {
-        let panel = NSColorPanel.shared
-        panel.showsAlpha = false
-        if let hex = Preferences.shared.customAccentHex, let color = NSColor(hexString: hex) {
-            panel.color = color
-        }
-        panel.setTarget(self)
-        panel.setAction(#selector(customColorChanged(_:)))
-        ownsColorPanel = true
-        panel.orderFront(nil)
-    }
-
-    @objc private func customColorChanged(_ sender: NSColorPanel) {
-        Preferences.shared.customAccentHex = sender.color.hexString
-        refreshCustomSwatch()
-    }
 }

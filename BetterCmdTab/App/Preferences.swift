@@ -103,61 +103,6 @@ enum SearchDismissMode: String, CaseIterable {
     }
 }
 
-/// Accent color used for the selection highlight and the type-to-jump letter
-/// prefix. `.system` follows the user's macOS accent (`controlAccentColor`);
-/// every other case is a fixed color.
-enum SwitcherAccent: String, CaseIterable {
-    case system
-    case blue
-    case purple
-    case pink
-    case red
-    case orange
-    case yellow
-    case green
-    case graphite
-    /// User-supplied color; the actual value lives in `Preferences.customAccentHex`.
-    /// Resolve via `Preferences.shared.resolvedAccent`, not `resolved`, so the hex
-    /// is read on the main actor.
-    case custom
-
-    var displayName: String {
-        switch self {
-        case .system: return String(localized: "System")
-        case .blue: return String(localized: "Blue")
-        case .purple: return String(localized: "Purple")
-        case .pink: return String(localized: "Pink")
-        case .red: return String(localized: "Red")
-        case .orange: return String(localized: "Orange")
-        case .yellow: return String(localized: "Yellow")
-        case .green: return String(localized: "Green")
-        case .graphite: return String(localized: "Graphite")
-        case .custom: return String(localized: "Custom…")
-        }
-    }
-
-    /// Fixed color, or `nil` when the choice tracks the system accent or is custom.
-    var color: NSColor? {
-        switch self {
-        case .system, .custom: return nil
-        case .blue: return .systemBlue
-        case .purple: return .systemPurple
-        case .pink: return .systemPink
-        case .red: return .systemRed
-        case .orange: return .systemOrange
-        case .yellow: return .systemYellow
-        case .green: return .systemGreen
-        case .graphite: return .systemGray
-        }
-    }
-
-    /// The concrete color to draw with right now. Resolving `.system` lazily
-    /// keeps it appearance-reactive (light/dark) like the rest of AppKit. For
-    /// `.custom` this falls back to the system accent — use
-    /// `Preferences.shared.resolvedAccent` to honor the stored hex.
-    var resolved: NSColor { color ?? .controlAccentColor }
-}
-
 /// Background material for the switcher panel (the blur behind the rows). Maps to
 /// an `NSVisualEffectView.Material`; the macOS 26 glass backdrop ignores it.
 enum BackdropMaterial: String, CaseIterable {
@@ -395,8 +340,6 @@ struct ShortcutOverride: Equatable, Sendable {
     var fontScale: SwitcherFontScale?
     var fontFace: SwitcherFontFace?
     var gridMaxColumns: Int?
-    var accentChoice: SwitcherAccent?
-    var customAccentHex: String?
     var panelOpacity: Int?
     var panelCornerRadius: Int?
     var backdropMaterial: BackdropMaterial?
@@ -407,6 +350,11 @@ struct ShortcutOverride: Equatable, Sendable {
     var showApplicationNames: Bool?
     var showUnreadBadges: Bool?
     var letterHintsEnabled: Bool?
+    /// Stored keys this build doesn't understand — from a newer version or a
+    /// removed feature (e.g. the retired accent override). Carried through
+    /// encode/decode verbatim so re-saving an override on this build doesn't
+    /// strip another build's data (a downgrade would otherwise lose it).
+    var passthrough: [String: String] = [:]
 
     init() {}
 
@@ -419,19 +367,20 @@ struct ShortcutOverride: Equatable, Sendable {
             && stayOpenOnQuickTap == nil
             && layoutMode == nil && panelSize == nil
             && fontScale == nil && fontFace == nil
-            && gridMaxColumns == nil && accentChoice == nil && customAccentHex == nil
+            && gridMaxColumns == nil
             && panelOpacity == nil && panelCornerRadius == nil && backdropMaterial == nil
             && showWindowTitleLabel == nil && previewTitleAlignment == nil
             && titleTruncationMode == nil
             && boldSelectedLabel == nil && showApplicationNames == nil
             && showUnreadBadges == nil && letterHintsEnabled == nil
+            && passthrough.isEmpty
     }
 
     /// Plist-friendly representation: only *set* fields are emitted, so an absent
     /// key reads back as "inherit". Bools become `"true"`/`"false"`, ints their
     /// decimal string, enums their raw value.
     var dictionary: [String: String] {
-        var d: [String: String] = [:]
+        var d = passthrough
         func put(_ key: String, _ value: Bool?) { if let value { d[key] = value ? "true" : "false" } }
         func put(_ key: String, _ value: Int?) { if let value { d[key] = String(value) } }
         if spaceScope != .inherit { d["spaceScope"] = spaceScope.rawValue }
@@ -448,8 +397,6 @@ struct ShortcutOverride: Equatable, Sendable {
         if let fontScale { d["fontScale"] = fontScale.rawValue }
         if let fontFace { d["fontFace"] = fontFace.rawValue }
         put("gridMaxColumns", gridMaxColumns)
-        if let accentChoice { d["accentChoice"] = accentChoice.rawValue }
-        if let customAccentHex { d["customAccentHex"] = customAccentHex }
         put("panelOpacity", panelOpacity)
         put("panelCornerRadius", panelCornerRadius)
         if let backdropMaterial { d["backdropMaterial"] = backdropMaterial.rawValue }
@@ -463,9 +410,24 @@ struct ShortcutOverride: Equatable, Sendable {
         return d
     }
 
-    /// Parse one stored dictionary. Unknown keys and unparseable values are
-    /// ignored (they read back as "inherit"), so a partial/forward-version entry
-    /// degrades gracefully instead of being dropped.
+    /// Every key this build reads or writes, plus the `"target"` envelope key
+    /// stamped by `Preferences.encodeShortcutOverrides`. Anything else in a
+    /// stored entry lands in `passthrough`.
+    private static let knownKeys: Set<String> = [
+        "target",
+        "spaceScope", "showMinimized", "showHidden", "showWindowless", "sortOrder",
+        "applicationsOnly", "expandBrowserTabsAsWindows", "stayOpenOnRelease",
+        "stayOpenOnQuickTap", "layoutMode", "panelSize", "fontScale", "fontFace",
+        "gridMaxColumns", "panelOpacity", "panelCornerRadius", "backdropMaterial",
+        "showWindowTitleLabel", "previewTitleAlignment", "titleTruncationMode",
+        "boldSelectedLabel", "showApplicationNames", "showUnreadBadges",
+        "letterHintsEnabled",
+    ]
+
+    /// Parse one stored dictionary. Unparseable values are ignored (they read
+    /// back as "inherit") and unknown keys are preserved in `passthrough`, so a
+    /// partial/forward-version entry degrades gracefully instead of being
+    /// dropped or stripped.
     init?(dictionary: [String: String]) {
         func bool(_ key: String) -> Bool? { dictionary[key].map { $0 == "true" } }
         spaceScope = dictionary["spaceScope"].flatMap(SpaceScopeOverride.init(rawValue:)) ?? .inherit
@@ -482,8 +444,6 @@ struct ShortcutOverride: Equatable, Sendable {
         fontScale = dictionary["fontScale"].flatMap(SwitcherFontScale.init(rawValue:))
         fontFace = dictionary["fontFace"].flatMap(SwitcherFontFace.init(rawValue:))
         gridMaxColumns = dictionary["gridMaxColumns"].flatMap(Int.init)
-        accentChoice = dictionary["accentChoice"].flatMap(SwitcherAccent.init(rawValue:))
-        customAccentHex = dictionary["customAccentHex"]
         panelOpacity = dictionary["panelOpacity"].flatMap(Int.init)
         panelCornerRadius = dictionary["panelCornerRadius"].flatMap(Int.init)
         backdropMaterial = dictionary["backdropMaterial"].flatMap(BackdropMaterial.init(rawValue:))
@@ -494,39 +454,7 @@ struct ShortcutOverride: Equatable, Sendable {
         showApplicationNames = bool("showApplicationNames")
         showUnreadBadges = bool("showUnreadBadges")
         letterHintsEnabled = bool("letterHintsEnabled")
-    }
-}
-
-extension NSColor {
-    /// Parses `#RRGGBB` / `RRGGBB` (and the 8-digit `#RRGGBBAA` form). Returns
-    /// `nil` for malformed input so callers can fall back to a default.
-    convenience init?(hexString: String) {
-        var hex = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
-        if hex.hasPrefix("#") { hex.removeFirst() }
-        guard hex.count == 6 || hex.count == 8,
-              let value = UInt64(hex, radix: 16) else { return nil }
-        let r, g, b, a: CGFloat
-        if hex.count == 8 {
-            r = CGFloat((value >> 24) & 0xFF) / 255
-            g = CGFloat((value >> 16) & 0xFF) / 255
-            b = CGFloat((value >> 8) & 0xFF) / 255
-            a = CGFloat(value & 0xFF) / 255
-        } else {
-            r = CGFloat((value >> 16) & 0xFF) / 255
-            g = CGFloat((value >> 8) & 0xFF) / 255
-            b = CGFloat(value & 0xFF) / 255
-            a = 1
-        }
-        self.init(srgbRed: r, green: g, blue: b, alpha: a)
-    }
-
-    /// `#RRGGBB` string in the sRGB space; nil if the color can't be converted.
-    var hexString: String? {
-        guard let rgb = usingColorSpace(.sRGB) else { return nil }
-        let r = Int(round(rgb.redComponent * 255))
-        let g = Int(round(rgb.greenComponent * 255))
-        let b = Int(round(rgb.blueComponent * 255))
-        return String(format: "#%02X%02X%02X", r, g, b)
+        passthrough = dictionary.filter { !Self.knownKeys.contains($0.key) }
     }
 }
 
@@ -797,7 +725,6 @@ final class Preferences: ObservableObject {
         static let recentlyClosedLimit = "Switcher.recentlyClosedLimit"
         static let hapticOnCommit = "Switcher.hapticOnCommit"
         static let soundOnCommit = "Switcher.soundOnCommit"
-        static let accentChoice = "Switcher.accentChoice"
         static let hideMenuBarIcon = "Switcher.hideMenuBarIcon"
         static let experimentalSwipeTrigger = "Switcher.experimentalSwipeTrigger"
         static let swipeMode = "Switcher.swipeMode"
@@ -840,7 +767,6 @@ final class Preferences: ObservableObject {
         static let showApplicationNames = "Switcher.showApplicationNames"
         static let panelOpacity = "Switcher.panelOpacity"
         static let panelCornerRadius = "Switcher.panelCornerRadius"
-        static let customAccentHex = "Switcher.customAccentHex"
         static let backdropMaterial = "Switcher.backdropMaterial"
         /// Legacy pre-#57 bool ("only current Space"). Still written (in sync
         /// with `spaceScope`) so older builds and old exports stay coherent;
@@ -1179,14 +1105,6 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// Accent color for the selection highlight and letter-jump prefix.
-    @Published var accentChoice: SwitcherAccent {
-        didSet {
-            guard oldValue != accentChoice else { return }
-            UserDefaults.standard.set(accentChoice.rawValue, forKey: Keys.accentChoice)
-        }
-    }
-
     /// Hide the menu bar (status) icon. With it hidden there's no in-menu way
     /// to reach Settings, so `AppDelegate` reopens this window when the app is
     /// launched again (e.g. from Spotlight). Default off.
@@ -1504,14 +1422,6 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// `#RRGGBB` used when `accentChoice == .custom`. `nil` until the user picks one.
-    @Published var customAccentHex: String? {
-        didSet {
-            guard oldValue != customAccentHex else { return }
-            UserDefaults.standard.set(customAccentHex, forKey: Keys.customAccentHex)
-        }
-    }
-
     /// Background blur material for the panel (NSVisualEffectView fallback path).
     @Published var backdropMaterial: BackdropMaterial {
         didSet {
@@ -1779,14 +1689,6 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// Concrete accent color honoring the `.custom` choice (reads `customAccentHex`).
-    var resolvedAccent: NSColor {
-        if accentChoice == .custom, let hex = customAccentHex, let color = NSColor(hexString: hex) {
-            return color
-        }
-        return accentChoice.resolved
-    }
-
     static func clampDelay(_ value: Int) -> Int {
         min(revealDelayRange.upperBound, max(revealDelayRange.lowerBound, value))
     }
@@ -1842,6 +1744,12 @@ final class Preferences: ObservableObject {
 
     private init() {
         let defaults = UserDefaults.standard
+
+        // Retired keys (26.7): the accent-color option was removed — the switcher
+        // always follows the macOS accent now. Scrub stragglers so they stop
+        // riding along in every settings export.
+        defaults.removeObject(forKey: "Switcher.accentChoice")
+        defaults.removeObject(forKey: "Switcher.customAccentHex")
 
         let layoutRaw = defaults.string(forKey: Keys.switcherLayoutMode)
         self.switcherLayoutMode = layoutRaw.flatMap(SwitcherLayoutMode.init(rawValue:)) ?? .gridView
@@ -1907,9 +1815,6 @@ final class Preferences: ObservableObject {
         self.hapticOnCommit = defaults.object(forKey: Keys.hapticOnCommit) as? Bool ?? false
         self.soundOnCommit = defaults.object(forKey: Keys.soundOnCommit) as? Bool ?? false
 
-        let accentRaw = defaults.string(forKey: Keys.accentChoice)
-        self.accentChoice = accentRaw.flatMap(SwitcherAccent.init(rawValue:)) ?? .system
-
         self.hideMenuBarIcon = defaults.object(forKey: Keys.hideMenuBarIcon) as? Bool ?? false
 
         self.experimentalSwipeTrigger = defaults.object(forKey: Keys.experimentalSwipeTrigger) as? Bool ?? false
@@ -1955,7 +1860,6 @@ final class Preferences: ObservableObject {
         self.panelOpacity = Self.clampOpacity(opacity)
         let radius = defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0
         self.panelCornerRadius = Self.clampCornerRadius(radius)
-        self.customAccentHex = defaults.string(forKey: Keys.customAccentHex)
         let materialRaw = defaults.string(forKey: Keys.backdropMaterial)
         self.backdropMaterial = materialRaw.flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
         self.spaceScope = Self.storedSpaceScope(defaults)
@@ -2044,7 +1948,6 @@ final class Preferences: ObservableObject {
 
         hapticOnCommit = defaults.object(forKey: Keys.hapticOnCommit) as? Bool ?? false
         soundOnCommit = defaults.object(forKey: Keys.soundOnCommit) as? Bool ?? false
-        accentChoice = defaults.string(forKey: Keys.accentChoice).flatMap(SwitcherAccent.init(rawValue:)) ?? .system
         hideMenuBarIcon = defaults.object(forKey: Keys.hideMenuBarIcon) as? Bool ?? false
 
         experimentalSwipeTrigger = defaults.object(forKey: Keys.experimentalSwipeTrigger) as? Bool ?? false
@@ -2077,7 +1980,6 @@ final class Preferences: ObservableObject {
         boldSelectedLabel = defaults.object(forKey: Keys.boldSelectedLabel) as? Bool ?? true
         panelOpacity = Self.clampOpacity(defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100)
         panelCornerRadius = Self.clampCornerRadius(defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0)
-        customAccentHex = defaults.string(forKey: Keys.customAccentHex)
         backdropMaterial = defaults.string(forKey: Keys.backdropMaterial).flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
         spaceScope = Self.storedSpaceScope(defaults)
         directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])

@@ -75,7 +75,7 @@ const featureGroups: Array<{ label: string; rows: Array<[string, string]> }> = [
         "choose how window titles align in previews and whether the selected name is bold",
       ],
       ["Liquid Glass", "system material on macOS 26"],
-      ["Theming", "panel opacity, corner radius, background material, and a custom accent color"],
+      ["Theming", "panel opacity, corner radius, and background material — the highlight follows your macOS accent color"],
       ["Multi-monitor", "opens on the display you're actively working on"],
     ],
   },

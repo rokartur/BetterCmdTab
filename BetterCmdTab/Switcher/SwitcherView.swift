@@ -157,7 +157,9 @@ final class SwitcherView: NSView, TabStripDelegate {
         self.labels = labels
         self.highlightPrefix = highlightPrefix
         self.searchActive = searchActive
-        self.accent = effective.resolvedAccent
+        // The selection highlight / jump-letter color always follows the
+        // user's macOS accent (re-read per reveal so it stays reactive).
+        self.accent = .controlAccentColor
         self.selectedIndex = selectedIndex
         searchBar.update(query: searchQuery)
         searchBar.applyFont(fontScale: metrics.fontScale, face: effective.fontFace)
