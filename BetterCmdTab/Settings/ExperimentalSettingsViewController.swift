@@ -81,7 +81,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
                accessory: rankResultsSwitch, searchItemID: SearchID.rankResults)
         configureSwitch(searchTabsSwitch, action: #selector(toggleSearchExpandsTabs(_:)))
         addRow(to: searchSection, title: String(localized: "Search browser tabs"),
-               subtitle: String(localized: "Type-to-search matches any browser tab by its title, not just each window's active tab. Matching tabs appear as temporary rows while the search field is active and disappear when you leave search. Already covered by “Show browser tabs as separate entries.”"),
+               subtitle: String(localized: "Searching matches any browser tab by its title, not just each window's active tab. Matching tabs appear as temporary rows while the search field is active and disappear when you leave search. Not needed if you already use “Show browser tabs as separate entries.”"),
                accessory: searchTabsSwitch, searchItemID: SearchID.searchExpandsBrowserTabs)
 
         // Previews section (the window-preview layout).

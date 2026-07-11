@@ -205,6 +205,40 @@
         }
       }
     },
+    "Order results by how well they match instead of by recent use, so the closest match is selected first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sortiert die Ergebnisse danach, wie gut sie passen, statt nach letzter Nutzung – der beste Treffer ist zuerst ausgewählt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordena los resultados según lo bien que coinciden en lugar de por uso reciente, de modo que la mejor coincidencia queda seleccionada primero."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classe les résultats selon leur pertinence plutôt que par utilisation récente, afin que la meilleure correspondance soit sélectionnée en premier."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porządkuje wyniki według trafności zamiast ostatniego użycia, więc najlepsze dopasowanie jest zaznaczane jako pierwsze."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按匹配程度而非最近使用来排序结果，最接近的匹配项会最先被选中。"
+          }
+        }
+      }
+    },
     "Peek windows with ↓" : {
       "localizations" : {
         "de" : {
@@ -235,6 +269,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "按 ↓ 查看窗口"
+          }
+        }
+      }
+    },
+    "Rank search" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchtreffer sortieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordenar resultados"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classer les résultats"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking wyników"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索结果排序"
           }
         }
       }
@@ -273,6 +341,74 @@
         }
       }
     },
+    "Search browser tabs" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser-Tabs durchsuchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar pestañas del navegador"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher dans les onglets du navigateur"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj w kartach przeglądarki"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索浏览器标签页"
+          }
+        }
+      }
+    },
+    "Searching matches any browser tab by its title, not just each window's active tab. Matching tabs appear as temporary rows while the search field is active and disappear when you leave search. Not needed if you already use “Show browser tabs as separate entries.”" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Suche findet jeden Browser-Tab über seinen Titel, nicht nur den aktiven Tab jedes Fensters. Passende Tabs erscheinen als vorübergehende Zeilen, solange das Suchfeld aktiv ist, und verschwinden beim Verlassen der Suche. Nicht nötig, wenn „Browser-Tabs als separate Einträge anzeigen“ bereits aktiv ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La búsqueda encuentra cualquier pestaña del navegador por su título, no solo la pestaña activa de cada ventana. Las pestañas coincidentes aparecen como filas temporales mientras el campo de búsqueda está activo y desaparecen al salir de la búsqueda. No es necesario si ya usas «Mostrar las pestañas del navegador como entradas separadas»."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La recherche trouve n’importe quel onglet du navigateur par son titre, pas seulement l’onglet actif de chaque fenêtre. Les onglets correspondants apparaissent comme lignes temporaires tant que le champ de recherche est actif et disparaissent quand vous quittez la recherche. Inutile si vous utilisez déjà « Afficher les onglets du navigateur comme entrées distinctes »."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyszukiwanie dopasowuje każdą kartę przeglądarki po jej tytule, nie tylko aktywną kartę każdego okna. Pasujące karty pojawiają się jako tymczasowe pozycje, gdy pole wyszukiwania jest aktywne, i znikają po wyjściu z wyszukiwania. Zbędne, jeśli używasz już „Pokazuj karty przeglądarki jako osobne pozycje”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索会按标题匹配任意浏览器标签页，而不只是每个窗口的活动标签页。匹配的标签页在搜索框激活期间显示为临时条目，退出搜索后消失。如果已开启“将浏览器标签页显示为单独条目”，则无需此选项。"
+          }
+        }
+      }
+    },
     "Serif" : {
       "localizations" : {
         "de" : {
@@ -303,6 +439,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "衬线"
+          }
+        }
+      }
+    },
+    "Show a letter on each window and jump to it by typing that letter. Turn it off to start typing and filter the list instead, without pressing / — action keys like W or Q then type into the search rather than acting on a window." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt auf jedem Fenster einen Buchstaben an und springt durch Tippen dieses Buchstabens dorthin. Ausgeschaltet filtert Tippen stattdessen die Liste, ohne / zu drücken — Aktionstasten wie W oder Q schreiben dann in die Suche, statt auf ein Fenster zu wirken."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra una letra en cada ventana y salta a ella escribiendo esa letra. Desactívalo para filtrar la lista simplemente escribiendo, sin pulsar / — las teclas de acción como W o Q escriben entonces en la búsqueda en lugar de actuar sobre una ventana."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche une lettre sur chaque fenêtre et y accède lorsque vous tapez cette lettre. Désactivez-le pour filtrer la liste en tapant directement, sans appuyer sur / — les touches d’action comme W ou Q s’écrivent alors dans la recherche au lieu d’agir sur une fenêtre."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj literę na każdym oknie i przeskocz do niego, wpisując tę literę. Wyłącz, aby pisząc od razu filtrować listę, bez naciskania / — klawisze akcji, jak W czy Q, trafiają wtedy do wyszukiwania zamiast działać na oknie."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在每个窗口上显示字母，输入该字母即可跳转。关闭后直接输入即可筛选列表，无需按 / —— W、Q 等操作键会输入到搜索中，而不是对窗口执行操作。"
           }
         }
       }
@@ -8131,40 +8301,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示"
-          }
-        }
-      }
-    },
-    "Show a letter on each window and jump to it by typing that letter." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zeigt auf jedem Fenster einen Buchstaben an und springt durch Tippen dieses Buchstabens dorthin."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Muestra una letra en cada ventana y salta a ella escribiendo esa letra."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Affiche une lettre sur chaque fenêtre et y accède lorsque vous tapez cette lettre."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokazuj literę na każdym oknie i przeskocz do niego, wpisując tę literę."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在每个窗口上显示字母，输入该字母即可跳转。"
           }
         }
       }

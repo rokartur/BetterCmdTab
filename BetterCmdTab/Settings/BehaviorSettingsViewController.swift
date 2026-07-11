@@ -210,7 +210,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         let search = addSection(title: String(localized: "Search"), anchor: SettingsAnchor.search)
         configureSwitch(letterHintsSwitch, action: #selector(toggleLetterHints(_:)))
         addRow(to: search, title: String(localized: "Letter hints"),
-               subtitle: String(localized: "Show a letter on each window and jump to it by typing that letter. Turn it off to start typing and filter the list instead, without pressing /."),
+               subtitle: String(localized: "Show a letter on each window and jump to it by typing that letter. Turn it off to start typing and filter the list instead, without pressing / — action keys like W or Q then type into the search rather than acting on a window."),
                accessory: letterHintsSwitch, searchItemID: SearchID.letterHints)
 
         letterTimeoutSlider.minValue = Double(Preferences.letterChainTimeoutRange.lowerBound)
