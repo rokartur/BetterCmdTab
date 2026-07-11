@@ -545,6 +545,40 @@
         }
       }
     },
+    "Turn on “Stay open after releasing the modifier” above first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuerst oben „Nach dem Loslassen der Modifikatortaste geöffnet lassen“ einschalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa primero «Mantener abierto al soltar el modificador», justo arriba."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez d’abord « Rester ouvert après le relâchement du modificateur » juste au-dessus."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw włącz powyżej „Pozostaw otwarte po puszczeniu modyfikatora”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先开启上方的“松开修饰键后保持打开”。"
+          }
+        }
+      }
+    },
     "Typeface for names and titles." : {
       "localizations" : {
         "de" : {

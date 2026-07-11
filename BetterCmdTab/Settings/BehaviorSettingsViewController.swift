@@ -51,6 +51,9 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     // Keyboard
     private let stayOpenSwitch = NSSwitch()
     private let stayOpenQuickTapSwitch = NSSwitch()
+    /// Kept so the quick-tap row can visibly lock (dim + tooltip) while its
+    /// prerequisite "Stay open after releasing the modifier" is off.
+    private var stayOpenQuickTapRow: SettingsRowView?
     private let shiftTapBackSwitch = NSSwitch()
     private let backtickReverseSwitch = NSSwitch()
     private let vimNavSwitch = NSSwitch()
@@ -264,7 +267,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Keep the switcher on screen when you let go of the trigger — pick with Return, a quick-jump letter, or the mouse; Esc dismisses. A quick tap still switches instantly."),
                accessory: stayOpenSwitch, searchItemID: SearchID.stayOpen)
         configureSwitch(stayOpenQuickTapSwitch, action: #selector(toggleStayOpenQuickTap(_:)))
-        addRow(to: keyboard, title: String(localized: "Also stay open after a quick tap"),
+        stayOpenQuickTapRow = addRow(to: keyboard, title: String(localized: "Also stay open after a quick tap"),
                subtitle: String(localized: "Keep the switcher on screen even when the shortcut is pressed and released in one quick tap — for shortcuts mapped to mouse buttons or gestures. Requires \u{201C}Stay open after releasing the modifier\u{201D}."),
                accessory: stayOpenQuickTapSwitch, searchItemID: SearchID.stayOpenQuickTap)
         configureSwitch(shiftTapBackSwitch, action: #selector(toggleShiftTapBack(_:)))
@@ -401,7 +404,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         selectSearchMode(prefs.searchDismissMode)
         stayOpenSwitch.state = prefs.stayOpenOnRelease ? .on : .off
         stayOpenQuickTapSwitch.state = prefs.stayOpenOnQuickTap ? .on : .off
-        stayOpenQuickTapSwitch.isEnabled = prefs.stayOpenOnRelease
+        syncStayOpenQuickTapRow()
         shiftTapBackSwitch.state = prefs.shiftTapStepsBackward ? .on : .off
         backtickReverseSwitch.state = prefs.backtickReversesAppSwitching ? .on : .off
         scrollSwitch.state = prefs.scrollToSwitch ? .on : .off
@@ -550,11 +553,19 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func toggleStayOpen(_ sender: NSSwitch) {
-        let on = (sender.state == .on)
-        Preferences.shared.stayOpenOnRelease = on
-        // Quick-tap stay-open only takes effect while stay-open itself is on
-        // (#91), so gray it out to match.
+        Preferences.shared.stayOpenOnRelease = (sender.state == .on)
+        syncStayOpenQuickTapRow()
+    }
+
+    /// Quick-tap stay-open only takes effect while stay-open itself is on
+    /// (#91). A grayed switch alone doesn't say *why* it is locked, so dim the
+    /// whole row and name the missing prerequisite in a tooltip.
+    private func syncStayOpenQuickTapRow() {
+        let on = Preferences.shared.stayOpenOnRelease
         stayOpenQuickTapSwitch.isEnabled = on
+        stayOpenQuickTapRow?.alphaValue = on ? 1 : 0.45
+        stayOpenQuickTapRow?.toolTip = on ? nil
+            : String(localized: "Turn on \u{201C}Stay open after releasing the modifier\u{201D} above first.")
     }
 
     @objc private func toggleStayOpenQuickTap(_ sender: NSSwitch) {
