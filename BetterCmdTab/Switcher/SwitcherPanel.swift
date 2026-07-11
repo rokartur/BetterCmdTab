@@ -150,7 +150,11 @@ final class SwitcherPanel: NSPanel {
     /// `didResignKey` observer in SwitcherController still reclaims key on
     /// the next runloop so internal NSWindow state self-heals.
     override func resignKey() {
-        guard isVisible else {
+        // `isPresented` (not just ordered-in): after a commit `vanish()`es the
+        // panel it stays ordered until the AX focus writes settle — re-keying
+        // then would re-activate this app and yank focus from the very window
+        // the commit is activating.
+        guard isVisible, isPresented else {
             super.resignKey()
             return
         }
@@ -160,7 +164,7 @@ final class SwitcherPanel: NSPanel {
         // action buttons) stop receiving clicks and keyboard focus drifts. Re-key
         // on the next runloop so the panel stays interactive while it's on screen.
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.isVisible else { return }
+            guard let self, self.isVisible, self.isPresented else { return }
             if !self.isKeyWindow { self.makeKeyAndOrderFront(nil) }
             // NSGlassEffectView's active look is decided window-server-side from
             // the owning app's real activation state (the in-process
@@ -217,6 +221,8 @@ final class SwitcherPanel: NSPanel {
         // `.none`).
         content.isHidden = false
         alphaValue = CGFloat(opacity) / 100
+        // `vanish()` turned mouse events off for its invisible linger window.
+        ignoresMouseEvents = false
         // The WindowServer order-front + app activation; split out so Instruments
         // shows it apart from the autolayout pass above when chasing reveal spikes.
         Log.reveal.withIntervalSignpost("present.orderFront") {
@@ -240,7 +246,7 @@ final class SwitcherPanel: NSPanel {
         // opens; re-key on the next runloop (same approach as `resignKey`) so the
         // panel always holds key while it's on screen.
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.isVisible else { return }
+            guard let self, self.isVisible, self.isPresented else { return }
             if !self.isKeyWindow { self.makeKeyAndOrderFront(nil) }
             // Live filtering and title/badge refreshes call present() again only
             // to relayout. They must not fork parallel recovery chains; the one
@@ -280,6 +286,25 @@ final class SwitcherPanel: NSPanel {
         orderOut(nil)
         targetScreen = nil
         CATransaction.commit()
+        onFrameDidChange?(nil)
+    }
+
+    /// Instant visual hide at commit time. The real `orderOut` (`dismiss()`)
+    /// deliberately waits for the activation's off-main AX focus writes, but the
+    /// user must not watch the panel linger while a busy target app runs those
+    /// calls into their timeouts. Same transaction shape as `dismiss()` minus
+    /// the order-out — the window stays ordered, so WindowServer focus routing
+    /// is unchanged; `ignoresMouseEvents` keeps the invisible panel from
+    /// swallowing clicks until `dismiss()` lands. `present()` restores both.
+    func vanish() {
+        spaceCheckGeneration.advance()
+        isPresented = false
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        alphaValue = 0
+        contentView?.isHidden = true
+        CATransaction.commit()
+        ignoresMouseEvents = true
         onFrameDidChange?(nil)
     }
 
