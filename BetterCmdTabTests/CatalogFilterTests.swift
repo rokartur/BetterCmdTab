@@ -126,6 +126,29 @@ struct CatalogFilterTests {
         #expect(CatalogFilter.includes(bundleID: "com.x", isPlaceholder: true, isMinimized: false, appHidden: false, hasWindow: false, cfg))
     }
 
+    // MARK: - filteredApps window state (#112)
+
+    @Test("app-level filter matches the row filter once window state is known")
+    func filteredAppsWindowState() {
+        let app = NSRunningApplication.current
+        let pid = app.processIdentifier
+        let cfg = config(showWindowless: false)
+        // Window state known, app windowless → dropped, same as the panel.
+        #expect(CatalogFilter.filteredApps([app], cfg, windowedPids: []).isEmpty)
+        // App has a window → kept.
+        #expect(CatalogFilter.filteredApps([app], cfg, windowedPids: [pid]) == [app])
+        // Window state unknown (cold cache) → kept; missing data never hides.
+        #expect(CatalogFilter.filteredApps([app], cfg, windowedPids: nil) == [app])
+
+        // The per-app whenNoWindows exception applies at app level too.
+        if let bid = app.bundleIdentifier {
+            let exc = config(hideModes: [bid: .whenNoWindows])
+            #expect(CatalogFilter.filteredApps([app], exc, windowedPids: []).isEmpty)
+            #expect(CatalogFilter.filteredApps([app], exc, windowedPids: [pid]) == [app])
+            #expect(CatalogFilter.filteredApps([app], exc, windowedPids: nil) == [app])
+        }
+    }
+
     // MARK: - stablePartition (pin reordering)
 
     @Test("no pins preserves original order")

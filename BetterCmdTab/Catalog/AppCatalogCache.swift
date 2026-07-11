@@ -172,6 +172,19 @@ final class AppCatalogCache {
         bumpApps(pids: live)
     }
 
+    /// Pids that currently have at least one catalogued window, for the
+    /// app-level primed filter (#112). `nil` until the first full scan lands:
+    /// unknown window state must never hide an app, so callers treat nil as
+    /// "everything windowed". Pure in-memory read — no AX calls.
+    func windowedPids() -> Set<pid_t>? {
+        guard hasCompletedFullScan else { return nil }
+        var pids = Set<pid_t>(minimumCapacity: entries.count)
+        for (pid, entry) in entries where !entry.windows.isEmpty {
+            pids.insert(pid)
+        }
+        return pids
+    }
+
     /// `filter` lets a per-shortcut override (#74) replace the global filter for
     /// this reveal; `nil` (the default) reads the global config, so every existing
     /// caller and every no-override reveal stays byte-identical.

@@ -902,8 +902,10 @@ final class SwitcherController: SwitcherViewDelegate {
             advance(by: delta, wrap: true)
         case .idle:
             mru.syncFrontmost()
-            primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
-            guard !primedApps.isEmpty else { return }
+            primedApps = AppCatalog.fastAppList(orderedBy: mru.order, windowedPids: cache.windowedPids())
+            // No empty-list bail: with every app filtered out (e.g. a lone
+            // windowless Finder under its when-no-windows exception, #112)
+            // the panel still reveals into the #31 empty state.
             // Anchor on the global sort: this path never resolves per-shortcut
             // options, so `effective` is a stale snapshot here (#88).
             let anchor = primedAnchor(for: Preferences.shared.sortOrder)
@@ -1901,7 +1903,7 @@ final class SwitcherController: SwitcherViewDelegate {
             scopeFrontPid = nil
         }
         activeScope = scope
-        primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
+        primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig, windowedPids: cache.windowedPids())
         primedIndex = 0
         primedStepDelta = 0
         switchSessionKind = .none
@@ -2342,8 +2344,11 @@ final class SwitcherController: SwitcherViewDelegate {
         case .idle:
             mru.syncFrontmost()
             resolveActiveOptions(for: .switchApps)
-            primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
-            guard !primedApps.isEmpty else { return }
+            primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig, windowedPids: cache.windowedPids())
+            // No empty-list bail: with every app filtered out (e.g. a lone
+            // windowless Finder under its when-no-windows exception, #112) a
+            // quick tap must no-op — commit() has nothing to activate — and a
+            // held ⌘ still reveals the #31 empty state.
             switchSessionKind = .appSwitching
             let anchor = primedAnchor(for: effective.sortOrder)
             let step = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)

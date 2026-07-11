@@ -406,16 +406,24 @@ enum CatalogFilter {
         return true
     }
 
-    /// Same hide + pin reordering for the primed app list. Window state isn't
-    /// known at the app level, so only `always`-hidden apps are dropped here
-    /// (the `whenNoWindows` rule is enforced on the full row list); hidden apps
-    /// are still dropped per the global toggle.
-    static func filteredApps(_ apps: [NSRunningApplication], _ cfg: Config) -> [NSRunningApplication] {
+    /// Same hide + pin reordering for the primed app list. `windowedPids` is
+    /// the warm cache's set of pids with at least one catalogued window; with
+    /// it present the `whenNoWindows` exceptions and the global windowless
+    /// toggle apply exactly as on the visible row list, so a quick ⌘Tab tap
+    /// can't activate an app the panel would hide (#112). `nil` means window
+    /// state is unknown (cache cold) and counts as "has a window" — missing
+    /// data must never hide an app.
+    static func filteredApps(_ apps: [NSRunningApplication], _ cfg: Config, windowedPids: Set<pid_t>? = nil) -> [NSRunningApplication] {
         if cfg.isIdentity { return apps }
         var filtered = apps.filter { app in
-            if let bid = app.bundleIdentifier, cfg.hideModes[bid] == .always { return false }
-            if !cfg.showHidden, app.isHidden { return false }
-            return true
+            includes(
+                bundleID: app.bundleIdentifier,
+                isPlaceholder: false,
+                isMinimized: false,
+                appHidden: app.isHidden,
+                hasWindow: windowedPids?.contains(app.processIdentifier) ?? true,
+                cfg
+            )
         }
         if cfg.sortOrder != .mru {
             filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.localizedName ?? "" }, pid: { $0.processIdentifier })

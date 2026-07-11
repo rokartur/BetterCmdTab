@@ -25,7 +25,7 @@ enum AppCatalog {
     /// `filter` lets a per-shortcut override (#74) replace the global filter;
     /// `nil` (the default) reads the global config, keeping existing callers
     /// byte-identical.
-    static func fastAppList(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil) -> [NSRunningApplication] {
+    static func fastAppList(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil, windowedPids: Set<pid_t>? = nil) -> [NSRunningApplication] {
         let selfPid = getpid()
         let regulars = NSWorkspace.shared.runningApplications
             .filter { $0.activationPolicy == .regular && $0.processIdentifier != selfPid }
@@ -43,7 +43,7 @@ enum AppCatalog {
         for app in regulars where !seen.contains(app.processIdentifier) {
             ordered.append(app)
         }
-        return CatalogFilter.filteredApps(ordered, cfg ?? CatalogFilter.config())
+        return CatalogFilter.filteredApps(ordered, cfg ?? CatalogFilter.config(), windowedPids: windowedPids)
     }
 
     static func snapshot(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil) -> [SwitcherRow] {
