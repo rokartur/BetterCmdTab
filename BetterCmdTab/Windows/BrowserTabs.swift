@@ -44,8 +44,8 @@ enum BrowserTabs {
                 return
             }
             armed = false
-            lock.unlock()
             kill(pid, SIGKILL)
+            lock.unlock()
         }
 
         func cancel() {
