@@ -83,6 +83,12 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
 
     private var allApps: [InstalledApp] = []
     private var filtered: [InstalledApp] = []
+    /// Icons resolved off-main, memoized per bundle ID for the sheet's
+    /// lifetime so cell reuse and per-keystroke reloads read from memory.
+    private var resolvedIcons: [String: NSImage] = [:]
+    /// Bundle IDs with a resolve in flight — a reloadData storm must not
+    /// dispatch a duplicate disk lookup per keystroke.
+    private var iconFetchInFlight = Set<String>()
 
     private let promptLabel = NSTextField(wrappingLabelWithString: "")
     private let searchField = NSSearchField()
@@ -438,12 +444,35 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
             cell = AppsPickerCellView(frame: .zero)
             cell.identifier = Self.cellIdentifier
         }
+        // Resolve disk icons off the main actor and memoize per bundle ID: the
+        // synchronous `NSWorkspace.icon(forFile:)` here ran once per cell render
+        // (every reuse while scrolling, every reloadData per search keystroke)
+        // and can hitch on a cold disk cache. Mirrors the off-main resolution
+        // in `AppsSettingsViewController.makeRow`.
+        let bundleID = app.bundleID
         let icon: NSImage
-        if let url = app.url {
-            icon = NSWorkspace.shared.icon(forFile: url.path)
+        if let cached = resolvedIcons[bundleID] {
+            icon = cached
         } else {
             icon = NSImage(systemSymbolName: "app.dashed", accessibilityDescription: nil) ?? NSImage()
+            if let url = app.url, !iconFetchInFlight.contains(bundleID) {
+                iconFetchInFlight.insert(bundleID)
+                let path = url.path
+                DispatchQueue.global(qos: .userInitiated).async { [weak self, weak cell] in
+                    let resolved = NSWorkspace.shared.icon(forFile: path)
+                    DispatchQueue.main.async { [weak self, weak cell] in
+                        guard let self else { return }
+                        self.iconFetchInFlight.remove(bundleID)
+                        self.resolvedIcons[bundleID] = resolved
+                        // Splice into the cell only if it still shows this row.
+                        if let cell, cell.representedBundleID == bundleID {
+                            cell.setIcon(resolved)
+                        }
+                    }
+                }
+            }
         }
+        cell.representedBundleID = bundleID
         cell.configure(
             icon: icon,
             name: app.name,
@@ -494,6 +523,13 @@ final class AppsPickerCellView: NSTableCellView {
     private var isChecked = false
     private var isHovering = false
     private var trackingArea: NSTrackingArea?
+    /// Bundle ID of the row this cell currently shows — guards a late async
+    /// icon resolution against being painted onto a reused cell.
+    var representedBundleID: String?
+
+    func setIcon(_ icon: NSImage) {
+        iconView.image = icon
+    }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
