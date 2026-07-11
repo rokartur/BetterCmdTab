@@ -7,6 +7,10 @@ import os
 
 @MainActor
 final class SwitcherController: SwitcherViewDelegate {
+    /// App-level recovery hook: the live event tap is the revoke detector while
+    /// trusted, so the permission waiter can stay asleep until this fires.
+    var onAccessibilityRevoked: () -> Void = {}
+
     enum Phase {
         case idle
         case primed
@@ -612,8 +616,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// this a stale retry can install a second tap over a freshly re-armed one,
     /// orphaning the first — a leaked, still-enabled session tap + its thread.
     private var hotkeyTapRetryWork: DispatchWorkItem?
-    /// Latches `handleAccessibilityRevoked` so the 2 s waiter poll and the tap
-    /// storm callback (which can both observe the same revoke) collapse to ONE
+    /// Latches `handleAccessibilityRevoked` so concurrent tap callbacks collapse to ONE
     /// teardown instead of repeating the WindowServer re-enable IPC + the
     /// UserDefaults write. Cleared on the next successful re-arm.
     private var accessibilityRevoked = false
@@ -699,7 +702,14 @@ final class SwitcherController: SwitcherViewDelegate {
             scheduleHotkeyTapRetry()
         }
         // The Carbon fallback drives the same handler as the tap.
-        carbonTrigger.onEvent = { [weak self] event in self?.handle(event) }
+        carbonTrigger.onEvent = { [weak self] event in
+            guard let self else { return }
+            guard AccessibilityCheck.isTrusted else {
+                self.handleAccessibilityRevoked()
+                return
+            }
+            self.handle(event)
+        }
         // Scoped-shortcut triggers open the switcher pre-filtered (#3).
         ScopedSwitch.onTrigger = { [weak self] id, scope in self?.openScoped(id: id, scope: scope) }
         // User-invoked recovery from the Privacy pane: re-enable every native
@@ -1428,8 +1438,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// switcher works until trust returns; `reassertNativeOverrideAfterRegrant()`
     /// re-disables it once AX is back.
     func handleAccessibilityRevoked() {
-        // Collapse the fan-in: the 2 s waiter poll and the tap storm callback can
-        // both observe the same revoke. Run the teardown once per revoke episode
+        // Collapse concurrent tap callbacks to one teardown per revoke episode
         // (`reinstallHotkeyTap` clears this latch on re-grant).
         guard !accessibilityRevoked else { return }
         accessibilityRevoked = true
@@ -1469,6 +1478,7 @@ final class SwitcherController: SwitcherViewDelegate {
         PrivateAPI.setNativeCommandTabEnabled(true, toReEnable)
         disabledSymbolicKeys = []
         persistDisabledSymbolicKeys([])
+        onAccessibilityRevoked()
     }
 
     /// The tap signalled a re-enable storm (the WindowServer keeps disabling it).
@@ -1519,8 +1529,11 @@ final class SwitcherController: SwitcherViewDelegate {
         // suppression for the rest of the run. Capped to avoid teardown/re-arm
         // thrash on a persistent storm; the cap resets on the next AX re-grant.
         // Gated on the swipe pref so it never resurrects a disabled feature.
-        guard AccessibilityCheck.isTrusted,
-              Preferences.shared.experimentalSwipeTrigger,
+        guard AccessibilityCheck.isTrusted else {
+            handleAccessibilityRevoked()
+            return
+        }
+        guard Preferences.shared.experimentalSwipeTrigger,
               swipeSuppressorReArmRetries < Self.maxSwipeSuppressorReArms else { return }
         swipeSuppressorReArmRetries += 1
         swipeSuppressorReArmWork?.cancel()
@@ -1576,6 +1589,7 @@ final class SwitcherController: SwitcherViewDelegate {
             guard AccessibilityCheck.isTrusted else {
                 self.hotkeyTapRetries = 0
                 self.tapStormRecovering = false
+                self.handleAccessibilityRevoked()
                 return
             }
             if self.hotkey.install() {
