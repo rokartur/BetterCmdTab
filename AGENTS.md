@@ -6,31 +6,6 @@ memory, and energy, keep work off the main thread (or measure it), avoid allocat
 polling on hot paths, and don't add a dependency or background task when a lighter approach
 works. When two designs are equally correct, ship the cheaper one.
 
-## Tooling policy — reach for caveman first
-
-Always use caveman tooling whenever the job fits — it is the first choice, not a fallback.
-Only drop to a lower tier when the caveman tool structurally can't do the job (not merely
-because it feels faster).
-
-1. **cavecrew subagents** over inline reading/editing/reviewing and over vanilla
-   `Explore`/`Agent`. Their output is caveman-compressed (~60% smaller back into main
-   context), so prefer them whenever the job fits their scope:
-   - `cavecrew-investigator` — locate code ("where is X", "what calls Y", "map this dir").
-     Use instead of fanning out `Grep`/`Glob`/`Explore` yourself.
-   - `cavecrew-builder` — bounded 1–2 file edit (typo, single-function rewrite, rename,
-     format-preserving tweak). It **hard-refuses 3+ file scope and new features** — that
-     refusal is the signal to fall back, not a reason to avoid trying it first.
-   - `cavecrew-reviewer` — diff / branch / file review, one line per finding.
-2. **caveman skills** for their specific jobs: `/caveman-commit` (commit messages),
-   `/caveman-review` (PR feedback), `/caveman-compress` (shrink memory files).
-3. **Fall back** to native `Read`/`Edit`/`Write`/`Grep`/`Glob`, `Explore`, or a
-   `general-purpose` Agent only when the tiers above can't cover the work — e.g. a
-   cross-file (3+) refactor that `cavecrew-builder` refuses, a new feature spanning many
-   files, or multi-step research no single cavecrew role handles.
-
-Caveman *response mode* is active this session (terse output). Keep code, commits, PRs,
-and security/irreversible-action notes in normal prose.
-
 ## Build / test / run
 
 Xcode 16+ and the macOS 26 SDK are required (Liquid Glass paths are SDK-gated; deployment
