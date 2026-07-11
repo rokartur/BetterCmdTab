@@ -5275,6 +5275,12 @@ final class SwitcherController: SwitcherViewDelegate {
         searchActive = false
         searchQuery = ""
         stickyOpen = false
+        // Drop the transient tab-expanded set here too — teardown is the common
+        // end of a search (commit → panel hides), and the rows hold AX window
+        // refs that would otherwise linger until the next reveal.
+        searchExpandedRows = []
+        searchExpandedFolded = []
+        searchExpandedValid = false
         hotkey.setSearchMode(false)
     }
 
