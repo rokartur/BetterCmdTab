@@ -44,6 +44,9 @@ final class SwitcherView: NSView, TabStripDelegate {
     private let emptyIcon = NSImageView()
     private let emptyTitle = NSTextField(labelWithString: "")
     private var itemViews: [SwitcherItemViewProtocol] = []
+    /// Keep the common reveal working set warm, but do not retain an extreme
+    /// one-off row count (hundreds of browser tabs/windows) for process life.
+    private static let idleItemPoolLimit = 64
     private var rows: [SwitcherRow] = []
     private(set) var labels: [String] = []
     private var selectedIndex: Int = 0
@@ -251,6 +254,10 @@ final class SwitcherView: NSView, TabStripDelegate {
             v.prepareForIdle()
             v.isHidden = true
         }
+        while itemViews.count > Self.idleItemPoolLimit {
+            let view = itemViews.removeLast()
+            view.removeFromSuperview()
+        }
         rows = []
         labels = []
         cachedLayout = nil
@@ -258,6 +265,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         hoveredIndex = -1
         tabStripActive = false
         tabStrip.isHidden = true
+        tabStrip.releaseIdleResources()
         searchBar.isHidden = true
         emptyIcon.isHidden = true
         emptyTitle.isHidden = true
@@ -496,9 +504,19 @@ final class SwitcherView: NSView, TabStripDelegate {
             listContainer.addSubview(view)
             itemViews.append(view)
         }
-        while itemViews.count > rows.count {
+        // Park surplus views instead of destroying them: a search keystroke
+        // shrinks and regrows the row count within one session, and destroying
+        // views per keystroke defeats the idle pool. `prepareForIdle` drops
+        // their image retains and windowID so a late thumbnail callback can't
+        // paint a parked tile; the hard trim stays in `releaseIdleResources`,
+        // which bounds the pool at dismiss.
+        while itemViews.count > max(rows.count, Self.idleItemPoolLimit) {
             let v = itemViews.removeLast()
             v.removeFromSuperview()
+        }
+        for i in rows.count..<itemViews.count {
+            itemViews[i].prepareForIdle()
+            itemViews[i].isHidden = true
         }
         // `configure` writes `isSelected` directly below, so the next
         // `applySelection` call should not assume the previous selection is

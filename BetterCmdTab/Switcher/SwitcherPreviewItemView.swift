@@ -185,8 +185,13 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         // pooled tile after it's been parked.
         imageView.image = nil
         iconView.image = nil
+        letterLabel.stringValue = ""
+        nameLabel.stringValue = ""
+        badgeLabel.stringValue = ""
         placeholderIcon = nil
         windowID = 0
+        currentLabel = ""
+        currentPrefixLength = 0
     }
 
     /// Last face the font pass ran with — pooled views must re-apply fonts when

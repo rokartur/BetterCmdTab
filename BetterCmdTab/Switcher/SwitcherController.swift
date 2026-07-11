@@ -102,6 +102,12 @@ final class SwitcherController: SwitcherViewDelegate {
     private var baseRows: [SwitcherRow] = [] {
         didSet {
             baseFoldedValid = false
+            // Folded names/titles belong to the previous row snapshot. Release
+            // their strings immediately (especially on dismiss after a very
+            // large tab expansion) instead of retaining them until the next
+            // search keystroke rebuilds the cache.
+            baseFolded.removeAll(keepingCapacity: !baseRows.isEmpty)
+            tabPrefetchGeneration &+= 1
             // Window AXUIElements churn across reveals; drop the prefetch
             // cache so we don't try to drill into a stale element.
             tabPrefetchCache.removeAll()

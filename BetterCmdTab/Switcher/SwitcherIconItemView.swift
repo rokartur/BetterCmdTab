@@ -189,6 +189,12 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
 
     func prepareForIdle() {
         imageView.image = nil
+        letterLabel.stringValue = ""
+        badgeLabel.stringValue = ""
+        nameLabel.stringValue = ""
+        titleLabel.stringValue = ""
+        currentLabel = ""
+        currentPrefixLength = 0
     }
 
     /// Last face the font pass ran with — pooled views must re-apply fonts when

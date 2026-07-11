@@ -169,6 +169,12 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         // once at init (not in `configure`), so clearing them would leave a reused
         // row blank; leave them be.
         imageView.image = nil
+        letterLabel.stringValue = ""
+        appNameLabel.stringValue = ""
+        titleLabel.stringValue = ""
+        badgeLabel.stringValue = ""
+        currentLabel = ""
+        currentPrefixLength = 0
     }
 
     /// Last face the font pass ran with — pooled views must re-apply fonts when

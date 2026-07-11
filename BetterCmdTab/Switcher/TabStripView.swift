@@ -117,6 +117,20 @@ final class TabStripView: NSView {
         scrollSelectedIntoView()
     }
 
+    /// Release titles and bound the high-water pool after dismissal. A browser
+    /// with hundreds of tabs must not leave hundreds of text fields retained
+    /// for the rest of the process; keeping 32 still makes ordinary re-entry
+    /// allocation-free.
+    func releaseIdleResources() {
+        for cell in cells { cell.prepareForIdle() }
+        while cells.count > 32 {
+            let cell = cells.removeLast()
+            stack.removeArrangedSubview(cell)
+            cell.removeFromSuperview()
+        }
+        selectedIndex = 0
+    }
+
     /// The cell index containing `windowPoint` (in window coordinates), or nil.
     /// Used by `SwitcherView`'s manual hit testing — its `hitTest` override
     /// keeps mouse events at the panel level, so cells never receive their own
@@ -194,6 +208,13 @@ private final class TabStripCell: NSView {
     func setSelected(_ selected: Bool, accent: NSColor) {
         isSelected = selected
         accentColor = accent
+        applyAppearance()
+    }
+
+    func prepareForIdle() {
+        label.stringValue = ""
+        mouseInside = false
+        isSelected = false
         applyAppearance()
     }
 
