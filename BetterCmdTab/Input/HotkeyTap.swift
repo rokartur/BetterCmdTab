@@ -746,17 +746,19 @@ final class HotkeyTap: @unchecked Sendable {
         typeToSearchFlag.withLock { $0 = value }
     }
 
-    /// Pure: the lowercased a–z letter a key should feed into type-to-search, or
-    /// `nil` if the character can't open a query. Unlike letter-jump this
-    /// deliberately does NOT exclude the reserved action letters (w/m/h/q/f) — in
-    /// type-to-search mode every letter must reach the query, so typing e.g.
-    /// "whatsapp" or "figma" filters instead of closing/minimizing the
-    /// highlighted item. Stateless so the tests can exercise it directly.
+    /// Pure: the character a key should feed into type-to-search, or `nil` if
+    /// it can't open a query. Unlike letter-jump this deliberately does NOT
+    /// exclude the reserved action letters (w/m/h/q/f) — in type-to-search mode
+    /// every letter must reach the query, so typing e.g. "whatsapp" or "figma"
+    /// filters instead of closing/minimizing the highlighted item. Letters in
+    /// any script (ż, é, ü…) and digits ("1Password") open the query too,
+    /// matching what the search branch accepts once search mode is active;
+    /// everything else (space, \, /, arrows…) keeps its panel meaning.
+    /// Stateless so the tests can exercise it directly.
     static func typeToSearchLetter(for character: Character) -> Character? {
-        let lower = Character(character.lowercased())
-        guard lower.isLetter, let ascii = lower.asciiValue,
-              ascii >= 0x61, ascii <= 0x7A else { return nil }
-        return lower
+        if character.isLetter { return Character(character.lowercased()) }
+        if character.isNumber { return character }
+        return nil
     }
 
     /// Pure mapping from a typed character to the corresponding nav `Event`,
@@ -1328,10 +1330,11 @@ final class HotkeyTap: @unchecked Sendable {
                                 deliver(vimEvent)
                                 return nil
                             }
-                            // Type-to-search opener: route every letter (incl. the
-                            // reserved action keys w/m/h/q/f) into the query instead
-                            // of firing a panel action, so a search like "whatsapp"
-                            // or "figma" works. Before `panelKeyMap` so action keys
+                            // Type-to-search opener: route every letter and digit
+                            // (incl. the reserved action keys w/m/h/q/f) into the
+                            // query instead of firing a panel action, so a search
+                            // like "whatsapp", "figma" or "1password" works — in
+                            // any keyboard layout. Before `panelKeyMap` so action keys
                             // don't win; after the vim check so h/j/k/l still
                             // navigate. ⌥/⌃ pass through (⌘ holds the panel open, ⇧
                             // is a capital). Only the first keystroke routes here —

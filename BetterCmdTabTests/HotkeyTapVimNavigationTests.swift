@@ -72,10 +72,21 @@ struct HotkeyTapVimNavigationTests {
         #expect(HotkeyTap.typeToSearchLetter(for: "Z") == "z")
     }
 
-    /// Non-letters can't open a query, so they fall through (digits/space/symbols
-    /// keep their normal panel handling; only a–z starts type-to-search).
-    @Test func typeToSearchIgnoresNonLetters() {
-        for c: Character in ["0", "9", " ", "/", "\\", "\n", "-", ".", "é"] {
+    /// Letters in any script and digits open the query too — a Polish "ż" or the
+    /// "1" in "1Password" must start a search, not leak past the panel — matching
+    /// what the search branch accepts once search mode is active.
+    @Test func typeToSearchRoutesNonASCIILettersAndDigits() {
+        #expect(HotkeyTap.typeToSearchLetter(for: "ż") == "ż")
+        #expect(HotkeyTap.typeToSearchLetter(for: "É") == "é")
+        #expect(HotkeyTap.typeToSearchLetter(for: "ü") == "ü")
+        #expect(HotkeyTap.typeToSearchLetter(for: "1") == "1")
+        #expect(HotkeyTap.typeToSearchLetter(for: "0") == "0")
+    }
+
+    /// Whitespace and punctuation keep their panel meaning (Space commits, \
+    /// enters tab drill-in, / toggles search), so they must not open a query.
+    @Test func typeToSearchIgnoresPunctuationAndWhitespace() {
+        for c: Character in [" ", "/", "\\", "\n", "-", "."] {
             #expect(HotkeyTap.typeToSearchLetter(for: c) == nil,
                     "\(c) should not open type-to-search")
         }
