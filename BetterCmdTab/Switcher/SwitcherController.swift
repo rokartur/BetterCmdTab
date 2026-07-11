@@ -1807,6 +1807,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 if newValue == .idle {
                     secureInputMonitor.stop()
                 } else {
+                    Activator.invalidatePendingActivation()
                     secureInputMonitor.start()
                     cache.refreshObserverGaps()
                 }
@@ -3704,21 +3705,27 @@ final class SwitcherController: SwitcherViewDelegate {
     /// of a window's tab rows share one CGWindowID, so the window MRU would be the
     /// wrong granularity. Any other row raises its window. Shared by the visible and
     /// primed commit paths so a fast tap and a held-open panel agree.
-    private func activation(for row: SwitcherRow, instantSpace: Bool) -> (() -> Void)? {
+    private func activation(
+        for row: SwitcherRow,
+        instantSpace: Bool,
+        completion: @escaping @MainActor @Sendable () -> Void
+    ) -> (() -> Void)? {
         if let pid = row.pid { mru.bump(pid) }
         if let bt = row.browserTab, let app = row.app, let window = row.window {
             bumpTabMRUIfPossible(for: row)
             let tabIndex = bt.index
             let parentTitle = bt.parentTitle
             return {
+                Activator.invalidatePendingActivation()
                 DispatchQueue.global(qos: .userInitiated).async {
                     _ = BrowserTabs.activateTab(at: tabIndex, in: app, window: window, title: parentTitle)
                 }
+                completion()
             }
         }
         bumpWindowMRUIfPossible(for: row)
         bumpTabMRUIfPossible(for: row)
-        return { Activator.activate(row, instantSpace: instantSpace) }
+        return { Activator.activate(row, instantSpace: instantSpace, completion: completion) }
     }
 
     private func commit() {
@@ -3734,6 +3741,13 @@ final class SwitcherController: SwitcherViewDelegate {
         tabPrefetchTimer = nil
         let currentPhase = phase
         let instantSpace = Preferences.shared.experimentalInstantSpaceSwitch
+        revealGeneration &+= 1
+        let commitGeneration = revealGeneration
+        let finishDismiss: @MainActor @Sendable () -> Void = { [weak self] in
+            guard let self, self.revealGeneration == commitGeneration, self.phase == .idle else { return }
+            self.panel.dismiss()
+            self.view.releaseIdleResources()
+        }
         var pendingActivation: (() -> Void)? = nil
 
         switch currentPhase {
@@ -3741,26 +3755,26 @@ final class SwitcherController: SwitcherViewDelegate {
             if rows.indices.contains(index) {
                 // `activation(for:)` handles the browser-tab vs. window split and
                 // bumps the app / window / tab MRU trackers.
-                pendingActivation = activation(for: rows[index], instantSpace: instantSpace)
+                pendingActivation = activation(for: rows[index], instantSpace: instantSpace, completion: finishDismiss)
             }
         case .primed:
             if windowsOnlyMode, let pid = windowsOnlyPid {
                 if let row = pickWindowsOnlyTarget(pid: pid, delta: windowsOnlyPrimedDelta) {
                     if let p = row.pid { mru.bump(p) }
                     bumpWindowMRUIfPossible(for: row)
-                    pendingActivation = { Activator.activate(row, instantSpace: instantSpace) }
+                    pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
                 } else if let app = NSRunningApplication(processIdentifier: pid) {
                     // Cold cache (brief boot/AX-regrant window): no windowed rows
                     // cached yet. Activate the app — cheap and main-safe — rather
                     // than blocking the commit on a synchronous AX scan.
                     mru.bump(pid)
-                    pendingActivation = { Activator.activateApp(app) }
+                    pendingActivation = { Activator.activateApp(app, completion: finishDismiss) }
                 }
             } else if browserTabMRUActive, let row = primedBrowserTabMRUTargetRow() {
                 // Tab-level fast tap-release: activate the tab/window the visible
                 // switcher would have selected, stepped by unified tab recency, so a
                 // quick ⌘⇥ returns to the previous *tab* exactly like the panel.
-                pendingActivation = activation(for: row, instantSpace: instantSpace)
+                pendingActivation = activation(for: row, instantSpace: instantSpace, completion: finishDismiss)
             } else if effective.sortOrder == .mruWindows,
                       let row = primedWindowMRUTargetRow() {
                 // Window-level fast tap-release: activate the window the visible
@@ -3768,7 +3782,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // so a quick ⌘⇥ toggles windows exactly like the panel would.
                 if let p = row.pid { mru.bump(p) }
                 bumpWindowMRUIfPossible(for: row)
-                pendingActivation = { Activator.activate(row, instantSpace: instantSpace) }
+                pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
             } else if primedApps.indices.contains(primedIndex) {
                 let app = primedApps[primedIndex]
                 mru.bump(app.processIdentifier)
@@ -3781,27 +3795,26 @@ final class SwitcherController: SwitcherViewDelegate {
                 // wrong Space. Fall back to it only for windowless apps.
                 if let row = primedAppTargetRow(for: app) {
                     bumpWindowMRUIfPossible(for: row)
-                    pendingActivation = { Activator.activate(row, instantSpace: instantSpace) }
+                    pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
                 } else {
-                    pendingActivation = { Activator.activateApp(app) }
+                    pendingActivation = { Activator.activateApp(app, completion: finishDismiss) }
                 }
             }
         case .idle:
             break
         }
 
-        revealGeneration &+= 1
         phase = .idle
         cache.setPanelVisible(false)
         dockBadgeObserver.stop()
-        // Activate BEFORE dismissing the panel: `panel.dismiss()` calls
-        // `orderOut(nil)`, surrendering our window/focus to the WindowServer.
-        // If that ran first, the synchronous AX focus writes inside the
-        // activation could be routed elsewhere and the target window would not
-        // end up focused. Running the activation first keeps focus deterministic.
-        if pendingActivation != nil { CommitFeedback.play() }
-        pendingActivation?()
-        panel.dismiss()
+        // Keep the panel ordered until external AX focus writes finish; ordering
+        // it out first lets WindowServer route focus back to the wrong window.
+        if let pendingActivation {
+            CommitFeedback.play()
+            pendingActivation()
+        } else {
+            finishDismiss()
+        }
         primedApps = []
         rows = []
         baseRows = []
@@ -3826,7 +3839,6 @@ final class SwitcherController: SwitcherViewDelegate {
         previousFrontmostApp = nil
         resetLetterBuffer()
         resetSearch()
-        view.releaseIdleResources()
     }
 
     private func cancel() {
@@ -4344,6 +4356,12 @@ final class SwitcherController: SwitcherViewDelegate {
         bumpWindowMRUIfPossible(for: backend == .appWindows ? drillWindowRows[chosen] : row)
 
         revealGeneration &+= 1
+        let commitGeneration = revealGeneration
+        let finishDismiss: @MainActor @Sendable () -> Void = { [weak self] in
+            guard let self, self.revealGeneration == commitGeneration, self.phase == .idle else { return }
+            self.panel.dismiss()
+            self.view.releaseIdleResources()
+        }
         phase = .idle
         cache.setPanelVisible(false)
         dockBadgeObserver.stop()
@@ -4354,12 +4372,22 @@ final class SwitcherController: SwitcherViewDelegate {
         switch backend {
         case .appleScript:
             let title = row.windowTitle
+            Activator.invalidatePendingActivation()
             DispatchQueue.global(qos: .userInitiated).async {
                 _ = BrowserTabs.activateTab(at: chosen, in: app, window: window, title: title)
             }
+            finishDismiss()
         case .accessibility:
             if let tab = targetElement {
-                Activator.activateTab(in: app, window: window, tab: tab, cachedWid: row.cgWindowID, instantSpace: instantSpace)
+                Activator.activateTab(
+                    in: app,
+                    window: window,
+                    tab: tab,
+                    cachedWid: row.cgWindowID,
+                    isMinimized: row.isMinimized,
+                    instantSpace: instantSpace,
+                    completion: finishDismiss
+                )
             }
         case .windows:
             // The chosen tab is a real NSWindow — raising it selects that tab.
@@ -4369,7 +4397,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // `Activator.resolvedWindowID`).
                 let cachedWid = row.tabWindows.first(where: { CFEqual($0.ref, tabWindow) })?.cgWindowID ?? 0
                 let tabRow = SwitcherRow(app: app, window: tabWindow, windowTitle: row.windowTitle, isMinimized: false, cgWindowID: cachedWid)
-                Activator.activate(tabRow, instantSpace: instantSpace)
+                Activator.activate(tabRow, instantSpace: instantSpace, completion: finishDismiss)
             }
         case .appWindows:
             // The strip lists the app's own windows (#80). The chosen row was
@@ -4377,9 +4405,8 @@ final class SwitcherController: SwitcherViewDelegate {
             // CGWindowID, so activating it keeps the SLPS raise fallback for
             // stale AX elements (Electron) — never rebuild it from
             // `liveTabElements`, which would drop that id.
-            Activator.activate(drillWindowRows[chosen], instantSpace: instantSpace)
+            Activator.activate(drillWindowRows[chosen], instantSpace: instantSpace, completion: finishDismiss)
         }
-        panel.dismiss()
         // Activating the chosen tab's app above; nothing to restore.
         previousFrontmostApp = nil
         tabDrillActive = false
@@ -4405,7 +4432,6 @@ final class SwitcherController: SwitcherViewDelegate {
         quittingPids.removeAll()
         resetLetterBuffer()
         resetSearch()
-        view.releaseIdleResources()
     }
 
     /// SIGKILL the highlighted app — bypasses the AppleEvent terminate() that
