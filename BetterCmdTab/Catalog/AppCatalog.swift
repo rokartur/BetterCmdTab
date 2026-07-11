@@ -1,5 +1,26 @@
 import AppKit
 
+/// Synchronous `concurrentPerform` output where iteration `i` owns exactly slot
+/// `i`. Swift's `UnsafeMutableBufferPointer` is conservatively non-Sendable even
+/// though disjoint initialized elements are independent memory locations. This
+/// wrapper contains that invariant; it must never be used for overlapping slots
+/// or after the enclosing `withUnsafeMutableBufferPointer` returns.
+struct DisjointWriteBuffer<Element>: @unchecked Sendable {
+    private let baseAddress: UnsafeMutablePointer<Element>
+    let count: Int
+
+    init(_ buffer: UnsafeMutableBufferPointer<Element>) {
+        precondition(!buffer.isEmpty && buffer.baseAddress != nil)
+        baseAddress = buffer.baseAddress!
+        count = buffer.count
+    }
+
+    func set(_ value: Element, at index: Int) {
+        precondition(index >= 0 && index < count)
+        baseAddress.advanced(by: index).pointee = value
+    }
+}
+
 enum AppCatalog {
     /// `filter` lets a per-shortcut override (#74) replace the global filter;
     /// `nil` (the default) reads the global config, keeping existing callers
@@ -43,17 +64,18 @@ enum AppCatalog {
 
         var windowsBuffer: [[WindowInfo]] = Array(repeating: [], count: count)
         windowsBuffer.withUnsafeMutableBufferPointer { buffer in
+            let output = DisjointWriteBuffer(buffer)
             DispatchQueue.concurrentPerform(iterations: count) { i in
                 let app = candidates[i]
                 let pid = app.processIdentifier
-                buffer[i] = WindowEnumerator.windows(
+                output.set(WindowEnumerator.windows(
                     forPid: pid,
                     isRegularApp: app.activationPolicy == .regular,
                     expectedCGWindowIDs: cgSnapshot.ids(for: pid),
                     cgZOrder: cgSnapshot.zOrder(for: pid),
                     nonNormalLayerWids: cgSnapshot.nonNormalLayer(for: pid),
                     onscreenWids: cgSnapshot.onscreen(for: pid)
-                )
+                ), at: i)
             }
         }
 

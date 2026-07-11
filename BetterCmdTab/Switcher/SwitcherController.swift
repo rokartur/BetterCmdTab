@@ -996,26 +996,43 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Push the current "Ignore shortcuts" decision for the frontmost app to the
     /// tap. Cheap and only runs on frontmost/Space changes, so the per-keystroke
     /// path stays a single lock read.
+    /// Drops a stale async fullscreen probe when the frontmost app (or the
+    /// pref) changed while it was in flight.
+    private var triggerSuppressionGen: UInt64 = 0
+
     private func updateTriggerSuppression() {
         let front = NSWorkspace.shared.frontmostApplication
+        triggerSuppressionGen &+= 1
         guard let bid = front?.bundleIdentifier else {
             hotkey.setSuppressTrigger(false)
             return
         }
-        let suppress: Bool
         switch Preferences.shared.ignoreMode(for: bid) {
-        case .never: suppress = false
-        case .always: suppress = true
-        case .whenFullscreen: suppress = Self.focusedWindowIsFullscreen(pid: front?.processIdentifier ?? -1)
+        case .never: hotkey.setSuppressTrigger(false)
+        case .always: hotkey.setSuppressTrigger(true)
+        case .whenFullscreen:
+            // Cross-process AX read (up to 2 × 0.25 s against a wedged app) —
+            // resolve off-main and apply late. The tap tolerates a few-ms-late
+            // suppression flip; the main thread cannot tolerate the stall on
+            // every app activation and Space change. Until the result lands,
+            // the previous suppression state stays in effect.
+            let pid = front?.processIdentifier ?? -1
+            let gen = triggerSuppressionGen
+            DispatchQueue.global(qos: .userInteractive).async {
+                let fullscreen = Self.focusedWindowIsFullscreen(pid: pid)
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, gen == self.triggerSuppressionGen else { return }
+                    self.hotkey.setSuppressTrigger(fullscreen)
+                }
+            }
         }
-        hotkey.setSuppressTrigger(suppress)
     }
 
     /// Whether the app's focused window is full screen, via the same AX
     /// `AXFullScreen` attribute the window scan reads. A short messaging timeout
     /// keeps a wedged app from stalling the main thread; any failure (no focused
     /// window, attribute absent, timeout) reads as "not full screen".
-    private static func focusedWindowIsFullscreen(pid: pid_t) -> Bool {
+    nonisolated private static func focusedWindowIsFullscreen(pid: pid_t) -> Bool {
         guard pid > 0 else { return false }
         let appElement = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(appElement, 0.25)

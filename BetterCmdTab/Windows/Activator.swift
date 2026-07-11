@@ -1,5 +1,5 @@
 import AppKit
-import ApplicationServices
+@preconcurrency import ApplicationServices
 import Carbon.HIToolbox
 import os
 
@@ -208,7 +208,9 @@ enum Activator {
     /// can raise it back on top (the window the user hid everything from). Pid for
     /// the same-session fast path, bundleID as a fallback if the app was relaunched.
     /// Nil once consumed or when nothing qualified.
-    private static var lastHideFrontmost: (pid: pid_t, bundleID: String?)?
+    private static let lastHideFrontmost = OSAllocatedUnfairLock<(pid: pid_t, bundleID: String?)?>(
+        initialState: nil
+    )
 
     /// Pure: choose which running pid `showAllApps()` should raise last, given the
     /// remembered hide-time identity and the live running set. Match by pid first
@@ -324,8 +326,12 @@ enum Activator {
     /// ⌘` cycling) can't have an older activation's late re-assert yank focus
     /// from the newer target — the frontmost-pid guard alone can't catch that
     /// when both targets belong to the same app. Main-thread only: every
-    /// activation commits on main, and all readers run on main.
-    private static var activationGeneration: UInt64 = 0
+    /// activation commits on main today. Keep the generation synchronized as a
+    /// hard boundary anyway: the final verification originates on a background
+    /// queue, and this enum deliberately exposes several nonisolated AX helpers.
+    /// A future call site must not silently turn the stale-focus guard into a
+    /// Swift data race.
+    private static let activationGeneration = OSAllocatedUnfairLock<UInt64>(initialState: 0)
 
     private static func activateRunning(app: NSRunningApplication, window: AXUIElement?, cachedWid: CGWindowID, isFullscreen: Bool, instantSpace: Bool) {
         let pid = app.processIdentifier
@@ -343,8 +349,10 @@ enum Activator {
             return
         }
 
-        activationGeneration &+= 1
-        let gen = activationGeneration
+        let gen = activationGeneration.withLock { value -> UInt64 in
+            value &+= 1
+            return value
+        }
 
         // Parity with `activateApp`/`focusedWindow`: cap AX messaging so a wedged
         // target can't stall the (main-thread) raise + focus writes below.
@@ -393,7 +401,7 @@ enum Activator {
         // once activation has settled, but only while our target is still frontmost
         // so we never yank focus the user may have since moved elsewhere.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-            guard gen == activationGeneration,
+            guard activationGeneration.withLock({ $0 == gen }),
                   NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
             AXUIElementPerformAction(window, kAXRaiseAction as CFString)
             AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
@@ -417,7 +425,7 @@ enum Activator {
             let sameElement = focused.map { CFEqual($0, window) } ?? false
             if focusSettled(targetWid: wid, focusedWid: focusedWid, sameElement: sameElement) { return }
             DispatchQueue.main.async {
-                guard generation == activationGeneration,
+                guard activationGeneration.withLock({ $0 == generation }),
                       NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
                 AXUIElementPerformAction(window, kAXRaiseAction as CFString)
                 if wid != 0 { PrivateAPI.raiseWindow(pid: pid, wid: wid) }
@@ -492,14 +500,12 @@ enum Activator {
         }
     }
 
-    private static func bringToFront(_ app: NSRunningApplication, completion: (() -> Void)? = nil) {
+    private static func bringToFront(_ app: NSRunningApplication) {
         if let url = app.bundleURL {
             let cfg = NSWorkspace.OpenConfiguration()
             cfg.activates = true
             cfg.createsNewApplicationInstance = false
-            NSWorkspace.shared.openApplication(at: url, configuration: cfg) { _, _ in
-                completion?()
-            }
+            NSWorkspace.shared.openApplication(at: url, configuration: cfg) { _, _ in }
             return
         }
         if #available(macOS 14.0, *) {
@@ -507,7 +513,6 @@ enum Activator {
         } else {
             app.activate(options: [.activateIgnoringOtherApps])
         }
-        completion?()
     }
 
     private static func openFreshWindow(for app: NSRunningApplication) {
@@ -790,7 +795,7 @@ enum Activator {
     /// button. Apps without a zoom button (some dialogs/utilities) are no-ops.
     static func zoomWindow(_ row: SwitcherRow) {
         guard let window = row.window, let app = row.app else { return }
-        let apply = {
+        let apply: @Sendable () -> Void = {
             var buttonValue: AnyObject?
             let err = AXUIElementCopyAttributeValue(window, kAXZoomButtonAttribute as CFString, &buttonValue)
             guard err == .success, CFGetTypeID(buttonValue as CFTypeRef) == AXUIElementGetTypeID() else { return }
@@ -814,8 +819,9 @@ enum Activator {
     /// launchable) or apps that don't expose the attribute.
     static func toggleFullscreen(_ row: SwitcherRow) {
         guard let window = row.window, let app = row.app else { return }
-        let target: CFBoolean = row.isFullscreen ? kCFBooleanFalse : kCFBooleanTrue
-        let apply = {
+        let shouldEnterFullscreen = !row.isFullscreen
+        let apply: @Sendable () -> Void = {
+            let target: CFBoolean = shouldEnterFullscreen ? kCFBooleanTrue : kCFBooleanFalse
             _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, target)
         }
         if app.processIdentifier == getpid() {
@@ -869,9 +875,9 @@ enum Activator {
         if let frontApp, frontApp.activationPolicy == .regular,
            frontApp.processIdentifier != selfPid,
            let bid = frontApp.bundleIdentifier {
-            lastHideFrontmost = (frontApp.processIdentifier, bid)
+            lastHideFrontmost.withLock { $0 = (frontApp.processIdentifier, bid) }
         } else {
-            lastHideFrontmost = nil
+            lastHideFrontmost.withLock { $0 = nil }
         }
         let running = NSWorkspace.shared.runningApplications
         let targets = running.filter { app in
@@ -905,8 +911,11 @@ enum Activator {
         let runningIDs = running.map {
             (pid: $0.processIdentifier, bundleID: $0.bundleIdentifier, terminated: $0.isTerminated)
         }
-        let targetPid = showAllRaisePid(remembered: lastHideFrontmost, running: runningIDs)
-        lastHideFrontmost = nil
+        let remembered = lastHideFrontmost.withLock { value -> (pid: pid_t, bundleID: String?)? in
+            defer { value = nil }
+            return value
+        }
+        let targetPid = showAllRaisePid(remembered: remembered, running: runningIDs)
         let raiseTarget = targetPid.flatMap { pid in running.first { $0.processIdentifier == pid } }
         // Unhide everything except the raise target first, so the target's
         // activation below is the final, on-top transition (no focus thrash).

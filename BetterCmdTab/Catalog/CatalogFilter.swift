@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import os
 
 /// Applies the user's catalog-filter preferences (per-app hide rules, pinned
 /// apps, minimized/hidden visibility) to produced switcher rows and app lists.
@@ -84,7 +85,7 @@ enum CatalogFilter {
         // Spaces, skip resolveSpaces entirely so a default-config reveal pays
         // zero WindowServer round-trips on the ⌘Tab hot path.
         let spaces = needsSpaceResolution(rows, cfg)
-            ? resolveSpaces(rows, scope: cfg.spaceScope)
+            ? resolveSpacesMemoized(rows, scope: cfg.spaceScope)
             : .unavailable
 
         // Drop Electron-style phantom windows first, unconditionally. These are
@@ -191,6 +192,53 @@ enum CatalogFilter {
     /// visible Space for `.visibleSpaces` (#57). The focused Space is always
     /// included, so the visible-Spaces filter can never hide the Space the user
     /// is looking at even if the display-spaces query comes back partial.
+    /// One ⌘Tab chord calls `filteredRows` several times within ~100 ms (the
+    /// primed prefetch, the reveal, the refresh apply, the fast-tap commit),
+    /// and every Space resolution is synchronous WindowServer IPC on the main
+    /// thread (`CGWindowListCopyWindowInfo` + per-wid `CGSCopySpacesForWindows`).
+    /// Memoize the last resolution briefly so one chord pays for it once.
+    ///
+    /// Reuse is exact w.r.t. the window population: a hit requires the same
+    /// scope and every requested wid already covered by the memoized call, so
+    /// a window created between calls forces a fresh resolution. What can go
+    /// stale inside the TTL is WindowServer-side state (active Space,
+    /// on-screen set) — bounded at 100 ms and self-correcting on the next
+    /// resolve, and no worse in kind than the pre-memo behavior of applying a
+    /// resolution computed milliseconds earlier to a reveal.
+    private struct SpaceMemo {
+        let scope: SpaceScope
+        let wids: Set<CGWindowID>
+        let at: TimeInterval
+        let res: SpaceResolution
+    }
+    private static let spaceMemo = OSAllocatedUnfairLock<SpaceMemo?>(initialState: nil)
+    static let spaceMemoTTL: TimeInterval = 0.1
+
+    /// Pure reuse decision for the Space-resolution memo, split out so it can
+    /// be unit-tested without WindowServer.
+    static func spaceMemoValid(
+        scope: SpaceScope, candidates: Set<CGWindowID>,
+        memoScope: SpaceScope, memoWids: Set<CGWindowID>, age: TimeInterval
+    ) -> Bool {
+        scope == memoScope && age >= 0 && age < spaceMemoTTL && candidates.isSubset(of: memoWids)
+    }
+
+    static func resolveSpacesMemoized(_ rows: [SwitcherRow], scope: SpaceScope) -> SpaceResolution {
+        let candidates = Set(rows.lazy.map(\.cgWindowID).filter { $0 != 0 })
+        let now = ProcessInfo.processInfo.systemUptime
+        let hit = spaceMemo.withLock { memo -> SpaceResolution? in
+            guard let m = memo,
+                  spaceMemoValid(scope: scope, candidates: candidates,
+                                 memoScope: m.scope, memoWids: m.wids, age: now - m.at)
+            else { return nil }
+            return m.res
+        }
+        if let hit { return hit }
+        let res = resolveSpaces(rows, scope: scope)
+        spaceMemo.withLock { $0 = SpaceMemo(scope: scope, wids: candidates, at: now, res: res) }
+        return res
+    }
+
     static func resolveSpaces(_ rows: [SwitcherRow], scope: SpaceScope) -> SpaceResolution {
         guard let active = PrivateAPI.activeSpace() else { return .unavailable }
         var allowed: Set<UInt64> = [active]
@@ -222,7 +270,7 @@ enum CatalogFilter {
     /// `SpaceResolution`. Resolves every window's Space, then filters to the
     /// focused Space only.
     static func filterToCurrentSpace(_ rows: [SwitcherRow]) -> [SwitcherRow] {
-        filterToAllowedSpaces(rows, resolveSpaces(rows, scope: .currentSpace))
+        filterToAllowedSpaces(rows, resolveSpacesMemoized(rows, scope: .currentSpace))
     }
 
     /// Drop windows that live on a Space outside `allowedSpaces`. Rows

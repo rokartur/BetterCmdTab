@@ -394,4 +394,38 @@ struct CatalogFilterTests {
         #expect(CatalogFilter.filterToAllowedSpaces(rows, .unavailable).count == 2)
         #expect(CatalogFilter.filterPhantomWindows(rows, .unavailable).count == 2)
     }
+
+    // MARK: - Space-resolution memo reuse
+
+    @Test("memo reuse requires same scope, fresh age, and covered wids")
+    func spaceMemoReuseDecision() {
+        let memoWids: Set<CGWindowID> = [10, 20, 30]
+        // Identical repeat within the TTL — reuse.
+        #expect(CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: memoWids,
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
+        // A subset (scoped re-filter of the same catalog) — reuse.
+        #expect(CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [10, 30],
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
+        // A new window appeared — must re-resolve.
+        #expect(!CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [10, 20, 40],
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
+        // Scope changed — must re-resolve.
+        #expect(!CatalogFilter.spaceMemoValid(
+            scope: .currentSpace, candidates: [10],
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
+        // Expired or non-monotonic age — must re-resolve.
+        #expect(!CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [10],
+            memoScope: .allSpaces, memoWids: memoWids, age: CatalogFilter.spaceMemoTTL))
+        #expect(!CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [10],
+            memoScope: .allSpaces, memoWids: memoWids, age: -0.01))
+        // Empty candidate set is covered by any memo (nothing to resolve).
+        #expect(CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [],
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
+    }
 }
