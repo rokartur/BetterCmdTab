@@ -113,6 +113,13 @@ final class SwitcherView: NSView, TabStripDelegate {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
+    private static let livePreviewInterval: TimeInterval = 0.1
+    private var livePreviewTimer: Timer?
+
+    nonisolated deinit {
+        MainActor.assumeIsolated { stopLivePreviewTimer() }
+    }
+
     private var highlightPrefix: String = ""
     private var searchActive: Bool = false
     private var accent: NSColor = .controlAccentColor
@@ -210,6 +217,7 @@ final class SwitcherView: NSView, TabStripDelegate {
     private func updatePreviewWiring() {
         guard metrics.layoutMode == .windowPreview else {
             WindowThumbnailCache.shared.onReady = nil
+            stopLivePreviewTimer()
             return
         }
         WindowThumbnailCache.shared.ensurePermission()
@@ -219,6 +227,50 @@ final class SwitcherView: NSView, TabStripDelegate {
                 guard let preview = view as? SwitcherPreviewItemView, preview.windowID == wid else { continue }
                 preview.setThumbnail(WindowThumbnailCache.shared.image(for: wid), for: wid)
             }
+        }
+        syncLivePreviewTimer()
+    }
+
+    /// Live previews use short, tile-sized SCScreenshotManager captures rather
+    /// than persistent SCStreams. Persistent per-window streams are smoother,
+    /// but macOS marks every captured window with sharing UI; one-shot captures
+    /// avoid that intrusive system overlay. 10 Hz is a practical middle ground
+    /// between the old 2 fps behavior and the cost of continuously recapturing
+    /// every visible window.
+    private func syncLivePreviewTimer() {
+        guard #available(macOS 14.0, *), Preferences.shared.experimentalLivePreviews else {
+            stopLivePreviewTimer()
+            return
+        }
+        guard livePreviewTimer == nil else { return }
+        let timer = Timer(timeInterval: Self.livePreviewInterval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.livePreviewTick() }
+        }
+        timer.tolerance = Self.livePreviewInterval * 0.1
+        RunLoop.main.add(timer, forMode: .common)
+        livePreviewTimer = timer
+    }
+
+    private func stopLivePreviewTimer() {
+        livePreviewTimer?.invalidate()
+        livePreviewTimer = nil
+    }
+
+    private func livePreviewTick() {
+        guard window?.isVisible == true, metrics.layoutMode == .windowPreview else {
+            stopLivePreviewTimer()
+            return
+        }
+        let scale = window?.backingScaleFactor ?? 2
+        let pixelHeight = metrics.previewThumbHeight * scale
+        for view in itemViews {
+            guard let preview = view as? SwitcherPreviewItemView,
+                  !preview.isHidden,
+                  preview.windowID != 0 else { continue }
+            WindowThumbnailCache.shared.requestLiveFrame(
+                wid: preview.windowID,
+                pixelHeight: pixelHeight
+            )
         }
     }
 
@@ -250,6 +302,7 @@ final class SwitcherView: NSView, TabStripDelegate {
     /// A layout-mode change between opens still rebuilds the pool with the right
     /// view class (handled in `configure`).
     func releaseIdleResources() {
+        stopLivePreviewTimer()
         for v in itemViews {
             v.prepareForIdle()
             v.isHidden = true
@@ -270,6 +323,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         emptyIcon.isHidden = true
         emptyTitle.isHidden = true
         WindowThumbnailCache.shared.onReady = nil
+        WindowThumbnailCache.shared.releaseCaptureMetadata()
     }
 
     var selectedRow: SwitcherRow? {

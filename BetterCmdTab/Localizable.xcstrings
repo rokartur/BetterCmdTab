@@ -12418,6 +12418,74 @@
           }
         }
       }
+    },
+    "Live window previews" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live-Fenstervorschauen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vistas previas de ventanas en vivo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aperçus de fenêtres en direct"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podglądy okien na żywo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实时窗口预览"
+          }
+        }
+      }
+    },
+    "In the Previews layout, thumbnails keep refreshing while the switcher is open, so they show what is happening in each window right now. Uses extra CPU and GPU while the panel is up." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Layout „Vorschauen“ werden die Miniaturen laufend aktualisiert, solange der Umschalter geöffnet ist – sie zeigen, was gerade in jedem Fenster passiert. Verbraucht zusätzliche CPU- und GPU-Leistung, während das Panel offen ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En la disposición Vistas previas, las miniaturas se actualizan continuamente mientras el selector está abierto, mostrando lo que ocurre en cada ventana en ese momento. Consume CPU y GPU adicionales mientras el panel está abierto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans la disposition Aperçus, les miniatures se rafraîchissent en continu tant que le sélecteur est ouvert et montrent ce qui se passe dans chaque fenêtre en temps réel. Consomme davantage de CPU et de GPU pendant que le panneau est affiché."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W układzie Podglądy miniatury odświeżają się na bieżąco, gdy przełącznik jest otwarty, pokazując, co aktualnie dzieje się w każdym oknie. Zużywa dodatkowe zasoby CPU i GPU, gdy panel jest widoczny."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在预览布局中，切换器打开期间缩略图会持续刷新，实时显示每个窗口中的内容。面板打开时会额外占用 CPU 和 GPU。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -96,4 +96,34 @@ struct ThumbnailLRUTests {
         #expect(lru.totalCost == 0)
         #expect(lru.image(for: 1) == nil)
     }
+
+    @Test("reset invalidates an outstanding thumbnail completion")
+    func requestGateRejectsCompletionAfterReset() {
+        var gate = ThumbnailRequestGate()
+        let token = gate.begin(7)
+        #expect(token != nil)
+        #expect(gate.count == 1)
+
+        gate.reset()
+
+        #expect(gate.count == 0)
+        let acceptedAfterReset = gate.finish(7, token: token!)
+        #expect(acceptedAfterReset == false)
+    }
+
+    @Test("a stale completion cannot clear a newer request for the same window")
+    func requestGateKeepsNewerRequest() {
+        var gate = ThumbnailRequestGate()
+        let old = gate.begin(9)!
+        gate.reset()
+        let newer = gate.begin(9)!
+
+        #expect(old != newer)
+        let acceptedOld = gate.finish(9, token: old)
+        #expect(acceptedOld == false)
+        #expect(gate.count == 1)
+        let acceptedNewer = gate.finish(9, token: newer)
+        #expect(acceptedNewer)
+        #expect(gate.count == 0)
+    }
 }

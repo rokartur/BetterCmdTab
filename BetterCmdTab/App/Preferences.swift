@@ -808,6 +808,11 @@ final class Preferences: ObservableObject {
         static let cycleTileWidths = "Switcher.cycleTileWidths"
         static let experimentalInstantSpaceSwitch = "Switcher.experimentalInstantSpaceSwitch"
         static let experimentalBrowserTabMRU = "Switcher.experimentalBrowserTabMRU"
+        /// Continuously refresh window-preview thumbnails while the panel is
+        /// open, so tiles show live window contents instead of a frame captured
+        /// on reveal. Default off — recurring captures cost CPU/GPU on an
+        /// otherwise idle open panel.
+        static let experimentalLivePreviews = "Switcher.experimentalLivePreviews"
         /// `\` tab drill-in (peek the highlighted window's tabs in a strip).
         /// Graduated out of the Experimental tab in 26.x and flipped to default
         /// ON (intentional — the `\` peek is now the standard way to reach tabs).
@@ -1339,6 +1344,18 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != experimentalBrowserTabMRU else { return }
             UserDefaults.standard.set(experimentalBrowserTabMRU, forKey: Keys.experimentalBrowserTabMRU)
+        }
+    }
+
+    /// When true, preview tiles take short, tile-sized ScreenCaptureKit snapshots
+    /// at roughly 10 fps while the switcher is open. This is smoother than a
+    /// reveal-time still without using persistent streams, whose system sharing
+    /// indicators would be shown on every captured window. Off by default because
+    /// each visible window adds capture work while the panel is up.
+    @Published var experimentalLivePreviews: Bool {
+        didSet {
+            guard oldValue != experimentalLivePreviews else { return }
+            UserDefaults.standard.set(experimentalLivePreviews, forKey: Keys.experimentalLivePreviews)
         }
     }
 
@@ -1889,6 +1906,7 @@ final class Preferences: ObservableObject {
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         self.experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
+        self.experimentalLivePreviews = defaults.object(forKey: Keys.experimentalLivePreviews) as? Bool ?? false
         // Badges graduated out of the Experimental tab and now default on. Honor
         // the new key if present, otherwise carry over a choice made under the
         // old experimental key, otherwise default to on.
@@ -2021,6 +2039,7 @@ final class Preferences: ObservableObject {
         expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
+        experimentalLivePreviews = defaults.object(forKey: Keys.experimentalLivePreviews) as? Bool ?? false
         showUnreadBadges = defaults.object(forKey: Keys.showUnreadBadges) as? Bool ?? true
 
         showWindowTitleLabel = defaults.object(forKey: Keys.showWindowTitleLabel) as? Bool ?? true

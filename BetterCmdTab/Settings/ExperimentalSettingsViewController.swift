@@ -16,6 +16,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let sensitivityValueLabel = NSTextField(labelWithString: "")
     private let instantSpaceSwitch = NSSwitch()
     private let browserTabMRUSwitch = NSSwitch()
+    private let livePreviewSwitch = NSSwitch()
 
     override func setupContent() {
         // Untitled intro card — the unstable warning applies to the whole tab,
@@ -69,6 +70,13 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         addRow(to: browserTabs, title: String(localized: "Track browser tabs in recency"),
                subtitle: String(localized: "With “Show browser tabs as separate entries” and the “Most recent (windows)” sort order on, ⌘Tab returns to the tab you last used, not just the last window. Needs always-on monitoring of your browsers, so it costs a little energy."),
                accessory: browserTabMRUSwitch, searchItemID: SearchID.browserTabMRU)
+
+        // Previews section (the window-preview layout).
+        let previews = addSection(title: String(localized: "Previews"), anchor: SettingsAnchor.experimentalPreviews)
+        configureSwitch(livePreviewSwitch, action: #selector(toggleLivePreviews(_:)))
+        addRow(to: previews, title: String(localized: "Live window previews"),
+               subtitle: String(localized: "In the Previews layout, thumbnails keep refreshing while the switcher is open, so they show what is happening in each window right now. Uses extra CPU and GPU while the panel is up."),
+               accessory: livePreviewSwitch, searchItemID: SearchID.livePreviews)
         // "Show switcher on" (multi-monitor placement), the `\` tab peek + tab
         // expansion, and the "Most recent (windows)" sort graduated to the
         // Behavior tab once stable — see its "Display" and "Contents" sections.
@@ -119,6 +127,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         applySensitivity(prefs.swipeSensitivity)
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
         browserTabMRUSwitch.state = prefs.experimentalBrowserTabMRU ? .on : .off
+        livePreviewSwitch.state = prefs.experimentalLivePreviews ? .on : .off
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
 
@@ -159,6 +168,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleBrowserTabMRU(_ sender: NSSwitch) {
         Preferences.shared.experimentalBrowserTabMRU = (sender.state == .on)
+    }
+
+    @objc private func toggleLivePreviews(_ sender: NSSwitch) {
+        Preferences.shared.experimentalLivePreviews = (sender.state == .on)
     }
 
     /// The reverse/commit/sensitivity controls only make sense while the swipe
