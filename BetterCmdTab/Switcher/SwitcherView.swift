@@ -728,7 +728,16 @@ final class SwitcherView: NSView, TabStripDelegate {
         var candidate = base
         while scale > minScale + 0.001 {
             scale = max(minScale, scale - 0.05)
-            candidate = SwitcherMetrics.forScale(scale, layoutMode: base.layoutMode, fontScale: effective.fontScale.multiplier, letterHints: letterHints, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: effective.expandBrowserTabsAsWindows && !effective.applicationsOnly)
+            // Shares `SwitcherMetrics.reserveTabBand` with the controller so a
+            // shrink pass reserves the preview label band on the same rule that
+            // produced `base` — otherwise it would drop the tab titles base
+            // computed while searching with the transient browser-tab feature.
+            let reserveBand = SwitcherMetrics.reserveTabBand(
+                expandAsWindows: effective.expandBrowserTabsAsWindows,
+                applicationsOnly: effective.applicationsOnly,
+                searchActive: searchActive,
+                searchExpandsTabs: Preferences.shared.searchExpandsBrowserTabs)
+            candidate = SwitcherMetrics.forScale(scale, layoutMode: base.layoutMode, fontScale: effective.fontScale.multiplier, letterHints: letterHints, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: reserveBand)
             if fits(candidate) { return candidate }
         }
         return candidate

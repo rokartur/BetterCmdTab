@@ -101,6 +101,18 @@ struct SwitcherMetrics: Equatable {
 
     static let baseline = SwitcherMetrics.forScale(1.0, layoutMode: .list)
 
+    /// Whether the Window Preview label band must be reserved (the
+    /// `browserTabsExpanded` input to `forScreen`/`forScale`): always when tabs
+    /// are expanded as windows, and transiently while searching with the
+    /// search-tab feature — the matched tab rows then need their title (the only
+    /// thing distinguishing sibling tabs) shown even when "show window title" is
+    /// off. Pure single source of truth shared by the controller and the view's
+    /// shrink loop so the two predicates can't drift.
+    static func reserveTabBand(expandAsWindows: Bool, applicationsOnly: Bool,
+                               searchActive: Bool, searchExpandsTabs: Bool) -> Bool {
+        (expandAsWindows || (searchActive && searchExpandsTabs)) && !applicationsOnly
+    }
+
     static func forScreen(_ screen: NSScreen?, layoutMode: SwitcherLayoutMode = .list, userScale: CGFloat = 1.0, fontScale: CGFloat = 1.0, letterHints: Bool = true, showAppNames: Bool = true, showWindowTitles: Bool = true, hoverActionCount: Int = 0, browserTabsExpanded: Bool = false) -> SwitcherMetrics {
         let width = screen?.frame.width ?? referenceWidth
         let raw = width / referenceWidth

@@ -57,6 +57,7 @@ enum SettingsAnchor {
     static let experimental = "experimental.features"
     static let experimentalSwipe = "experimental.swipeSection"
     static let experimentalSpaces = "experimental.spaces"
+    static let experimentalSearch = "experimental.search"
     static let experimentalTabs = "experimental.browserTabs"
     static let experimentalPreviews = "experimental.windowPreviews"
     // About
@@ -141,6 +142,8 @@ enum SearchID {
     static let instantSpace = "experimental.instantSpace"
     static let browserTabMRU = "experimental.browserTabMRU"
     static let livePreviews = "experimental.livePreviews"
+    static let rankResults = "experimental.rankResults"
+    static let searchExpandsBrowserTabs = "experimental.searchExpandsBrowserTabs"
 }
 
 @MainActor
@@ -409,6 +412,11 @@ enum SettingsCatalog {
         // Experimental · Spaces
         item(SearchID.instantSpace, .experimental, SettingsAnchor.experimentalSpaces, String(localized: "Experimental"), String(localized: "Spaces"),
              String(localized: "Switch Spaces without animation"), ["spaces", "space", "animation", "instant", "full screen"]),
+        // Experimental · Search
+        item(SearchID.rankResults, .experimental, SettingsAnchor.experimentalSearch, String(localized: "Experimental"), String(localized: "Search"),
+             String(localized: "Rank search"), ["fuzzy", "search", "ranking", "rank", "best match", "sort results", "relevance"]),
+        item(SearchID.searchExpandsBrowserTabs, .experimental, SettingsAnchor.experimentalSearch, String(localized: "Experimental"), String(localized: "Search"),
+             String(localized: "Search browser tabs"), ["search", "browser", "tabs", "tab", "fuzzy", "find tab", "safari", "chrome"]),
         // Experimental · Browser tabs
         item(SearchID.browserTabMRU, .experimental, SettingsAnchor.experimentalTabs, String(localized: "Experimental"), String(localized: "Browser tabs"),
              String(localized: "Track browser tabs in recency"), ["browser", "tab", "tabs", "recent", "mru", "safari", "chrome"]),

@@ -246,6 +246,12 @@ final class HotkeyTap: @unchecked Sendable {
     /// close. `nil` while idle — no timer exists unless Shift is actively held
     /// with the switcher open.
     private let shiftRepeatTimer = OSAllocatedUnfairLock<DispatchSourceTimer?>(initialState: nil)
+    /// Type-to-search: when letter hints are off and fuzzy search is on, every
+    /// letter (incl. the reserved action keys w/m/h/q/f) opens/extends the query
+    /// instead of firing a panel action, so typing filters the switcher like
+    /// Spotlight. Consulted on the tap thread, written from main via
+    /// `setTypeToSearchEnabled`. Default off.
+    private let typeToSearchFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
     /// Rebindable in-panel action keys (#5): physical keycode → action. Consulted
     /// in the non-search switching branch before the letter-jump fallback, so a
     /// bound key suppresses letter-jumping (same as the old hardcoded W/M/H/Q).
@@ -731,6 +737,28 @@ final class HotkeyTap: @unchecked Sendable {
         // from hint generation while vim nav is on), so recompute and re-push to
         // RowLabels on every toggle — not only on binding/layout changes.
         recomputeReservedLetters()
+    }
+
+    /// Enable/disable type-to-search routing (letter hints off + fuzzy on).
+    /// Consulted on the tap thread; written from main when either preference
+    /// changes.
+    func setTypeToSearchEnabled(_ value: Bool) {
+        typeToSearchFlag.withLock { $0 = value }
+    }
+
+    /// Pure: the character a key should feed into type-to-search, or `nil` if
+    /// it can't open a query. Unlike letter-jump this deliberately does NOT
+    /// exclude the reserved action letters (w/m/h/q/f) — in type-to-search mode
+    /// every letter must reach the query, so typing e.g. "whatsapp" or "figma"
+    /// filters instead of closing/minimizing the highlighted item. Letters in
+    /// any script (ż, é, ü…) and digits ("1Password") open the query too,
+    /// matching what the search branch accepts once search mode is active;
+    /// everything else (space, \, /, arrows…) keeps its panel meaning.
+    /// Stateless so the tests can exercise it directly.
+    static func typeToSearchLetter(for character: Character) -> Character? {
+        if character.isLetter { return Character(character.lowercased()) }
+        if character.isNumber { return character }
+        return nil
     }
 
     /// Pure mapping from a typed character to the corresponding nav `Event`,
@@ -1280,17 +1308,18 @@ final class HotkeyTap: @unchecked Sendable {
                             // hint generation never assigns them as letter-jump
                             // hints the tap would silently swallow here.
                             //
-                            // `translate` is the only thing the vim check needs
-                            // ahead of `panelKeyMap`, so it is computed only when
-                            // the vim flag is on — keeping the default (vim-off)
-                            // hot path free of any added cost: a bound action key
-                            // (⌘W/⌘M/⌘H/⌘Q/⌘F) still short-circuits in
-                            // `panelKeyMap` below without ever paying a translate.
-                            // When vim is on the resolved character is reused by
-                            // the letter-jump branch, so a keystroke is still
+                            // `translate` is needed only by the vim check and the
+                            // type-to-search opener ahead of `panelKeyMap`, so it
+                            // is computed only when either flag is on — keeping the
+                            // default (both off) hot path free of any added cost: a
+                            // bound action key (⌘W/⌘M/⌘H/⌘Q/⌘F) still short-circuits
+                            // in `panelKeyMap` below without ever paying a translate.
+                            // When it is computed, the resolved character is reused
+                            // by the branches below, so a keystroke is still
                             // translated at most once.
                             let vimOn = vimNavigationFlag.withLock { $0 }
-                            let typed = vimOn ? translate(keyCode: UInt16(keyCode)) : nil
+                            let typeToSearch = typeToSearchFlag.withLock { $0 }
+                            let typed = (vimOn || typeToSearch) ? translate(keyCode: UInt16(keyCode)) : nil
                             if vimOn,
                                Self.onlyTriggerModifiersHeld(
                                    flags,
@@ -1299,6 +1328,22 @@ final class HotkeyTap: @unchecked Sendable {
                                let ch = typed,
                                let vimEvent = Self.vimNavigationEvent(for: Character(ch.lowercased())) {
                                 deliver(vimEvent)
+                                return nil
+                            }
+                            // Type-to-search opener: route every letter and digit
+                            // (incl. the reserved action keys w/m/h/q/f) into the
+                            // query instead of firing a panel action, so a search
+                            // like "whatsapp", "figma" or "1password" works — in
+                            // any keyboard layout. Before `panelKeyMap` so action keys
+                            // don't win; after the vim check so h/j/k/l still
+                            // navigate. ⌥/⌃ pass through (⌘ holds the panel open, ⇧
+                            // is a capital). Only the first keystroke routes here —
+                            // `enterSearch` then sets search mode, after which the
+                            // `isSearchingNow()` branch handles all input.
+                            if typeToSearch, !optionHeld, !controlHeld,
+                               let ch = typed,
+                               let lower = Self.typeToSearchLetter(for: ch) {
+                                deliver(.letterInput(lower))
                                 return nil
                             }
                             if let action = panelKeyMap.withLock({ $0[keyCode] }) {
