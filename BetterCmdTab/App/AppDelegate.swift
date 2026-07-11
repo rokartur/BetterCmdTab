@@ -246,7 +246,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// (so the switcher works under Secure Event Input) persists after the app
     /// exits, so it must be re-enabled here or macOS's own ⌘Tab stays dead.
     func applicationWillTerminate(_ notification: Notification) {
+        axWaiter?.stop()
         controller?.shutdown()
+        if let antiNapActivity {
+            ProcessInfo.processInfo.endActivity(antiNapActivity)
+            self.antiNapActivity = nil
+        }
     }
 
     /// Fired when the user launches the already-running app again (e.g. from

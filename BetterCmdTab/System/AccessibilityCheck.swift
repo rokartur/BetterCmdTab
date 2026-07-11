@@ -24,6 +24,7 @@ enum AccessibilityCheck {
     }
 }
 
+@MainActor
 final class AccessibilityWaiter {
     /// Fired once, the first time Accessibility trust is observed — boots the
     /// switcher controller.
@@ -58,11 +59,23 @@ final class AccessibilityWaiter {
     /// couple of seconds.
     private func startMonitor() {
         guard timer == nil else { return }
-        let t = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.poll()
+        let t = Timer(timeInterval: 2.0, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.poll() }
         }
+        // Coalescible: revoke/re-grant detection may arrive up to 0.5 s later,
+        // imperceptible for a trust poll but removes an exact idle wakeup.
+        t.tolerance = 0.5
         RunLoop.main.add(t, forMode: .common)
         timer = t
+    }
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    nonisolated deinit {
+        MainActor.assumeIsolated { stop() }
     }
 
     private func poll() {

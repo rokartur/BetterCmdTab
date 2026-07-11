@@ -10,22 +10,32 @@ import Darwin
 /// dlsym-based so the Xcode project does not need an extra linker flag or
 /// bridging header.
 enum PrivateAPI {
-    private static let RTLD_DEFAULT_HANDLE = UnsafeMutableRawPointer(bitPattern: -2)
-    private static let skyLight: UnsafeMutableRawPointer? = {
-        dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_NOW)
-    }()
+    /// Dynamic-loader handles are immutable process-lifetime capabilities. Raw
+    /// pointers are not modeled as `Sendable`, even though `dlsym` permits
+    /// concurrent reads from a live handle, so contain that audited guarantee in
+    /// one wrapper instead of marking every resolved function unsafe.
+    private struct DynamicHandle: @unchecked Sendable {
+        let raw: UnsafeMutableRawPointer?
+    }
 
-    private static func sym<T>(_ name: String, in handle: UnsafeMutableRawPointer?) -> T? {
-        guard let h = handle, let p = dlsym(h, name) else { return nil }
+    private static let rtldDefaultHandle = DynamicHandle(
+        raw: UnsafeMutableRawPointer(bitPattern: -2)
+    )
+    private static let skyLight = DynamicHandle(
+        raw: dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_NOW)
+    )
+
+    private static func sym<T>(_ name: String, in handle: DynamicHandle) -> T? {
+        guard let h = handle.raw, let p = dlsym(h, name) else { return nil }
         return unsafeBitCast(p, to: T.self)
     }
 
     // MARK: - HIServices (private)
 
     private static let axCreateWithRemoteTokenFn: (@convention(c) (CFData) -> Unmanaged<AXUIElement>?)? =
-        sym("_AXUIElementCreateWithRemoteToken", in: RTLD_DEFAULT_HANDLE)
+        sym("_AXUIElementCreateWithRemoteToken", in: rtldDefaultHandle)
     private static let axGetWindowFn: (@convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError)? =
-        sym("_AXUIElementGetWindow", in: RTLD_DEFAULT_HANDLE)
+        sym("_AXUIElementGetWindow", in: rtldDefaultHandle)
 
     /// Build a remote-token AXUIElement for `(pid, axId)`. Token format is 20
     /// bytes: pid (Int32 LE) | 0 (Int32 LE) | 0x636f636f (Int32 LE) | axId (UInt64 LE).
@@ -60,7 +70,7 @@ enum PrivateAPI {
     // GetProcessForPID is deprecated past macOS 10.9 and the Swift importer
     // hides it — pull the symbol via dlsym instead.
     private static let getProcessForPIDFn: (@convention(c) (pid_t, UnsafeMutablePointer<ProcessSerialNumber>) -> OSStatus)? =
-        sym("GetProcessForPID", in: RTLD_DEFAULT_HANDLE)
+        sym("GetProcessForPID", in: rtldDefaultHandle)
 
     // MARK: - SkyLight: native symbolic-hotkey suppression (⌘Tab)
 

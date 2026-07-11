@@ -13,8 +13,9 @@ import Testing
 struct SettingsPortabilityTests {
 
     /// A valid envelope at the current schema version with the given values.
-    private func envelope(_ values: [String: Any], version: Int = Preferences.exportSchemaVersion) -> Data {
-        let root: [String: Any] = ["app": "BetterCmdTab", "schemaVersion": version, "values": values]
+    private func envelope(_ values: [String: Any], version: Int? = nil) -> Data {
+        let schemaVersion = version ?? Preferences.exportSchemaVersion
+        let root: [String: Any] = ["app": "BetterCmdTab", "schemaVersion": schemaVersion, "values": values]
         return try! JSONSerialization.data(withJSONObject: root)
     }
 

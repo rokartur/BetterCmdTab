@@ -47,8 +47,12 @@ final class ShortcutsEditorView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
-    deinit {
-        if let shortcutChangeObserver { NotificationCenter.default.removeObserver(shortcutChangeObserver) }
+    nonisolated deinit {
+        MainActor.assumeIsolated {
+            if let shortcutChangeObserver {
+                NotificationCenter.default.removeObserver(shortcutChangeObserver)
+            }
+        }
     }
 
     /// Drop every cached panel and rebuild from the live model — used when the

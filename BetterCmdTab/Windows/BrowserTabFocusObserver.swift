@@ -1,5 +1,5 @@
 import AppKit
-import ApplicationServices
+@preconcurrency import ApplicationServices
 import CoreGraphics
 
 /// Always-on AX observation of running browsers' active-tab changes, feeding
@@ -19,14 +19,19 @@ import CoreGraphics
 /// NSWorkspace launch/terminate.
 @MainActor
 final class BrowserTabFocusObserver {
-    private unowned let tracker: BrowserTabMRUTracker
+    // Async AX reads can briefly outlive the controller during teardown. A weak
+    // link turns a late result into a no-op instead of dereferencing an unowned
+    // tracker that has already been released.
+    private weak var tracker: BrowserTabMRUTracker?
     private var observers: [pid_t: AXObserver] = [:]
     /// pids whose observer is being built off-main, so a second launch/scan can't
     /// double-create before the first install lands.
-    private var building: Set<pid_t> = []
+    private var building: [pid_t: UInt64] = [:]
+    private var nextBuildToken: UInt64 = 0
     /// pids with a focused-window read in flight, coalescing a burst of title
     /// notifications for one app into a single off-main AX read.
-    private var inFlight: Set<pid_t> = []
+    private var inFlight: [pid_t: UInt64] = [:]
+    private var nextReadToken: UInt64 = 0
     private var launchObs: NSObjectProtocol?
     private var termObs: NSObjectProtocol?
     private var enabled = false
@@ -100,10 +105,12 @@ final class BrowserTabFocusObserver {
     private func addObserver(for app: NSRunningApplication) {
         let pid = app.processIdentifier
         guard enabled,
-              observers[pid] == nil, !building.contains(pid),
+              observers[pid] == nil, building[pid] == nil,
               pid != getpid(),
               BrowserTabs.Family.from(bundleID: app.bundleIdentifier) != nil else { return }
-        building.insert(pid)
+        nextBuildToken &+= 1
+        let buildToken = nextBuildToken
+        building[pid] = buildToken
         // Encode the refcon as a bit-pattern integer so it crosses the queue
         // boundary as a Sendable value (mirrors AppCatalogCache).
         let refconBits = UInt(bitPattern: Unmanaged.passUnretained(self).toOpaque())
@@ -112,8 +119,15 @@ final class BrowserTabFocusObserver {
             let observer = Self.buildObserver(pid: pid, refcon: refcon)
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
-                self.building.remove(pid)
+                // A terminate/relaunch or disable/re-enable can supersede this
+                // blocked build. Do not clear the newer build's slot or attach
+                // an observer created for the old process.
+                guard self.building[pid] == buildToken else { return }
+                self.building.removeValue(forKey: pid)
                 guard self.enabled, self.observers[pid] == nil, let observer else { return }
+                guard let live = NSRunningApplication(processIdentifier: pid),
+                      !live.isTerminated,
+                      BrowserTabs.Family.from(bundleID: live.bundleIdentifier) != nil else { return }
                 CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
                 self.observers[pid] = observer
             }
@@ -121,8 +135,8 @@ final class BrowserTabFocusObserver {
     }
 
     private func removeObserver(pid: pid_t) {
-        building.remove(pid)
-        inFlight.remove(pid)
+        building.removeValue(forKey: pid)
+        inFlight.removeValue(forKey: pid)
         guard let observer = observers.removeValue(forKey: pid) else { return }
         CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
     }
@@ -150,16 +164,20 @@ final class BrowserTabFocusObserver {
     /// A browser fired a title/focus change — resolve its focused window's active
     /// tab off-main and bump it to MRU front. Coalesced per pid.
     private func handleChange(pid: pid_t) {
-        guard enabled, !inFlight.contains(pid) else { return }
-        inFlight.insert(pid)
+        guard enabled, inFlight[pid] == nil else { return }
+        nextReadToken &+= 1
+        let readToken = nextReadToken
+        inFlight[pid] = readToken
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let info = Self.focusedWindowInfo(pid: pid)
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.inFlight.remove(pid)
+                // Do not let a stale read clear a newer post-reenable request.
+                guard self.inFlight[pid] == readToken else { return }
+                self.inFlight.removeValue(forKey: pid)
                 guard self.enabled, let info, info.wid != 0,
                       !info.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-                self.tracker.bump(BrowserTabMRUTracker.tabKey(wid: info.wid, title: info.title))
+                self.tracker?.bump(BrowserTabMRUTracker.tabKey(wid: info.wid, title: info.title))
             }
         }
     }

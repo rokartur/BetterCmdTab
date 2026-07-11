@@ -30,6 +30,7 @@ final class WindowMRUTracker {
     private let perAppCap = 64
 
     func start() {
+        guard termObserver == nil else { return }
         let nc = NSWorkspace.shared.notificationCenter
         termObserver = nc.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification,
@@ -38,7 +39,7 @@ final class WindowMRUTracker {
         ) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
             let pid = app.processIdentifier
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 guard let self else { return }
                 // Confirmed-dead purge: the app is gone, so every window we
                 // remembered for it is too.
@@ -50,10 +51,15 @@ final class WindowMRUTracker {
         }
     }
 
-    nonisolated deinit {
-        if let obs = MainActor.assumeIsolated({ termObserver }) {
-            NSWorkspace.shared.notificationCenter.removeObserver(obs)
+    func stop() {
+        if let termObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(termObserver)
+            self.termObserver = nil
         }
+    }
+
+    nonisolated deinit {
+        MainActor.assumeIsolated { stop() }
     }
 
     func bump(pid: pid_t, wid: CGWindowID) {

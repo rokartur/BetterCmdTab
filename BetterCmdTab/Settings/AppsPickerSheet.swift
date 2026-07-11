@@ -108,6 +108,10 @@ final class AppsPickerSheetViewController: NSViewController, NSTableViewDataSour
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
+    deinit {
+        pendingFilterTask?.cancel()
+    }
+
     override func loadView() {
         let root = NSView(frame: NSRect(x: 0, y: 0, width: 460, height: 560))
 

@@ -1,10 +1,12 @@
 import AppKit
 import os
 
+@MainActor
 final class MRUTracker {
     private(set) var order: [pid_t] = []
 
     func start() {
+        guard termObservers.isEmpty else { return }
         seedFromCurrent()
         let termObs = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification,
@@ -14,15 +16,21 @@ final class MRUTracker {
             guard
                 let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             else { return }
-            self?.remove(app.processIdentifier)
+            MainActor.assumeIsolated { self?.remove(app.processIdentifier) }
         }
         termObservers.append(termObs)
     }
 
+    func stop() {
+        let center = NSWorkspace.shared.notificationCenter
+        for observer in termObservers { center.removeObserver(observer) }
+        termObservers.removeAll()
+    }
+
     private var termObservers: [NSObjectProtocol] = []
 
-    deinit {
-        for o in termObservers { NSWorkspace.shared.notificationCenter.removeObserver(o) }
+    nonisolated deinit {
+        MainActor.assumeIsolated { stop() }
     }
 
     private func seedFromCurrent() {

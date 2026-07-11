@@ -61,7 +61,7 @@ final class RecentlyClosedStore {
                       let bundleID = app.bundleIdentifier, !bundleID.isEmpty else { return }
                 let pid = app.processIdentifier
                 let appName = app.localizedName ?? bundleID
-                Task { @MainActor in
+                MainActor.assumeIsolated {
                     RecentlyClosedStore.shared.noteRegularApp(pid: pid, bundleID: bundleID, name: appName)
                 }
             }
@@ -75,7 +75,7 @@ final class RecentlyClosedStore {
         ) { note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
             let pid = app.processIdentifier
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 RecentlyClosedStore.shared.handleTermination(pid: pid)
             }
         }

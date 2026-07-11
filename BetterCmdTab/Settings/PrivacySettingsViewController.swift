@@ -12,6 +12,13 @@ final class PrivacySettingsViewController: SettingsTabViewController {
 
     private var observationTask: Task<Void, Never>?
 
+    deinit {
+        // Releasing a Task handle does not cancel the task. This is the final
+        // backstop for teardown paths that skip both viewWillDisappear and
+        // BetterSettings' prepareForMemoryRelease hook.
+        observationTask?.cancel()
+    }
+
     override func setupContent() {
         // Screen-sharing section — hide the switcher panel from screen recording
         // / sharing capture (Zoom, Meet, Teams, QuickTime, ScreenCaptureKit).

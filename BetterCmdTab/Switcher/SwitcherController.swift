@@ -267,7 +267,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// `appWindows` → applications-only window drill (#80): the strip lists the
     /// selected app's catalogued windows; committing activates
     /// `drillWindowRows[tabIndex]`. Picked once per drill, never crossed.
-    private enum TabDrillBackend { case appleScript, accessibility, windows, appWindows }
+    private enum TabDrillBackend: Sendable { case appleScript, accessibility, windows, appWindows }
     private var tabDrillBackend: TabDrillBackend = .accessibility
     /// The pid-filtered, window-MRU-sorted rows the `.appWindows` strip was
     /// built from, index-aligned with `tabTitles`. Non-empty only while an
@@ -290,18 +290,31 @@ final class SwitcherController: SwitcherViewDelegate {
         let liveTabs: [AXUIElement]
         let backend: TabDrillBackend
     }
+    /// AXUIElement is a thread-safe CF proxy to another process, but the legacy
+    /// Accessibility headers do not declare Sendable. This wrapper is used only
+    /// to carry an immutable snapshot into a bounded background read.
+    private struct SendableAXElements: @unchecked Sendable {
+        let values: [AXUIElement]
+    }
     private var tabPrefetchCache: [AXRef: TabPrefetch] = [:]
+    /// Windows with a drill fetch already in flight — a repeated backslash
+    /// press on a slow browser row must not spawn a second osascript
+    /// round-trip for the same window.
+    private var tabDrillFetchInFlight = Set<AXRef>()
     private var tabPrefetchInFlight: Set<AXRef> = []
+    /// Invalidates timers/workers built against an older `baseRows` snapshot,
+    /// even when that row refresh happens within the same reveal generation.
+    private var tabPrefetchGeneration: UInt64 = 0
     private var tabPrefetchTimer: Timer?
     /// Inline browser-tab expansion (`expandBrowserTabsAsWindows`). Browser tabs
     /// aren't separate NSWindows, so each browser window's tab titles are fetched
     /// off-main via Apple Events and cached here, keyed by the parent window's AX
     /// element. An empty array is a negative cache (no tabs / fetch failed). The
-    /// cache PERSISTS across panel opens (only the in-flight set is cleared on
-    /// dismiss) so a re-open expands instantly from cache instead of showing the
-    /// collapsed windows and then flickering to tabs after the Apple Events
-    /// round-trip; `browserTabsCacheStamp` throttles the background re-scan that
-    /// keeps the cache fresh.
+    /// cache PERSISTS across panel opens. In-flight keys persist until their
+    /// watchdog-bounded worker actually finishes too: clearing them on dismiss
+    /// let a rapid reopen spawn a duplicate osascript scan, and the older result
+    /// could then overwrite the newer one. `browserTabsCacheStamp` throttles the
+    /// background re-scan that keeps the cache fresh.
     private var browserTabsCache: [AXRef: [String]] = [:]
     private var browserTabsFetchInFlight: Set<AXRef> = []
     /// Monotonic timestamp (systemUptime) of the last successful tab fetch per
@@ -381,6 +394,12 @@ final class SwitcherController: SwitcherViewDelegate {
     private var revealGeneration: UInt64 = 0
 
     private var cancellables = Set<AnyCancellable>()
+    /// Block-based notification registrations are retained by their centers.
+    /// Keep the tokens so controller teardown removes the registrations instead
+    /// of leaving process-lifetime weak-self closures behind.
+    private var notificationObservers: [NSObjectProtocol] = []
+    private var workspaceObservers: [NSObjectProtocol] = []
+    private var didShutdown = false
 
     /// Tap-vs-hold threshold, user-tunable. Read live so a settings change takes
     /// effect on the next chord without restart.
@@ -412,7 +431,7 @@ final class SwitcherController: SwitcherViewDelegate {
         view = SwitcherView(frame: .zero)
         panel.contentView = view
         view.delegate = self
-        NotificationCenter.default.addObserver(
+        let resignKeyObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didResignKeyNotification,
             object: panel,
             queue: .main
@@ -422,12 +441,13 @@ final class SwitcherController: SwitcherViewDelegate {
                 self.panel.makeKeyAndOrderFront(nil)
             }
         }
+        notificationObservers.append(resignKeyObserver)
         // Display config changed — monitor (re)connected, resolution / HiDPI
         // scaling / DDC mode swap. If the switcher is showing, recompute metrics
         // for the new active screen and reposition; otherwise the next reveal
         // picks up correct values automatically since `reveal()` rebuilds
         // metrics from `SwitcherPanel.preferredScreen()` each time.
-        NotificationCenter.default.addObserver(
+        let screenParametersObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
             queue: .main
@@ -436,38 +456,41 @@ final class SwitcherController: SwitcherViewDelegate {
                 self?.handleScreenParametersChange()
             }
         }
+        notificationObservers.append(screenParametersObserver)
         // Prune the visible panel the moment an app actually terminates. The
         // post-action refresh is a fixed 250ms guess that misses apps which
         // quit slowly (confirmation dialog, slow teardown) — their row lingered
         // until the next reveal. This removes it exactly when the app is gone.
-        NSWorkspace.shared.notificationCenter.addObserver(
+        let terminationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification,
             object: nil,
             queue: .main
         ) { [weak self] note in
             let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 guard let self, let pid else { return }
                 self.handleAppTerminated(pid: pid)
             }
         }
+        workspaceObservers.append(terminationObserver)
         // Re-render the visible panel when an app hides or unhides. An app that
         // hides itself when its last window closes (Electron apps) would
         // otherwise keep showing the just-closed "no window" state until the
         // next reveal — `SwitcherRow.isHidden` is read live, so re-rendering the
         // current rows is enough to flip the status glyph the instant it hides.
         for name in [NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification] {
-            NSWorkspace.shared.notificationCenter.addObserver(
+            let observer = NSWorkspace.shared.notificationCenter.addObserver(
                 forName: name,
                 object: nil,
                 queue: .main
             ) { [weak self] note in
                 let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
-                Task { @MainActor [weak self] in
+                MainActor.assumeIsolated {
                     guard let self, let pid else { return }
                     self.handleAppHiddenChanged(pid: pid)
                 }
             }
+            workspaceObservers.append(observer)
         }
         // Track every app activation live — a Dock click, a click on another
         // app's window, or ⌘Tab from any source — so the app-MRU order is
@@ -483,13 +506,13 @@ final class SwitcherController: SwitcherViewDelegate {
         // never claim MRU[0]. Also recompute the "Ignore shortcuts" suppression
         // here since the frontmost app just changed.
         let selfPid = getpid()
-        NSWorkspace.shared.notificationCenter.addObserver(
+        let activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
             object: nil,
             queue: .main
         ) { [weak self] note in
             let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 guard let self else { return }
                 if let pid, pid != selfPid {
                     self.mru.bump(pid)
@@ -498,6 +521,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 self.updateTriggerSuppression()
             }
         }
+        workspaceObservers.append(activationObserver)
         // The active Space flipping (full-screen enter/exit is its own Space)
         // affects trigger suppression, and is also the moment the WindowServer
         // can drop the panel's canJoinAllSpaces sticky tag (a full-screen app
@@ -509,7 +533,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // visible/sticky panel verifies composition after the Space transition
         // settles and heals only if needed. present() performs the same check
         // after order-front as the reveal backstop.
-        NSWorkspace.shared.notificationCenter.addObserver(
+        let activeSpaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil,
             queue: .main
@@ -520,6 +544,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 self.panel.activeSpaceDidChange()
             }
         }
+        workspaceObservers.append(activeSpaceObserver)
     }
 
     private func handleAppHiddenChanged(pid: pid_t) {
@@ -531,6 +556,10 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func handleAppTerminated(pid: pid_t) {
+        // Invalidate a focused-window resolve that started for this process.
+        // The PID may be recycled before its bounded AX read lands; without a
+        // per-flight token that late result could be attributed to the new app.
+        focusSyncTokens.removeValue(forKey: pid)
         // The app is gone — stop suppressing it (no-op if it was a window close,
         // not a quit). Done before the guard so an optimistically-removed quit
         // pid is always cleared.
@@ -1558,20 +1587,86 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     func shutdown() {
+        guard !didShutdown else { return }
+        didShutdown = true
+
+        // Invalidate delayed recovery/install work before tearing down the taps;
+        // otherwise a queued retry can resurrect a fresh tap during shutdown.
+        hotkeyTapRetryWork?.cancel()
+        hotkeyTapRetryWork = nil
+        swipeSuppressorReArmWork?.cancel()
+        swipeSuppressorReArmWork = nil
+
+        revealTimer?.invalidate()
+        revealTimer = nil
+        primedWatchdog?.invalidate()
+        primedWatchdog = nil
+        visibleReleaseBackstop?.invalidate()
+        visibleReleaseBackstop = nil
+        letterBufferTimer?.invalidate()
+        letterBufferTimer = nil
+        tabPrefetchTimer?.invalidate()
+        tabPrefetchTimer = nil
+
         secureInputMonitor.stop()
         holdMonitor.stop()
         holdMonitorRunning = false
-        visibleReleaseBackstop?.invalidate()
-        visibleReleaseBackstop = nil
+        dockBadgeObserver.stop()
+        tabFocusObserver.setEnabled(false)
+        cache.stop()
+        mru.stop()
+        windowMRU.stop()
+        swipeTrigger.setEnabled(false)
+        spaceSwipeSuppressor.setEnabled(false)
+        hotkey.setSwitching(false)
+        hotkey.setPanelPresented(false)
+        hotkey.setModifierHeldPanel(false)
+        hotkey.uninstall()
         carbonTrigger.uninstall()
         // `uninstall` drops every registration; clear the change-guard cache so an
         // identical plan re-registers if the controller is ever re-applied.
         lastAppliedChords = []
+
+        revealGeneration &+= 1
+        focusedWindowCaptureGen &+= 1
+        _phase = .idle
+        cache.setPanelVisible(false)
+        panel.dismiss()
+        view.releaseIdleResources()
+        rows.removeAll()
+        baseRows.removeAll()
+        baseLabels.removeAll()
+        primedApps.removeAll()
+        tabPrefetchCache.removeAll()
+        tabPrefetchInFlight.removeAll()
+        browserTabsFetchInFlight.removeAll()
+        focusSync = FocusSyncCoalescer()
+        focusSyncTokens.removeAll()
+        openFocusedWindow = nil
+        prefetchedFocusedWindow = nil
+        openTargetScreen = nil
+        prefetchedTargetScreen = nil
+        previousFrontmostApp = nil
+
+        cancellables.removeAll()
+        for observer in notificationObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        notificationObservers.removeAll()
+        for observer in workspaceObservers {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+        workspaceObservers.removeAll()
+
         if !disabledSymbolicKeys.isEmpty {
             PrivateAPI.setNativeCommandTabEnabled(true, disabledSymbolicKeys)
             disabledSymbolicKeys = []
         }
         persistDisabledSymbolicKeys([])
+    }
+
+    nonisolated deinit {
+        MainActor.assumeIsolated { shutdown() }
     }
 
     /// User-invoked recovery (Privacy pane "Restore macOS keyboard shortcuts").
@@ -2144,7 +2239,7 @@ final class SwitcherController: SwitcherViewDelegate {
     private func scheduleLetterBufferReset() {
         letterBufferTimer?.invalidate()
         let timer = Timer(timeInterval: letterChainTimeout, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 // Timeout elapsed: drop the prefix AND restore the pre-typing
                 // display — `resetLetterBuffer` clears the buffer and refreshes,
                 // so the highlight disappears and the rows return to the order
@@ -2346,14 +2441,15 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Arm the `.primed` liveness watchdog (see `primedWatchdog`). A classic
-    /// run-loop timer in `.common` modes, mirroring `revealTimer`'s scheduling;
-    /// the MainActor hop keeps the force-cancel on the main thread. Re-checks
+    /// run-loop timer in `.common` modes, mirroring `revealTimer`'s scheduling.
+    /// It already fires on main, so handle it inline; deferring through a Task
+    /// could let an old watchdog cancel a newly primed session. Re-checks
     /// `phase` on fire, so a normal primed→visible/idle transition that already
     /// disarmed it — or a later re-armed `.primed` — makes the stale fire a no-op.
     private func armPrimedWatchdog() {
         primedWatchdog?.invalidate()
         let timer = Timer(timeInterval: Self.primedWatchdogTimeout, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 guard let self, self.phase.isPrimed else { return }
                 Log.switcher.warning("primed phase exceeded watchdog ceiling — forcing idle")
                 self.cancel()
@@ -3174,12 +3270,23 @@ final class SwitcherController: SwitcherViewDelegate {
     /// change arriving mid-flight re-runs one resolve so the newest focused
     /// window is never dropped (#85).
     private var focusSync = FocusSyncCoalescer()
+    /// Identity token for the currently running AX resolve of each pid. A
+    /// terminate notification removes the token without disturbing the
+    /// coalescer's in-flight slot; when the stale resolve lands it drains that
+    /// slot, skips its result, and starts a latched post-relaunch resolve if one
+    /// arrived meanwhile.
+    private var focusSyncTokens: [pid_t: UInt64] = [:]
+    private var nextFocusSyncToken: UInt64 = 0
 
     /// React to a focus change without blocking the main thread: resolve the
     /// pid's focused window off-main (the AX query can stall on an unresponsive
     /// app), then bump the window MRU on main. Coalesced per pid.
     private func handleFocusChange(pid: pid_t) {
         guard focusSync.begin(pid) else { return }
+        nextFocusSyncToken &+= 1
+        if nextFocusSyncToken == 0 { nextFocusSyncToken = 1 }
+        let token = nextFocusSyncToken
+        focusSyncTokens[pid] = token
         // Feed the unified tab MRU too when the feature is on: an app/window switch
         // (including to/from a browser) is part of the same recency timeline as
         // in-browser tab switches (#39). Browsers key by (wid, active-tab title), so
@@ -3192,16 +3299,22 @@ final class SwitcherController: SwitcherViewDelegate {
             let wid = info?.wid ?? WindowMRUTracker.focusedWindowID(pid: pid)
             DispatchQueue.main.async {
                 guard let self else { return }
-                if wid != 0 { self.windowMRU.bump(pid: pid, wid: wid) }
-                if feedTabMRU, wid != 0 {
-                    if isBrowser, let title = info?.title,
-                       !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        self.tabMRU.bump(BrowserTabMRUTracker.tabKey(wid: wid, title: title))
-                    } else if !isBrowser {
-                        self.tabMRU.bump(.window(wid))
+                let isCurrent = !self.didShutdown && self.focusSyncTokens[pid] == token
+                if isCurrent {
+                    self.focusSyncTokens.removeValue(forKey: pid)
+                    if wid != 0 { self.windowMRU.bump(pid: pid, wid: wid) }
+                    if feedTabMRU, wid != 0 {
+                        if isBrowser, let title = info?.title,
+                           !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            self.tabMRU.bump(BrowserTabMRUTracker.tabKey(wid: wid, title: title))
+                        } else if !isBrowser {
+                            self.tabMRU.bump(.window(wid))
+                        }
                     }
                 }
-                if self.focusSync.finish(pid) { self.handleFocusChange(pid: pid) }
+                if self.focusSync.finish(pid), !self.didShutdown {
+                    self.handleFocusChange(pid: pid)
+                }
             }
         }
     }
@@ -3355,7 +3468,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// add/close/switch syncs immediately) but is rate-limited by
     /// `forcedBrowserScanMinInterval` so page-load title churn can't spam
     /// osascript. `onDone` runs on the main actor after the cache is updated.
-    private func scanBrowserTabs(rows: [SwitcherRow], force: Bool, onDone: (() -> Void)? = nil) {
+    private func scanBrowserTabs(
+        rows: [SwitcherRow],
+        force: Bool,
+        onDone: (@MainActor @Sendable () -> Void)? = nil
+    ) {
         guard effective.expandBrowserTabsAsWindows else { return }
         let now = ProcessInfo.processInfo.systemUptime
         if force, now - lastForcedBrowserScanAt < Self.forcedBrowserScanMinInterval { return }
@@ -3381,8 +3498,10 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         // The cache persists across opens, so prune entries for browser windows
         // that are no longer present (closed since last seen) — keeps it bounded
-        // to the currently-open browser windows over a long session.
-        if browserTabsCache.contains(where: { !liveKeys.contains($0.key) }) {
+        // to the currently-open browser windows over a long session. Unscoped
+        // sessions only: a scoped open sees a scope-filtered row subset, and
+        // pruning against it would evict every out-of-scope browser window.
+        if activeScope == nil, browserTabsCache.contains(where: { !liveKeys.contains($0.key) }) {
             browserTabsCache = browserTabsCache.filter { liveKeys.contains($0.key) }
             browserTabsCacheStamp = browserTabsCacheStamp.filter { liveKeys.contains($0.key) }
             browserTabsActiveIndex = browserTabsActiveIndex.filter { liveKeys.contains($0.key) }
@@ -3503,17 +3622,6 @@ final class SwitcherController: SwitcherViewDelegate {
         guard a.count == b.count else { return true }
         for (x, y) in zip(a, b) where x.windowTitle != y.windowTitle { return true }
         return false
-    }
-
-    /// Called whenever the panel ends. Deliberately KEEPS `browserTabsCache` (and
-    /// its staleness stamps) so the next open expands instantly from cache instead
-    /// of showing collapsed windows that flicker into tabs after the Apple Events
-    /// round-trip; only the in-flight set is cleared so a fetch interrupted by the
-    /// dismiss (its result dropped by the `phase == .visible` guard) can re-run.
-    /// The cache lives for the process; stale entries are refreshed by the
-    /// TTL-gated re-scan and harmless dead-window entries are never read again.
-    private func clearBrowserTabExpansion() {
-        browserTabsFetchInFlight.removeAll()
     }
 
     /// Select the window-switch target for a fast Cmd+` chord that commits
@@ -3708,7 +3816,6 @@ final class SwitcherController: SwitcherViewDelegate {
         windowsOnlyPrimedDelta = 0
         closedTombstones.removeAll()
         quittingPids.removeAll()
-        clearBrowserTabExpansion()
         // Drop any focused-window prefetch so it can't survive into the next
         // session and be adopted by a gesture/scoped open that skips the primed
         // prefetch (those call reveal() directly).
@@ -3756,7 +3863,6 @@ final class SwitcherController: SwitcherViewDelegate {
         tabPrefetchInFlight.removeAll()
         tabPrefetchTimer?.invalidate()
         tabPrefetchTimer = nil
-        clearBrowserTabExpansion()
         resetLetterBuffer()
         resetSearch()
         openFocusedWindow = nil
@@ -3990,10 +4096,15 @@ final class SwitcherController: SwitcherViewDelegate {
         let prefetchedTabs = isBrowser ? [] : row.tabs
         let title = row.windowTitle
         let gen = revealGeneration
+        let inFlightKey = AXRef(element: window)
+        guard !tabDrillFetchInFlight.contains(inFlightKey) else { return }
+        tabDrillFetchInFlight.insert(inFlightKey)
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
             let result = Self.fetchTabsBlocking(app: app, window: window, title: title, isBrowser: isBrowser, prefetchedTabs: prefetchedTabs)
             DispatchQueue.main.async {
-                guard let self, gen == self.revealGeneration, self.phase == .visible else { return }
+                guard let self else { return }
+                self.tabDrillFetchInFlight.remove(inFlightKey)
+                guard gen == self.revealGeneration, self.phase == .visible else { return }
                 // A window drill (#80) opened while this fetch was in flight owns
                 // the strip — a late tab result must not overwrite it (the strip
                 // would show tabs while `drillWindowRows` stays populated).
@@ -4063,7 +4174,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Outcome of an off-main tab fetch. `failed` is browser-only — the
     /// AppleScript bridge errored (Automation permission/timeout) — and lets the
     /// caller surface a hint instead of silently doing nothing.
-    private enum DrillFetch {
+    private enum DrillFetch: @unchecked Sendable {
         case none
         case failed
         case tabs(titles: [String], liveTabs: [AXUIElement], backend: TabDrillBackend)
@@ -4133,14 +4244,16 @@ final class SwitcherController: SwitcherViewDelegate {
         // non-browser tabbed apps (Finder/Terminal/…) only reads attributes —
         // no raise — so it stays eligible for the instant-drill prefetch.
         if isBrowser { return }
-        let prefetchedTabs = rows[index].tabs
+        let prefetchedTabs = SendableAXElements(values: rows[index].tabs)
+        let prefetchGeneration = tabPrefetchGeneration
         let timer = Timer(timeInterval: 0.18, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 guard let self else { return }
                 // Phase guard: a commit can land inside the 0.18s window; its
                 // baseRows reset clears the cache/in-flight sets, so without
                 // this the orphaned fire would AX-walk a dismissed session.
                 guard self.phase == .visible,
+                      self.tabPrefetchGeneration == prefetchGeneration,
                       self.tabPrefetchCache[key] == nil,
                       !self.tabPrefetchInFlight.contains(key) else { return }
                 self.tabPrefetchInFlight.insert(key)
@@ -4148,9 +4261,16 @@ final class SwitcherController: SwitcherViewDelegate {
                 DispatchQueue.global(qos: .utility).async { [weak self] in
                     // Browsers are excluded above, so this path is AX-only and
                     // ignores `title`.
-                    let result = Self.fetchTabsBlocking(app: app, window: window, title: "", isBrowser: isBrowser, prefetchedTabs: prefetchedTabs)
+                    let result = Self.fetchTabsBlocking(
+                        app: app,
+                        window: window,
+                        title: "",
+                        isBrowser: isBrowser,
+                        prefetchedTabs: prefetchedTabs.values
+                    )
                     DispatchQueue.main.async {
-                        guard let self, gen == self.revealGeneration else { return }
+                        guard let self, gen == self.revealGeneration,
+                              prefetchGeneration == self.tabPrefetchGeneration else { return }
                         self.tabPrefetchInFlight.remove(key)
                         guard case .tabs(let titles, let liveTabs, let backend) = result, !titles.isEmpty else { return }
                         self.tabPrefetchCache[key] = TabPrefetch(titles: titles, liveTabs: liveTabs, backend: backend)
@@ -4288,7 +4408,6 @@ final class SwitcherController: SwitcherViewDelegate {
         windowsOnlyPrimedDelta = 0
         closedTombstones.removeAll()
         quittingPids.removeAll()
-        clearBrowserTabExpansion()
         resetLetterBuffer()
         resetSearch()
         view.releaseIdleResources()
@@ -4574,7 +4693,7 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         if delay > 0 {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                Task { @MainActor in apply() }
+                MainActor.assumeIsolated { apply() }
             }
         } else {
             apply()

@@ -1,9 +1,13 @@
 import AppKit
 import Carbon.HIToolbox
+@preconcurrency import CoreFoundation
 import os
 
-final class HotkeyTap {
-    enum Event {
+/// The instance intentionally straddles the main thread and its private event-
+/// tap thread. Every value read on both sides is lock-protected; AppKit/TIS
+/// lifecycle state and owner callbacks are main-actor isolated.
+final class HotkeyTap: @unchecked Sendable {
+    enum Event: Sendable {
         case nextApp
         case prevApp
         case nextWindow
@@ -59,18 +63,20 @@ final class HotkeyTap {
         case fullscreen
     }
 
-    var onEvent: (Event) -> Void = { _ in }
+    @MainActor var onEvent: (Event) -> Void = { _ in }
 
     /// Delivered (on main) for every keyDown while a shortcut recorder is active.
     /// The tap consumes the original event so the system shortcut (e.g. ⌘Tab)
     /// never fires, then hands the captured event to the recorder.
-    var onRecordingKeyDown: (CGEvent) -> Void = { _ in }
+    @MainActor var onRecordingKeyDown: (CGEvent) -> Void = { _ in }
 
     /// Fired on the MAIN thread when the tap is being disabled repeatedly in a
     /// tight burst (the re-enable storm — see `handle`). The owner tears the tap
     /// down and re-arms it on a backoff (or leaves it down if Accessibility was
     /// revoked). Set by `SwitcherController`.
-    var onTapDisabledStorm: () -> Void = {}
+    @MainActor var onTapDisabledStorm: () -> Void = {}
+
+    @MainActor init() {}
 
     /// Wraps a CGEvent so it can cross the tap-thread → main hop. CGEvent is a
     /// thread-safe CF reference; the box just silences Sendable checking.
@@ -116,6 +122,9 @@ final class HotkeyTap {
         var auxRunLoopSource: CFRunLoopSource?
         var tapThread: Thread?
         var tapRunLoop: CFRunLoop?
+        /// Signalled only after `CFRunLoopRun` returns. Teardown waits on it so
+        /// an unretained C refcon cannot outlive this object during deinit.
+        var tapThreadFinished: DispatchSemaphore?
     }
     private let ports = OSAllocatedUnfairLock<TapPorts>(initialState: TapPorts())
     private var layoutObserver: NSObjectProtocol?
@@ -365,8 +374,9 @@ final class HotkeyTap {
     /// Fired (on the caller's thread — currently always main) whenever the
     /// reserved-letter set is recomputed, so `SwitcherController` can mirror it
     /// into `RowLabels`. Set before the first `setPanelKeyBindings` push.
-    var onReservedLettersChanged: ((Set<Character>) -> Void)?
+    @MainActor var onReservedLettersChanged: ((Set<Character>) -> Void)?
 
+    @MainActor
     func install() -> Bool {
         // Idempotent: if a tap is already live, do NOT overwrite the port/thread
         // handles — that would orphan the existing tap and its run-loop thread (a
@@ -474,12 +484,21 @@ final class HotkeyTap {
         // run loop on a userInteractive thread isolates the tap from any
         // main-thread work and keeps Cmd+Tab responsive immediately.
         let started = DispatchSemaphore(value: 0)
+        let finished = DispatchSemaphore(value: 0)
+        ports.withLock { $0.tapThreadFinished = finished }
         let thread = Thread { [weak self] in
+            defer { finished.signal() }
             let loop = CFRunLoopGetCurrent()!
             CFRunLoopAddSource(loop, src, .commonModes)
             if let capturedAuxSrc { CFRunLoopAddSource(loop, capturedAuxSrc, .commonModes) }
             self?.ports.withLock { $0.tapRunLoop = loop }
-            started.signal()
+            // Signal readiness from a block executed *inside* the run-loop
+            // invocation. Signalling immediately before `CFRunLoopRun()` leaves
+            // a stop-before-run gap: uninstall could call `CFRunLoopStop`, then
+            // wait forever while the worker entered a fresh, unstopped run.
+            CFRunLoopPerformBlock(loop, CFRunLoopMode.commonModes.rawValue) {
+                started.signal()
+            }
             CFRunLoopRun()
         }
         thread.name = "pro.bettercmdtab.HotkeyTap"
@@ -495,11 +514,12 @@ final class HotkeyTap {
         let nc = DistributedNotificationCenter.default()
         let name = Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String)
         layoutObserver = nc.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-            self?.loadKeyboardLayout()
+            MainActor.assumeIsolated { self?.loadKeyboardLayout() }
         }
         return true
     }
 
+    @MainActor
     func uninstall() {
         // Snapshot the handles under the lock, then nil them out in the SAME
         // critical section so the callback thread never observes a torn state.
@@ -527,6 +547,17 @@ final class HotkeyTap {
             }
             CFRunLoopStop(loop)
         }
+        // `CFRunLoopStop` is asynchronous. The CG callback's C refcon is an
+        // unretained self pointer, so deinit must not return while a callback can
+        // still be executing on the tap thread. The startup handshake above
+        // proves the loop is already inside CFRunLoopRun before install returns,
+        // and no callback synchronously waits on main, so this join cannot hit a
+        // stop-before-run deadlock.
+        if let thread = snapshot.tapThread,
+           thread !== Thread.current,
+           let finished = snapshot.tapThreadFinished {
+            finished.wait()
+        }
         if let obs = layoutObserver {
             DistributedNotificationCenter.default().removeObserver(obs)
             layoutObserver = nil
@@ -537,7 +568,7 @@ final class HotkeyTap {
     }
 
     deinit {
-        uninstall()
+        MainActor.assumeIsolated { uninstall() }
     }
 
     /// Set by SwitcherController when phase transitions. Read by the tap
@@ -693,6 +724,7 @@ final class HotkeyTap {
 
     /// Enable h/j/k/l vim-style navigation while the switcher is open. Pushed
     /// from main when the preference changes.
+    @MainActor
     func setVimNavigationEnabled(_ value: Bool) {
         vimNavigationFlag.withLock { $0 = value }
         // The reserved-letter set depends on the vim flag (h/j/k/l are reserved
@@ -745,6 +777,7 @@ final class HotkeyTap {
 
     /// Replace the rebindable in-panel action-key map (keycode → action). Pushed
     /// from main on launch and on every preference change; read on the tap thread.
+    @MainActor
     func setPanelKeyBindings(_ map: [Int64: PanelActionKey]) {
         panelKeyMap.withLock { $0 = map }
         recomputeReservedLetters()
@@ -755,6 +788,7 @@ final class HotkeyTap {
     /// active layout), then store it and notify `onReservedLettersChanged`. Called
     /// on every binding push and whenever the keyboard layout changes, so reserved
     /// letters always match what the user actually assigned.
+    @MainActor
     private func recomputeReservedLetters() {
         let map = panelKeyMap.withLock { $0 }
         var collected: Set<Character> = []
@@ -795,6 +829,7 @@ final class HotkeyTap {
         searchModeFlag.withLock { $0 }
     }
 
+    @MainActor
     private func loadKeyboardLayout() {
         // Failure branches are logged inside currentOrFallbackLayoutData();
         // keep the previous cache (possibly nil) rather than clearing it.
@@ -847,8 +882,7 @@ final class HotkeyTap {
             // the trust cache hasn't flipped yet.
             if !AccessibilityCheck.isTrusted {
                 Log.hotkey.error("CGEventTap disabled and Accessibility not trusted — tearing down (no re-enable)")
-                let handler = onTapDisabledStorm
-                DispatchQueue.main.async { handler() }
+                DispatchQueue.main.async { [weak self] in self?.onTapDisabledStorm() }
                 return Unmanaged.passUnretained(event)
             }
             // Storm guard — TIMEOUT only. `kCGEventTapDisabledByUserInput` is the
@@ -878,8 +912,7 @@ final class HotkeyTap {
                 }
                 if storming {
                     Log.hotkey.error("CGEventTap disabled repeatedly (storm) — bailing to main-thread recovery")
-                    let handler = onTapDisabledStorm
-                    DispatchQueue.main.async { handler() }
+                    DispatchQueue.main.async { [weak self] in self?.onTapDisabledStorm() }
                     return Unmanaged.passUnretained(event)
                 }
             }
@@ -890,8 +923,7 @@ final class HotkeyTap {
             // single stray re-enable off an untrusted tap. Cold path (disables are
             // rare), so the extra local trust read costs nothing measurable.
             guard AccessibilityCheck.isTrusted else {
-                let handler = onTapDisabledStorm
-                DispatchQueue.main.async { handler() }
+                DispatchQueue.main.async { [weak self] in self?.onTapDisabledStorm() }
                 return Unmanaged.passUnretained(event)
             }
             // Re-enable INSIDE the ports lock so a concurrent `uninstall()` (which
@@ -930,8 +962,9 @@ final class HotkeyTap {
             // and forward a copy to the recorder. Let modifier changes through.
             if type == .keyDown, let copy = event.copy() {
                 let box = EventBox(copy)
-                let handler = onRecordingKeyDown
-                DispatchQueue.main.async { handler(box.event) }
+                DispatchQueue.main.async { [weak self] in
+                    self?.onRecordingKeyDown(box.event)
+                }
                 return nil
             }
             return Unmanaged.passUnretained(event)
@@ -1344,9 +1377,6 @@ final class HotkeyTap {
     }
 
     private func deliver(_ event: Event) {
-        let handler = onEvent
-        DispatchQueue.main.async {
-            handler(event)
-        }
+        DispatchQueue.main.async { [weak self] in self?.onEvent(event) }
     }
 }

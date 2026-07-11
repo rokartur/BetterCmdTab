@@ -1,4 +1,5 @@
 import AppKit
+@preconcurrency import CoreFoundation
 import CoreGraphics
 import os
 
@@ -13,7 +14,10 @@ import os
 /// before the Dock acts. Vertical dock swipes (Mission Control / App Exposé)
 /// are left untouched. The event types and field ids are undocumented — that's
 /// why this lives behind the off-by-default Experimental swipe toggle.
-final class SpaceSwipeSuppressor {
+/// Like `HotkeyTap`, this object is shared by main-thread lifecycle code and a
+/// private tap thread. Cross-thread fields are lock-protected; the owner callback
+/// is read and invoked only after hopping to the main actor.
+final class SpaceSwipeSuppressor: @unchecked Sendable {
 
     /// CGEvent-tap lifecycle handles. The tap callback runs on its own thread and
     /// reads `tap` (the disabled-tap re-enable path in `handle`), while
@@ -30,6 +34,7 @@ final class SpaceSwipeSuppressor {
         var runLoopSource: CFRunLoopSource?
         var tapThread: Thread?
         var tapRunLoop: CFRunLoop?
+        var tapThreadFinished: DispatchSemaphore?
     }
     private let ports = OSAllocatedUnfairLock<TapPorts>(initialState: TapPorts())
 
@@ -37,7 +42,9 @@ final class SpaceSwipeSuppressor {
     /// tight burst (Accessibility revoked, or a sustained timeout). The owner
     /// (`SwitcherController`) tears this non-essential tap down; it re-arms on
     /// AX re-grant, gated on the swipe pref. Set before `setEnabled(true)`.
-    var onTapDisabledStorm: () -> Void = {}
+    @MainActor var onTapDisabledStorm: () -> Void = {}
+
+    @MainActor init() {}
 
     /// Storm guard for the tap-disabled re-enable path — identical rationale to
     /// `HotkeyTap.DisableGate`. An active session tap whose process loses
@@ -69,6 +76,7 @@ final class SpaceSwipeSuppressor {
         static let motionHorizontal: Int64 = 1      // kCGGestureMotionHorizontal
     }
 
+    @MainActor
     func setEnabled(_ enabled: Bool) {
         if enabled { install() } else { uninstall() }
     }
@@ -125,11 +133,19 @@ final class SpaceSwipeSuppressor {
         // Run on a dedicated thread so main-thread stalls can't trip the tap's
         // watchdog (same rationale as HotkeyTap).
         let started = DispatchSemaphore(value: 0)
+        let finished = DispatchSemaphore(value: 0)
+        ports.withLock { $0.tapThreadFinished = finished }
         let thread = Thread { [weak self] in
+            defer { finished.signal() }
             let loop = CFRunLoopGetCurrent()!
             CFRunLoopAddSource(loop, src, .commonModes)
             self?.ports.withLock { $0.tapRunLoop = loop }
-            started.signal()
+            // Handshake from inside the active run-loop invocation. Signalling
+            // just before CFRunLoopRun leaves a stop-before-run window where
+            // teardown can issue an ineffective stop and then wait forever.
+            CFRunLoopPerformBlock(loop, CFRunLoopMode.commonModes.rawValue) {
+                started.signal()
+            }
             CFRunLoopRun()
         }
         thread.name = "pro.bettercmdtab.SpaceSwipeSuppressor"
@@ -152,8 +168,7 @@ final class SpaceSwipeSuppressor {
             // owner tear the tap down — never attempt a single re-enable.
             if !AccessibilityCheck.isTrusted {
                 Log.priv.error("Space-swipe tap disabled and Accessibility not trusted — tearing down (no re-enable)")
-                let handler = onTapDisabledStorm
-                DispatchQueue.main.async { handler() }
+                DispatchQueue.main.async { [weak self] in self?.onTapDisabledStorm() }
                 return Unmanaged.passUnretained(event)
             }
             // Backstop for the AX-trusted timeout-loop case (and the brief race
@@ -168,8 +183,7 @@ final class SpaceSwipeSuppressor {
             }
             if storming {
                 Log.priv.error("Space-swipe tap disabled repeatedly (storm) — bailing to main-thread recovery")
-                let handler = onTapDisabledStorm
-                DispatchQueue.main.async { handler() }
+                DispatchQueue.main.async { [weak self] in self?.onTapDisabledStorm() }
                 return Unmanaged.passUnretained(event)
             }
             // Final trust re-check immediately before the re-enable closes the
@@ -177,8 +191,7 @@ final class SpaceSwipeSuppressor {
             // calling tapEnable on a just-untrusted active tap is itself a
             // WindowServer-stalling IPC.
             guard AccessibilityCheck.isTrusted else {
-                let handler = onTapDisabledStorm
-                DispatchQueue.main.async { handler() }
+                DispatchQueue.main.async { [weak self] in self?.onTapDisabledStorm() }
                 return Unmanaged.passUnretained(event)
             }
             // Re-enable inside the lock so a concurrent uninstall() (which nils the
@@ -218,6 +231,7 @@ final class SpaceSwipeSuppressor {
         unsafeBitCast(raw, to: CGEventField.self)
     }
 
+    @MainActor
     func uninstall() {
         // Snapshot the handles under the lock, then nil them out in the SAME
         // critical section so the callback thread never observes a torn state.
@@ -237,9 +251,16 @@ final class SpaceSwipeSuppressor {
             }
             CFRunLoopStop(loop)
         }
+        // The callback uses an unretained C refcon. Wait for the private run loop
+        // to exit so deinit cannot free self while a callback is still in-flight.
+        if let thread = snapshot.tapThread,
+           thread !== Thread.current,
+           let finished = snapshot.tapThreadFinished {
+            finished.wait()
+        }
     }
 
     deinit {
-        uninstall()
+        MainActor.assumeIsolated { uninstall() }
     }
 }

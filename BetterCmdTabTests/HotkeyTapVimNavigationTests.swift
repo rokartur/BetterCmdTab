@@ -81,6 +81,7 @@ struct HotkeyTapVimNavigationTests {
     /// pushed via `onReservedLettersChanged`. (A fresh tap has no bound action
     /// keys, so the reserved set is exactly the vim union when on and empty when
     /// off.)
+    @MainActor
     @Test func togglingVimRepushesReservedLetters() {
         let tap = HotkeyTap()
         var pushed: Set<Character>?

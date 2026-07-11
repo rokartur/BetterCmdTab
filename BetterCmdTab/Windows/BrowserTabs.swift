@@ -26,6 +26,35 @@ private func responsibility_spawnattrs_setdisclaim(_ attrs: UnsafeMutablePointer
 /// scripts read the right window.
 enum BrowserTabs {
 
+    /// Cancellation gate for the osascript watchdog. Cancelling a submitted
+    /// `DispatchWorkItem` is advisory — its block may still execute — so checking
+    /// this lock-protected state is what prevents a late block from signalling a
+    /// pid that has already exited and potentially been reused.
+    private final class ScriptWatchdog: @unchecked Sendable {
+        private let lock = NSLock()
+        private let pid: pid_t
+        private var armed = true
+
+        init(pid: pid_t) { self.pid = pid }
+
+        func fire() {
+            lock.lock()
+            guard armed else {
+                lock.unlock()
+                return
+            }
+            armed = false
+            lock.unlock()
+            kill(pid, SIGKILL)
+        }
+
+        func cancel() {
+            lock.lock()
+            armed = false
+            lock.unlock()
+        }
+    }
+
     /// Result of a tab-enumeration attempt. `failed` distinguishes a script
     /// error (Automation permission denied, timeout) from a browser that simply
     /// has too few tabs to drill — the caller surfaces a hint only for `failed`.
@@ -185,9 +214,13 @@ enum BrowserTabs {
         // `waitpid` indefinitely and leak a zombie. After the deadline we SIGKILL
         // the child so the pipe reads hit EOF and `waitpid` reaps it. Cancelled on
         // the normal path.
-        let watchdog = DispatchWorkItem { kill(pid, SIGKILL) }
+        let watchdogGate = ScriptWatchdog(pid: pid)
+        let watchdog = DispatchWorkItem { watchdogGate.fire() }
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 8.0, execute: watchdog)
-        defer { watchdog.cancel() }
+        defer {
+            watchdogGate.cancel()
+            watchdog.cancel()
+        }
 
         // Drain stdout and stderr to EOF *before* reaping. `readDataToEndOfFile`
         // returns only once the child closes its write ends (i.e. exits), and a
@@ -208,8 +241,46 @@ enum BrowserTabs {
         errDrained.wait()
         let errData = errBox.data
 
+        // EOF normally means osascript exited, but a process is allowed to close
+        // stdout/stderr and keep running. Confirm actual exit without reaping it:
+        // WNOWAIT leaves the child as a zombie, so its pid cannot be recycled
+        // while we disarm a watchdog block already submitted to GCD. The watchdog
+        // remains armed during this wait and kills a child that closed its pipes
+        // early and then wedged.
+        var exitInfo = siginfo_t()
+        var waitIDResult: Int32
+        repeat {
+            waitIDResult = waitid(P_PID, id_t(pid), &exitInfo, WEXITED | WNOWAIT)
+        } while waitIDResult == -1 && errno == EINTR
+        guard waitIDResult == 0 else {
+            let waitError = errno
+            // `ECHILD` means the pid is no longer our child and may already be
+            // eligible for reuse. Disarm the submitted watchdog before doing
+            // anything else so its advisory cancellation can never signal a
+            // different process that inherited the numeric pid.
+            watchdogGate.cancel()
+            watchdog.cancel()
+            // We still own an unreaped child for every error except ECHILD, so a
+            // best-effort kill is safe and prevents an unexpected waitid failure
+            // from stranding it.
+            if waitError != ECHILD { kill(pid, SIGKILL) }
+            var cleanupStatus: Int32 = 0
+            while waitpid(pid, &cleanupStatus, 0) == -1 && errno == EINTR {}
+            Log.activator.error("BrowserTabs: waitid failed errno=\(waitError)")
+            return nil
+        }
+        watchdogGate.cancel()
+        watchdog.cancel()
+
         var stat: Int32 = 0
-        waitpid(pid, &stat, 0)
+        var reaped: pid_t
+        repeat {
+            reaped = waitpid(pid, &stat, 0)
+        } while reaped == -1 && errno == EINTR
+        guard reaped == pid else {
+            Log.activator.error("BrowserTabs: waitpid failed errno=\(errno)")
+            return nil
+        }
         let stdout = String(data: outData, encoding: .utf8) ?? ""
         let stderr = String(data: errData, encoding: .utf8) ?? ""
         // WIFEXITED/WEXITSTATUS are C macros Swift can't import: the low 7
@@ -269,11 +340,12 @@ enum BrowserTabs {
         }
         guard !bundleIDs.isEmpty else { return }
         permissionRequestInFlight = true
+        let bundleIDSnapshot = bundleIDs
         // Each runScript is a blocking waitpid; doing this on the main thread
         // froze the UI for the full per-browser round-trip (multi-second on
         // installs with several browsers running).
         DispatchQueue.global(qos: .userInitiated).async {
-            for bid in bundleIDs {
+            for bid in bundleIDSnapshot {
                 let escaped = bid.replacingOccurrences(of: "\\", with: "\\\\")
                                  .replacingOccurrences(of: "\"", with: "\\\"")
                 let source = """

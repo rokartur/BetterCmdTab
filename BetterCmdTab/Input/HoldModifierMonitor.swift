@@ -17,6 +17,7 @@ import Foundation
 /// the state read are impure, which keeps the commit-on-release logic testable.
 /// Modeled on `SecureInputMonitor`: a plain main-thread timer (it is started and
 /// torn down from the main actor).
+@MainActor
 final class HoldModifierMonitor {
     /// Fired when the hold modifier transitions held → released.
     var onRelease: () -> Void = {}
@@ -40,12 +41,12 @@ final class HoldModifierMonitor {
     private var currentInterval: TimeInterval = HoldModifierMonitor.heldInterval
 
     /// Pure: did the modifier go from held to released?
-    static func modifierReleased(previous: Bool, current: Bool) -> Bool {
+    nonisolated static func modifierReleased(previous: Bool, current: Bool) -> Bool {
         previous && !current
     }
 
     /// Pure: is every bit of `mask` currently down in `flags`?
-    static func holdState(flags: CGEventFlags, mask: CGEventFlags) -> Bool {
+    nonisolated static func holdState(flags: CGEventFlags, mask: CGEventFlags) -> Bool {
         flags.contains(mask)
     }
 
@@ -69,8 +70,8 @@ final class HoldModifierMonitor {
     private func schedule(interval: TimeInterval) {
         timer?.invalidate()
         currentInterval = interval
-        let t = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            self?.poll()
+        let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.poll() }
         }
         RunLoop.main.add(t, forMode: .common)
         timer = t
@@ -80,6 +81,10 @@ final class HoldModifierMonitor {
         timer?.invalidate()
         timer = nil
         isHeld = false
+    }
+
+    nonisolated deinit {
+        MainActor.assumeIsolated { stop() }
     }
 
     private func currentlyHeld() -> Bool {

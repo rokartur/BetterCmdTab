@@ -95,7 +95,7 @@ final class DockBadgeObserver {
         ) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                   app.bundleIdentifier == DockBadgeObserver.dockBundleID else { return }
-            Task { @MainActor [weak self] in self?.restartForDockRelaunch() }
+            MainActor.assumeIsolated { self?.restartForDockRelaunch() }
         }
         installObserver()
         // Reliable floor: the Dock posts no dependable AX notification on a badge
@@ -274,15 +274,16 @@ final class DockBadgeObserver {
     nonisolated deinit {
         // Backstop — the owner brackets lifetime, so this normally runs already
         // torn down. Mirrors AppCatalogCache.deinit.
-        let captured = MainActor.assumeIsolated { (observer, subscriptions, dockLaunchObserver) }
-        if let observer = captured.0 {
-            for sub in captured.1 {
-                _ = AXObserverRemoveNotification(observer, sub.element, sub.name as CFString)
+        MainActor.assumeIsolated {
+            if let observer {
+                for sub in subscriptions {
+                    _ = AXObserverRemoveNotification(observer, sub.element, sub.name as CFString)
+                }
+                CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
             }
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
-        }
-        if let dockLaunchObserver = captured.2 {
-            NSWorkspace.shared.notificationCenter.removeObserver(dockLaunchObserver)
+            if let dockLaunchObserver {
+                NSWorkspace.shared.notificationCenter.removeObserver(dockLaunchObserver)
+            }
         }
     }
 }
