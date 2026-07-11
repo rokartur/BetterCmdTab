@@ -4,8 +4,8 @@ import Foundation
 /// Polls `IsSecureEventInputEnabled()` so the app can react when another process
 /// grabs Secure Event Input (a focused password field), which makes the CGEvent
 /// tap go deaf. There is no notification for the secure-input state, so a poll is
-/// the only option. Modeled on `AccessibilityWaiter`: a cheap, low-frequency
-/// main-thread timer that runs for the app's lifetime.
+/// the only option. The timer runs only while the switcher is open; while idle,
+/// the next trigger performs the state check before it needs the result.
 ///
 /// `IsSecureEventInputEnabled()` is a local HIToolbox call (no XPC), so a 1 s
 /// cadence is effectively free while still catching a transition within a second.
@@ -18,12 +18,12 @@ final class SecureInputMonitor {
     private var timer: Timer?
 
     func start() {
-        isActive = IsSecureEventInputEnabled()
+        poll()
         guard timer == nil else { return }
         let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.poll() }
         }
-        // Let the kernel coalesce this app-lifetime wakeup with other work; a
+        // Let the kernel coalesce this session-only wakeup with other work; a
         // late poll is covered by the out-of-band `refresh()` on chord fire.
         t.tolerance = 0.3
         RunLoop.main.add(t, forMode: .common)

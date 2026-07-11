@@ -52,7 +52,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// is torn down and re-registered constantly. Reset on teardown so an identical
     /// plan re-applies after `carbonTrigger.uninstall`.
     private var lastAppliedChords: [ChordSpec] = []
-    /// Polls Secure Event Input. The native-shortcut override (symbolic disable +
+    /// Polls Secure Event Input while switching. The native-shortcut override (symbolic disable +
     /// Carbon registration) is applied ONLY while it is active — outside it the
     /// tap alone suppresses + triggers ⌘Tab, so the native shortcut is never left
     /// disabled across a crash (see `computeNativeOverridePlan`).
@@ -722,13 +722,10 @@ final class SwitcherController: SwitcherViewDelegate {
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in self?.restoreNativeShortcutsThenResync() }
         .store(in: &cancellables)
-        // Apply the native-shortcut override only while another app holds Secure
-        // Event Input. No notification exists for it, so poll; re-sync on every
-        // transition. The synchronous initial read makes "launched while a
-        // password field is already focused" correct from boot.
+        // Seed Secure Event Input once. The phase chokepoint arms its poll only
+        // while switching, when a transition can affect input handling.
         secureInputMonitor.onChange = { [weak self] active in self?.handleSecureInputChange(active) }
-        secureInputMonitor.start()
-        secureInputActive = secureInputMonitor.isActive
+        secureInputActive = secureInputMonitor.refresh()
         // The hold-modifier poller feeds the same release path as the tap's
         // flagsChanged (commit / detach / drill-commit), and re-syncs the
         // registered chord set as the modifier goes up or down.
@@ -1807,6 +1804,13 @@ final class SwitcherController: SwitcherViewDelegate {
         set {
             let wasIdle = _phase == .idle
             _phase = newValue
+            if wasIdle != (newValue == .idle) {
+                if newValue == .idle {
+                    secureInputMonitor.stop()
+                } else {
+                    secureInputMonitor.start()
+                }
+            }
             hotkey.setSwitching(newValue.isSwitching)
             // Mirror the *visible* edge separately: the tap gates the in-panel
             // action keys + letter-jump on this so a panel-less `.primed` never
@@ -2289,10 +2293,6 @@ final class SwitcherController: SwitcherViewDelegate {
     private func advanceWindowsOnly(by delta: Int) {
         switch phase {
         case .idle:
-            // Reaching here from the Carbon fallback means the tap was bypassed —
-            // strong evidence Secure Event Input is active. Re-check now to shrink
-            // the poll-gap window so the in-panel nav chords arm before the reveal.
-            secureInputMonitor.refresh()
             mru.syncFrontmost()
             // Kick a cache refresh now so the snapshot has the full
             // ~revealDelay window to settle before reveal() reads it — keeps
@@ -2346,9 +2346,6 @@ final class SwitcherController: SwitcherViewDelegate {
     private func advance(by delta: Int, wrap: Bool) {
         switch phase {
         case .idle:
-            // A Carbon chord opening the switcher means the tap was bypassed —
-            // re-check Secure Event Input now (see advanceWindowsOnly).
-            secureInputMonitor.refresh()
             mru.syncFrontmost()
             // Pre-warm the catalog before the ~100ms primed delay elapses so
             // reveal() reads an up-to-date cache instead of stale rows that
