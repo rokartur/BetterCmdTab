@@ -65,6 +65,7 @@ final class AppCatalogCache {
     private weak var mru: MRUTracker?
     private var observers: [NSObjectProtocol] = []
     private var axObservers: [pid_t: AXObserver] = [:]
+    private var axObserverFailures: Set<pid_t> = []
     /// Per-build tokens prevent an observer created for a terminated process from
     /// attaching after a pid is recycled and a newer install has started.
     private var axObserversInstalling: [pid_t: UInt64] = [:]
@@ -142,6 +143,7 @@ final class AppCatalogCache {
         // source on main. `uninstallAXObserver` performs the blocking server-side
         // notification removals on `axInstallQueue`.
         axObserversInstalling.removeAll()
+        axObserverFailures.removeAll()
         for pid in Array(axObservers.keys) { uninstallAXObserver(forPid: pid) }
 
         entries.removeAll()
@@ -158,6 +160,16 @@ final class AppCatalogCache {
         // `handleAXNotification` / `kAXTitleChangedNotification`).
         panelVisible = visible
         axCatalogPanelVisible.withLock { $0 = visible }
+    }
+
+    /// Retry only apps whose AX observer failed to install. The common path is
+    /// one empty-set check; a gap gets a targeted pid refresh, never a full sweep.
+    func refreshObserverGaps() {
+        guard !axObserverFailures.isEmpty else { return }
+        let live = Set(axObserverFailures.filter { NSRunningApplication(processIdentifier: $0) != nil })
+        axObserverFailures = live
+        for pid in live { installAXObserver(forPid: pid) }
+        bumpApps(pids: live)
     }
 
     /// `filter` lets a per-shortcut override (#74) replace the global filter for
@@ -436,6 +448,7 @@ final class AppCatalogCache {
                     // `didLaunchApplication` fires before AX server registers.
                     // Skip silently; next bumpApp through workspace events
                     // still keeps cache fresh.
+                    self.axObserverFailures.insert(pid)
                     return
                 }
                 guard self.axObservers[pid] == nil else { return }
@@ -449,6 +462,8 @@ final class AppCatalogCache {
                 guard let app = NSRunningApplication(processIdentifier: pid), !app.isTerminated else { return }
                 CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
                 self.axObservers[pid] = observer
+                self.axObserverFailures.remove(pid)
+                self.scheduleBumpApp(pid: pid)
             }
         }
     }
@@ -504,6 +519,7 @@ final class AppCatalogCache {
         // memo too, before the observer guard so it clears even if no observer
         // was installed.
         pidCoverage.removeValue(forKey: pid)
+        axObserverFailures.remove(pid)
         // Invalidate an off-main build even when no observer has attached yet.
         axObserversInstalling.removeValue(forKey: pid)
         guard let observer = axObservers.removeValue(forKey: pid) else { return }

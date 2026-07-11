@@ -902,7 +902,6 @@ final class SwitcherController: SwitcherViewDelegate {
             advance(by: delta, wrap: true)
         case .idle:
             mru.syncFrontmost()
-            cache.scheduleFullRefresh()
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order)
             guard !primedApps.isEmpty else { return }
             // Anchor on the global sort: this path never resolves per-shortcut
@@ -1809,6 +1808,7 @@ final class SwitcherController: SwitcherViewDelegate {
                     secureInputMonitor.stop()
                 } else {
                     secureInputMonitor.start()
+                    cache.refreshObserverGaps()
                 }
             }
             hotkey.setSwitching(newValue.isSwitching)
@@ -1891,7 +1891,6 @@ final class SwitcherController: SwitcherViewDelegate {
         guard phase == .idle else { return }
         resolveActiveOptions(for: .scoped(id))
         mru.syncFrontmost()
-        cache.scheduleFullRefresh()
         let selfPid = getpid()
         // The frontmost app at trigger time (we're accessory, so it's the user's
         // real app) — needed for the current-app scope.
@@ -2294,12 +2293,6 @@ final class SwitcherController: SwitcherViewDelegate {
         switch phase {
         case .idle:
             mru.syncFrontmost()
-            // Kick a cache refresh now so the snapshot has the full
-            // ~revealDelay window to settle before reveal() reads it — keeps
-            // windows created without an AX windowCreated event (or whose
-            // bumpApp finished before AX registered them) from popping in
-            // mid-presentation.
-            cache.scheduleFullRefresh()
             let selfPid = getpid()
             guard let front = NSWorkspace.shared.frontmostApplication,
                   front.processIdentifier != selfPid else { return }
@@ -2347,10 +2340,6 @@ final class SwitcherController: SwitcherViewDelegate {
         switch phase {
         case .idle:
             mru.syncFrontmost()
-            // Pre-warm the catalog before the ~100ms primed delay elapses so
-            // reveal() reads an up-to-date cache instead of stale rows that
-            // then visibly re-populate after the panel appears.
-            cache.scheduleFullRefresh()
             resolveActiveOptions(for: .switchApps)
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order, filter: activeFilterConfig)
             guard !primedApps.isEmpty else { return }
@@ -2955,24 +2944,13 @@ final class SwitcherController: SwitcherViewDelegate {
         // those rows carry no windows yet — the post-scan apply kicks it again.
         scheduleBrowserTabExpansion()
 
-        if hadCachedRows {
-            // Cache already fresh — kick a background refresh through the cache
-            // layer (single AX scan, not a duplicate) and re-apply when ready.
+        if !cache.hasCompletedFullScan {
+            // Reuse the startup scan already in flight. Warm reveals are served
+            // entirely by the observer-fed cache and perform no full AX sweep.
             cache.scheduleFullRefresh { [weak self] in
                 guard let self, gen == self.revealGeneration else { return }
                 let fresh = self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig)
                 self.applyFullSnapshot(fresh, anchorPid: targetPid)
-            }
-        } else {
-            // No cache yet — must do an immediate AX scan to populate rows.
-            let mruOrder = mru.order
-            let cfg = activeFilterConfig
-            DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-                let fresh = AppCatalog.snapshot(orderedBy: mruOrder, filter: cfg)
-                DispatchQueue.main.async {
-                    guard let self, gen == self.revealGeneration else { return }
-                    self.applyFullSnapshot(fresh, anchorPid: targetPid)
-                }
             }
         }
 
@@ -3019,22 +2997,16 @@ final class SwitcherController: SwitcherViewDelegate {
             guard cached.contains(where: { $0.window != nil }) else { cancel(); return }
             presentWindowsOnly(cached, pid: pid)
             scheduleWindowsOnlyRefresh(pid: pid, gen: gen)
+        } else if cache.hasCompletedFullScan {
+            cancel()
         } else {
-            // Cold cache — the full AX scan is expensive, so run it off the main
-            // thread and present (or cancel) when it returns instead of stalling
-            // the reveal. A fast chord that releases ⌘ before this lands commits
-            // through `pickWindowsOnlyTarget` (primed phase); the generation
-            // guard drops this stale apply.
-            let mruOrder = mru.order
-            let cfg = activeFilterConfig
-            DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-                let fresh = AppCatalog.snapshot(orderedBy: mruOrder, filter: cfg).filter { $0.pid == pid }
-                DispatchQueue.main.async {
-                    guard let self, gen == self.revealGeneration, self.phase == .primed else { return }
-                    guard fresh.contains(where: { $0.window != nil }) else { self.cancel(); return }
-                    self.presentWindowsOnly(fresh, pid: pid)
-                    self.scheduleWindowsOnlyRefresh(pid: pid, gen: gen)
-                }
+            // The startup scan is already running. Attach to it instead of
+            // launching a duplicate full-system AX enumeration.
+            cache.scheduleFullRefresh { [weak self] in
+                guard let self, gen == self.revealGeneration, self.phase == .primed else { return }
+                let fresh = self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig).filter { $0.pid == pid }
+                guard fresh.contains(where: { $0.window != nil }) else { self.cancel(); return }
+                self.presentWindowsOnly(fresh, pid: pid)
             }
         }
     }
@@ -3060,6 +3032,7 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func scheduleWindowsOnlyRefresh(pid: pid_t, gen: UInt64) {
+        guard !cache.hasCompletedFullScan else { return }
         cache.scheduleFullRefresh { [weak self] in
             guard let self, gen == self.revealGeneration else { return }
             let fresh = self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig).filter { $0.pid == pid }
