@@ -4219,6 +4219,40 @@
         }
       }
     },
+    "How quickly window titles in the open switcher update after an app changes them. Lower is more responsive; higher saves work when titles change rapidly." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie schnell Fenstertitel im geöffneten Umschalter aktualisiert werden, nachdem eine App sie ändert. Niedriger reagiert schneller; höher spart Arbeit, wenn sich Titel schnell ändern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La rapidez con la que se actualizan los títulos de las ventanas en el selector abierto cuando una app los cambia. Un valor más bajo responde mejor; uno más alto ahorra trabajo cuando los títulos cambian rápidamente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rapidité de mise à jour des titres de fenêtres dans le sélecteur ouvert lorsqu’une app les modifie. Plus bas est plus réactif ; plus haut économise du travail quand les titres changent rapidement."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jak szybko tytuły okien w otwartym przełączniku aktualizują się po zmianie przez aplikację. Niższa wartość reaguje szybciej; wyższa oszczędza pracę, gdy tytuły zmieniają się często."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用更改窗口标题后，打开的切换器中标题更新的速度。数值越低响应越快；数值越高可在标题频繁变化时减少开销。"
+          }
+        }
+      }
+    },
     "HUD (default)" : {
       "localizations" : {
         "de" : {
@@ -12211,6 +12245,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标题对齐"
+          }
+        }
+      }
+    },
+    "Title refresh delay" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verzögerung der Titelaktualisierung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retardo de actualización de títulos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai d’actualisation des titres"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opóźnienie odświeżania tytułów"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题刷新延迟"
           }
         }
       }

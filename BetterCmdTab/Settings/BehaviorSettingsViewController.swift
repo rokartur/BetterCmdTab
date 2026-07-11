@@ -14,7 +14,9 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     private let displayMonitorPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let displayModes: [SwitcherDisplayMode] = SwitcherDisplayMode.allCases
     private let delaySlider = NSSlider()
-    private let delayValueLabel = NSTextField(labelWithString: "")
+    private let delayValueField = NSTextField()
+    private let titleRefreshSlider = NSSlider()
+    private let titleRefreshValueField = NSTextField()
 
     // Contents — what apps/windows the switcher lists (moved here from Appearance:
     // these decide *which* windows show, which is behavior, not look).
@@ -26,8 +28,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     private let spaceScopePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let spaceScopes: [SpaceScope] = SpaceScope.allCases
     private let recentlyClosedSwitch = NSSwitch()
-    private let recentlyClosedLimitPopup = NSPopUpButton(frame: .zero, pullsDown: false)
-    private let recentlyClosedLimits: [Int] = [3, 5, 10, 15, 20]
+    private let recentlyClosedLimitField = NSTextField()
     private let sortOrderPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
 
@@ -89,6 +90,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
 
         // Quick-switch delay — moved here from Appearance: it changes *when* the
         // panel appears (timing), not how it looks.
+        let quickSwitchDelayTitle = String(localized: "Quick-switch delay")
         delaySlider.minValue = Double(Preferences.revealDelayRange.lowerBound)
         delaySlider.maxValue = Double(Preferences.revealDelayRange.upperBound)
         delaySlider.isContinuous = true
@@ -96,22 +98,45 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         delaySlider.target = self
         delaySlider.action = #selector(delayChanged(_:))
         delaySlider.translatesAutoresizingMaskIntoConstraints = false
-        delayValueLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-        delayValueLabel.textColor = .secondaryLabelColor
-        delayValueLabel.alignment = .right
-        delayValueLabel.translatesAutoresizingMaskIntoConstraints = false
-        delayValueLabel.setContentHuggingPriority(.required, for: .horizontal)
-        let delayStack = NSStackView(views: [delaySlider, delayValueLabel])
+        delaySlider.setAccessibilityLabel(quickSwitchDelayTitle)
+        configureIntegerField(delayValueField,
+                              action: #selector(delayValueCommitted(_:)),
+                              accessibilityLabel: quickSwitchDelayTitle)
+        let delayStack = NSStackView(views: [delaySlider, millisecondsInput(for: delayValueField)])
         delayStack.orientation = .horizontal
         delayStack.spacing = 8
         delayStack.alignment = .centerY
         NSLayoutConstraint.activate([
             delaySlider.widthAnchor.constraint(equalToConstant: 140),
-            delayValueLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 52),
         ])
-        addRow(to: display, title: String(localized: "Quick-switch delay"),
+        addRow(to: display, title: quickSwitchDelayTitle,
                subtitle: String(localized: "Tap to switch instantly; hold longer to open the switcher."),
                accessory: delayStack, searchItemID: SearchID.quickSwitchDelay)
+
+        // Title refresh interval — how quickly titles in the open switcher
+        // catch up after an app renames a window (browser page load, terminal).
+        let titleRefreshDelayTitle = String(localized: "Title refresh delay")
+        titleRefreshSlider.minValue = Double(Preferences.titleRefreshIntervalRange.lowerBound)
+        titleRefreshSlider.maxValue = Double(Preferences.titleRefreshIntervalRange.upperBound)
+        titleRefreshSlider.isContinuous = true
+        titleRefreshSlider.controlSize = .small
+        titleRefreshSlider.target = self
+        titleRefreshSlider.action = #selector(titleRefreshChanged(_:))
+        titleRefreshSlider.translatesAutoresizingMaskIntoConstraints = false
+        titleRefreshSlider.setAccessibilityLabel(titleRefreshDelayTitle)
+        configureIntegerField(titleRefreshValueField,
+                              action: #selector(titleRefreshValueCommitted(_:)),
+                              accessibilityLabel: titleRefreshDelayTitle)
+        let titleRefreshStack = NSStackView(views: [titleRefreshSlider, millisecondsInput(for: titleRefreshValueField)])
+        titleRefreshStack.orientation = .horizontal
+        titleRefreshStack.spacing = 8
+        titleRefreshStack.alignment = .centerY
+        NSLayoutConstraint.activate([
+            titleRefreshSlider.widthAnchor.constraint(equalToConstant: 140),
+        ])
+        addRow(to: display, title: titleRefreshDelayTitle,
+               subtitle: String(localized: "How quickly window titles in the open switcher update after an app changes them. Lower is more responsive; higher saves work when titles change rapidly."),
+               accessory: titleRefreshStack, searchItemID: SearchID.titleRefreshInterval)
 
         // Contents section — what kinds of windows/apps appear in the switcher.
         let contents = addSection(title: String(localized: "Contents"), anchor: SettingsAnchor.contents)
@@ -149,10 +174,13 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         addRow(to: contents, title: String(localized: "Show recently closed apps"),
                subtitle: String(localized: "Lists apps and windows you just closed so you can reopen them."),
                accessory: recentlyClosedSwitch, searchItemID: SearchID.showRecentlyClosed)
-        configurePopup(recentlyClosedLimitPopup, titles: recentlyClosedLimits.map(String.init), action: #selector(recentlyClosedLimitChanged))
-        addRow(to: contents, title: String(localized: "Recently closed to show"),
+        let recentlyClosedLimitTitle = String(localized: "Recently closed to show")
+        configureIntegerField(recentlyClosedLimitField,
+                              action: #selector(recentlyClosedLimitCommitted(_:)),
+                              accessibilityLabel: recentlyClosedLimitTitle)
+        addRow(to: contents, title: recentlyClosedLimitTitle,
                subtitle: String(localized: "How many recently closed items to list."),
-               accessory: recentlyClosedLimitPopup, searchItemID: SearchID.recentlyClosedLimit)
+               accessory: recentlyClosedLimitField, searchItemID: SearchID.recentlyClosedLimit)
 
         // Tabs section — how windows that use native system tabs (Finder,
         // Terminal, TextEdit, …) are surfaced. Browsers (Safari/Chromium) can't
@@ -316,12 +344,41 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         popup.action = action
     }
 
+    private func configureIntegerField(_ field: NSTextField,
+                                       action: Selector,
+                                       accessibilityLabel: String) {
+        field.controlSize = .small
+        field.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        field.alignment = .right
+        field.target = self
+        field.action = action
+        field.cell?.sendsActionOnEndEditing = true
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.setContentHuggingPriority(.required, for: .horizontal)
+        field.setAccessibilityLabel(accessibilityLabel)
+        field.widthAnchor.constraint(equalToConstant: 52).isActive = true
+    }
+
+    private func millisecondsInput(for field: NSTextField) -> NSStackView {
+        let unitLabel = NSTextField(labelWithString: "ms")
+        unitLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        unitLabel.textColor = .secondaryLabelColor
+        unitLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = NSStackView(views: [field, unitLabel])
+        stack.orientation = .horizontal
+        stack.spacing = 4
+        stack.alignment = .centerY
+        return stack
+    }
+
     override func viewWillAppear() {
         super.viewWillAppear()
 
         let prefs = Preferences.shared
         if let i = displayModes.firstIndex(of: prefs.switcherDisplayMode) { displayMonitorPopup.selectItem(at: i) }
         applyDelay(prefs.revealDelayMs)
+        applyTitleRefresh(prefs.titleRefreshIntervalMs)
         minimizedSwitch.state = prefs.showMinimizedWindows ? .on : .off
         hiddenSwitch.state = prefs.showHiddenApps ? .on : .off
         windowlessSwitch.state = prefs.showWindowlessApps ? .on : .off
@@ -330,8 +387,8 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         if let i = spaceScopes.firstIndex(of: prefs.spaceScope) { spaceScopePopup.selectItem(at: i) }
         selectSortOrder(prefs.sortOrder)
         recentlyClosedSwitch.state = prefs.showRecentlyClosed ? .on : .off
-        selectRecentlyClosedLimit(prefs.recentlyClosedLimit)
-        recentlyClosedLimitPopup.isEnabled = prefs.showRecentlyClosed
+        applyRecentlyClosedLimit(prefs.recentlyClosedLimit)
+        recentlyClosedLimitField.isEnabled = prefs.showRecentlyClosed
         tabDrillSwitch.state = prefs.tabDrillEnabled ? .on : .off
         windowDrillSwitch.state = prefs.windowDrillEnabled ? .on : .off
         expandTabsSwitch.state = prefs.expandTabsAsWindows ? .on : .off
@@ -377,6 +434,14 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.applyDelay($0) }
             .store(in: &cancellables)
+        prefs.$titleRefreshIntervalMs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.applyTitleRefresh($0) }
+            .store(in: &cancellables)
+        prefs.$recentlyClosedLimit
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.applyRecentlyClosedLimit($0) }
+            .store(in: &cancellables)
     }
 
     override func viewWillDisappear() {
@@ -391,13 +456,47 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func delayChanged(_ sender: NSSlider) {
-        Preferences.shared.revealDelayMs = sender.integerValue
-        applyDelay(sender.integerValue)
+        let ms = Preferences.clampDelay(sender.integerValue)
+        Preferences.shared.revealDelayMs = ms
+        applyDelay(ms)
+    }
+
+    @objc private func delayValueCommitted(_ sender: NSTextField) {
+        guard let value = Int(sender.stringValue) else {
+            applyDelay(Preferences.shared.revealDelayMs)
+            return
+        }
+        let ms = Preferences.clampDelay(value)
+        Preferences.shared.revealDelayMs = ms
+        applyDelay(ms)
     }
 
     private func applyDelay(_ ms: Int) {
         if Int(delaySlider.intValue) != ms { delaySlider.integerValue = ms }
-        delayValueLabel.stringValue = "\(ms) ms"
+        let value = String(ms)
+        if delayValueField.stringValue != value { delayValueField.stringValue = value }
+    }
+
+    @objc private func titleRefreshChanged(_ sender: NSSlider) {
+        let ms = Preferences.clampTitleRefreshInterval(sender.integerValue)
+        Preferences.shared.titleRefreshIntervalMs = ms
+        applyTitleRefresh(ms)
+    }
+
+    @objc private func titleRefreshValueCommitted(_ sender: NSTextField) {
+        guard let value = Int(sender.stringValue) else {
+            applyTitleRefresh(Preferences.shared.titleRefreshIntervalMs)
+            return
+        }
+        let ms = Preferences.clampTitleRefreshInterval(value)
+        Preferences.shared.titleRefreshIntervalMs = ms
+        applyTitleRefresh(ms)
+    }
+
+    private func applyTitleRefresh(_ ms: Int) {
+        if Int(titleRefreshSlider.intValue) != ms { titleRefreshSlider.integerValue = ms }
+        let value = String(ms)
+        if titleRefreshValueField.stringValue != value { titleRefreshValueField.stringValue = value }
     }
 
     @objc private func toggleTabDrill(_ sender: NSSwitch) {
@@ -591,21 +690,23 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     @objc private func toggleRecentlyClosed(_ sender: NSSwitch) {
         let on = (sender.state == .on)
         Preferences.shared.showRecentlyClosed = on
-        recentlyClosedLimitPopup.isEnabled = on
+        recentlyClosedLimitField.isEnabled = on
     }
 
-    @objc private func recentlyClosedLimitChanged() {
-        let idx = recentlyClosedLimitPopup.indexOfSelectedItem
-        guard recentlyClosedLimits.indices.contains(idx) else { return }
-        Preferences.shared.recentlyClosedLimit = recentlyClosedLimits[idx]
+    @objc private func recentlyClosedLimitCommitted(_ sender: NSTextField) {
+        guard let value = Int(sender.stringValue) else {
+            applyRecentlyClosedLimit(Preferences.shared.recentlyClosedLimit)
+            return
+        }
+        let limit = Preferences.clampRecentlyClosedLimit(value)
+        Preferences.shared.recentlyClosedLimit = limit
+        applyRecentlyClosedLimit(limit)
     }
 
-    private func selectRecentlyClosedLimit(_ value: Int) {
-        // Snap to the closest offered value if a stored limit isn't in the list.
-        if let exact = recentlyClosedLimits.firstIndex(of: value) {
-            recentlyClosedLimitPopup.selectItem(at: exact)
-        } else if let nearest = recentlyClosedLimits.enumerated().min(by: { abs($0.element - value) < abs($1.element - value) }) {
-            recentlyClosedLimitPopup.selectItem(at: nearest.offset)
+    private func applyRecentlyClosedLimit(_ value: Int) {
+        let text = String(value)
+        if recentlyClosedLimitField.stringValue != text {
+            recentlyClosedLimitField.stringValue = text
         }
     }
 }

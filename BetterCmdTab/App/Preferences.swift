@@ -729,6 +729,13 @@ final class Preferences: ObservableObject {
     static let defaultLetterChainTimeoutMs = 1000
     static let letterChainTimeoutRange: ClosedRange<Int> = 200...3000
 
+    /// Debounce between a window's AX title-change notification and the refresh
+    /// of the titles shown in the open switcher. Lower = titles update sooner
+    /// but a churning app (a loading page, a scrolling terminal) costs more
+    /// re-reads; higher coalesces bursts into fewer passes. Default 200ms.
+    static let defaultTitleRefreshIntervalMs = 200
+    static let titleRefreshIntervalRange: ClosedRange<Int> = 50...2000
+
     static let defaultSwipeSensitivity = 5
     static let swipeSensitivityRange: ClosedRange<Int> = 1...10
 
@@ -762,6 +769,7 @@ final class Preferences: ObservableObject {
         static let sortOrder = "Switcher.sortOrder"
         static let revealDelayMs = "Switcher.revealDelayMs"
         static let letterChainTimeoutMs = "Switcher.letterChainTimeoutMs"
+        static let titleRefreshIntervalMs = "Switcher.titleRefreshIntervalMs"
         static let panelSize = "Switcher.panelSize"
         static let fontScale = "Switcher.fontScale"
         static let fontFace = "Switcher.fontFace"
@@ -915,6 +923,21 @@ final class Preferences: ObservableObject {
             }
             guard oldValue != letterChainTimeoutMs else { return }
             UserDefaults.standard.set(letterChainTimeoutMs, forKey: Keys.letterChainTimeoutMs)
+        }
+    }
+
+    /// How quickly the titles in the open switcher catch up after an app
+    /// changes a window title. Read live so a change applies to the next
+    /// refresh without restart.
+    @Published var titleRefreshIntervalMs: Int {
+        didSet {
+            let clamped = Self.clampTitleRefreshInterval(titleRefreshIntervalMs)
+            if clamped != titleRefreshIntervalMs {
+                titleRefreshIntervalMs = clamped
+                return
+            }
+            guard oldValue != titleRefreshIntervalMs else { return }
+            UserDefaults.standard.set(titleRefreshIntervalMs, forKey: Keys.titleRefreshIntervalMs)
         }
     }
 
@@ -1731,6 +1754,10 @@ final class Preferences: ObservableObject {
         min(letterChainTimeoutRange.upperBound, max(letterChainTimeoutRange.lowerBound, value))
     }
 
+    static func clampTitleRefreshInterval(_ value: Int) -> Int {
+        min(titleRefreshIntervalRange.upperBound, max(titleRefreshIntervalRange.lowerBound, value))
+    }
+
     static func clampSwipeSensitivity(_ value: Int) -> Int {
         min(swipeSensitivityRange.upperBound, max(swipeSensitivityRange.lowerBound, value))
     }
@@ -1788,6 +1815,9 @@ final class Preferences: ObservableObject {
 
         let letterTimeout = defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs
         self.letterChainTimeoutMs = Self.clampLetterChainTimeout(letterTimeout)
+
+        let titleRefresh = defaults.object(forKey: Keys.titleRefreshIntervalMs) as? Int ?? Self.defaultTitleRefreshIntervalMs
+        self.titleRefreshIntervalMs = Self.clampTitleRefreshInterval(titleRefresh)
 
         let sizeRaw = defaults.string(forKey: Keys.panelSize)
         self.panelSize = sizeRaw.flatMap(PanelSize.init(rawValue:)) ?? .standard
@@ -1939,6 +1969,7 @@ final class Preferences: ObservableObject {
         sortOrder = defaults.string(forKey: Keys.sortOrder).flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
         revealDelayMs = Self.clampDelay(defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs)
         letterChainTimeoutMs = Self.clampLetterChainTimeout(defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs)
+        titleRefreshIntervalMs = Self.clampTitleRefreshInterval(defaults.object(forKey: Keys.titleRefreshIntervalMs) as? Int ?? Self.defaultTitleRefreshIntervalMs)
         panelSize = defaults.string(forKey: Keys.panelSize).flatMap(PanelSize.init(rawValue:)) ?? .standard
         fontScale = defaults.string(forKey: Keys.fontScale).flatMap(SwitcherFontScale.init(rawValue:)) ?? .standard
         fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system

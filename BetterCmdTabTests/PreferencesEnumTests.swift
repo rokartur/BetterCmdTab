@@ -47,6 +47,14 @@ struct PreferencesEnumTests {
     }
 
     @MainActor
+    @Test("clampTitleRefreshInterval keeps values inside the allowed range")
+    func clampTitleRefreshInterval() {
+        #expect(Preferences.clampTitleRefreshInterval(0) == Preferences.titleRefreshIntervalRange.lowerBound)
+        #expect(Preferences.clampTitleRefreshInterval(99999) == Preferences.titleRefreshIntervalRange.upperBound)
+        #expect(Preferences.clampTitleRefreshInterval(Preferences.defaultTitleRefreshIntervalMs) == Preferences.defaultTitleRefreshIntervalMs)
+    }
+
+    @MainActor
     @Test("clampGridColumns / clampRecentlyClosedLimit reject out-of-range imports")
     func clampGridAndRecentlyClosed() {
         // A hand-edited / corrupted `.cmdtab` import must not land a negative or

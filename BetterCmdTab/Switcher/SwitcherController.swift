@@ -415,6 +415,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// so a settings change takes effect on the next keystroke without restart.
     var letterChainTimeout: TimeInterval { Double(Preferences.shared.letterChainTimeoutMs) / 1000.0 }
 
+    /// Debounce between a title-change signal and the visible-title refresh
+    /// (see `scheduleVisibleTitleRefresh`). Read live so a settings change
+    /// applies to the next title burst without restart.
+    var titleRefreshDebounce: TimeInterval { Double(Preferences.shared.titleRefreshIntervalMs) / 1000.0 }
+
     /// Frontmost app's focused window, resolved off-main during the primed phase
     /// (overlapping the reveal delay) so `reveal()` doesn't block its critical
     /// path on the synchronous AX read. Consumed and cleared by `reveal()`.
@@ -3339,7 +3344,7 @@ final class SwitcherController: SwitcherViewDelegate {
         guard phase == .visible, !visibleTitleRefreshScheduled else { return }
         visibleTitleRefreshScheduled = true
         let gen = revealGeneration
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + titleRefreshDebounce) { [weak self] in
             guard let self else { return }
             self.visibleTitleRefreshScheduled = false
             guard self.phase == .visible, gen == self.revealGeneration else { return }

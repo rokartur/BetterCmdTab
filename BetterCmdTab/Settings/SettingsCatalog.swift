@@ -114,6 +114,7 @@ enum SearchID {
     static let vimNavigation = "switcher.vimNavigation"
     static let hoverActions = "switcher.hoverActions"
     static let displayMonitor = "switcher.displayMonitor"
+    static let titleRefreshInterval = "switcher.titleRefreshInterval"
     static let exceptions = "switcher.exceptions"
     static let pinnedApps = "switcher.pinnedApps"
     // Appearance
@@ -288,6 +289,8 @@ enum SettingsCatalog {
              String(localized: "Show switcher on"), ["display", "monitor", "screen", "multi monitor", "cursor", "main display", "active space"]),
         item(SearchID.quickSwitchDelay, .switcher, SettingsAnchor.display, String(localized: "Behavior"), String(localized: "Display"),
              String(localized: "Quick-switch delay"), ["delay", "reveal", "hold", "quick switch"]),
+        item(SearchID.titleRefreshInterval, .switcher, SettingsAnchor.display, String(localized: "Behavior"), String(localized: "Display"),
+             String(localized: "Title refresh delay"), ["title", "refresh", "update", "interval", "window title", "live titles", "debounce"]),
         // Switcher · Tabs
         item(SearchID.tabDrill, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Peek tabs with \\"), ["tabs", "tab", "drill", "peek", "backslash", "finder tabs", "browser tabs", "safari", "chrome"]),
