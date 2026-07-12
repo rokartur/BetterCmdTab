@@ -12282,6 +12282,74 @@
           }
         }
       }
+    },
+    "Browser tab previews" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser-Tab-Vorschauen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vistas previas de pestañas del navegador"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aperçus des onglets du navigateur"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podglądy kart przeglądarki"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浏览器标签页预览"
+          }
+        }
+      }
+    },
+    "Capture the active browser tab for the Previews layout. Background tabs use an earlier cached image or their favicon." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfasst den aktiven Browser-Tab für das Vorschau-Layout. Hintergrund-Tabs verwenden ein früher zwischengespeichertes Bild oder ihr Favicon."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captura la pestaña activa del navegador para la disposición Vistas previas. Las pestañas en segundo plano usan una imagen almacenada anteriormente o su favicon."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture l’onglet actif du navigateur pour la disposition Aperçus. Les onglets en arrière-plan utilisent une image mise en cache auparavant ou leur favicon."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przechwytuje aktywną kartę przeglądarki dla układu Podglądy. Karty w tle używają wcześniejszego obrazu z pamięci podręcznej lub swojej favicony."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为预览布局捕获当前浏览器标签页。后台标签页使用先前缓存的图像或其网站图标。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

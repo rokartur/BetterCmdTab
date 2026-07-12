@@ -1,5 +1,10 @@
 import AppKit
 
+struct TabStripItem: Equatable, Sendable {
+    let title: String
+    let faviconKey: String?
+}
+
 /// Horizontal strip of tab titles shown below the switcher list while the user
 /// is drilled into a browser/Finder row. Cells are title-only — no icons or
 /// thumbnails — sized to ~22pt tall and laid out in a horizontal scroll view so
@@ -67,10 +72,10 @@ final class TabStripView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
-    func configure(titles: [String], selectedIndex: Int, accent: NSColor) {
+    func configure(items: [TabStripItem], selectedIndex: Int, accent: NSColor) {
         self.accent = accent
         self.selectedIndex = selectedIndex
-        while cells.count < titles.count {
+        while cells.count < items.count {
             let cell = TabStripCell()
             cell.onSelect = { [weak self] cell in
                 guard let self, let i = self.cells.firstIndex(where: { $0 === cell }) else { return }
@@ -83,7 +88,7 @@ final class TabStripView: NSView {
             stack.addArrangedSubview(cell)
             cells.append(cell)
         }
-        while cells.count > titles.count {
+        while cells.count > items.count {
             let cell = cells.removeLast()
             stack.removeArrangedSubview(cell)
             cell.removeFromSuperview()
@@ -98,8 +103,9 @@ final class TabStripView: NSView {
         let font = SwitcherFont.font(ofSize: round(12 * prefs.fontScale.multiplier),
                                      weight: .medium,
                                      design: prefs.fontFace)
-        for (i, title) in titles.enumerated() {
-            cells[i].configure(title: title.isEmpty ? String(localized: "Untitled") : title,
+        for (i, item) in items.enumerated() {
+            cells[i].configure(title: item.title.isEmpty ? String(localized: "Untitled") : item.title,
+                               favicon: BrowserFaviconCache.image(forKey: item.faviconKey),
                                selected: i == selectedIndex,
                                accent: accent,
                                truncation: truncation,
@@ -160,6 +166,7 @@ final class TabStripView: NSView {
 
 @MainActor
 private final class TabStripCell: NSView {
+    private let iconView = NSImageView()
     private let label = NSTextField(labelWithString: "")
     private var isSelected = false
     private var accentColor: NSColor = .controlAccentColor
@@ -178,10 +185,17 @@ private final class TabStripCell: NSView {
         label.font = .systemFont(ofSize: 12, weight: .medium)
         label.lineBreakMode = .byTruncatingTail
         label.maximumNumberOfLines = 1
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.imageScaling = .scaleProportionallyDown
+        addSubview(iconView)
         addSubview(label)
 
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 16),
+            iconView.heightAnchor.constraint(equalToConstant: 16),
+            label.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 5),
             label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
             heightAnchor.constraint(equalToConstant: 22),
@@ -192,7 +206,7 @@ private final class TabStripCell: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
-    func configure(title: String, selected: Bool, accent: NSColor, truncation: NSLineBreakMode, font: NSFont) {
+    func configure(title: String, favicon: NSImage?, selected: Bool, accent: NSColor, truncation: NSLineBreakMode, font: NSFont) {
         if label.lineBreakMode != truncation {
             label.lineBreakMode = truncation
         }
@@ -200,6 +214,10 @@ private final class TabStripCell: NSView {
             label.font = font
         }
         label.stringValue = title
+        iconView.image = favicon
+        iconView.isHidden = favicon == nil
+        // Reclaim the icon's slot for native (text-only) tab groups.
+        iconView.constraints.first { $0.firstAttribute == .width }?.constant = favicon == nil ? 0 : 16
         isSelected = selected
         accentColor = accent
         applyAppearance()
@@ -213,6 +231,7 @@ private final class TabStripCell: NSView {
 
     func prepareForIdle() {
         label.stringValue = ""
+        iconView.image = nil
         mouseInside = false
         isSelected = false
         applyAppearance()

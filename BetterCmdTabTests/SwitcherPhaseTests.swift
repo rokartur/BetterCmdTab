@@ -290,6 +290,22 @@ struct SwitcherActiveBrowserTabTests {
         #expect(SwitcherController.activeBrowserTabIndex(
             in: rows, window: AXRef(element: win), activeTabIndex: 0) == nil)
     }
+
+    @Test func focusedWindowTitleRejectsStaleOrAmbiguousActiveIndex() {
+        let tabs = [
+            BrowserTabInfo(title: "Old", url: "https://old.test"),
+            BrowserTabInfo(title: "Current", url: "https://current.test"),
+        ]
+        #expect(SwitcherController.activeBrowserTabIndex(tabs: tabs, windowTitle: " Current ") == 1)
+        #expect(SwitcherController.activeBrowserTabIndex(
+            tabs: tabs,
+            windowTitle: "Current — Google Chrome"
+        ) == 1)
+        #expect(SwitcherController.activeBrowserTabIndex(
+            tabs: tabs + [BrowserTabInfo(title: "Current", url: "https://duplicate.test")],
+            windowTitle: "Current"
+        ) == nil)
+    }
 }
 
 /// Under a stable sort (alphabetical / launch order) the primed list is not

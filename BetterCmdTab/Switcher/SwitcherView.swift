@@ -129,7 +129,7 @@ final class SwitcherView: NSView, TabStripDelegate {
     /// the firing shortcut's overrides instead of the global preferences.
     private var effective: EffectiveSettings = .defaults
 
-    func configure(rows: [SwitcherRow], labels: [String], selectedIndex: Int, metrics: SwitcherMetrics, effective: EffectiveSettings, highlightPrefix: String = "", searchActive: Bool = false, searchQuery: String = "", tabStripTitles: [String]? = nil, tabStripSelectedIndex: Int = 0) {
+    func configure(rows: [SwitcherRow], labels: [String], selectedIndex: Int, metrics: SwitcherMetrics, effective: EffectiveSettings, highlightPrefix: String = "", searchActive: Bool = false, searchQuery: String = "", tabStripItems: [TabStripItem]? = nil, tabStripSelectedIndex: Int = 0) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         // Set before `fittedMetrics`/layout below read it (see ivar note).
@@ -141,7 +141,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         // valid, so skip invalidating it and forcing a full relayout + panel
         // resize. The item views still reconfigure below and relayout themselves
         // if their own content changed.
-        let stripActiveNew = (tabStripTitles?.isEmpty == false)
+        let stripActiveNew = (tabStripItems?.isEmpty == false)
         // Shrink grid/preview tiles to fit the screen for large app/window counts
         // so they stay fully visible instead of overflowing top/bottom. Shadows
         // the incoming `metrics` so every downstream sizing path (layout math and
@@ -164,8 +164,8 @@ final class SwitcherView: NSView, TabStripDelegate {
         searchBar.update(query: searchQuery)
         searchBar.applyFont(fontScale: metrics.fontScale, face: effective.fontFace)
         searchBar.isHidden = !searchActive
-        if let titles = tabStripTitles, !titles.isEmpty {
-            tabStrip.configure(titles: titles, selectedIndex: tabStripSelectedIndex, accent: accent)
+        if let items = tabStripItems, !items.isEmpty {
+            tabStrip.configure(items: items, selectedIndex: tabStripSelectedIndex, accent: accent)
             tabStrip.isHidden = false
         } else {
             tabStrip.isHidden = true
@@ -223,11 +223,11 @@ final class SwitcherView: NSView, TabStripDelegate {
             return
         }
         WindowThumbnailCache.shared.ensurePermission()
-        WindowThumbnailCache.shared.onReady = { [weak self] wid in
+        WindowThumbnailCache.shared.onReady = { [weak self] key in
             guard let self else { return }
             for view in self.itemViews {
-                guard let preview = view as? SwitcherPreviewItemView, preview.windowID == wid else { continue }
-                preview.setThumbnail(WindowThumbnailCache.shared.image(for: wid), for: wid)
+                guard let preview = view as? SwitcherPreviewItemView, preview.thumbnailKey == key else { continue }
+                preview.setThumbnail(WindowThumbnailCache.shared.image(for: key), for: key)
             }
         }
         syncLivePreviewTimer()
@@ -268,11 +268,16 @@ final class SwitcherView: NSView, TabStripDelegate {
         for view in itemViews {
             guard let preview = view as? SwitcherPreviewItemView,
                   !preview.isHidden,
-                  preview.windowID != 0 else { continue }
-            WindowThumbnailCache.shared.requestLiveFrame(
-                wid: preview.windowID,
-                pixelHeight: pixelHeight
-            )
+                  let key = preview.thumbnailKey else { continue }
+            switch key {
+            case .window(let wid):
+                WindowThumbnailCache.shared.requestLiveFrame(wid: wid, pixelHeight: pixelHeight)
+            case .browserTab(let tab) where preview.isActiveBrowserTab
+                && Preferences.shared.experimentalBrowserTabPreviews:
+                WindowThumbnailCache.shared.requestBrowserTab(tab, pixelHeight: pixelHeight, isLive: true)
+            case .browserTab:
+                break
+            }
         }
     }
 

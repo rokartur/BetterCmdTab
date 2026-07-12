@@ -25,6 +25,10 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     /// CGWindowID of the row this tile shows, so a late thumbnail capture can be
     /// matched back to the right tile. 0 for rows without a real window.
     private(set) var windowID: CGWindowID = 0
+    private(set) var thumbnailKey: ThumbnailKey?
+    private(set) var isActiveBrowserTab = false
+    private var browserTabPreviewEnabled = false
+    private var usesCompactTabIcon = false
     /// The app icon shown while no thumbnail is available — kept so a thumbnail
     /// arriving via `setThumbnail` can be applied without re-reading the row.
     private var placeholderIcon: NSImage?
@@ -190,6 +194,10 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         badgeLabel.stringValue = ""
         placeholderIcon = nil
         windowID = 0
+        thumbnailKey = nil
+        isActiveBrowserTab = false
+        browserTabPreviewEnabled = false
+        usesCompactTabIcon = false
         currentLabel = ""
         currentPrefixLength = 0
     }
@@ -225,6 +233,7 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         let icon = isDialog ? SystemSettingsIcon.image : IconCache.icon(for: row)
         placeholderIcon = icon
         iconView.image = icon
+        usesCompactTabIcon = row.browserTab != nil
         // "Window title under icon" preference: when off, keep the app icon but
         // drop the title text so the tile is just the thumbnail + icon. Browser
         // tabs always show their title — it's the only thing distinguishing one
@@ -261,14 +270,25 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         // the *active* tab — so requesting it would paint every tab tile with the
         // same, misleading thumbnail. Force the app-icon placeholder (id 0)
         // instead; the distinct tab title under the icon identifies each tab.
-        windowID = (row.browserTab == nil)
-            ? (row.cgWindowID != 0 ? row.cgWindowID : (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0))
-            : 0
-        if windowID != 0 {
+        windowID = row.cgWindowID != 0 ? row.cgWindowID : (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0)
+        if let browserKey = row.browserTabPreviewKey {
+            thumbnailKey = .browserTab(browserKey)
+            isActiveBrowserTab = row.browserTab?.isActive == true
+            browserTabPreviewEnabled = Preferences.shared.experimentalBrowserTabPreviews
+            imageView.image = browserTabPreviewEnabled
+                ? WindowThumbnailCache.shared.image(for: .browserTab(browserKey)) ?? icon
+                : icon
+        } else if windowID != 0 {
+            thumbnailKey = .window(windowID)
+            isActiveBrowserTab = false
+            browserTabPreviewEnabled = false
             let scale = window?.backingScaleFactor ?? 2
             WindowThumbnailCache.shared.request(wid: windowID, pixelHeight: metrics.previewThumbHeight * scale)
             imageView.image = WindowThumbnailCache.shared.image(for: windowID) ?? icon
         } else {
+            thumbnailKey = nil
+            isActiveBrowserTab = false
+            browserTabPreviewEnabled = false
             imageView.image = icon
         }
         applyImageScaling()
@@ -290,8 +310,9 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     /// Swap in a freshly captured thumbnail (called from the view's `onReady`
     /// hook). Ignores stale callbacks for a tile that has since been reused for
     /// a different window.
-    func setThumbnail(_ image: NSImage?, for wid: CGWindowID) {
-        guard wid == windowID, wid != 0 else { return }
+    func setThumbnail(_ image: NSImage?, for key: ThumbnailKey) {
+        guard key == thumbnailKey else { return }
+        if case .browserTab = key, !browserTabPreviewEnabled { return }
         imageView.image = image ?? placeholderIcon
         applyImageScaling()
     }
@@ -300,7 +321,16 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     /// placeholder stays small and centered so it doesn't look like a blurry
     /// full-bleed preview.
     private func applyImageScaling() {
-        let hasThumb = (windowID != 0) && (WindowThumbnailCache.shared.image(for: windowID) != nil)
+        let hasThumb: Bool
+        if let key = thumbnailKey {
+            if case .browserTab = key, !browserTabPreviewEnabled {
+                hasThumb = false
+            } else {
+                hasThumb = WindowThumbnailCache.shared.image(for: key) != nil
+            }
+        } else {
+            hasThumb = false
+        }
         imageView.imageScaling = hasThumb ? .scaleProportionallyUpOrDown : .scaleProportionallyDown
     }
 
@@ -403,7 +433,8 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
             badgePill.frame = .zero
             badgePill.isHidden = true
         } else {
-            let iconSize = min(m.previewIconSize, labelAreaH)
+            let baseIconSize = min(m.previewIconSize, labelAreaH)
+            let iconSize = usesCompactTabIcon ? floor(baseIconSize * 0.9) : baseIconSize
 
             // Count badge sits to the right of the title — a small circle, noticeably
             // smaller than the app icon (a notification badge, not an icon-sized

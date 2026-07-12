@@ -204,6 +204,27 @@ struct SwitcherRowTests {
         #expect(rows.allSatisfy { $0.window != nil })
     }
 
+    @Test("browser tab rows carry URL, active state, and page-stable preview keys")
+    func browserTabIdentity() {
+        let parent = browserWindowRow(title: "Browser Window")
+        let rows = parent.browserTabRows(tabs: [
+            BrowserTabInfo(title: "Duplicate", url: "https://example.test/a#one"),
+            BrowserTabInfo(title: "Duplicate", url: "https://example.test/b"),
+        ], activeIndex: 1)
+
+        #expect(rows[0].browserTab?.url == "https://example.test/a#one")
+        #expect(rows.map(\.browserTab?.isActive) == [false, true])
+        #expect(rows[0].browserTabPreviewKey?.pageIdentity == "https://example.test/a")
+        #expect(rows[0].browserTabPreviewKey != rows[1].browserTabPreviewKey)
+
+        let reordered = parent.browserTabRows(tabs: [
+            BrowserTabInfo(title: "Duplicate", url: "https://example.test/b"),
+            BrowserTabInfo(title: "Duplicate", url: "https://example.test/a#two"),
+        ], activeIndex: 0)
+        #expect(rows[0].browserTabPreviewKey != reordered[0].browserTabPreviewKey)
+        #expect(rows[0].browserTabPreviewKey != reordered[1].browserTabPreviewKey) // index is part of identity
+    }
+
     @Test("browserTabRows leaves a single-tab (or empty) window collapsed")
     func browserTabsNoExpandUnderTwo() {
         let parent = browserWindowRow(title: "Solo")
