@@ -507,7 +507,9 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         let iconArea = NSRect(x: (w - tile) / 2, y: bounds.height - letterArea - tile, width: tile, height: tile)
         selectionBackdrop.frame = iconArea.insetBy(dx: m.tileSelectionInset, dy: m.tileSelectionInset)
 
-        let iconSize = usesCompactTabIcon ? floor(m.tileIconSize * 0.9) : m.tileIconSize
+        let iconSize = usesCompactTabIcon
+            ? min(m.tileIconSize, imageView.image?.size.width ?? m.tileIconSize)
+            : m.tileIconSize
         let iconRect = NSRect(
             x: iconArea.midX - iconSize / 2,
             y: iconArea.midY - iconSize / 2,
