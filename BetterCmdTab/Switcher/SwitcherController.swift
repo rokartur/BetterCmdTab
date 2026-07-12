@@ -148,6 +148,9 @@ final class SwitcherController: SwitcherViewDelegate {
     /// highlighted row and not a live `frontmostApplication` read (which returns
     /// BetterCmdTab once our key panel is on screen). Cleared on teardown.
     private var openFocusedWindow: AXUIElement?
+    /// AX title captured with `openFocusedWindow`; for browsers this identifies
+    /// the active tab without another AppleScript scan.
+    private var openFocusedWindowTitle = ""
     /// Target screen for `.activeWindow` ("active Space") display mode (#22),
     /// resolved off-main: the active monitor (the bright-menu-bar / focused
     /// display, which does not follow the mouse), or — when that can't be
@@ -271,6 +274,7 @@ final class SwitcherController: SwitcherViewDelegate {
     }
     private var tabIndex: Int = 0
     private var tabTitles: [String] = []
+    private var tabStripItems: [TabStripItem] = []
     /// Transient, non-interactive message shown in the tab-strip region (e.g.
     /// "grant Automation access") when a browser drill can't read tabs. Distinct
     /// from `tabDrillActive`: presenting it never enables tab navigation.
@@ -308,6 +312,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// dismisses or the base row set changes.
     private struct TabPrefetch {
         let titles: [String]
+        let faviconKeys: [String?]
         let liveTabs: [AXUIElement]
         let backend: TabDrillBackend
     }
@@ -336,17 +341,20 @@ final class SwitcherController: SwitcherViewDelegate {
     /// let a rapid reopen spawn a duplicate osascript scan, and the older result
     /// could then overwrite the newer one. `browserTabsCacheStamp` throttles the
     /// background re-scan that keeps the cache fresh.
-    private var browserTabsCache: [AXRef: [String]] = [:]
+    private struct CachedBrowserTabs {
+        var tabs: [BrowserTabInfo]
+        var activeIndex: Int
+        var fetchedAt: TimeInterval
+    }
+    private var browserTabsCache: [AXRef: CachedBrowserTabs] = [:]
     private var browserTabsFetchInFlight: Set<AXRef> = []
     /// Monotonic timestamp (systemUptime) of the last successful tab fetch per
     /// window. A window is re-scanned only when its entry is older than
     /// `browserTabsCacheTTL`, bounding osascript spawns across rapid re-opens.
-    private var browserTabsCacheStamp: [AXRef: TimeInterval] = [:]
     private static let browserTabsCacheTTL: TimeInterval = 3.0
     /// Active-tab index per cached browser window, parallel to `browserTabsCache`.
     /// Lets a window-MRU fast tap into a browser land on the tab the user left on
     /// instead of snapping to tab 1 when post-expansion title matching misses (#39).
-    private var browserTabsActiveIndex: [AXRef: Int] = [:]
     /// Monotonic time of the last *forced* (event-driven) browser-tab scan. A
     /// forced scan (a browser-window title change while the panel is open, which
     /// fires when a tab is opened/closed/switched) bypasses the per-window TTL so
@@ -355,6 +363,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// keep osascript spawns (and CPU) bounded.
     private var lastForcedBrowserScanAt: TimeInterval = 0
     private static let forcedBrowserScanMinInterval: TimeInterval = 0.4
+    private var browserTabPreviewRequested = false
     private var windowsOnlyMode: Bool = false
     private var windowsOnlyPid: pid_t? = nil
     private var windowsOnlyPrimedDelta: Int = 0
@@ -439,6 +448,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// (overlapping the reveal delay) so `reveal()` doesn't block its critical
     /// path on the synchronous AX read. Consumed and cleared by `reveal()`.
     private var prefetchedFocusedWindow: AXUIElement?
+    private var prefetchedFocusedWindowTitle = ""
     /// `.activeWindow` target screen resolved during the primed prefetch, copied
     /// into `openTargetScreen` by `reveal()` (mirrors `prefetchedFocusedWindow`).
     private var prefetchedTargetScreen: NSScreen?
@@ -1690,7 +1700,9 @@ final class SwitcherController: SwitcherViewDelegate {
         focusSync = FocusSyncCoalescer()
         focusSyncTokens.removeAll()
         openFocusedWindow = nil
+        openFocusedWindowTitle = ""
         prefetchedFocusedWindow = nil
+        prefetchedFocusedWindowTitle = ""
         openTargetScreen = nil
         prefetchedTargetScreen = nil
         previousFrontmostApp = nil
@@ -1848,6 +1860,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // commit/cancel → `.idle` both pass through here, so the normal fast
             // path disarms it well before it could fire.
             if newValue.isPrimed {
+                browserTabPreviewRequested = false
                 armPrimedWatchdog()
             } else {
                 primedWatchdog?.invalidate()
@@ -2720,6 +2733,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// skips the primed timer).
     private func prefetchOpenFocusedWindow() {
         prefetchedFocusedWindow = nil
+        prefetchedFocusedWindowTitle = ""
         prefetchedTargetScreen = nil
         let selfPid = getpid()
         guard let front = NSWorkspace.shared.frontmostApplication,
@@ -2730,6 +2744,11 @@ final class SwitcherController: SwitcherViewDelegate {
         let gen = focusedWindowCaptureGen
         DispatchQueue.global(qos: .userInteractive).async {
             let window = Activator.focusedWindow(pid: pid)
+            var titleValue: AnyObject?
+            let title = window.flatMap {
+                AXUIElementCopyAttributeValue($0, kAXTitleAttribute as CFString, &titleValue) == .success
+                    ? titleValue as? String : nil
+            } ?? ""
             // Prefer the active monitor (the one with the bright menu bar — the
             // focused display, which does NOT follow the mouse; correct even with
             // no focused window, e.g. a bare desktop). Only pay for the
@@ -2755,6 +2774,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // skip the primed prefetch) would adopt.
                 guard self.phase == .primed else { return }
                 self.prefetchedFocusedWindow = window
+                self.prefetchedFocusedWindowTitle = title
                 if let activeDisplayID, let s = self.screen(forDisplayID: activeDisplayID) {
                     self.prefetchedTargetScreen = s
                 } else if let axBounds {
@@ -2800,9 +2820,12 @@ final class SwitcherController: SwitcherViewDelegate {
         // they no-op gracefully if not). `front` is the real frontmost captured
         // above, before `panel.present()` makes our key panel frontmost.
         openFocusedWindow = prefetchedFocusedWindow
+        openFocusedWindowTitle = prefetchedFocusedWindowTitle
         prefetchedFocusedWindow = nil
+        prefetchedFocusedWindowTitle = ""
         openTargetScreen = prefetchedTargetScreen
         prefetchedTargetScreen = nil
+        _ = syncFocusedBrowserTabIndex()
         // Mode may have flipped to .activeWindow after the primed prefetch (which
         // captured the window but not the screen). Resolve the screen now —
         // active monitor (bright menu bar) first, the captured window as
@@ -2832,6 +2855,11 @@ final class SwitcherController: SwitcherViewDelegate {
             let gen = focusedWindowCaptureGen
             DispatchQueue.global(qos: .userInteractive).async {
                 let window = Activator.focusedWindow(pid: pid)
+                var titleValue: AnyObject?
+                let title = window.flatMap {
+                    AXUIElementCopyAttributeValue($0, kAXTitleAttribute as CFString, &titleValue) == .success
+                        ? titleValue as? String : nil
+                } ?? ""
                 let activeDisplayID = wantScreen ? PrivateAPI.activeMenuBarDisplayID() : nil
                 let axBounds = (wantScreen && activeDisplayID == nil && window != nil) ? Activator.axBounds(of: window!) : nil
                 let wid = window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
@@ -2842,6 +2870,11 @@ final class SwitcherController: SwitcherViewDelegate {
                     if wid != 0, self.phase != .idle { self.windowMRU.bump(pid: pid, wid: wid) }
                     guard self.phase == .visible, self.openFocusedWindow == nil else { return }
                     self.openFocusedWindow = window
+                    self.openFocusedWindowTitle = title
+                    if self.syncFocusedBrowserTabIndex() != nil {
+                        self.reExpandBrowserTabs(force: true)
+                    }
+                    self.prewarmActiveBrowserTabPreview()
                     if let activeDisplayID, let resolved = self.screen(forDisplayID: activeDisplayID) {
                         self.openTargetScreen = resolved
                         self.reapplySessionScreenIfChanged()
@@ -2965,7 +2998,7 @@ final class SwitcherController: SwitcherViewDelegate {
             if let windowKey, let match = rows.firstIndex(where: { keyMatches($0, windowKey) }) {
                 index = match
             } else if let win = selectedWindow,
-                      let active = browserTabsActiveIndex[AXRef(element: win)],
+                      let active = browserTabsCache[AXRef(element: win)]?.activeIndex,
                       let match = Self.activeBrowserTabIndex(in: rows, window: AXRef(element: win), activeTabIndex: active) {
                 index = match
             } else if let pid = selectedPid, let match = rows.firstIndex(where: { $0.pid == pid }) {
@@ -2981,9 +3014,13 @@ final class SwitcherController: SwitcherViewDelegate {
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
         currentMetrics = makeMetrics(for: sessionScreen)
+        syncActiveBrowserTabPreviewKeys()
+        prewarmActiveBrowserTabPreview()
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
+        syncActiveBrowserTabPreviewKeys()
+        prewarmActiveBrowserTabPreview()
         cache.setPanelVisible(true)
         dockBadgeObserver.start(enabled: effective.showUnreadBadges)
         // Inline browser-tab mode: start scanning the visible browser windows'
@@ -3072,9 +3109,13 @@ final class SwitcherController: SwitcherViewDelegate {
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
         currentMetrics = makeMetrics(for: sessionScreen)
+        syncActiveBrowserTabPreviewKeys()
+        prewarmActiveBrowserTabPreview()
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
+        syncActiveBrowserTabPreviewKeys()
+        prewarmActiveBrowserTabPreview()
         cache.setPanelVisible(true)
         dockBadgeObserver.start(enabled: effective.showUnreadBadges)
     }
@@ -3220,7 +3261,7 @@ final class SwitcherController: SwitcherViewDelegate {
               !effective.applicationsOnly else { return rows }
         return Self.sinkInactiveBrowserTabs(
             rows,
-            activeIndex: browserTabsActiveIndex,
+            activeIndexFor: { [browserTabsCache] in browserTabsCache[$0]?.activeIndex },
             pinnedIDs: Preferences.shared.pinnedBundleIDs
         )
     }
@@ -3236,12 +3277,20 @@ final class SwitcherController: SwitcherViewDelegate {
         activeIndex: [AXRef: Int],
         pinnedIDs: [String]
     ) -> [SwitcherRow] {
+        sinkInactiveBrowserTabs(rows, activeIndexFor: { activeIndex[$0] }, pinnedIDs: pinnedIDs)
+    }
+
+    private static func sinkInactiveBrowserTabs(
+        _ rows: [SwitcherRow],
+        activeIndexFor: (AXRef) -> Int?,
+        pinnedIDs: [String]
+    ) -> [SwitcherRow] {
         var active: [SwitcherRow] = []
         var inactive: [SwitcherRow] = []
         active.reserveCapacity(rows.count)
         for row in rows {
             if let bt = row.browserTab, let win = row.window,
-               let activeIdx = activeIndex[AXRef(element: win)],
+               let activeIdx = activeIndexFor(AXRef(element: win)),
                bt.index != activeIdx {
                 inactive.append(row)
             } else {
@@ -3475,9 +3524,9 @@ final class SwitcherController: SwitcherViewDelegate {
             guard row.browserTab == nil,
                   let window = row.window,
                   BrowserTabs.Family.from(bundleID: row.bundleIdentifier) != nil,
-                  let titles = browserTabsCache[AXRef(element: window)],
-                  titles.count > 1 else { out.append(row); continue }
-            out.append(contentsOf: row.browserTabRows(tabTitles: titles))
+                  let cached = browserTabsCache[AXRef(element: window)],
+                  cached.tabs.count > 1 else { out.append(row); continue }
+            out.append(contentsOf: row.browserTabRows(tabs: cached.tabs, activeIndex: cached.activeIndex))
         }
         return out
     }
@@ -3571,7 +3620,7 @@ final class SwitcherController: SwitcherViewDelegate {
             if browserTabsFetchInFlight.contains(key) { continue }
             // Skip a window whose cache entry is still fresh (unless forced); fall
             // through when it's missing or older than the TTL so tab add/close shows.
-            if !force, let stamp = browserTabsCacheStamp[key], now - stamp < Self.browserTabsCacheTTL { continue }
+            if !force, let cached = browserTabsCache[key], now - cached.fetchedAt < Self.browserTabsCacheTTL { continue }
             byApp[app.processIdentifier, default: (app, [])].wins.append(
                 Target(window: window, title: row.windowTitle, key: key)
             )
@@ -3583,22 +3632,20 @@ final class SwitcherController: SwitcherViewDelegate {
         // pruning against it would evict every out-of-scope browser window.
         if activeScope == nil, browserTabsCache.contains(where: { !liveKeys.contains($0.key) }) {
             browserTabsCache = browserTabsCache.filter { liveKeys.contains($0.key) }
-            browserTabsCacheStamp = browserTabsCacheStamp.filter { liveKeys.contains($0.key) }
-            browserTabsActiveIndex = browserTabsActiveIndex.filter { liveKeys.contains($0.key) }
         }
         guard !byApp.isEmpty else { return }
         if force { lastForcedBrowserScanAt = now }
         for (_, entry) in byApp { for t in entry.wins { browserTabsFetchInFlight.insert(t.key) } }
         let apps = Array(byApp.values)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            var fetched: [AXRef: [String]] = [:]
+            var fetched: [AXRef: (tabs: [BrowserTabInfo], active: Int)] = [:]
+            var faviconRequests: [BrowserFaviconCache.Request] = []
             // Browsers whose scan hit a script error (Automation denied / timeout)
             // rather than genuinely having no tabs — surface the permission hint and
             // skip negative-caching so a grant + re-open retries at once (#39).
             var failedApps: [NSRunningApplication] = []
             // Active-tab index per resolved window, so the panel can land a
             // window-MRU step on the tab the user left on rather than tab 1 (#39).
-            var fetchedActive: [AXRef: Int] = [:]
             for entry in apps {
                 // A browser window's AX kAXTitleAttribute reflects its ACTIVE TAB,
                 // not the AppleScript window title (e.g. Arc reports "Arc" as the
@@ -3609,13 +3656,20 @@ final class SwitcherController: SwitcherViewDelegate {
                 let result = BrowserTabs.allWindowTabs(for: entry.app)
                 if result.failed { failedApps.append(entry.app); continue }
                 let perWindow = result.windows
+                if let bundleID = entry.app.bundleIdentifier {
+                    faviconRequests.append(contentsOf: perWindow.flatMap(\.tabs).map {
+                        .init(bundleID: bundleID, url: $0.url)
+                    })
+                }
                 var activeCounts: [String: Int] = [:]
-                var byActive: [String: (tabs: [String], active: Int)] = [:]
+                var byActive: [String: (tabs: [BrowserTabInfo], active: Int)] = [:]
                 var titleCounts: [String: Int] = [:]
-                var byTitle: [String: (tabs: [String], active: Int)] = [:]
+                var byTitle: [String: (tabs: [BrowserTabInfo], active: Int)] = [:]
                 for w in perWindow {
-                    let activeIdx = w.tabs.firstIndex(of: w.activeTab) ?? 0
-                    let a = w.activeTab.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let activeIdx = w.activeIndex
+                    let a = w.tabs.indices.contains(activeIdx)
+                        ? w.tabs[activeIdx].title.trimmingCharacters(in: .whitespacesAndNewlines)
+                        : ""
                     if !a.isEmpty { activeCounts[a, default: 0] += 1; byActive[a] = (w.tabs, activeIdx) }
                     let t = w.title.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !t.isEmpty { titleCounts[t, default: 0] += 1; byTitle[t] = (w.tabs, activeIdx) }
@@ -3623,20 +3677,20 @@ final class SwitcherController: SwitcherViewDelegate {
                 for t in entry.wins {
                     let k = t.title.trimmingCharacters(in: .whitespacesAndNewlines)
                     if activeCounts[k] == 1, let hit = byActive[k] {
-                        fetched[t.key] = hit.tabs; fetchedActive[t.key] = hit.active
+                        fetched[t.key] = hit
                     } else if titleCounts[k] == 1, let hit = byTitle[k] {
-                        fetched[t.key] = hit.tabs; fetchedActive[t.key] = hit.active
+                        fetched[t.key] = hit
                     } else if perWindow.count == 1 && entry.wins.count == 1 {
                         let only = perWindow[0]
-                        fetched[t.key] = only.tabs
-                        fetchedActive[t.key] = only.tabs.firstIndex(of: only.activeTab) ?? 0
+                        fetched[t.key] = (only.tabs, only.activeIndex)
                     } else {
                         // Negative-cache (empty) a missing/ambiguous window so we
                         // don't re-spawn osascript for it every tick this session.
-                        fetched[t.key] = []
+                        fetched[t.key] = ([], 0)
                     }
                 }
             }
+            BrowserFaviconCache.load(faviconRequests)
             DispatchQueue.main.async {
                 guard let self else { return }
                 let stamp = ProcessInfo.processInfo.systemUptime
@@ -3644,14 +3698,87 @@ final class SwitcherController: SwitcherViewDelegate {
                 // resolved, so a failed app's windows re-scan on the next open.
                 for entry in apps { for t in entry.wins { self.browserTabsFetchInFlight.remove(t.key) } }
                 for (k, v) in fetched {
-                    self.browserTabsCache[k] = v
-                    self.browserTabsCacheStamp[k] = stamp
-                    self.browserTabsActiveIndex[k] = fetchedActive[k]
+                    self.browserTabsCache[k] = CachedBrowserTabs(
+                        tabs: v.tabs,
+                        activeIndex: v.active,
+                        fetchedAt: stamp
+                    )
                 }
+                self.syncActiveBrowserTabPreviewKeys()
                 if let failed = failedApps.first { self.showTabDrillHint(forApp: failed) }
                 onDone?()
+                self.prewarmActiveBrowserTabPreview()
             }
         }
+    }
+
+    private func syncActiveBrowserTabPreviewKeys() {
+        guard let focused = openFocusedWindow,
+              let row = collapsedBrowserSource().first(where: {
+                  $0.window.map { CFEqual($0, focused) } == true
+              }),
+              let pid = row.pid,
+              row.cgWindowID != 0,
+              let activeIndex = syncFocusedBrowserTabIndex(),
+              let cached = browserTabsCache[AXRef(element: focused)],
+              cached.tabs.indices.contains(activeIndex) else {
+            WindowThumbnailCache.shared.setActiveBrowserTab(nil)
+            return
+        }
+        let tab = cached.tabs[activeIndex]
+        WindowThumbnailCache.shared.setActiveBrowserTab(BrowserTabPreviewKey(
+            pid: pid,
+            windowID: row.cgWindowID,
+            index: activeIndex,
+            pageIdentity: BrowserFaviconCache.normalizedURL(tab.url) ?? tab.title
+        ))
+    }
+
+    @discardableResult
+    private func syncFocusedBrowserTabIndex() -> Int? {
+        guard let focused = openFocusedWindow,
+              var cached = browserTabsCache[AXRef(element: focused)],
+              let index = Self.activeBrowserTabIndex(
+                  tabs: cached.tabs,
+                  windowTitle: openFocusedWindowTitle
+              ) else { return nil }
+        if cached.activeIndex != index {
+            cached.activeIndex = index
+            browserTabsCache[AXRef(element: focused)] = cached
+        }
+        return index
+    }
+
+    /// At most one non-blocking browser-tab capture per switcher trigger.
+    private func prewarmActiveBrowserTabPreview() {
+        guard !browserTabPreviewRequested,
+              Preferences.shared.experimentalBrowserTabPreviews,
+              effective.layoutMode == .windowPreview,
+              phase == .primed || phase == .visible,
+              let app = previousFrontmostApp,
+              BrowserTabs.Family.from(bundleID: app.bundleIdentifier) != nil,
+              let focused = openFocusedWindow,
+              let row = collapsedBrowserSource().first(where: {
+                  $0.pid == app.processIdentifier && $0.window.map { CFEqual($0, focused) } == true
+              }),
+              row.cgWindowID != 0,
+              let activeIndex = syncFocusedBrowserTabIndex(),
+              let cached = browserTabsCache[AXRef(element: focused)],
+              cached.tabs.indices.contains(activeIndex) else { return }
+        let tab = cached.tabs[activeIndex]
+        let key = BrowserTabPreviewKey(
+            pid: app.processIdentifier,
+            windowID: row.cgWindowID,
+            index: activeIndex,
+            pageIdentity: BrowserFaviconCache.normalizedURL(tab.url) ?? tab.title
+        )
+        browserTabPreviewRequested = true
+        let scale = panel.backingScaleFactor
+        WindowThumbnailCache.shared.setActiveBrowserTab(key)
+        WindowThumbnailCache.shared.requestBrowserTab(
+            key,
+            pixelHeight: currentMetrics.previewThumbHeight * scale
+        )
     }
 
     /// Reveal-time / post-action browser-tab scan over the currently displayed
@@ -3700,7 +3827,9 @@ final class SwitcherController: SwitcherViewDelegate {
     /// re-scan that loaded new titles (same tab count) still re-renders.
     private static func rowsDifferVisibly(_ a: [SwitcherRow], _ b: [SwitcherRow]) -> Bool {
         guard a.count == b.count else { return true }
-        for (x, y) in zip(a, b) where x.windowTitle != y.windowTitle { return true }
+        for (x, y) in zip(a, b) where x.windowTitle != y.windowTitle
+            || x.browserTab?.url != y.browserTab?.url
+            || x.browserTab?.isActive != y.browserTab?.isActive { return true }
         return false
     }
 
@@ -3915,6 +4044,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // session and be adopted by a gesture/scoped open that skips the primed
         // prefetch (those call reveal() directly).
         prefetchedFocusedWindow = nil
+        prefetchedFocusedWindowTitle = ""
         prefetchedTargetScreen = nil
         // We picked a target — `pendingActivation` activates it, so there's
         // nothing to restore. Without a pick (committing out of the empty
@@ -3948,6 +4078,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabDrillActive = false
         tabDrillHint = nil
         tabTitles = []
+        tabStripItems = []
         liveTabElements = []
         drillWindowRows = []
         tabIndex = 0
@@ -3960,7 +4091,9 @@ final class SwitcherController: SwitcherViewDelegate {
         resetLetterBuffer()
         resetSearch()
         openFocusedWindow = nil
+        openFocusedWindowTitle = ""
         prefetchedFocusedWindow = nil
+        prefetchedFocusedWindowTitle = ""
         openTargetScreen = nil
         prefetchedTargetScreen = nil
         view.releaseIdleResources()
@@ -4180,7 +4313,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // Cache hit: drill-in is instant — strip appears on the same run
         // loop tick.
         if let cached = tabPrefetchCache[AXRef(element: window)], !cached.titles.isEmpty {
-            applyDrill(titles: cached.titles, liveTabs: cached.liveTabs, backend: cached.backend, window: window)
+            applyDrill(titles: cached.titles, faviconKeys: cached.faviconKeys, liveTabs: cached.liveTabs, backend: cached.backend, window: window)
             return
         }
         let isBrowser = (BrowserTabs.Family.from(bundleID: app.bundleIdentifier) != nil)
@@ -4207,8 +4340,8 @@ final class SwitcherController: SwitcherViewDelegate {
                       let currentWindow = self.rows[self.index].window,
                       CFEqual(currentWindow, window) else { return }
                 switch result {
-                case .tabs(let titles, let liveTabs, let backend):
-                    self.applyDrill(titles: titles, liveTabs: liveTabs, backend: backend, window: window)
+                case .tabs(let titles, let faviconKeys, let liveTabs, let backend):
+                    self.applyDrill(titles: titles, faviconKeys: faviconKeys, liveTabs: liveTabs, backend: backend, window: window)
                 case .failed:
                     self.showTabDrillHint(forApp: app)
                 case .none:
@@ -4237,11 +4370,14 @@ final class SwitcherController: SwitcherViewDelegate {
 
     /// Apply a fetched/cached tab set to the panel — single sink used by
     /// both the cache-hit and async paths so they can't drift.
-    private func applyDrill(titles: [String], liveTabs: [AXUIElement], backend: TabDrillBackend, window: AXUIElement) {
+    private func applyDrill(titles: [String], faviconKeys: [String?] = [], liveTabs: [AXUIElement], backend: TabDrillBackend, window: AXUIElement) {
         // Snapshot the detach state on first entry only (a re-drill onto another
         // row must keep the original pre-drill value, not the forced `true`).
         if !tabDrillActive { stickyOpenBeforeDrill = stickyOpen }
         tabTitles = titles
+        tabStripItems = titles.enumerated().map { index, title in
+            TabStripItem(title: title, faviconKey: faviconKeys.indices.contains(index) ? faviconKeys[index] : nil)
+        }
         liveTabElements = liveTabs
         tabDrillBackend = backend
         tabIndex = 0
@@ -4256,7 +4392,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // `\` tab drill on the same window would replay window rows as tabs
         // against stale `drillWindowRows` (#80).
         if backend != .appWindows {
-            tabPrefetchCache[AXRef(element: window)] = TabPrefetch(titles: titles, liveTabs: liveTabs, backend: backend)
+            tabPrefetchCache[AXRef(element: window)] = TabPrefetch(titles: titles, faviconKeys: faviconKeys, liveTabs: liveTabs, backend: backend)
         }
     }
 
@@ -4271,7 +4407,7 @@ final class SwitcherController: SwitcherViewDelegate {
     private enum DrillFetch: @unchecked Sendable {
         case none
         case failed
-        case tabs(titles: [String], liveTabs: [AXUIElement], backend: TabDrillBackend)
+        case tabs(titles: [String], faviconKeys: [String?], liveTabs: [AXUIElement], backend: TabDrillBackend)
     }
 
     /// AX tab enumeration must never target our own process. Accessibility
@@ -4294,8 +4430,16 @@ final class SwitcherController: SwitcherViewDelegate {
             switch BrowserTabs.tabTitles(for: app, window: window, title: title) {
             case .failed:
                 return .failed
-            case .tabs(let titles):
-                return titles.count > 1 ? .tabs(titles: titles, liveTabs: [], backend: .appleScript) : .none
+            case .tabs(let tabs):
+                guard tabs.count > 1 else { return .none }
+                let requests = tabs.map { BrowserFaviconCache.Request(bundleID: app.bundleIdentifier ?? "", url: $0.url) }
+                BrowserFaviconCache.load(requests)
+                return .tabs(
+                    titles: tabs.map(\.title),
+                    faviconKeys: tabs.map { BrowserFaviconCache.key(bundleID: app.bundleIdentifier, url: $0.url) },
+                    liveTabs: [],
+                    backend: .appleScript
+                )
             case .notSupported:
                 return .none
             }
@@ -4308,7 +4452,7 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         guard axTabs.count > 1 else { return .none }
         let titles = WindowEnumerator.tabTitles(for: axTabs)
-        return .tabs(titles: titles, liveTabs: axTabs, backend: .accessibility)
+        return .tabs(titles: titles, faviconKeys: [], liveTabs: axTabs, backend: .accessibility)
     }
 
     /// Kick a background prefetch for the highlighted row after a short
@@ -4366,8 +4510,8 @@ final class SwitcherController: SwitcherViewDelegate {
                         guard let self, gen == self.revealGeneration,
                               prefetchGeneration == self.tabPrefetchGeneration else { return }
                         self.tabPrefetchInFlight.remove(key)
-                        guard case .tabs(let titles, let liveTabs, let backend) = result, !titles.isEmpty else { return }
-                        self.tabPrefetchCache[key] = TabPrefetch(titles: titles, liveTabs: liveTabs, backend: backend)
+                        guard case .tabs(let titles, let faviconKeys, let liveTabs, let backend) = result, !titles.isEmpty else { return }
+                        self.tabPrefetchCache[key] = TabPrefetch(titles: titles, faviconKeys: faviconKeys, liveTabs: liveTabs, backend: backend)
                     }
                 }
             }
@@ -4381,6 +4525,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabDrillActive = false
         tabDrillHint = nil
         tabTitles = []
+        tabStripItems = []
         liveTabElements = []
         drillWindowRows = []
         tabIndex = 0
@@ -4499,6 +4644,7 @@ final class SwitcherController: SwitcherViewDelegate {
         previousFrontmostApp = nil
         tabDrillActive = false
         tabTitles = []
+        tabStripItems = []
         liveTabElements = []
         drillWindowRows = []
         tabIndex = 0
@@ -4558,10 +4704,11 @@ final class SwitcherController: SwitcherViewDelegate {
             // down naturally because `browserTabRows` re-enumerates the array. The
             // throttled background re-scan reconciles if the close didn't take.
             let key = AXRef(element: window)
-            if var titles = browserTabsCache[key], titles.indices.contains(tabIndex) {
-                titles.remove(at: tabIndex)
-                browserTabsCache[key] = titles
-                browserTabsCacheStamp[key] = nil   // force a refresh on next scan
+            if var cached = browserTabsCache[key], cached.tabs.indices.contains(tabIndex) {
+                cached.tabs.remove(at: tabIndex)
+                cached.activeIndex = min(cached.activeIndex, max(0, cached.tabs.count - 1))
+                cached.fetchedAt = 0
+                browserTabsCache[key] = cached
             }
             reExpandBrowserTabs(force: true)
             if baseRows.isEmpty { cancel(); return }
@@ -4958,6 +5105,26 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    /// Resolve the active tab from the focused browser window's current AX
+    /// title. Duplicate titles are intentionally ambiguous: skipping one frame
+    /// is better than caching the current page under another tab's URL.
+    nonisolated static func activeBrowserTabIndex(tabs: [BrowserTabInfo], windowTitle: String) -> Int? {
+        let title = windowTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return nil }
+        var match: Int?
+        for index in tabs.indices {
+            let tabTitle = tabs[index].title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !tabTitle.isEmpty,
+                  title == tabTitle
+                || title.hasPrefix(tabTitle + " — ")
+                || title.hasPrefix(tabTitle + " – ")
+                || title.hasPrefix(tabTitle + " - ") else { continue }
+            guard match == nil else { return nil }
+            match = index
+        }
+        return match
+    }
+
     /// Recently closed windows/apps to surface for reopening. `forSearchQuery`
     /// non-nil filters by fuzzy match; nil yields the newest entries. Returns
     /// nothing when the feature is off or in window-only mode. App-only entries
@@ -5159,7 +5326,7 @@ final class SwitcherController: SwitcherViewDelegate {
             highlightPrefix: searchActive ? "" : letterBuffer,
             searchActive: searchActive,
             searchQuery: searchQuery,
-            tabStripTitles: tabDrillActive ? tabTitles : tabDrillHint.map { [$0] },
+            tabStripItems: tabDrillActive ? tabStripItems : tabDrillHint.map { [TabStripItem(title: $0, faviconKey: nil)] },
             tabStripSelectedIndex: tabIndex
         )
         panel.present(opacity: effective.panelOpacity)

@@ -126,4 +126,47 @@ struct ThumbnailLRUTests {
         #expect(acceptedNewer)
         #expect(gate.count == 0)
     }
+
+    @Test("window and browser-tab thumbnails share limits without key collisions")
+    func mixedThumbnailKeysShareBudget() {
+        let tab = BrowserTabPreviewKey(pid: 7, windowID: 9, index: 0, pageIdentity: "https://example.test")
+        var lru = ThumbnailLRU(countLimit: 2, costLimit: 15)
+        lru.set(image, cost: 7, capturedAt: epoch, for: .window(9))
+        lru.set(image, cost: 7, capturedAt: epoch, for: .browserTab(tab))
+        #expect(lru.count == 2)
+        #expect(lru.totalCost == 14)
+        let windowImage = lru.image(for: .window(9))
+        let tabImage = lru.image(for: .browserTab(tab))
+        #expect(windowImage != nil)
+        #expect(tabImage != nil)
+
+        lru.set(image, cost: 7, capturedAt: epoch, for: .window(10))
+        #expect(lru.count == 2)
+        #expect(lru.totalCost == 14)
+    }
+
+    @Test("a late browser-tab completion cannot consume a newer tab request")
+    func requestGateRejectsLateBrowserCapture() {
+        let first = ThumbnailKey.browserTab(.init(pid: 1, windowID: 2, index: 0, pageIdentity: "a"))
+        let second = ThumbnailKey.browserTab(.init(pid: 1, windowID: 2, index: 1, pageIdentity: "b"))
+        var gate = ThumbnailRequestGate()
+        let old = gate.begin(first)!
+        let new = gate.begin(second)!
+        let acceptedOld = gate.finish(first, token: old)
+        #expect(acceptedOld)
+        #expect(gate.count == 1)
+        let acceptedNew = gate.finish(second, token: new)
+        #expect(acceptedNew)
+    }
+
+    @Test("a browser-tab request cannot approve its own stale key")
+    @MainActor func browserCaptureRequiresCurrentTarget() {
+        let current = BrowserTabPreviewKey(pid: 1, windowID: 2, index: 0, pageIdentity: "current")
+        let stale = BrowserTabPreviewKey(pid: 1, windowID: 2, index: 1, pageIdentity: "stale")
+        let cache = WindowThumbnailCache.shared
+        cache.setActiveBrowserTab(current)
+        #expect(cache.isActiveBrowserTab(current))
+        #expect(!cache.isActiveBrowserTab(stale))
+        cache.setActiveBrowserTab(nil)
+    }
 }

@@ -45,6 +45,11 @@ enum IconCache {
     }()
 
     static func icon(for row: SwitcherRow) -> NSImage? {
+        if let tab = row.browserTab,
+           let key = BrowserFaviconCache.key(bundleID: row.bundleIdentifier, url: tab.url),
+           let favicon = BrowserFaviconCache.image(forKey: key) {
+            return favicon
+        }
         if let pid = row.pid {
             let key = NSNumber(value: pid)
             if let cached = cache.object(forKey: key) { return cached }

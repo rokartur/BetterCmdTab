@@ -4,6 +4,11 @@ import Darwin
 import Foundation
 import os
 
+struct BrowserTabInfo: Equatable, Sendable {
+    let title: String
+    let url: String
+}
+
 // Private SPI from libsystem: detaches the spawned child's TCC
 // "responsibility" so it acts as its own client (osascript) instead of
 // inheriting from us (BetterCmdTab). This is the documented escape hatch
@@ -61,7 +66,7 @@ enum BrowserTabs {
     enum TabsOutcome {
         case notSupported
         case failed
-        case tabs([String])
+        case tabs([BrowserTabInfo])
     }
 
     enum Family {
@@ -303,9 +308,13 @@ enum BrowserTabs {
     /// Split osascript's list output into items. AppleScript's default text
     /// representation of a list separates items with ", " — split there.
     /// Returns the raw items in declaration order.
-    private static func parseList(_ raw: String) -> [String] {
+    private static func parseTabs(_ raw: String) -> [BrowserTabInfo] {
         guard !raw.isEmpty else { return [] }
-        return raw.components(separatedBy: ", ")
+        return raw.components(separatedBy: "\u{1F}").compactMap { record in
+            let parts = record.components(separatedBy: "\u{1C}")
+            guard parts.count == 2 else { return nil }
+            return BrowserTabInfo(title: parts[0], url: parts[1])
+        }
     }
 
     /// Force the macOS TCC prompt for Apple Events to the target app. Returns
@@ -429,8 +438,18 @@ enum BrowserTabs {
                         end ignoring
                     end repeat
                     if matchCount is 1 then
-                        set AppleScript's text item delimiters to (ASCII character 10)
-                        return "MATCH" & (ASCII character 10) & ((\(attr) of every tab of window matchIdx) as text)
+                        set tabText to ""
+                        set tc to count of tabs of window matchIdx
+                        repeat with j from 1 to tc
+                            set tabTitle to (\(attr) of tab j of window matchIdx) as text
+                            set tabURL to ""
+                            try
+                                set tabURL to (URL of tab j of window matchIdx) as text
+                            end try
+                            set tabText to tabText & tabTitle & (ASCII character 28) & tabURL
+                            if j < tc then set tabText to tabText & (ASCII character 31)
+                        end repeat
+                        return "MATCH" & (ASCII character 29) & tabText
                     else
                         return "FALLBACK"
                     end if
@@ -440,9 +459,9 @@ enum BrowserTabs {
             if let raw = runScript(matchSource) {
                 if raw == "NOWINDOWS" { return .tabs([]) }
                 if raw != "FALLBACK" {
-                    let body = raw.hasPrefix("MATCH\n") ? String(raw.dropFirst("MATCH\n".count)) : raw
-                    let titles = body.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-                    return .tabs(titles)
+                    let prefix = "MATCH\u{1D}"
+                    let body = raw.hasPrefix(prefix) ? String(raw.dropFirst(prefix.count)) : raw
+                    return .tabs(parseTabs(body))
                 }
                 // "FALLBACK" → title didn't uniquely match; use the raise path.
             } else {
@@ -461,18 +480,26 @@ enum BrowserTabs {
         tell \(appLit)
             with timeout of 3 seconds
                 if (count of windows) = 0 then return ""
-                set theList to \(attr) of every tab of window 1
+                set tabText to ""
+                set tc to count of tabs of window 1
+                repeat with j from 1 to tc
+                    set tabTitle to (\(attr) of tab j of window 1) as text
+                    set tabURL to ""
+                    try
+                        set tabURL to (URL of tab j of window 1) as text
+                    end try
+                    set tabText to tabText & tabTitle & (ASCII character 28) & tabURL
+                    if j < tc then set tabText to tabText & (ASCII character 31)
+                end repeat
             end timeout
         end tell
-        set AppleScript's text item delimiters to (ASCII character 10)
-        return theList as text
+        return tabText
         """
         guard let raw = runScript(source) else {
             Log.activator.error("BrowserTabs: tabTitles \(bid) failed (permission/timeout?)")
             return .failed
         }
-        let titles = raw.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-        return .tabs(titles)
+        return .tabs(parseTabs(raw))
     }
 
     /// List every window of `app` together with its tab titles in a **single**
@@ -487,7 +514,13 @@ enum BrowserTabs {
     /// the "grant Automation access" hint (#39) — an empty result alone can't tell
     /// "denied" from "nothing to show".
     struct AllWindowTabs {
-        let windows: [(title: String, activeTab: String, tabs: [String])]
+        struct Window: Equatable, Sendable {
+            let title: String
+            let activeIndex: Int
+            let tabs: [BrowserTabInfo]
+        }
+
+        let windows: [Window]
         /// True only when the osascript spawn itself failed (nil result) — a
         /// permission/timeout signal, not an empty browser.
         let failed: Bool
@@ -519,8 +552,8 @@ enum BrowserTabs {
         // A browser window's AX title reflects its active tab, so also capture the
         // active tab's title per window for the caller to match AX windows by.
         let activeExpr: String = (family == .safari)
-            ? "name of current tab of window i"
-            : "title of active tab of window i"
+            ? "index of current tab of window i"
+            : "active tab index of window i"
         let source = """
         tell \(appLit)
             with timeout of 5 seconds
@@ -529,15 +562,22 @@ enum BrowserTabs {
                 set outText to ""
                 repeat with i from 1 to wc
                     set wTitle to (\(attr) of window i) as text
-                    set att to ""
+                    set activeIndex to 1
                     try
-                        set att to (\(activeExpr)) as text
+                        set activeIndex to \(activeExpr)
                     end try
-                    set tabNames to (\(attr) of every tab of window i)
-                    set AppleScript's text item delimiters to (ASCII character 31)
-                    set tabText to tabNames as text
-                    set AppleScript's text item delimiters to ""
-                    set outText to outText & wTitle & (ASCII character 30) & att & (ASCII character 30) & tabText
+                    set tabText to ""
+                    set tc to count of tabs of window i
+                    repeat with j from 1 to tc
+                        set tabTitle to (\(attr) of tab j of window i) as text
+                        set tabURL to ""
+                        try
+                            set tabURL to (URL of tab j of window i) as text
+                        end try
+                        set tabText to tabText & tabTitle & (ASCII character 28) & tabURL
+                        if j < tc then set tabText to tabText & (ASCII character 31)
+                    end repeat
+                    set outText to outText & wTitle & (ASCII character 30) & (activeIndex as text) & (ASCII character 30) & tabText
                     if i < wc then set outText to outText & (ASCII character 29)
                 end repeat
                 return outText
@@ -549,14 +589,20 @@ enum BrowserTabs {
             return .failure
         }
         if raw == "NOWINDOWS" || raw.isEmpty { return .empty }
-        var out: [(title: String, activeTab: String, tabs: [String])] = []
+        return AllWindowTabs(windows: parseAllWindowTabs(raw), failed: false)
+    }
+
+    static func parseAllWindowTabs(_ raw: String) -> [AllWindowTabs.Window] {
+        guard raw != "NOWINDOWS", !raw.isEmpty else { return [] }
+        var out: [AllWindowTabs.Window] = []
         for block in raw.components(separatedBy: "\u{1D}") {
             let parts = block.components(separatedBy: "\u{1E}")
-            guard parts.count == 3 else { continue }
-            let tabs = parts[2].isEmpty ? [] : parts[2].components(separatedBy: "\u{1F}")
-            out.append((title: parts[0], activeTab: parts[1], tabs: tabs))
+            guard parts.count == 3, let oneBased = Int(parts[1]) else { continue }
+            let tabs = parseTabs(parts[2])
+            let activeIndex = tabs.isEmpty ? 0 : min(max(0, oneBased - 1), tabs.count - 1)
+            out.append(.init(title: parts[0], activeIndex: activeIndex, tabs: tabs))
         }
-        return AllWindowTabs(windows: out, failed: false)
+        return out
     }
 
     /// Switch the row window's browser tab to `tabIndex` (0-based here, 1-based

@@ -16,6 +16,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let sensitivityValueLabel = NSTextField(labelWithString: "")
     private let instantSpaceSwitch = NSSwitch()
     private let browserTabMRUSwitch = NSSwitch()
+    private let browserTabPreviewSwitch = NSSwitch()
     private let livePreviewSwitch = NSSwitch()
     private let rankResultsSwitch = NSSwitch()
     private let searchTabsSwitch = NSSwitch()
@@ -86,6 +87,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
         // Previews section (the window-preview layout).
         let previews = addSection(title: String(localized: "Previews"), anchor: SettingsAnchor.experimentalPreviews)
+        configureSwitch(browserTabPreviewSwitch, action: #selector(toggleBrowserTabPreviews(_:)))
+        addRow(to: previews, title: String(localized: "Browser tab previews"),
+               subtitle: String(localized: "Capture the active browser tab for the Previews layout. Background tabs use an earlier cached image or their favicon."),
+               accessory: browserTabPreviewSwitch, searchItemID: SearchID.browserTabPreviews)
         configureSwitch(livePreviewSwitch, action: #selector(toggleLivePreviews(_:)))
         addRow(to: previews, title: String(localized: "Live window previews"),
                subtitle: String(localized: "In the Previews layout, thumbnails keep refreshing while the switcher is open, so they show what is happening in each window right now. Uses extra CPU and GPU while the panel is up."),
@@ -140,6 +145,7 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         applySensitivity(prefs.swipeSensitivity)
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
         browserTabMRUSwitch.state = prefs.experimentalBrowserTabMRU ? .on : .off
+        browserTabPreviewSwitch.state = prefs.experimentalBrowserTabPreviews ? .on : .off
         livePreviewSwitch.state = prefs.experimentalLivePreviews ? .on : .off
         rankResultsSwitch.state = prefs.fuzzySearchRankBestMatchFirst ? .on : .off
         searchTabsSwitch.state = prefs.searchExpandsBrowserTabs ? .on : .off
@@ -183,6 +189,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleBrowserTabMRU(_ sender: NSSwitch) {
         Preferences.shared.experimentalBrowserTabMRU = (sender.state == .on)
+    }
+
+    @objc private func toggleBrowserTabPreviews(_ sender: NSSwitch) {
+        Preferences.shared.experimentalBrowserTabPreviews = (sender.state == .on)
     }
 
     @objc private func toggleLivePreviews(_ sender: NSSwitch) {

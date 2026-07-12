@@ -140,6 +140,7 @@ enum SearchID {
     static let sensitivity = "experimental.sensitivity"
     static let instantSpace = "experimental.instantSpace"
     static let browserTabMRU = "experimental.browserTabMRU"
+    static let browserTabPreviews = "experimental.browserTabPreviews"
     static let livePreviews = "experimental.livePreviews"
     static let rankResults = "experimental.rankResults"
     static let searchExpandsBrowserTabs = "experimental.searchExpandsBrowserTabs"
@@ -418,6 +419,8 @@ enum SettingsCatalog {
         item(SearchID.browserTabMRU, .experimental, SettingsAnchor.experimentalTabs, String(localized: "Experimental"), String(localized: "Browser tabs"),
              String(localized: "Track browser tabs in recency"), ["browser", "tab", "tabs", "recent", "mru", "safari", "chrome"]),
         // Experimental · Previews
+        item(SearchID.browserTabPreviews, .experimental, SettingsAnchor.experimentalPreviews, String(localized: "Experimental"), String(localized: "Previews"),
+             String(localized: "Browser tab previews"), ["browser", "tab", "preview", "previews", "thumbnail", "safari", "chrome"]),
         item(SearchID.livePreviews, .experimental, SettingsAnchor.experimentalPreviews, String(localized: "Experimental"), String(localized: "Previews"),
              String(localized: "Live window previews"), ["live", "preview", "previews", "thumbnail", "thumbnails", "refresh", "video"]),
     ]

@@ -2,31 +2,46 @@ import AppKit
 import CoreGraphics
 @preconcurrency import ScreenCaptureKit
 
+enum ThumbnailKey: Hashable, Sendable {
+    case window(CGWindowID)
+    case browserTab(BrowserTabPreviewKey)
+
+    var windowID: CGWindowID {
+        switch self {
+        case .window(let id): id
+        case .browserTab(let key): key.windowID
+        }
+    }
+}
+
 /// Generation tokens for asynchronous thumbnail captures. Clearing the cache
 /// invalidates every outstanding token; an old completion then cannot repopulate
 /// a cache cleared for memory pressure or remove a newer request for the same wid.
 struct ThumbnailRequestGate {
-    private var active: [CGWindowID: UInt64] = [:]
+    private var active: [ThumbnailKey: UInt64] = [:]
     private var nextToken: UInt64 = 0
 
     var count: Int { active.count }
 
-    func contains(_ wid: CGWindowID) -> Bool { active[wid] != nil }
+    func contains(_ key: ThumbnailKey) -> Bool { active[key] != nil }
+    func contains(_ wid: CGWindowID) -> Bool { contains(.window(wid)) }
 
-    mutating func begin(_ wid: CGWindowID) -> UInt64? {
-        guard wid != 0, active[wid] == nil else { return nil }
+    mutating func begin(_ key: ThumbnailKey) -> UInt64? {
+        guard key.windowID != 0, active[key] == nil else { return nil }
         nextToken &+= 1
         if nextToken == 0 { nextToken = 1 }
-        active[wid] = nextToken
+        active[key] = nextToken
         return nextToken
     }
+    mutating func begin(_ wid: CGWindowID) -> UInt64? { begin(.window(wid)) }
 
     /// True only for the currently-active request; also consumes that request.
-    mutating func finish(_ wid: CGWindowID, token: UInt64) -> Bool {
-        guard active[wid] == token else { return false }
-        active.removeValue(forKey: wid)
+    mutating func finish(_ key: ThumbnailKey, token: UInt64) -> Bool {
+        guard active[key] == token else { return false }
+        active.removeValue(forKey: key)
         return true
     }
+    mutating func finish(_ wid: CGWindowID, token: UInt64) -> Bool { finish(.window(wid), token: token) }
 
     mutating func reset() { active.removeAll() }
 }
@@ -56,7 +71,7 @@ final class WindowThumbnailCache {
     /// Invoked on the main actor when a requested thumbnail finishes capturing,
     /// so the view can repaint just the matching tile. The argument is the
     /// `CGWindowID` whose image is now in the cache.
-    var onReady: ((CGWindowID) -> Void)?
+    var onReady: ((ThumbnailKey) -> Void)?
 
     // Preview mode rarely surfaces more than ~24 windows at once; cap at 32 so
     // the cache holds a generous working set without retaining stale captures
@@ -69,10 +84,11 @@ final class WindowThumbnailCache {
     /// Handles let a memory-pressure clear cancel capture work as well as
     /// invalidating its result token. The token prevents an old completion from
     /// removing a newer task for a reused window id.
-    private var captureTasks: [CGWindowID: (token: UInt64, task: Task<Void, Never>)] = [:]
+    private var captureTasks: [ThumbnailKey: (token: UInt64, task: Task<Void, Never>)] = [:]
     /// Pace windows that cannot currently be captured (closed/minimized or a
     /// denied permission) instead of retrying them ten times per second.
-    private var liveFailureAt: [CGWindowID: Date] = [:]
+    private var liveFailureAt: [ThumbnailKey: Date] = [:]
+    private var activeBrowserTabByWindow: [CGWindowID: BrowserTabPreviewKey] = [:]
     private let liveFailureBackoff: TimeInterval = 2.0
     private var didRequestPermission = false
     private let memoryPressure: DispatchSourceMemoryPressure
@@ -97,8 +113,12 @@ final class WindowThumbnailCache {
     /// Cached thumbnail for `wid`, or nil if not captured yet. Bumps the
     /// entry's recency: tiles that still ask for a frame are the working set.
     func image(for wid: CGWindowID) -> NSImage? {
-        guard wid != 0 else { return nil }
-        return cache.image(for: wid)
+        image(for: .window(wid))
+    }
+
+    func image(for key: ThumbnailKey) -> NSImage? {
+        guard key.windowID != 0 else { return nil }
+        return cache.image(for: key)
     }
 
     /// Ensure `wid` has a reasonably fresh thumbnail. Skips work when a frame
@@ -110,7 +130,26 @@ final class WindowThumbnailCache {
     /// `pixelHeight` is the target raster height so the capture stays crisp on
     /// Retina without over-allocating.
     func request(wid: CGWindowID, pixelHeight: CGFloat) {
-        beginRequest(wid: wid, pixelHeight: pixelHeight, maxAge: refreshTTL, isLive: false)
+        beginRequest(key: .window(wid), pixelHeight: pixelHeight, maxAge: refreshTTL, isLive: false)
+    }
+
+    func setActiveBrowserTab(_ key: BrowserTabPreviewKey?) {
+        activeBrowserTabByWindow.removeAll(keepingCapacity: true)
+        if let key { activeBrowserTabByWindow[key.windowID] = key }
+    }
+
+    func isActiveBrowserTab(_ key: BrowserTabPreviewKey) -> Bool {
+        activeBrowserTabByWindow[key.windowID] == key
+    }
+
+    func requestBrowserTab(_ key: BrowserTabPreviewKey, pixelHeight: CGFloat, isLive: Bool = false) {
+        guard isActiveBrowserTab(key) else { return }
+        beginRequest(
+            key: .browserTab(key),
+            pixelHeight: pixelHeight,
+            maxAge: isLive ? 0 : refreshTTL,
+            isLive: isLive
+        )
     }
 
     /// Request the next one-shot live frame. ScreenCaptureKit only; the legacy
@@ -118,21 +157,22 @@ final class WindowThumbnailCache {
     /// is acceptable once per reveal but not on a 10 Hz path.
     func requestLiveFrame(wid: CGWindowID, pixelHeight: CGFloat) {
         guard #available(macOS 14.0, *) else { return }
-        beginRequest(wid: wid, pixelHeight: pixelHeight, maxAge: 0, isLive: true)
+        beginRequest(key: .window(wid), pixelHeight: pixelHeight, maxAge: 0, isLive: true)
     }
 
     private func beginRequest(
-        wid: CGWindowID,
+        key: ThumbnailKey,
         pixelHeight: CGFloat,
         maxAge: TimeInterval,
         isLive: Bool
     ) {
-        guard wid != 0, !requests.contains(wid) else { return }
-        if isLive, let failed = liveFailureAt[wid],
+        let wid = key.windowID
+        guard wid != 0, !requests.contains(key) else { return }
+        if isLive, let failed = liveFailureAt[key],
            Date().timeIntervalSince(failed) < liveFailureBackoff { return }
-        if maxAge > 0, let ts = cache.capturedAt(for: wid),
+        if maxAge > 0, let ts = cache.capturedAt(for: key),
            Date().timeIntervalSince(ts) < maxAge { return }
-        guard let token = requests.begin(wid) else { return }
+        guard let token = requests.begin(key) else { return }
         let task = Task { [weak self] in
             let image = await Self.capture(
                 wid: wid,
@@ -140,27 +180,29 @@ final class WindowThumbnailCache {
                 allowCGFallback: !isLive
             )
             guard !Task.isCancelled else { return }
-            self?.store(image, for: wid, token: token, isLive: isLive)
+            self?.store(image, for: key, token: token, isLive: isLive)
         }
-        captureTasks[wid] = (token, task)
+        captureTasks[key] = (token, task)
     }
 
     private func store(
         _ image: NSImage?,
-        for wid: CGWindowID,
+        for key: ThumbnailKey,
         token: UInt64,
         isLive: Bool
     ) {
-        if captureTasks[wid]?.token == token {
-            captureTasks.removeValue(forKey: wid)
+        if captureTasks[key]?.token == token {
+            captureTasks.removeValue(forKey: key)
         }
         // A memory-pressure clear, or a newer request after that clear, makes an
         // old completion stale. Do not repopulate the cache and, critically, do
         // not clear the newer request's in-flight slot.
-        guard requests.finish(wid, token: token) else { return }
+        guard requests.finish(key, token: token) else { return }
+        if case .browserTab(let tabKey) = key,
+           activeBrowserTabByWindow[tabKey.windowID] != tabKey { return }
         guard let image else {
             if isLive {
-                liveFailureAt[wid] = Date()
+                liveFailureAt[key] = Date()
                 if liveFailureAt.count > 64 {
                     let now = Date()
                     liveFailureAt = liveFailureAt.filter {
@@ -170,10 +212,10 @@ final class WindowThumbnailCache {
             }
             return
         }
-        liveFailureAt.removeValue(forKey: wid)
+        liveFailureAt.removeValue(forKey: key)
         let cost = Int(image.size.width * image.size.height * 4)
-        cache.set(image, cost: cost, capturedAt: Date(), for: wid)
-        onReady?(wid)
+        cache.set(image, cost: cost, capturedAt: Date(), for: key)
+        onReady?(key)
     }
 
     /// Drop every cached thumbnail (memory-pressure handler). Not called on
@@ -185,6 +227,7 @@ final class WindowThumbnailCache {
         cache.removeAll()
         requests.reset()
         liveFailureAt.removeAll()
+        activeBrowserTabByWindow.removeAll()
         releaseCaptureMetadata()
     }
 
@@ -293,9 +336,9 @@ struct ThumbnailLRU {
         let capturedAt: Date
     }
 
-    private var entries: [CGWindowID: Entry] = [:]
+    private var entries: [ThumbnailKey: Entry] = [:]
     /// Recency order, index 0 = least recently used.
-    private var order: [CGWindowID] = []
+    private var order: [ThumbnailKey] = []
     private(set) var totalCost = 0
     let countLimit: Int
     let costLimit: Int
@@ -308,28 +351,30 @@ struct ThumbnailLRU {
     var count: Int { entries.count }
 
     /// Cached image for `wid`, bumping its recency on a hit.
-    mutating func image(for wid: CGWindowID) -> NSImage? {
-        guard let entry = entries[wid] else { return nil }
-        bump(wid)
+    mutating func image(for key: ThumbnailKey) -> NSImage? {
+        guard let entry = entries[key] else { return nil }
+        bump(key)
         return entry.image
     }
+    mutating func image(for wid: CGWindowID) -> NSImage? { image(for: .window(wid)) }
 
     /// Capture timestamp for `wid` without touching recency (freshness checks
     /// shouldn't keep an otherwise-unused entry alive).
-    func capturedAt(for wid: CGWindowID) -> Date? {
-        entries[wid]?.capturedAt
+    func capturedAt(for key: ThumbnailKey) -> Date? {
+        entries[key]?.capturedAt
     }
+    func capturedAt(for wid: CGWindowID) -> Date? { capturedAt(for: .window(wid)) }
 
     /// Insert or replace `wid`, then evict least-recently-used entries while
     /// over either limit. The just-inserted entry is never evicted: one
     /// oversized frame beats an empty cache.
-    mutating func set(_ image: NSImage, cost: Int, capturedAt: Date, for wid: CGWindowID) {
-        if let old = entries.removeValue(forKey: wid) {
+    mutating func set(_ image: NSImage, cost: Int, capturedAt: Date, for key: ThumbnailKey) {
+        if let old = entries.removeValue(forKey: key) {
             totalCost -= old.cost
-            order.removeAll { $0 == wid }
+            order.removeAll { $0 == key }
         }
-        entries[wid] = Entry(image: image, cost: cost, capturedAt: capturedAt)
-        order.append(wid)
+        entries[key] = Entry(image: image, cost: cost, capturedAt: capturedAt)
+        order.append(key)
         totalCost += cost
         while entries.count > 1, entries.count > countLimit || totalCost > costLimit {
             let lru = order.removeFirst()
@@ -338,6 +383,9 @@ struct ThumbnailLRU {
             }
         }
     }
+    mutating func set(_ image: NSImage, cost: Int, capturedAt: Date, for wid: CGWindowID) {
+        set(image, cost: cost, capturedAt: capturedAt, for: .window(wid))
+    }
 
     mutating func removeAll() {
         entries.removeAll()
@@ -345,10 +393,10 @@ struct ThumbnailLRU {
         totalCost = 0
     }
 
-    private mutating func bump(_ wid: CGWindowID) {
-        guard order.last != wid, let idx = order.firstIndex(of: wid) else { return }
+    private mutating func bump(_ key: ThumbnailKey) {
+        guard order.last != key, let idx = order.firstIndex(of: key) else { return }
         order.remove(at: idx)
-        order.append(wid)
+        order.append(key)
     }
 }
 

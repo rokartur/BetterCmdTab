@@ -5,9 +5,27 @@ import ApplicationServices
 /// `index` is the tab's 0-based position; `parentTitle` is the parent window's
 /// AX title, used to resolve the AppleScript `window N` on commit without a
 /// raise (matching `BrowserTabs.tabTitles`/`activateTab`'s name-match path).
+struct BrowserTabPreviewKey: Hashable, Sendable {
+    let pid: pid_t
+    let windowID: CGWindowID
+    let index: Int
+    let pageIdentity: String
+}
+
 struct BrowserTabRef {
     let index: Int
     let parentTitle: String
+    let url: String
+    let isActive: Bool
+
+    func previewKey(pid: pid_t, windowID: CGWindowID, title: String) -> BrowserTabPreviewKey {
+        BrowserTabPreviewKey(
+            pid: pid,
+            windowID: windowID,
+            index: index,
+            pageIdentity: BrowserFaviconCache.normalizedURL(url) ?? title
+        )
+    }
 }
 
 struct SwitcherRow {
@@ -164,20 +182,37 @@ struct SwitcherRow {
     /// title (`parentTitle`) so commit can resolve the AppleScript window without
     /// a raise. Fewer than 2 titles, a non-running subject, or no window → just
     /// this row (nothing to expand). Pure — no AX messaging.
-    func browserTabRows(tabTitles: [String]) -> [SwitcherRow] {
-        guard case .running(let app) = subject, window != nil, tabTitles.count > 1 else { return [self] }
+    func browserTabRows(tabs: [BrowserTabInfo], activeIndex: Int) -> [SwitcherRow] {
+        guard case .running(let app) = subject, window != nil, tabs.count > 1 else { return [self] }
         let parentTitle = windowTitle
-        return tabTitles.enumerated().map { i, title in
+        return tabs.enumerated().map { i, tab in
             SwitcherRow(
                 app: app,
                 window: window,
-                windowTitle: title,
+                windowTitle: tab.title,
                 isMinimized: isMinimized,
                 isFullscreen: isFullscreen,
                 cgWindowID: cgWindowID,
-                browserTab: BrowserTabRef(index: i, parentTitle: parentTitle)
+                browserTab: BrowserTabRef(
+                    index: i,
+                    parentTitle: parentTitle,
+                    url: tab.url,
+                    isActive: i == activeIndex
+                )
             )
         }
+    }
+
+    func browserTabRows(tabTitles: [String]) -> [SwitcherRow] {
+        browserTabRows(
+            tabs: tabTitles.map { BrowserTabInfo(title: $0, url: "") },
+            activeIndex: 0
+        )
+    }
+
+    var browserTabPreviewKey: BrowserTabPreviewKey? {
+        guard let browserTab, let pid else { return nil }
+        return browserTab.previewKey(pid: pid, windowID: cgWindowID, title: windowTitle)
     }
 
     /// Collapse a browser-tab row back to its parent-window row — the inverse of
