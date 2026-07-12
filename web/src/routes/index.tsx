@@ -165,7 +165,7 @@ const faqs: Array<[string, string]> = [
   ],
   [
     "How is it different from AltTab or the built-in Cmd+Tab?",
-    "It is a native AppKit menu-bar app — no Electron, no Dock icon. You get list, grid, and live-preview layouts, fuzzy search and launch, window cycling, tab drill-in, and window tiling the stock switcher cannot do.",
+    "All three switch what you have open; the real difference is what costs money. The built-in Cmd+Tab only cycles apps — no windows, search, or previews. AltTab is free at its core but now locks search, extra layouts, and multiple shortcuts behind a paid Pro tier. BetterCmdTab is a native AppKit menu-bar app that stays free forever and open-source with no paywall and no telemetry: list, grid, and live-preview layouts, fuzzy search that also launches any installed app, window cycling, browser-tab drill-in, and window tiling the stock switcher cannot do.",
   ],
   [
     "Does Cmd+Tab still work in password fields?",
