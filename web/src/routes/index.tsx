@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from "motion/react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export const Route = createFileRoute("/")({
@@ -75,7 +75,10 @@ const featureGroups: Array<{ label: string; rows: Array<[string, string]> }> = [
         "choose how window titles align in previews and whether the selected name is bold",
       ],
       ["Liquid Glass", "system material on macOS 26"],
-      ["Theming", "panel opacity, corner radius, and background material — the highlight follows your macOS accent color"],
+      [
+        "Theming",
+        "panel opacity, corner radius, and background material — the highlight follows your macOS accent color",
+      ],
       ["Multi-monitor", "opens on the display you're actively working on"],
     ],
   },
@@ -185,29 +188,45 @@ interface GhAsset {
 
 interface GhRelease {
   tag_name: string;
+  prerelease: boolean;
   assets: GhAsset[];
 }
 
-interface Release {
+interface Channel {
   version: string | null;
   dmgUrl: string;
+}
+
+interface Releases {
+  // Latest stable download (the default).
+  stable: Channel;
+  // Latest prerelease, only present when it is newer than `stable` — otherwise
+  // null and the beta toggle stays hidden.
+  beta: Channel | null;
   totalDownloads: number | null;
   ready: boolean;
 }
 
-function useLatestRelease(): Release {
-  const [rel, setRel] = useState<Release>({
-    version: null,
-    dmgUrl: `${REPO}/releases/latest`,
+const dmgOf = (r: GhRelease | undefined): Channel => ({
+  version: r?.tag_name ?? null,
+  dmgUrl:
+    r?.assets.find((a) => a.name.endsWith(".dmg"))?.browser_download_url ??
+    `${REPO}/releases/latest`,
+});
+
+function useReleases(): Releases {
+  const [rel, setRel] = useState<Releases>({
+    stable: { version: null, dmgUrl: `${REPO}/releases/latest` },
+    beta: null,
     totalDownloads: null,
     ready: false,
   });
 
   useEffect(() => {
     const ctrl = new AbortController();
-    // One call to the list endpoint covers both the latest release (for the
-    // download URL/version) and the cumulative download count across every
-    // release's assets — saves a second round-trip.
+    // One call to the list endpoint covers the latest stable release (default
+    // download), the newest prerelease (opt-in beta channel), and the
+    // cumulative download count across every release — saves round-trips.
     fetch("https://api.github.com/repos/rokartur/BetterCmdTab/releases?per_page=100", {
       headers: { Accept: "application/vnd.github+json" },
       signal: ctrl.signal,
@@ -218,15 +237,16 @@ function useLatestRelease(): Release {
           setRel((p) => ({ ...p, ready: true }));
           return;
         }
-        const latest = releases[0];
-        const dmg = latest.assets.find((a) => a.name.endsWith(".dmg"));
+        // Releases come newest-first. A beta is only worth offering when the
+        // very newest release is a prerelease (i.e. ahead of stable); once
+        // stable catches up, releases[0] is stable and the toggle disappears.
         const total = releases.reduce(
           (sum, r) => sum + r.assets.reduce((s, a) => s + a.download_count, 0),
           0,
         );
         setRel({
-          version: latest.tag_name,
-          dmgUrl: dmg?.browser_download_url ?? `${REPO}/releases/latest`,
+          stable: dmgOf(releases.find((r) => !r.prerelease) ?? releases[0]),
+          beta: releases[0].prerelease ? dmgOf(releases[0]) : null,
           totalDownloads: total,
           ready: true,
         });
@@ -431,72 +451,122 @@ function useScramble(text: string, active: boolean, enabled: boolean): string {
   return out;
 }
 
-// The download button — flat and quiet like the rest of the page. Hover
-// brightens the border and text, scrambles the label in, and drops the arrow
-// into its tray; a tap gives a small spring scale as press feedback.
-function DownloadCta({ href }: { href: string }) {
+// The download control — flat and quiet like the rest of the page, one capsule
+// mirroring BrewCmd's [command | Copy] split: the download link on the left
+// and, when a beta exists, an attached Latest/Beta channel segment on the
+// right. Hover brightens the border and text, scrambles the label in, and
+// drops the arrow into its tray; a tap gives a small spring scale as feedback.
+function DownloadCta({
+  href,
+  beta,
+  channel,
+  onChange,
+}: {
+  href: string;
+  beta: boolean;
+  channel: "stable" | "beta";
+  onChange: (c: "stable" | "beta") => void;
+}) {
   const reduce = useReducedMotion();
   const [active, setActive] = useState(false);
   const label = useScramble("Download.dmg", active, !reduce);
 
   return (
-    <motion.a
-      className="inline-flex cursor-pointer items-center gap-2 rounded-[9px] border border-line bg-[#111111] px-4 py-[7px] leading-normal text-text transition-[color,border-color,background-color] duration-150 hover:border-accent hover:bg-accent/[0.08] hover:text-accent focus-visible:border-accent focus-visible:bg-accent/[0.08] focus-visible:text-accent"
-      href={href}
-      download
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 500, damping: 25 }}
-      onHoverStart={() => setActive(true)}
-      onHoverEnd={() => setActive(false)}
-      onFocus={() => setActive(true)}
-      onBlur={() => setActive(false)}
-    >
-      <svg
-        className="block flex-none"
-        width="14"
-        height="15"
-        viewBox="0 0 14 15"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
+    <div className="inline-flex max-w-full items-stretch overflow-hidden rounded-[9px] border border-line bg-[#111111] transition-colors duration-150 has-[a:hover]:border-accent has-[a:focus-visible]:border-accent">
+      <motion.a
+        className="inline-flex cursor-pointer items-center gap-2 px-4 py-[7px] leading-normal text-text transition-[color,background-color] duration-150 hover:bg-accent/[0.08] hover:text-accent focus-visible:bg-accent/[0.08] focus-visible:text-accent"
+        href={href}
+        download
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: "spring", stiffness: 500, damping: 25 }}
+        onHoverStart={() => setActive(true)}
+        onHoverEnd={() => setActive(false)}
+        onFocus={() => setActive(true)}
+        onBlur={() => setActive(false)}
       >
-        <motion.g
-          animate={active && !reduce ? { y: [0, 4, 4, 0] } : { y: 0 }}
-          transition={
-            active && !reduce
-              ? {
-                  duration: 1,
-                  times: [0, 0.32, 0.46, 1],
-                  ease: ["easeIn", "linear", "easeOut"],
-                  repeat: Infinity,
-                  repeatDelay: 0.1,
-                }
-              : { duration: 0.25 }
-          }
+        <svg
+          className="block flex-none"
+          width="14"
+          height="15"
+          viewBox="0 0 14 15"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
         >
-          <path d="M7 2 V9" />
-          <path d="M4 6 L7 9 L10 6" />
-        </motion.g>
-        <motion.path
-          className="origin-center [transform-box:fill-box]"
-          d="M2.5 13 H11.5"
-          animate={
-            active && !reduce
-              ? { scaleX: [1, 1, 1.25, 1], opacity: [0.6, 0.6, 1, 0.85] }
-              : { scaleX: 1, opacity: 0.85 }
-          }
-          transition={
-            active && !reduce
-              ? { duration: 1, times: [0, 0.34, 0.46, 1], repeat: Infinity, repeatDelay: 0.1 }
-              : { duration: 0.25 }
-          }
-        />
-      </svg>
-      <span className="[font-variant-ligatures:none]">{label}</span>
-    </motion.a>
+          <motion.g
+            animate={active && !reduce ? { y: [0, 4, 4, 0] } : { y: 0 }}
+            transition={
+              active && !reduce
+                ? {
+                    duration: 1,
+                    times: [0, 0.32, 0.46, 1],
+                    ease: ["easeIn", "linear", "easeOut"],
+                    repeat: Infinity,
+                    repeatDelay: 0.1,
+                  }
+                : { duration: 0.25 }
+            }
+          >
+            <path d="M7 2 V9" />
+            <path d="M4 6 L7 9 L10 6" />
+          </motion.g>
+          <motion.path
+            className="origin-center [transform-box:fill-box]"
+            d="M2.5 13 H11.5"
+            animate={
+              active && !reduce
+                ? { scaleX: [1, 1, 1.25, 1], opacity: [0.6, 0.6, 1, 0.85] }
+                : { scaleX: 1, opacity: 0.85 }
+            }
+            transition={
+              active && !reduce
+                ? { duration: 1, times: [0, 0.34, 0.46, 1], repeat: Infinity, repeatDelay: 0.1 }
+                : { duration: 0.25 }
+            }
+          />
+        </svg>
+        <span className="[font-variant-ligatures:none]">{label}</span>
+      </motion.a>
+      {beta && (
+        <motion.div
+          className="flex flex-none items-center gap-0.5 border-l border-line bg-white/[0.03] px-1.5 text-[13px] leading-normal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.25, ease: EASE }}
+        >
+          {(["stable", "beta"] as const).map((c) => {
+            const on = channel === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => onChange(c)}
+                aria-pressed={on}
+                className="relative cursor-pointer rounded-[6px] px-2 py-[3px]"
+              >
+                {on && (
+                  <motion.span
+                    layoutId="channel-pill"
+                    className="absolute inset-0 rounded-[6px] bg-accent/[0.12]"
+                    transition={{ type: "spring", stiffness: 500, damping: 34 }}
+                  />
+                )}
+                <span
+                  className={`relative z-10 transition-colors duration-150 ${
+                    on ? "text-accent" : "text-dim hover:text-text"
+                  }`}
+                >
+                  {c === "stable" ? "Latest" : "Beta"}
+                </span>
+              </button>
+            );
+          })}
+        </motion.div>
+      )}
+    </div>
   );
 }
 
@@ -570,9 +640,10 @@ function BrewCmd() {
     // Flat, matching the download button; a successful copy flashes the
     // border white.
     <motion.div
+      layout
       className="inline-flex max-w-full items-stretch overflow-hidden rounded-[9px] border bg-[#111111]"
       initial={false}
-      animate={{ borderColor: copied ? "#3b82f6" : "#222222" }}
+      animate={{ borderColor: copied ? "var(--color-accent)" : "#222222" }}
       transition={{ duration: 0.3, ease: EASE }}
     >
       <code className="block overflow-x-auto whitespace-nowrap px-3.5 py-[7px] font-mono leading-normal text-dim before:text-muted before:content-['$_']">
@@ -607,11 +678,21 @@ function BrewCmd() {
 const downloadFmt = new Intl.NumberFormat("en-US");
 
 export function Home() {
-  const { version, dmgUrl, totalDownloads } = useLatestRelease();
+  const { stable, beta, totalDownloads } = useReleases();
+  const [channel, setChannel] = useState<"stable" | "beta">("stable");
+  const sel = channel === "beta" && beta ? beta : stable;
+  const { version, dmgUrl } = sel;
+  // On the beta channel, recolor the whole page amber by overriding the single
+  // Tailwind accent var — every `*-accent` utility follows it.
+  const accentStyle =
+    channel === "beta" ? ({ "--color-accent": "#D29922" } as CSSProperties) : undefined;
 
   return (
     <MotionConfig reducedMotion="user">
-      <main className="mx-auto flex max-w-[680px] flex-col gap-11 px-6 pt-[12vh] pb-[14vh]">
+      <main
+        className="mx-auto flex max-w-[680px] flex-col gap-11 px-6 pt-[12vh] pb-[14vh]"
+        style={accentStyle}
+      >
         <motion.header
           className="flex flex-col gap-2.5"
           variants={stagger}
@@ -650,14 +731,77 @@ export function Home() {
 
         <motion.section className={SECTION} {...inView}>
           <motion.div className="flex max-w-full flex-wrap items-center gap-2.5" variants={reveal}>
-            <DownloadCta href={dmgUrl} />
+            <DownloadCta href={dmgUrl} beta={!!beta} channel={channel} onChange={setChannel} />
             <BrewCmd />
           </motion.div>
-          <motion.p className="m-0 text-muted" variants={reveal}>
-            {version ? `${version} · ` : ""}
-            {totalDownloads !== null ? `${downloadFmt.format(totalDownloads)} downloads · ` : ""}
-            macOS 13.0+ · Apple Silicon &amp; Intel
-          </motion.p>
+          {/* Meta as quiet chips, echoing the capsules above. Mirrors the
+              BetterAudio price animation: LayoutGroup + eased layout on every
+              chip so width changes glide, per-char roll inside the version. */}
+          <LayoutGroup>
+            <motion.div
+              layout
+              className="flex flex-wrap items-center gap-2 text-[13px] leading-normal text-dim"
+              variants={reveal}
+              transition={{ duration: 0.32, ease: EASE }}
+            >
+              {version && (
+                <motion.span
+                  layout
+                  className={`inline-flex items-center overflow-hidden rounded-[6px] border px-2 py-[3px] tabular-nums transition-colors duration-300 ${
+                    channel === "beta" ? "border-accent/40 text-accent" : "border-line text-text"
+                  }`}
+                  transition={{ duration: 0.32, ease: EASE }}
+                >
+                  {/* Per-character roll: chars keyed by index+char so only the
+                      ones that actually change roll over, cascading with blur. */}
+                  {version.split("").map((char, i) => (
+                    <motion.span
+                      key={i}
+                      layout
+                      className="relative inline-block overflow-hidden"
+                      transition={{ duration: 0.32, ease: EASE }}
+                    >
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.span
+                          key={`${i}-${char}`}
+                          className="inline-block"
+                          initial={{ y: "-100%", opacity: 0, filter: "blur(4px)" }}
+                          animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
+                          exit={{ y: "100%", opacity: 0, filter: "blur(2px)" }}
+                          transition={{ duration: 0.22, delay: i * 0.02, ease: EASE }}
+                        >
+                          {char}
+                        </motion.span>
+                      </AnimatePresence>
+                    </motion.span>
+                  ))}
+                </motion.span>
+              )}
+              {totalDownloads !== null && (
+                <motion.span
+                  layout="position"
+                  className="inline-flex items-center rounded-[6px] border border-line px-2 py-[3px] tabular-nums"
+                  transition={{ duration: 0.32, ease: EASE }}
+                >
+                  {downloadFmt.format(totalDownloads)} downloads
+                </motion.span>
+              )}
+              <motion.span
+                layout="position"
+                className="inline-flex items-center rounded-[6px] border border-line px-2 py-[3px]"
+                transition={{ duration: 0.32, ease: EASE }}
+              >
+                macOS 13.0+
+              </motion.span>
+              <motion.span
+                layout="position"
+                className="inline-flex items-center rounded-[6px] border border-line px-2 py-[3px]"
+                transition={{ duration: 0.32, ease: EASE }}
+              >
+                Apple Silicon &amp; Intel
+              </motion.span>
+            </motion.div>
+          </LayoutGroup>
         </motion.section>
 
         <Shots />
