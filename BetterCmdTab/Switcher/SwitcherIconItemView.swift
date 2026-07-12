@@ -32,6 +32,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     private let titleLabel = NSTextField(labelWithString: "")
 
     private var metrics: SwitcherMetrics = .baseline
+    private var usesCompactTabIcon = false
     private var accent: NSColor = .controlAccentColor
     /// Resolved appearance for the current reveal (#74); set in `configure`, read
     /// by render helpers (`applySelection`) that run outside it.
@@ -193,6 +194,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         badgeLabel.stringValue = ""
         nameLabel.stringValue = ""
         titleLabel.stringValue = ""
+        usesCompactTabIcon = false
         currentLabel = ""
         currentPrefixLength = 0
     }
@@ -291,6 +293,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         }
 
         imageView.image = isDialog ? SystemSettingsIcon.image : IconCache.icon(for: row)
+        usesCompactTabIcon = row.browserTab != nil
 
         // Dock badge. Empty map when the feature is off.
         let badge = (row.isPlaceholder || isDialog) ? nil : DockBadgeReader.shared.badge(forBundleID: row.bundleIdentifier)
@@ -504,11 +507,12 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         let iconArea = NSRect(x: (w - tile) / 2, y: bounds.height - letterArea - tile, width: tile, height: tile)
         selectionBackdrop.frame = iconArea.insetBy(dx: m.tileSelectionInset, dy: m.tileSelectionInset)
 
+        let iconSize = usesCompactTabIcon ? floor(m.tileIconSize * 0.9) : m.tileIconSize
         let iconRect = NSRect(
-            x: iconArea.midX - m.tileIconSize / 2,
-            y: iconArea.midY - m.tileIconSize / 2,
-            width: m.tileIconSize,
-            height: m.tileIconSize
+            x: iconArea.midX - iconSize / 2,
+            y: iconArea.midY - iconSize / 2,
+            width: iconSize,
+            height: iconSize
         )
         imageView.frame = iconRect
 

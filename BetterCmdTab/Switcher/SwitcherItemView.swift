@@ -18,6 +18,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
     private let badgeLabel = NSTextField(labelWithString: "")
 
     private var metrics: SwitcherMetrics = .baseline
+    private var usesCompactTabIcon = false
     /// Resolved appearance for the current reveal (#74); set in `configure`.
     private var effective: EffectiveSettings = .defaults
     private static let statusIconGap: CGFloat = 4
@@ -173,6 +174,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         appNameLabel.stringValue = ""
         titleLabel.stringValue = ""
         badgeLabel.stringValue = ""
+        usesCompactTabIcon = false
         currentLabel = ""
         currentPrefixLength = 0
     }
@@ -222,6 +224,11 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
             }
         }
         imageView.image = isDialog ? SystemSettingsIcon.image : IconCache.icon(for: row)
+        let compactTabIcon = row.browserTab != nil
+        if usesCompactTabIcon != compactTabIcon {
+            usesCompactTabIcon = compactTabIcon
+            needsLayout = true
+        }
         let showHidden = !isDialog && !row.isPlaceholder && row.isHidden
         let showMinimized = !isDialog && !row.isPlaceholder && row.isMinimized && !showHidden
         // No-window applies only to running apps — launch/reopen rows have their
@@ -370,7 +377,9 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
 
         let labelH = m.labelHeight
         let labelY = (h - labelH) / 2
-        let iconY = (h - m.iconSize) / 2
+        let displayedIconSize = usesCompactTabIcon ? floor(m.iconSize * 0.9) : m.iconSize
+        let iconY = (h - displayedIconSize) / 2
+        let statusY = (h - m.iconSize) / 2
         let statusSize = m.iconSize
         let statusGap = Self.statusIconGap
 
@@ -391,14 +400,19 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         // between the letter column and the icon — drop its trailing gap so the
         // icon doesn't float on a double gap. Matches the rowWidth reduction.
         let iconX = appX + m.appNameWidth + (m.appNameWidth > 0 ? m.interGap : 0)
-        imageView.frame = NSRect(x: iconX, y: iconY, width: m.iconSize, height: m.iconSize)
+        imageView.frame = NSRect(
+            x: iconX + (m.iconSize - displayedIconSize) / 2,
+            y: iconY,
+            width: displayedIconSize,
+            height: displayedIconSize
+        )
 
         let visibleStatusIcons = indicatorViews.map { $0.1 }.filter { !$0.isHidden }
         var statusRightEdge = bounds.width - m.horizontalInset
         for iv in visibleStatusIcons.reversed() {
             let frame = NSRect(
                 x: statusRightEdge - statusSize,
-                y: iconY,
+                y: statusY,
                 width: statusSize,
                 height: statusSize
             )
