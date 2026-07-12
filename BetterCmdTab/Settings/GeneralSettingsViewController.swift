@@ -10,7 +10,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
     private let launchSwitch = NSSwitch()
     private let hideMenuBarSwitch = NSSwitch()
     private let hapticSwitch = NSSwitch()
-    private let soundSwitch = NSSwitch()
+    private let soundPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let betaSwitch = NSSwitch()
     private let intervalPopUp = NSPopUpButton(frame: .zero, pullsDown: false)
     private let exportButton = NSButton(title: String(localized: "Export…"), target: nil, action: nil)
@@ -18,6 +18,14 @@ final class GeneralSettingsViewController: SettingsTabViewController {
     private let restoreShortcutsButton = NSButton(title: "", target: nil, action: nil)
 
     private var cancellables = Set<AnyCancellable>()
+    private lazy var systemSoundNames = CommitFeedback.systemSoundNames()
+
+    private enum SoundItemTag: Int {
+        case off
+        case system
+        case custom
+        case chooseCustom
+    }
 
     /// Cadences offered in the update popup. The package's `selectableCadences`
     /// excludes `.manual`; it's appended here so update checks (and their
@@ -58,14 +66,20 @@ final class GeneralSettingsViewController: SettingsTabViewController {
             accessory: hapticSwitch,
             searchItemID: SearchID.haptic
         )
-        configureSwitch(soundSwitch, action: #selector(toggleSound(_:)))
+        soundPopup.controlSize = .small
+        soundPopup.target = self
+        soundPopup.action = #selector(changeSound(_:))
         addRow(
             to: feedback,
             title: String(localized: "Sound on switch"),
-            subtitle: String(localized: "A soft click when you pick an app."),
-            accessory: soundSwitch,
+            subtitle: String(localized: "Play a sound when you pick an app."),
+            accessory: soundPopup,
             searchItemID: SearchID.sound
         )
+        soundPopup.cell?.lineBreakMode = .byTruncatingMiddle
+        soundPopup.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+        soundPopup.widthAnchor.constraint(lessThanOrEqualToConstant: 180).isActive = true
+        rebuildSoundMenu()
 
         // Updates section
         let updates = addSection(title: String(localized: "Updates"), anchor: SettingsAnchor.updates)
@@ -159,7 +173,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
         let prefs = Preferences.shared
         hideMenuBarSwitch.state = prefs.hideMenuBarIcon ? .on : .off
         hapticSwitch.state = prefs.hapticOnCommit ? .on : .off
-        soundSwitch.state = prefs.soundOnCommit ? .on : .off
+        rebuildSoundMenu()
 
         let updater = GitHubUpdater.shared
         betaSwitch.state = updater.includePreReleases ? .on : .off
@@ -191,7 +205,17 @@ final class GeneralSettingsViewController: SettingsTabViewController {
 
         prefs.$soundOnCommit
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.soundSwitch.state = $0 ? .on : .off }
+            .sink { [weak self] _ in self?.rebuildSoundMenu() }
+            .store(in: &cancellables)
+
+        prefs.$commitSoundName
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.rebuildSoundMenu() }
+            .store(in: &cancellables)
+
+        prefs.$customCommitSoundFilename
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.rebuildSoundMenu() }
             .store(in: &cancellables)
     }
 
@@ -227,8 +251,102 @@ final class GeneralSettingsViewController: SettingsTabViewController {
         Preferences.shared.hapticOnCommit = (sender.state == .on)
     }
 
-    @objc private func toggleSound(_ sender: NSSwitch) {
-        Preferences.shared.soundOnCommit = (sender.state == .on)
+    @objc private func changeSound(_ sender: NSPopUpButton) {
+        guard let item = sender.selectedItem,
+              let tag = SoundItemTag(rawValue: item.tag) else {
+            rebuildSoundMenu()
+            return
+        }
+
+        let prefs = Preferences.shared
+        switch tag {
+        case .off:
+            prefs.soundOnCommit = false
+            CommitFeedback.stop()
+        case .system:
+            guard let name = item.representedObject as? String else { return }
+            CommitFeedback.selectSystemSound(named: name)
+            prefs.soundOnCommit = true
+            CommitFeedback.preview()
+        case .custom:
+            prefs.soundOnCommit = true
+            CommitFeedback.preview()
+        case .chooseCustom:
+            chooseCustomSound()
+        }
+    }
+
+    private func rebuildSoundMenu() {
+        let prefs = Preferences.shared
+        let menu = NSMenu()
+
+        let offItem = NSMenuItem(title: String(localized: "Off"), action: nil, keyEquivalent: "")
+        offItem.tag = SoundItemTag.off.rawValue
+        menu.addItem(offItem)
+        menu.addItem(.separator())
+
+        var selectedSystemItem: NSMenuItem?
+        for name in systemSoundNames {
+            let item = NSMenuItem(title: name, action: nil, keyEquivalent: "")
+            item.tag = SoundItemTag.system.rawValue
+            item.representedObject = name
+            menu.addItem(item)
+            if name == prefs.commitSoundName { selectedSystemItem = item }
+        }
+
+        menu.addItem(.separator())
+        var customItem: NSMenuItem?
+        if let filename = prefs.customCommitSoundFilename {
+            let displayName = URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent
+            let item = NSMenuItem(
+                title: String(format: String(localized: "Custom: %@"), displayName),
+                action: nil,
+                keyEquivalent: ""
+            )
+            item.tag = SoundItemTag.custom.rawValue
+            menu.addItem(item)
+            customItem = item
+        }
+
+        let chooseItem = NSMenuItem(title: String(localized: "Choose Custom Sound…"), action: nil, keyEquivalent: "")
+        chooseItem.tag = SoundItemTag.chooseCustom.rawValue
+        menu.addItem(chooseItem)
+
+        soundPopup.menu = menu
+        if !prefs.soundOnCommit {
+            soundPopup.select(offItem)
+        } else if let customItem {
+            soundPopup.select(customItem)
+        } else {
+            soundPopup.select(selectedSystemItem ?? menu.item(withTitle: Preferences.defaultCommitSoundName) ?? offItem)
+        }
+    }
+
+    private func chooseCustomSound() {
+        let panel = NSOpenPanel()
+        panel.title = String(localized: "Choose Custom Sound…")
+        panel.prompt = String(localized: "Choose")
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.audio]
+
+        let completion: (NSApplication.ModalResponse) -> Void = { response in
+            defer { self.rebuildSoundMenu() }
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                try CommitFeedback.installCustomSound(from: url)
+                Preferences.shared.soundOnCommit = true
+                CommitFeedback.preview()
+            } catch {
+                self.presentError(String(localized: "Sound on switch"), error)
+            }
+        }
+        if let window = view.window {
+            panel.beginSheetModal(for: window, completionHandler: completion)
+        } else {
+            completion(panel.runModal())
+        }
     }
 
     @objc private func restoreNativeShortcuts() {
@@ -262,7 +380,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
                 let data = try Preferences.shared.exportedJSONData()
                 try data.write(to: url, options: .atomic)
             } catch {
-                self.presentBackupError(String(localized: "Couldn't export settings"), error)
+                self.presentError(String(localized: "Couldn't export settings"), error)
             }
         }
         if let window = view.window {
@@ -290,7 +408,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
                 let data = try Data(contentsOf: url)
                 try Preferences.shared.importSettings(from: data)
             } catch {
-                self.presentBackupError(String(localized: "Couldn't import settings"), error)
+                self.presentError(String(localized: "Couldn't import settings"), error)
             }
         }
         if let window = view.window {
@@ -300,7 +418,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
         }
     }
 
-    private func presentBackupError(_ title: String, _ error: Error) {
+    private func presentError(_ title: String, _ error: Error) {
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = title

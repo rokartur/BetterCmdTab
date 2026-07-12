@@ -681,40 +681,6 @@
         }
       }
     },
-    "A soft click when you pick an app." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ein leiser Klick, wenn du eine App auswählst."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un clic suave al seleccionar una app."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un léger clic lorsque vous sélectionnez une app."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cichy klik, gdy wybierasz aplikację."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择应用时发出轻柔点击声。"
-          }
-        }
-      }
-    },
     "A tap when you pick an app. Force Touch trackpads only." : {
       "localizations" : {
         "de" : {
@@ -2043,6 +2009,40 @@
         }
       }
     },
+    "Choose Custom Sound…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigenen Ton auswählen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir sonido personalizado…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir un son personnalisé…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz własny dźwięk…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择自定义声音…"
+          }
+        }
+      }
+    },
     "Choose an app to set switcher rules for." : {
       "localizations" : {
         "de" : {
@@ -2583,6 +2583,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法导入设置"
+          }
+        }
+      }
+    },
+    "Custom: %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigener Ton: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personalizado: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personnalisé : %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Własny: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义：%@"
           }
         }
       }
@@ -6499,6 +6533,40 @@
         }
       }
     },
+    "Play a sound when you pick an app." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Ton abspielen, wenn du eine App auswählst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduce un sonido al seleccionar una app."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jouer un son lorsque vous sélectionnez une app."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odtwarzaj dźwięk po wybraniu aplikacji."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择应用时播放声音。"
+          }
+        }
+      }
+    },
     "Playing audio" : {
       "localizations" : {
         "de" : {
@@ -9389,6 +9457,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此浏览器"
+          }
+        }
+      }
+    },
+    "The selected file isn't a supported sound." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die ausgewählte Datei ist kein unterstützter Ton."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El archivo seleccionado no es un sonido compatible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le fichier sélectionné n’est pas un son pris en charge."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybrany plik nie jest obsługiwanym dźwiękiem."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选文件不是受支持的声音。"
           }
         }
       }

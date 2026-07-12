@@ -40,12 +40,14 @@ struct SettingsPortabilityTests {
         let savedMin = prefs.showMinimizedWindows
         let savedOpacity = prefs.panelOpacity
         let savedPinned = prefs.pinnedBundleIDs
+        let savedSoundName = prefs.commitSoundName
         defer {
             try? prefs.importSettings(from: envelope([
                 Preferences.Keys.sortOrder: savedSort.rawValue,
                 Preferences.Keys.showMinimizedWindows: savedMin,
                 Preferences.Keys.panelOpacity: savedOpacity,
                 Preferences.Keys.pinnedBundleIDs: savedPinned,
+                Preferences.Keys.commitSoundName: savedSoundName,
             ]))
         }
 
@@ -56,11 +58,13 @@ struct SettingsPortabilityTests {
             Preferences.Keys.showMinimizedWindows: false,
             Preferences.Keys.panelOpacity: 55,
             Preferences.Keys.pinnedBundleIDs: ["com.apple.finder", "com.apple.Safari"],
+            Preferences.Keys.commitSoundName: savedSoundName == "Ping" ? "Pop" : "Ping",
         ]))
         #expect(prefs.sortOrder == target)
         #expect(prefs.showMinimizedWindows == false)
         #expect(prefs.panelOpacity == 55)
         #expect(prefs.pinnedBundleIDs == ["com.apple.finder", "com.apple.Safari"])
+        #expect(prefs.commitSoundName == (savedSoundName == "Ping" ? "Pop" : "Ping"))
     }
 
     @Test("pre-#57 import (legacy currentSpaceOnly bool, no spaceScope) applies through the fallback")
@@ -244,11 +248,15 @@ struct SettingsPortabilityTests {
         let prefs = Preferences.shared
         let defaults = UserDefaults.standard
         let key = "Switcher.disabledSymbolicHotKeys"
+        let customSoundKey = Preferences.Keys.customCommitSoundFilename
         let saved = defaults.object(forKey: key)
+        let savedCustomSound = prefs.customCommitSoundFilename
         defer {
             if let saved { defaults.set(saved, forKey: key) } else { defaults.removeObject(forKey: key) }
+            prefs.customCommitSoundFilename = savedCustomSound
         }
         defaults.set([55], forKey: key)
+        prefs.customCommitSoundFilename = "local.aiff"
 
         // Export must not carry this machine's crash-heal record.
         let data = try prefs.exportedJSONData()
@@ -256,10 +264,12 @@ struct SettingsPortabilityTests {
         let values = try #require(root["values"] as? [String: Any])
         #expect(values[key] == nil)
         #expect(values["Switcher.recentlyClosed"] == nil)
+        #expect(values[customSoundKey] == nil)
 
         // Import must not overwrite this machine's record with the file's.
-        try prefs.importSettings(from: envelope([key: [1, 2]]))
+        try prefs.importSettings(from: envelope([key: [1, 2], customSoundKey: "another-mac.aiff"]))
         #expect(defaults.array(forKey: key) as? [Int] == [55])
+        #expect(defaults.string(forKey: customSoundKey) == "local.aiff")
     }
 
     @Test("keys outside the Switcher namespace are ignored on import")
