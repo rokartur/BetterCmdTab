@@ -22,14 +22,16 @@ extension Preferences {
     /// `disabledSymbolicHotKeys` is the crash-heal record of which native
     /// hotkeys THIS machine has disabled (importing another Mac's record could
     /// leave native ⌘Tab dead after a crash); `recentlyClosed` is session
-    /// history. The accent keys were retired in 26.7 (the switcher always
-    /// follows the macOS accent) — skipping them on import keeps old exports
-    /// from re-planting dead keys.
+    /// history; the custom sound file lives only in this Mac's Application
+    /// Support directory. The accent keys were retired in 26.7 (the switcher
+    /// always follows the macOS accent) — skipping them on import keeps old
+    /// exports from re-planting dead keys.
     static let exportExcludedKeys: Set<String> = [
         "Switcher.disabledSymbolicHotKeys",
         "Switcher.recentlyClosed",
         "Switcher.accentChoice",
         "Switcher.customAccentHex",
+        "Switcher.customCommitSoundFilename",
     ]
 
     /// File extension for exported settings documents.

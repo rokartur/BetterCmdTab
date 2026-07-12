@@ -6,6 +6,30 @@ import Testing
 @Suite("Preferences enums")
 struct PreferencesEnumTests {
 
+    @MainActor
+    @Test("system commit sounds include the historical Tink default")
+    func systemCommitSounds() {
+        let names = CommitFeedback.systemSoundNames()
+        #expect(names.contains(Preferences.defaultCommitSoundName))
+        #expect(names.count > 1)
+        #expect(names == names.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending })
+    }
+
+    @MainActor
+    @Test("custom commit sound is copied and can be replaced")
+    func customCommitSoundCopy() throws {
+        let sounds = URL(fileURLWithPath: "/System/Library/Sounds", isDirectory: true)
+        let candidates = try FileManager.default.contentsOfDirectory(at: sounds, includingPropertiesForKeys: nil)
+        let source = try #require(candidates.first { NSSound(contentsOf: $0, byReference: true) != nil })
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let installed = try CommitFeedback.copyCustomSound(from: source, to: directory)
+        #expect(try Data(contentsOf: installed) == Data(contentsOf: source))
+        #expect(try CommitFeedback.copyCustomSound(from: source, to: directory) == installed)
+        #expect(try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil).count == 1)
+    }
+
     @Test("storedSpaceScope prefers the enum key, falls back to the legacy bool")
     func storedSpaceScopeMigration() throws {
         let defaults = try #require(UserDefaults(suiteName: "storedSpaceScopeMigrationTests"))

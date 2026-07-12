@@ -121,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func bootController() {
         guard controller == nil else { return }
+        CommitFeedback.prepare()
         let c = SwitcherController()
         c.onAccessibilityRevoked = { [weak self] in
             self?.axWaiter?.waitForTrust()

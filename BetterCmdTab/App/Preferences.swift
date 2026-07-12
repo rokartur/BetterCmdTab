@@ -664,6 +664,8 @@ final class Preferences: ObservableObject {
     static let defaultTitleRefreshIntervalMs = 200
     static let titleRefreshIntervalRange: ClosedRange<Int> = 50...2000
 
+    static let defaultCommitSoundName = "Tink"
+
     static let defaultSwipeSensitivity = 5
     static let swipeSensitivityRange: ClosedRange<Int> = 1...10
 
@@ -725,6 +727,8 @@ final class Preferences: ObservableObject {
         static let recentlyClosedLimit = "Switcher.recentlyClosedLimit"
         static let hapticOnCommit = "Switcher.hapticOnCommit"
         static let soundOnCommit = "Switcher.soundOnCommit"
+        static let commitSoundName = "Switcher.commitSoundName"
+        static let customCommitSoundFilename = "Switcher.customCommitSoundFilename"
         static let hideMenuBarIcon = "Switcher.hideMenuBarIcon"
         static let experimentalSwipeTrigger = "Switcher.experimentalSwipeTrigger"
         static let swipeMode = "Switcher.swipeMode"
@@ -1098,11 +1102,33 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// Play a subtle click sound when a selection is committed. Default off.
+    /// Play the selected sound when a selection is committed. Default off.
     @Published var soundOnCommit: Bool {
         didSet {
             guard oldValue != soundOnCommit else { return }
             UserDefaults.standard.set(soundOnCommit, forKey: Keys.soundOnCommit)
+        }
+    }
+
+    /// System sound used for commit feedback. Kept even while a custom sound is
+    /// selected so it remains the fallback if that local file disappears.
+    @Published var commitSoundName: String {
+        didSet {
+            guard oldValue != commitSoundName else { return }
+            UserDefaults.standard.set(commitSoundName, forKey: Keys.commitSoundName)
+        }
+    }
+
+    /// File owned by BetterCmdTab under Application Support. Machine-local by
+    /// design: settings exports carry the system fallback, not a filesystem path.
+    @Published var customCommitSoundFilename: String? {
+        didSet {
+            guard oldValue != customCommitSoundFilename else { return }
+            if let customCommitSoundFilename {
+                UserDefaults.standard.set(customCommitSoundFilename, forKey: Keys.customCommitSoundFilename)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Keys.customCommitSoundFilename)
+            }
         }
     }
 
@@ -1824,6 +1850,8 @@ final class Preferences: ObservableObject {
 
         self.hapticOnCommit = defaults.object(forKey: Keys.hapticOnCommit) as? Bool ?? false
         self.soundOnCommit = defaults.object(forKey: Keys.soundOnCommit) as? Bool ?? false
+        self.commitSoundName = defaults.string(forKey: Keys.commitSoundName) ?? Self.defaultCommitSoundName
+        self.customCommitSoundFilename = defaults.string(forKey: Keys.customCommitSoundFilename)
 
         self.hideMenuBarIcon = defaults.object(forKey: Keys.hideMenuBarIcon) as? Bool ?? false
 
@@ -1959,6 +1987,8 @@ final class Preferences: ObservableObject {
 
         hapticOnCommit = defaults.object(forKey: Keys.hapticOnCommit) as? Bool ?? false
         soundOnCommit = defaults.object(forKey: Keys.soundOnCommit) as? Bool ?? false
+        commitSoundName = defaults.string(forKey: Keys.commitSoundName) ?? Self.defaultCommitSoundName
+        customCommitSoundFilename = defaults.string(forKey: Keys.customCommitSoundFilename)
         hideMenuBarIcon = defaults.object(forKey: Keys.hideMenuBarIcon) as? Bool ?? false
 
         experimentalSwipeTrigger = defaults.object(forKey: Keys.experimentalSwipeTrigger) as? Bool ?? false

@@ -252,7 +252,7 @@ enum SettingsCatalog {
         item(SearchID.haptic, .general, SettingsAnchor.feedback, String(localized: "General"), String(localized: "Feedback"),
              String(localized: "Haptic feedback on switch"), ["haptic", "vibration", "force touch", "trackpad"]),
         item(SearchID.sound, .general, SettingsAnchor.feedback, String(localized: "General"), String(localized: "Feedback"),
-             String(localized: "Sound on switch"), ["sound", "click", "audio"]),
+             String(localized: "Sound on switch"), ["sound", "click", "audio", "system sound", "custom sound", "audio file"]),
         // General · Updates
         item(SearchID.updateInterval, .general, SettingsAnchor.updates, String(localized: "General"), String(localized: "Updates"),
              String(localized: "Check for updates"), ["update", "upgrade", "interval", "cadence"]),
