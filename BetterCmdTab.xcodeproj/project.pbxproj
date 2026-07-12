@@ -175,6 +175,7 @@
 				de,
 				fr,
 				es,
+				"zh-Hans",
 			);
 			mainGroup = 7559A74E2FC06FD5004D97B7;
 			minimizedProjectReferenceProxies = 1;
@@ -372,7 +373,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = BetterCmdTab/BetterCmdTab.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260613051735;
+				CURRENT_PROJECT_VERSION = 20260711005707;
 				DEVELOPMENT_TEAM = N529W98U62;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -400,7 +401,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 26.5.1;
+				MARKETING_VERSION = 26.7;
 				PRODUCT_BUNDLE_IDENTIFIER = pro.bettercmdtab.BetterCmdTab.debug;
 				PRODUCT_MODULE_NAME = BetterCmdTab;
 				PRODUCT_NAME = "BetterCmdTab Debug";
@@ -425,7 +426,7 @@
 				ASSETCATALOG_COMPILER_OPTIMIZATION = space;
 				CODE_SIGN_ENTITLEMENTS = BetterCmdTab/BetterCmdTab.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260613051735;
+				CURRENT_PROJECT_VERSION = 20260711005707;
 				DEVELOPMENT_TEAM = N529W98U62;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -453,7 +454,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 26.5.1;
+				MARKETING_VERSION = 26.7;
 				PRODUCT_BUNDLE_IDENTIFIER = pro.bettercmdtab.BetterCmdTab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

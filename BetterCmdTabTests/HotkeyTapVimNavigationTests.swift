@@ -1,4 +1,5 @@
 import Testing
+import CoreGraphics
 @testable import BetterCmdTab
 
 /// Pure-logic coverage for the h/j/k/l → nav event mapping that the hotkey tap
@@ -55,6 +56,42 @@ struct HotkeyTapVimNavigationTests {
         }
     }
 
+    /// Type-to-search routing (letter hints off + fuzzy on): every a–z letter,
+    /// including the reserved action keys w/m/h/q/f, must feed the query so a
+    /// search like "whatsapp"/"figma" works instead of firing close/minimize/etc.
+    /// This is the pure decision behind the tap's opener branch.
+    @Test func typeToSearchRoutesEveryLetterIncludingReserved() {
+        // Reserved action letters must NOT be excluded (the bug: w/m/h/q/f hit
+        // panelKeyMap and closed/quit instead of opening search).
+        for c: Character in ["w", "m", "h", "q", "f"] {
+            #expect(HotkeyTap.typeToSearchLetter(for: c) == c)
+        }
+        // Ordinary letters route too; uppercase folds to lowercase (⇧ for capitals).
+        #expect(HotkeyTap.typeToSearchLetter(for: "g") == "g")
+        #expect(HotkeyTap.typeToSearchLetter(for: "W") == "w")
+        #expect(HotkeyTap.typeToSearchLetter(for: "Z") == "z")
+    }
+
+    /// Letters in any script and digits open the query too — a Polish "ż" or the
+    /// "1" in "1Password" must start a search, not leak past the panel — matching
+    /// what the search branch accepts once search mode is active.
+    @Test func typeToSearchRoutesNonASCIILettersAndDigits() {
+        #expect(HotkeyTap.typeToSearchLetter(for: "ż") == "ż")
+        #expect(HotkeyTap.typeToSearchLetter(for: "É") == "é")
+        #expect(HotkeyTap.typeToSearchLetter(for: "ü") == "ü")
+        #expect(HotkeyTap.typeToSearchLetter(for: "1") == "1")
+        #expect(HotkeyTap.typeToSearchLetter(for: "0") == "0")
+    }
+
+    /// Whitespace and punctuation keep their panel meaning (Space commits, \
+    /// enters tab drill-in, / toggles search), so they must not open a query.
+    @Test func typeToSearchIgnoresPunctuationAndWhitespace() {
+        for c: Character in [" ", "/", "\\", "\n", "-", "."] {
+            #expect(HotkeyTap.typeToSearchLetter(for: c) == nil,
+                    "\(c) should not open type-to-search")
+        }
+    }
+
     /// While vim is on, h/j/k/l must be reserved on top of the bound action
     /// letters so `RowLabels` never hands out a hint the tap would silently
     /// swallow as motion. With vim off the bound set passes through untouched.
@@ -80,6 +117,7 @@ struct HotkeyTapVimNavigationTests {
     /// pushed via `onReservedLettersChanged`. (A fresh tap has no bound action
     /// keys, so the reserved set is exactly the vim union when on and empty when
     /// off.)
+    @MainActor
     @Test func togglingVimRepushesReservedLetters() {
         let tap = HotkeyTap()
         var pushed: Set<Character>?
@@ -90,5 +128,31 @@ struct HotkeyTapVimNavigationTests {
 
         tap.setVimNavigationEnabled(false)
         #expect(pushed?.isDisjoint(with: ["j", "k", "l"]) == true)
+    }
+
+    /// The modifier gate must be relative to the *configured* trigger
+    /// modifier, not hardcoded to ⌘ (issue #71: an ⌥Tab trigger holds ⌥ the
+    /// whole time the panel is open, which used to kill h/j/k/l entirely).
+    @Test func triggerModifierDoesNotBlockVimNav() {
+        // Default ⌘Tab trigger: held ⌘ passes, anything extra blocks.
+        #expect(HotkeyTap.onlyTriggerModifiersHeld(
+            .maskCommand, heldTriggerModifiers: .maskCommand))
+        #expect(!HotkeyTap.onlyTriggerModifiersHeld(
+            [.maskCommand, .maskShift], heldTriggerModifiers: .maskCommand))
+        #expect(!HotkeyTap.onlyTriggerModifiersHeld(
+            [.maskCommand, .maskAlternate], heldTriggerModifiers: .maskCommand))
+        // ⌥Tab trigger (issue #71): held ⌥ passes, ⌥ + extra blocks.
+        #expect(HotkeyTap.onlyTriggerModifiersHeld(
+            .maskAlternate, heldTriggerModifiers: .maskAlternate))
+        #expect(!HotkeyTap.onlyTriggerModifiersHeld(
+            [.maskAlternate, .maskControl], heldTriggerModifiers: .maskAlternate))
+        // Sticky/stay-open panel with no trigger modifier down: bare keys only.
+        #expect(HotkeyTap.onlyTriggerModifiersHeld([], heldTriggerModifiers: []))
+        #expect(!HotkeyTap.onlyTriggerModifiersHeld(
+            .maskShift, heldTriggerModifiers: []))
+        // Raw event flags carry system bits (fn etc.) that must never affect
+        // the comparison.
+        #expect(HotkeyTap.onlyTriggerModifiersHeld(
+            [.maskAlternate, .maskSecondaryFn], heldTriggerModifiers: .maskAlternate))
     }
 }

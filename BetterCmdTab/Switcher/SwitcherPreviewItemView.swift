@@ -17,6 +17,9 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
 
     private var metrics: SwitcherMetrics = .baseline
     private var accent: NSColor = .controlAccentColor
+    /// Resolved appearance for the current reveal (#74); set in `configure`, read
+    /// by render helpers (`applySelection`, title layout) that run outside it.
+    private var effective: EffectiveSettings = .defaults
     private var accentKey: String = NSColor.controlAccentColor.description
 
     /// CGWindowID of the row this tile shows, so a late thumbnail capture can be
@@ -169,6 +172,12 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     private var currentLabel: String = ""
     private var currentPrefixLength: Int = 0
 
+    /// Horizontal padding a borderless NSTextFieldCell reserves around its text,
+    /// beyond the raw glyph bounding box returned by `size(withAttributes:)`. Near
+    /// constant (~4–5pt) across font sizes; added to the measured title width so a
+    /// title that fits isn't truncated to an ellipsis by the cell's own inset.
+    private static let labelCellInset: CGFloat = 5
+
     func prepareForIdle() {
         // Release the thumbnail and app-icon retains so WindowThumbnailCache /
         // IconCache can evict them; all are re-set by `configure` on reuse.
@@ -176,12 +185,32 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         // pooled tile after it's been parked.
         imageView.image = nil
         iconView.image = nil
+        letterLabel.stringValue = ""
+        nameLabel.stringValue = ""
+        badgeLabel.stringValue = ""
         placeholderIcon = nil
         windowID = 0
+        currentLabel = ""
+        currentPrefixLength = 0
     }
 
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor) {
-        if metrics != self.metrics {
+    /// Last face the font pass ran with — pooled views must re-apply fonts when
+    /// the user changes the face pref even though `metrics` is unchanged (#62).
+    private var appliedFace: SwitcherFontFace = .system
+
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
+        self.effective = effective
+        // Ellipsis position for long titles (#90). Guarded set — one enum read,
+        // no work when unchanged.
+        let truncation = effective.titleTruncationMode.lineBreakMode
+        if nameLabel.lineBreakMode != truncation {
+            nameLabel.lineBreakMode = truncation
+        }
+        // Font face (#62) is not part of `metrics` and views are pooled across
+        // reveals, so track the applied face and re-run the font pass on change.
+        let faceChanged = appliedFace != effective.fontFace
+        if faceChanged { appliedFace = effective.fontFace }
+        if faceChanged || metrics != self.metrics {
             applyMetrics(metrics)
         }
         if self.accent != accent {
@@ -204,8 +233,8 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         // sibling tabs). Otherwise the title is gated by "Show window title". When
         // app names are hidden, use windowTitleText so a windowless/launch row
         // never re-surfaces the app name as its title.
-        let previewTitle = row.titleSlot(showAppNames: Preferences.shared.showApplicationNames)
-        nameLabel.stringValue = (Preferences.shared.showWindowTitleLabel || row.browserTab != nil) ? previewTitle : ""
+        let previewTitle = row.titleSlot(showAppNames: effective.showApplicationNames)
+        nameLabel.stringValue = (effective.showWindowTitleLabel || row.browserTab != nil) ? previewTitle : ""
 
         // Dock/notification count badge — shown beside the title, never over the
         // thumbnail. Suppressed for placeholder/dialog rows and for browser-tab
@@ -220,12 +249,21 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         // without a real window (windowless apps, launchables, recents) keep the
         // app icon as their preview.
         //
+        // Prefer the CGWindowID captured at enumeration time: a live resolve off
+        // the cache-fed AX element returns 0 once the app invalidated it
+        // (Chromium does so aggressively), which painted the app icon even
+        // though the window's thumbnail sat in the cache under its real id
+        // (#82). The live resolve stays as a fallback for rows whose id didn't
+        // land during enumeration.
+        //
         // Browser tabs aren't separate windows: every tab of a browser window
         // shares the parent window's id, and a window screenshot only ever shows
         // the *active* tab — so requesting it would paint every tab tile with the
         // same, misleading thumbnail. Force the app-icon placeholder (id 0)
         // instead; the distinct tab title under the icon identifies each tab.
-        windowID = (row.browserTab == nil) ? (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0) : 0
+        windowID = (row.browserTab == nil)
+            ? (row.cgWindowID != 0 ? row.cgWindowID : (row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0))
+            : 0
         if windowID != 0 {
             let scale = window?.backingScaleFactor ?? 2
             WindowThumbnailCache.shared.request(wid: windowID, pixelHeight: metrics.previewThumbHeight * scale)
@@ -269,7 +307,7 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     private func applyMetrics(_ metrics: SwitcherMetrics) {
         self.metrics = metrics
         letterLabel.font = NSFont.monospacedSystemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
-        nameLabel.font = NSFont.systemFont(ofSize: metrics.previewNameFontSize, weight: .medium)
+        nameLabel.font = SwitcherFont.font(ofSize: metrics.previewNameFontSize, weight: .medium, design: effective.fontFace)
         thumbContainer.layer?.cornerRadius = metrics.previewThumbCornerRadius
         selectionBackdrop.layer?.cornerRadius = metrics.previewSelectionCornerRadius
         needsLayout = true
@@ -278,10 +316,27 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     private func applySelection() {
         selectionBackdrop.isHidden = !isSelected
         nameLabel.textColor = isSelected ? .labelColor : .secondaryLabelColor
-        nameLabel.font = NSFont.systemFont(
+        // The selected title brightens to `labelColor`; bolding it is optional so
+        // users who dislike the on-select width wobble keep a steady weight (#72).
+        let bold = isSelected && effective.boldSelectedLabel
+        nameLabel.font = SwitcherFont.font(
             ofSize: metrics.previewNameFontSize,
-            weight: isSelected ? .semibold : .medium
+            weight: bold ? .semibold : .medium,
+            design: effective.fontFace
         )
+    }
+
+    /// Leading edge of the tight icon+title group inside a tile of width
+    /// `tileWidth`, for the chosen alignment (#72). Leading hugs the left edge,
+    /// trailing the right, centre splits the slack. Clamped to ≥ 0 so an
+    /// over-wide group never starts off-tile.
+    static func titleGroupOriginX(alignment: PreviewTitleAlignment, groupWidth: CGFloat, tileWidth: CGFloat) -> CGFloat {
+        let slack = max(0, tileWidth - groupWidth)
+        switch alignment {
+        case .leading: return 0
+        case .center: return round(slack / 2)
+        case .trailing: return slack
+        }
     }
 
     private func renderLetter() {
@@ -362,14 +417,34 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
             // Measure the title width with a string-metrics query rather than
             // `nameLabel.sizeToFit()`, which lays out and resizes the whole
             // NSTextField just to read a width that's immediately clamped below.
-            // `nameLabel` is a plain single-line truncating field, so the glyph
-            // bounding box is equivalent; `nameLabel.frame` is set explicitly at
-            // the end of this method, so the skipped sizeToFit mutates nothing used.
-            let measureFont = nameLabel.font ?? NSFont.systemFont(ofSize: m.previewNameFontSize, weight: .medium)
+            // `nameLabel.frame` is set explicitly at the end of this method, so the
+            // skipped sizeToFit mutates nothing used.
+            //
+            // The glyph bounding box is NOT what the field needs to draw, though:
+            // the borderless NSTextFieldCell adds a small fixed horizontal inset
+            // (~4–5pt total, independent of font size). Sizing the frame to the bare
+            // glyph width left the cell ~4pt short and truncated a fitting title to an
+            // ellipsis ("ChatGPT" → "ChatG…"). Add the inset back so titles that fit
+            // aren't clipped; the outer `min` still clamps to the tile's free width.
+            //
+            // Measure the heaviest weight the title can ever take (.semibold), never
+            // the current one. A selected tile renders semibold via `applySelection`
+            // WITHOUT a relayout, and the bold-on-select pref can flip while the panel
+            // is open — so keying the measure off the live weight or pref risks a frame
+            // sized for .medium clipping a later semibold render. The bold width fits
+            // the medium render too (~1pt slack); the outer `min` still clamps to the
+            // tile's free width. Constant weight also keeps this off the pref read path.
+            // Same face as the render (#62) or the ellipsis math breaks —
+            // monospaced faces are wider than the system face at equal size.
+            let measureFont = SwitcherFont.font(ofSize: m.previewNameFontSize, weight: .semibold, design: effective.fontFace)
             let textW = (nameLabel.stringValue as NSString).size(withAttributes: [.font: measureFont]).width
-            let nameW = min(ceil(textW), w - iconSize - 6 - badgeSlot)
+            let nameW = min(ceil(textW) + Self.labelCellInset, w - iconSize - 6 - badgeSlot)
             let groupW = iconSize + 4 + nameW + badgeSlot
-            let startX = max(0, round((w - groupW) / 2))
+            let startX = Self.titleGroupOriginX(
+                alignment: effective.previewTitleAlignment,
+                groupWidth: groupW,
+                tileWidth: w
+            )
             let rowMidY = labelAreaH / 2
             iconView.frame = NSRect(
                 x: startX,

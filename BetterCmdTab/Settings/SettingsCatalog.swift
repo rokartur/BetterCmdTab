@@ -10,6 +10,7 @@ import BetterSettings
 enum SettingsTabID {
     static let general = "general"
     static let shortcuts = "shortcuts"
+    static let windows = "windows"
     static let switcher = "switcher"
     static let apps = "apps"
     static let appearance = "appearance"
@@ -26,29 +27,39 @@ enum SettingsAnchor {
     static let feedback = "general.feedback"
     static let updates = "general.updates"
     static let backup = "general.backup"
-    // Shortcuts
+    static let recovery = "general.recovery"
+    // Profiles (shortcuts tab)
     static let switching = "shortcuts.switching"
-    static let directActivation = "shortcuts.directActivation"
     static let scopedSwitch = "shortcuts.scopedSwitch"
     static let panelKeys = "shortcuts.panelKeys"
-    static let windowMgmt = "shortcuts.windowMgmt"
+    // Windows
+    static let windowArrange = "windows.arrange"
+    static let windowAll = "windows.all"
     // Privacy
     static let screenSharing = "privacy.screenSharing"
     static let permissions = "privacy.permissions"
-    static let recovery = "privacy.recovery"
-    // Switcher
+    // Behavior (switcher tab)
+    static let display = "switcher.display"
     static let contents = "switcher.contents"
     static let tabs = "switcher.tabs"
     static let search = "switcher.search"
-    static let navigation = "switcher.navigation"
-    static let actions = "switcher.actions"
+    static let keyboard = "switcher.keyboard"
+    static let mouse = "switcher.mouse"
     // Apps
     static let appRules = "apps.rules"
+    static let directActivation = "apps.directActivation"
     static let pinned = "apps.pinned"
     // Appearance
-    static let appearance = "appearance.switcher"
+    static let appearanceLayout = "appearance.layoutSection"
+    static let appearanceLabels = "appearance.labels"
+    static let appearancePanel = "appearance.panel"
     // Experimental
     static let experimental = "experimental.features"
+    static let experimentalSwipe = "experimental.swipeSection"
+    static let experimentalSpaces = "experimental.spaces"
+    static let experimentalSearch = "experimental.search"
+    static let experimentalTabs = "experimental.browserTabs"
+    static let experimentalPreviews = "experimental.windowPreviews"
     // About
     static let about = "about.info"
 }
@@ -80,11 +91,12 @@ enum SearchID {
     static let showWindowless = "switcher.showWindowless"
     static let applicationsOnly = "switcher.applicationsOnly"
     static let showBadges = "switcher.showBadges"
-    static let currentSpaceOnly = "switcher.currentSpaceOnly"
+    static let spaceScope = "switcher.spaceScope"
     static let sortOrder = "switcher.sortOrder"
     static let showRecentlyClosed = "switcher.showRecentlyClosed"
     static let recentlyClosedLimit = "switcher.recentlyClosedLimit"
     static let tabDrill = "switcher.tabDrill"
+    static let windowDrill = "switcher.windowDrill"
     static let expandTabs = "switcher.expandTabs"
     static let expandBrowserTabs = "switcher.expandBrowserTabs"
     static let tabPermissions = "switcher.tabPermissions"
@@ -94,20 +106,30 @@ enum SearchID {
     static let launcher = "switcher.launcher"
     static let searchMode = "switcher.searchMode"
     static let letterChainTimeout = "switcher.letterChainTimeout"
+    static let shiftTapBack = "switcher.shiftTapBack"
+    static let backtickReverse = "switcher.backtickReverse"
     static let scroll = "switcher.scroll"
     static let scrollReverse = "switcher.scrollReverse"
     static let clickDismiss = "switcher.clickDismiss"
+    static let stayOpen = "switcher.stayOpen"
+    static let stayOpenQuickTap = "switcher.stayOpenQuickTap"
     static let vimNavigation = "switcher.vimNavigation"
     static let hoverActions = "switcher.hoverActions"
+    static let displayMonitor = "switcher.displayMonitor"
+    static let titleRefreshInterval = "switcher.titleRefreshInterval"
     static let exceptions = "switcher.exceptions"
     static let pinnedApps = "switcher.pinnedApps"
     // Appearance
     static let layout = "appearance.layout"
     static let size = "appearance.size"
     static let gridColumns = "appearance.gridColumns"
-    static let accent = "appearance.accent"
     static let quickSwitchDelay = "appearance.quickSwitchDelay"
     static let windowTitle = "appearance.windowTitle"
+    static let titleAlignment = "appearance.titleAlignment"
+    static let titleTruncation = "appearance.titleTruncation"
+    static let textSize = "appearance.textSize"
+    static let fontFace = "appearance.fontFace"
+    static let boldSelected = "appearance.boldSelected"
     static let opacity = "appearance.opacity"
     static let cornerRadius = "appearance.cornerRadius"
     // Experimental
@@ -117,8 +139,10 @@ enum SearchID {
     static let switchOnRelease = "experimental.switchOnRelease"
     static let sensitivity = "experimental.sensitivity"
     static let instantSpace = "experimental.instantSpace"
-    static let mruWindowsSort = "experimental.mruWindowsSort"
-    static let displayMonitor = "experimental.displayMonitor"
+    static let browserTabMRU = "experimental.browserTabMRU"
+    static let livePreviews = "experimental.livePreviews"
+    static let rankResults = "experimental.rankResults"
+    static let searchExpandsBrowserTabs = "experimental.searchExpandsBrowserTabs"
 }
 
 @MainActor
@@ -131,8 +155,9 @@ enum SettingsCatalog {
             contentProvider: { tab, _ in
                 switch tab.id {
                 case SettingsTabID.general:      return GeneralSettingsViewController()
-                case SettingsTabID.shortcuts:    return ShortcutsSettingsViewController()
-                case SettingsTabID.switcher:     return SwitcherSettingsViewController()
+                case SettingsTabID.shortcuts:    return ProfilesSettingsViewController()
+                case SettingsTabID.windows:      return WindowsSettingsViewController()
+                case SettingsTabID.switcher:     return BehaviorSettingsViewController()
                 case SettingsTabID.apps:         return AppsSettingsViewController()
                 case SettingsTabID.appearance:   return AppearanceSettingsViewController()
                 case SettingsTabID.privacy:      return PrivacySettingsViewController()
@@ -142,7 +167,7 @@ enum SettingsCatalog {
             },
             searchPlaceholder: String(localized: "Search"),
             showDetailsDefaultsKey: "BetterCmdTab.showSettingsDetails",
-            // 8 tabs: keep the active tab + 1 previous live and drop to active-only
+            // 9 tabs: keep the active tab + 1 previous live and drop to active-only
             // when the settings window loses key. Inactive tab trees are freed and
             // rebuilt lazily on revisit, minimizing RAM for this secondary window.
             tabUnloadPolicy: .balanced
@@ -159,14 +184,20 @@ enum SettingsCatalog {
             id: SettingsTabID.general, title: String(localized: "General"), icon: "gear",
             iconStyle: style(0x898A8F, 0x67686E, scale: 1.0)
         ),
-        // ⌘ glyph — the Shortcuts tab is where you bind the Command-Tab triggers.
+        // Profiles — each switcher shortcut is a profile with its own trigger +
+        // per-shortcut options, plus direct-activation and in-panel keys.
         SettingsTab(
-            id: SettingsTabID.shortcuts, title: String(localized: "Shortcuts"), icon: "command",
+            id: SettingsTabID.shortcuts, title: String(localized: "Profiles"), icon: "command",
             iconStyle: style(0x40BCFF, 0x0060FF, scale: 0.9)
+        ),
+        // Window management — tile / maximize / center + hide-all hotkeys.
+        SettingsTab(
+            id: SettingsTabID.windows, title: String(localized: "Windows"), icon: "macwindow.on.rectangle",
+            iconStyle: style(0x5AC8FA, 0x0A84C4, scale: 0.85)
         ),
         // Stacked windows — the switcher cycles through your open windows/apps.
         SettingsTab(
-            id: SettingsTabID.switcher, title: String(localized: "Switcher"), icon: "rectangle.stack.fill",
+            id: SettingsTabID.switcher, title: String(localized: "Behavior"), icon: "rectangle.stack.fill",
             iconStyle: style(0xB272FF, 0x6228FF, scale: 0.95)
         ),
         // Per-app rules (hide / ⌘Tab) and pinned apps.
@@ -231,20 +262,23 @@ enum SettingsCatalog {
              String(localized: "Export settings"), ["export", "backup", "save settings", "share settings"]),
         item(SearchID.importSettings, .general, SettingsAnchor.backup, String(localized: "General"), String(localized: "Backup"),
              String(localized: "Import settings"), ["import", "restore", "load settings"]),
+        // General · Recovery
+        item(SearchID.restoreShortcuts, .general, SettingsAnchor.recovery, String(localized: "General"), String(localized: "Recovery"),
+             String(localized: "Restore macOS keyboard shortcuts"), ["restore", "recover", "command tab", "cmd tab", "native", "symbolic hotkey", "stuck", "reset shortcuts"]),
 
         // Shortcuts · Switching
-        item(SearchID.switchApps, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switching"),
+        item(SearchID.switchApps, .shortcuts, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "Switcher shortcuts"),
              String(localized: "Switch apps"), ["shortcut", "hotkey", "cmd tab", "command tab", "trigger"]),
-        item(SearchID.switchWindows, .shortcuts, SettingsAnchor.switching, String(localized: "Shortcuts"), String(localized: "Switching"),
+        item(SearchID.switchWindows, .shortcuts, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "Switcher shortcuts"),
              String(localized: "Switch windows"), ["shortcut", "hotkey", "window cycle"]),
-        // Shortcuts · Direct activation
-        item(SearchID.directActivation, .shortcuts, SettingsAnchor.directActivation, String(localized: "Shortcuts"), String(localized: "Direct activation"),
+        // Apps · Direct activation
+        item(SearchID.directActivation, .apps, SettingsAnchor.directActivation, String(localized: "Apps"), String(localized: "Direct activation"),
              String(localized: "Direct activation hotkeys"), ["direct", "hotkey", "shortcut", "activate", "focus app", "jump to app"]),
-        item(SearchID.scopedSwitch, .shortcuts, SettingsAnchor.scopedSwitch, String(localized: "Shortcuts"), String(localized: "Scoped shortcuts"),
+        item(SearchID.scopedSwitch, .shortcuts, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "Switcher shortcuts"),
              String(localized: "Scoped shortcuts"), ["scope", "scoped", "all windows", "current app", "minimized", "this space", "filtered switcher"]),
-        item(SearchID.panelKeys, .shortcuts, SettingsAnchor.panelKeys, String(localized: "Shortcuts"), String(localized: "In-panel keys"),
+        item(SearchID.panelKeys, .shortcuts, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "In-panel keys"),
              String(localized: "Action keys while switching"), ["panel keys", "rebind", "close", "minimize", "hide", "quit", "wmhq", "in-panel"]),
-        item(SearchID.windowMgmt, .shortcuts, SettingsAnchor.windowMgmt, String(localized: "Shortcuts"), String(localized: "Window management"),
+        item(SearchID.windowMgmt, .windows, SettingsAnchor.windowArrange, String(localized: "Windows"), String(localized: "Arrange window"),
              String(localized: "Arrange the highlighted window"), ["window management", "tile", "maximize", "center", "snap", "halves", "arrange", "rebind"]),
 
         // Privacy · Screen sharing
@@ -253,61 +287,53 @@ enum SettingsCatalog {
         // Privacy · Permissions
         item(SearchID.accessibility, .privacy, SettingsAnchor.permissions, String(localized: "Privacy"), String(localized: "Permissions"),
              String(localized: "Accessibility access"), ["accessibility", "permission", "grant", "trusted"]),
-        // Privacy · Recovery
-        item(SearchID.restoreShortcuts, .privacy, SettingsAnchor.recovery, String(localized: "Privacy"), String(localized: "Recovery"),
-             String(localized: "Restore macOS keyboard shortcuts"), ["restore", "recover", "command tab", "cmd tab", "native", "symbolic hotkey", "stuck", "reset shortcuts"]),
 
-        // Switcher · Contents
-        item(SearchID.showMinimized, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
-             String(localized: "Show minimized windows"), ["minimized", "minimize"]),
-        item(SearchID.showHidden, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
-             String(localized: "Show hidden apps"), ["hidden", "hide"]),
-        item(SearchID.showWindowless, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
-             String(localized: "Show apps without windows"), ["windowless", "no windows", "background apps"]),
-        item(SearchID.applicationsOnly, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
-             String(localized: "Applications only"),
-             ["applications only", "apps only", "one per app", "per app", "command tab", "classic", "group windows"]),
-        item(SearchID.showBadges, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
-             String(localized: "Show unread badges"), ["badge", "unread", "dock badge", "count"]),
-        item(SearchID.currentSpaceOnly, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
-             String(localized: "Only current Space"), ["space", "current space", "desktop", "filter"]),
-        item(SearchID.sortOrder, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
-             String(localized: "Sort order"), ["sort", "order", "mru", "most recent", "alphabetical", "launch order"]),
-        item(SearchID.showRecentlyClosed, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
-             String(localized: "Show recently closed apps"), ["recently closed", "reopen", "recent"]),
-        item(SearchID.recentlyClosedLimit, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
-             String(localized: "Recently closed to show"), ["recently closed", "limit", "count"]),
+        // Behavior · Display
+        item(SearchID.displayMonitor, .switcher, SettingsAnchor.display, String(localized: "Behavior"), String(localized: "Display"),
+             String(localized: "Show switcher on"), ["display", "monitor", "screen", "multi monitor", "cursor", "main display", "active space"]),
+        item(SearchID.quickSwitchDelay, .switcher, SettingsAnchor.display, String(localized: "Behavior"), String(localized: "Display"),
+             String(localized: "Quick-switch delay"), ["delay", "reveal", "hold", "quick switch"]),
+        item(SearchID.titleRefreshInterval, .switcher, SettingsAnchor.display, String(localized: "Behavior"), String(localized: "Display"),
+             String(localized: "Title refresh delay"), ["title", "refresh", "update", "interval", "window title", "live titles", "debounce"]),
         // Switcher · Tabs
-        item(SearchID.tabDrill, .switcher, SettingsAnchor.tabs, String(localized: "Switcher"), String(localized: "Tabs"),
+        item(SearchID.tabDrill, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Peek tabs with \\"), ["tabs", "tab", "drill", "peek", "backslash", "finder tabs", "browser tabs", "safari", "chrome"]),
-        item(SearchID.expandTabs, .switcher, SettingsAnchor.tabs, String(localized: "Switcher"), String(localized: "Tabs"),
+        item(SearchID.expandTabs, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Show tabs as separate entries"), ["tabs", "tab", "expand", "separate", "rows", "per tab", "finder", "terminal", "native tabs"]),
-        item(SearchID.expandBrowserTabs, .switcher, SettingsAnchor.tabs, String(localized: "Switcher"), String(localized: "Tabs"),
+        item(SearchID.expandBrowserTabs, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Show browser tabs as separate entries"), ["tabs", "tab", "browser", "expand", "separate", "rows", "per tab", "safari", "chrome", "arc", "brave", "edge"]),
-        item(SearchID.tabPermissions, .switcher, SettingsAnchor.tabs, String(localized: "Switcher"), String(localized: "Tabs"),
+        item(SearchID.tabPermissions, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Browser tab access"), ["tabs", "apple events", "automation", "permission", "browser", "consent"]),
         // Switcher · Search
-        item(SearchID.letterHints, .switcher, SettingsAnchor.search, String(localized: "Switcher"), String(localized: "Search"),
+        item(SearchID.letterHints, .switcher, SettingsAnchor.search, String(localized: "Behavior"), String(localized: "Search"),
              String(localized: "Letter hints"), ["letter hints", "jump", "vim"]),
-        item(SearchID.letterChainTimeout, .switcher, SettingsAnchor.search, String(localized: "Switcher"), String(localized: "Search"),
+        item(SearchID.letterChainTimeout, .switcher, SettingsAnchor.search, String(localized: "Behavior"), String(localized: "Search"),
              String(localized: "Letter chain timeout"), ["letter", "chain", "timeout", "reset", "jump", "delay", "prefix", "sequence", "expire"]),
-        item(SearchID.fuzzy, .switcher, SettingsAnchor.search, String(localized: "Switcher"), String(localized: "Search"),
+        item(SearchID.fuzzy, .switcher, SettingsAnchor.search, String(localized: "Behavior"), String(localized: "Search"),
              String(localized: "Type-to-filter search"), ["search", "filter", "fuzzy", "type"]),
-        item(SearchID.launcher, .switcher, SettingsAnchor.search, String(localized: "Switcher"), String(localized: "Search"),
+        item(SearchID.launcher, .switcher, SettingsAnchor.search, String(localized: "Behavior"), String(localized: "Search"),
              String(localized: "Launch apps from search"), ["launcher", "launch", "open app"]),
-        item(SearchID.searchMode, .switcher, SettingsAnchor.search, String(localized: "Switcher"), String(localized: "Search"),
+        item(SearchID.searchMode, .switcher, SettingsAnchor.search, String(localized: "Behavior"), String(localized: "Search"),
              String(localized: "When searching"), ["search mode", "hold", "stay open", "dismiss"]),
-        // Switcher · Navigation
-        item(SearchID.scroll, .switcher, SettingsAnchor.navigation, String(localized: "Switcher"), String(localized: "Navigation"),
-             String(localized: "Switch with mouse scroll"), ["scroll", "wheel", "mouse"]),
-        item(SearchID.scrollReverse, .switcher, SettingsAnchor.navigation, String(localized: "Switcher"), String(localized: "Navigation"),
-             String(localized: "Reverse scroll direction"), ["scroll", "reverse", "invert"]),
-        item(SearchID.clickDismiss, .switcher, SettingsAnchor.navigation, String(localized: "Switcher"), String(localized: "Navigation"),
-             String(localized: "Click outside to dismiss"), ["click", "outside", "dismiss", "cancel", "spotlight"]),
-        item(SearchID.vimNavigation, .switcher, SettingsAnchor.navigation, String(localized: "Switcher"), String(localized: "Navigation"),
+        // Behavior · Keyboard
+        item(SearchID.stayOpen, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
+             String(localized: "Stay open after releasing the modifier"), ["stay open", "sticky", "release", "modifier", "keep open", "hold"]),
+        item(SearchID.stayOpenQuickTap, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
+             String(localized: "Also stay open after a quick tap"), ["quick tap", "mouse", "mouse button", "gesture", "stay open", "sticky", "tap"]),
+        item(SearchID.shiftTapBack, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
+             String(localized: "Tap Shift to step backwards"), ["shift", "backwards", "back", "reverse", "tap shift", "cmd shift tab", "windows"]),
+        item(SearchID.backtickReverse, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
+             String(localized: "Use window-switch shortcut to step backwards"), ["backtick", "tilde", "cmd backtick", "command backtick", "window shortcut", "reverse", "backwards", "native"]),
+        item(SearchID.vimNavigation, .switcher, SettingsAnchor.keyboard, String(localized: "Behavior"), String(localized: "Keyboard"),
              String(localized: "Vim keys (h j k l)"), ["vim", "hjkl", "h j k l", "keyboard", "arrows", "navigation"]),
-        // Switcher · Actions
-        item(SearchID.hoverActions, .switcher, SettingsAnchor.actions, String(localized: "Switcher"), String(localized: "Hover actions"),
+        // Behavior · Mouse
+        item(SearchID.scroll, .switcher, SettingsAnchor.mouse, String(localized: "Behavior"), String(localized: "Mouse"),
+             String(localized: "Switch with mouse scroll"), ["scroll", "wheel", "mouse"]),
+        item(SearchID.scrollReverse, .switcher, SettingsAnchor.mouse, String(localized: "Behavior"), String(localized: "Mouse"),
+             String(localized: "Reverse scroll direction"), ["scroll", "reverse", "invert"]),
+        item(SearchID.clickDismiss, .switcher, SettingsAnchor.mouse, String(localized: "Behavior"), String(localized: "Mouse"),
+             String(localized: "Click outside to dismiss"), ["click", "outside", "dismiss", "cancel", "spotlight"]),
+        item(SearchID.hoverActions, .switcher, SettingsAnchor.mouse, String(localized: "Behavior"), String(localized: "Mouse"),
              String(localized: "Action buttons on hover"), ["hover", "buttons", "close", "minimize", "maximize", "hide", "quit", "actions"]),
         // Apps · App rules
         item(SearchID.exceptions, .apps, SettingsAnchor.appRules, String(localized: "Apps"), String(localized: "App rules"),
@@ -316,44 +342,84 @@ enum SettingsCatalog {
         item(SearchID.pinnedApps, .apps, SettingsAnchor.pinned, String(localized: "Apps"), String(localized: "Pinned"),
              String(localized: "Pinned apps"), ["pinned", "pin", "favorite", "always show"]),
 
-        // Appearance
-        item(SearchID.layout, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
+        // Appearance · Layout
+        item(SearchID.layout, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Layout"), ["layout", "grid", "list", "preview"]),
-        item(SearchID.size, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
+        item(SearchID.size, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Size"), ["size", "panel size", "small", "large"]),
-        item(SearchID.gridColumns, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
+        item(SearchID.gridColumns, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Grid columns"), ["grid", "columns"]),
-        item(SearchID.accent, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
-             String(localized: "Accent color"), ["accent", "color", "highlight", "tint"]),
-        item(SearchID.quickSwitchDelay, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
-             String(localized: "Quick-switch delay"), ["delay", "reveal", "hold", "quick switch"]),
-        item(SearchID.windowTitle, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
+        // Appearance · Labels
+        item(SearchID.textSize, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Text size"), ["text size", "font size", "smaller", "larger", "text", "scale"]),
+        item(SearchID.fontFace, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Font"), ["font", "typeface", "face", "monospaced", "fixed width", "mono", "rounded", "serif"]),
+        item(SearchID.windowTitle, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
              String(localized: "Show window title"), ["window title", "title", "label", "name"]),
-        item(SearchID.applicationNames, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
+        item(SearchID.titleAlignment, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Title alignment"), ["title", "alignment", "align", "left", "center", "centre", "right", "position"]),
+        item(SearchID.titleTruncation, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Ellipsis position"), ["ellipsis", "truncate", "truncation", "beginning", "middle", "end", "long title", "shorten", "title"]),
+        item(SearchID.boldSelected, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
+             String(localized: "Bold selected title"), ["bold", "selected", "title", "weight", "highlight", "label"]),
+        item(SearchID.applicationNames, .appearance, SettingsAnchor.appearanceLabels, String(localized: "Appearance"), String(localized: "Labels"),
              String(localized: "Show application names"),
              ["application names", "app name", "app names", "name", "label", "icon only", "hide name"]),
-        item(SearchID.opacity, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
+        // Appearance · Panel
+        item(SearchID.opacity, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
              String(localized: "Panel opacity"), ["opacity", "transparency", "alpha", "translucent"]),
-        item(SearchID.cornerRadius, .appearance, SettingsAnchor.appearance, String(localized: "Appearance"), String(localized: "Switcher"),
+        item(SearchID.cornerRadius, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
              String(localized: "Corner radius"), ["corner", "radius", "rounded", "rounding"]),
 
-        // Experimental
-        item(SearchID.swipe, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
+        // Behavior · Contents
+        item(SearchID.showMinimized, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Show minimized windows"), ["minimized", "minimize"]),
+        item(SearchID.showHidden, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Show hidden apps"), ["hidden", "hide"]),
+        item(SearchID.showWindowless, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Show apps without windows"), ["windowless", "no windows", "background apps"]),
+        item(SearchID.applicationsOnly, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Applications only"),
+             ["applications only", "apps only", "one per app", "per app", "command tab", "classic", "group windows"]),
+        item(SearchID.windowDrill, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Peek windows with ↓"),
+             ["windows", "window", "drill", "peek", "down arrow", "applications only", "app windows", "expose"]),
+        item(SearchID.showBadges, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Show unread badges"), ["badge", "unread", "dock badge", "count"]),
+        item(SearchID.spaceScope, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Show windows from"), ["space", "current space", "visible spaces", "desktop", "display", "monitor", "filter"]),
+        item(SearchID.sortOrder, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Sort order"), ["sort", "order", "mru", "most recent", "alphabetical", "launch order", "windows", "window recency"]),
+        item(SearchID.showRecentlyClosed, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Show recently closed apps"), ["recently closed", "reopen", "recent"]),
+        item(SearchID.recentlyClosedLimit, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),
+             String(localized: "Recently closed to show"), ["recently closed", "limit", "count"]),
+
+        // Experimental · Trackpad swipe
+        item(SearchID.swipe, .experimental, SettingsAnchor.experimentalSwipe, String(localized: "Experimental"), String(localized: "Trackpad swipe"),
              String(localized: "Three-finger swipe"), ["swipe", "trackpad", "gesture", "three finger"]),
-        item(SearchID.swipeMode, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
+        item(SearchID.swipeMode, .experimental, SettingsAnchor.experimentalSwipe, String(localized: "Experimental"), String(localized: "Trackpad swipe"),
              String(localized: "Swipe action"), ["swipe", "spaces", "switch spaces", "open switcher", "gesture action"]),
-        item(SearchID.reverseSwipe, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
+        item(SearchID.reverseSwipe, .experimental, SettingsAnchor.experimentalSwipe, String(localized: "Experimental"), String(localized: "Trackpad swipe"),
              String(localized: "Reverse swipe direction"), ["swipe", "reverse", "invert"]),
-        item(SearchID.switchOnRelease, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
+        item(SearchID.switchOnRelease, .experimental, SettingsAnchor.experimentalSwipe, String(localized: "Experimental"), String(localized: "Trackpad swipe"),
              String(localized: "Switch on release"), ["release", "commit", "lift"]),
-        item(SearchID.sensitivity, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
+        item(SearchID.sensitivity, .experimental, SettingsAnchor.experimentalSwipe, String(localized: "Experimental"), String(localized: "Trackpad swipe"),
              String(localized: "Swipe sensitivity"), ["sensitivity", "swipe", "distance"]),
-        item(SearchID.instantSpace, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
+        // Experimental · Spaces
+        item(SearchID.instantSpace, .experimental, SettingsAnchor.experimentalSpaces, String(localized: "Experimental"), String(localized: "Spaces"),
              String(localized: "Switch Spaces without animation"), ["spaces", "space", "animation", "instant", "full screen"]),
-        item(SearchID.mruWindowsSort, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
-             String(localized: "Most recent (windows) sort order"), ["sort", "window", "recent", "order", "mru", "windows"]),
-        item(SearchID.displayMonitor, .experimental, SettingsAnchor.experimental, String(localized: "Experimental"), String(localized: "Experimental"),
-             String(localized: "Show switcher on"), ["display", "monitor", "screen", "multi monitor", "cursor", "main display", "active window"]),
+        // Experimental · Search
+        item(SearchID.rankResults, .experimental, SettingsAnchor.experimentalSearch, String(localized: "Experimental"), String(localized: "Search"),
+             String(localized: "Rank search"), ["fuzzy", "search", "ranking", "rank", "best match", "sort results", "relevance"]),
+        item(SearchID.searchExpandsBrowserTabs, .experimental, SettingsAnchor.experimentalSearch, String(localized: "Experimental"), String(localized: "Search"),
+             String(localized: "Search browser tabs"), ["search", "browser", "tabs", "tab", "fuzzy", "find tab", "safari", "chrome"]),
+        // Experimental · Browser tabs
+        item(SearchID.browserTabMRU, .experimental, SettingsAnchor.experimentalTabs, String(localized: "Experimental"), String(localized: "Browser tabs"),
+             String(localized: "Track browser tabs in recency"), ["browser", "tab", "tabs", "recent", "mru", "safari", "chrome"]),
+        // Experimental · Previews
+        item(SearchID.livePreviews, .experimental, SettingsAnchor.experimentalPreviews, String(localized: "Experimental"), String(localized: "Previews"),
+             String(localized: "Live window previews"), ["live", "preview", "previews", "thumbnail", "thumbnails", "refresh", "video"]),
     ]
 
     private static func item(
@@ -377,12 +443,13 @@ enum SettingsCatalog {
     }
 
     private enum TabRef {
-        case general, shortcuts, switcher, apps, appearance, privacy, experimental
+        case general, shortcuts, windows, switcher, apps, appearance, privacy, experimental
 
         var id: String {
             switch self {
             case .general: return SettingsTabID.general
             case .shortcuts: return SettingsTabID.shortcuts
+            case .windows: return SettingsTabID.windows
             case .switcher: return SettingsTabID.switcher
             case .apps: return SettingsTabID.apps
             case .appearance: return SettingsTabID.appearance

@@ -6,6 +6,30 @@ import Testing
 @Suite("Preferences enums")
 struct PreferencesEnumTests {
 
+    @Test("storedSpaceScope prefers the enum key, falls back to the legacy bool")
+    func storedSpaceScopeMigration() throws {
+        let defaults = try #require(UserDefaults(suiteName: "storedSpaceScopeMigrationTests"))
+        defer { defaults.removePersistentDomain(forName: "storedSpaceScopeMigrationTests") }
+
+        // Fresh install: neither key → all Spaces.
+        #expect(Preferences.storedSpaceScope(defaults) == .allSpaces)
+
+        // Legacy bool only (pre-#57 upgrade / old settings import).
+        defaults.set(true, forKey: Preferences.Keys.currentSpaceOnly)
+        #expect(Preferences.storedSpaceScope(defaults) == .currentSpace)
+        defaults.set(false, forKey: Preferences.Keys.currentSpaceOnly)
+        #expect(Preferences.storedSpaceScope(defaults) == .allSpaces)
+
+        // Enum key wins over a contradicting legacy bool.
+        defaults.set(true, forKey: Preferences.Keys.currentSpaceOnly)
+        defaults.set(SpaceScope.visibleSpaces.rawValue, forKey: Preferences.Keys.spaceScope)
+        #expect(Preferences.storedSpaceScope(defaults) == .visibleSpaces)
+
+        // Garbage enum value falls back to the legacy bool.
+        defaults.set("bogus", forKey: Preferences.Keys.spaceScope)
+        #expect(Preferences.storedSpaceScope(defaults) == .currentSpace)
+    }
+
     @Test("PanelSize scale ordering: small < standard < large")
     func panelSizeOrdering() {
         // Scale remap (2026-05-28): small=1.0, standard=1.2, large=1.5.
@@ -20,6 +44,14 @@ struct PreferencesEnumTests {
         #expect(Preferences.clampDelay(10) == Preferences.revealDelayRange.lowerBound)
         #expect(Preferences.clampDelay(9999) == Preferences.revealDelayRange.upperBound)
         #expect(Preferences.clampDelay(150) == 150)
+    }
+
+    @MainActor
+    @Test("clampTitleRefreshInterval keeps values inside the allowed range")
+    func clampTitleRefreshInterval() {
+        #expect(Preferences.clampTitleRefreshInterval(0) == Preferences.titleRefreshIntervalRange.lowerBound)
+        #expect(Preferences.clampTitleRefreshInterval(99999) == Preferences.titleRefreshIntervalRange.upperBound)
+        #expect(Preferences.clampTitleRefreshInterval(Preferences.defaultTitleRefreshIntervalMs) == Preferences.defaultTitleRefreshIntervalMs)
     }
 
     @MainActor
@@ -58,6 +90,86 @@ struct PreferencesEnumTests {
         #expect(SwitcherDisplayMode.mouseCursor.rawValue == "mouseCursor")
         #expect(SwitcherDisplayMode.activeWindow.rawValue == "activeWindow")
         #expect(SwitcherDisplayMode.mainDisplay.rawValue == "mainDisplay")
+    }
+
+    @Test("PreviewTitleAlignment raw values round-trip and unknown falls back")
+    func previewTitleAlignmentRoundTrip() {
+        for alignment in PreviewTitleAlignment.allCases {
+            #expect(PreviewTitleAlignment(rawValue: alignment.rawValue) == alignment)
+            #expect(!alignment.displayName.isEmpty)
+        }
+        #expect(PreviewTitleAlignment(rawValue: "garbage") == nil)
+        // Stable raw values (persisted to UserDefaults / exported settings).
+        #expect(PreviewTitleAlignment.leading.rawValue == "leading")
+        #expect(PreviewTitleAlignment.center.rawValue == "center")
+        #expect(PreviewTitleAlignment.trailing.rawValue == "trailing")
+    }
+
+    @Test("TitleTruncationMode raw values round-trip and map to NSLineBreakMode")
+    func titleTruncationModeRoundTrip() {
+        for mode in TitleTruncationMode.allCases {
+            #expect(TitleTruncationMode(rawValue: mode.rawValue) == mode)
+            #expect(!mode.displayName.isEmpty)
+        }
+        #expect(TitleTruncationMode(rawValue: "garbage") == nil)
+        // Stable raw values (persisted to UserDefaults / exported settings).
+        #expect(TitleTruncationMode.head.rawValue == "head")
+        #expect(TitleTruncationMode.middle.rawValue == "middle")
+        #expect(TitleTruncationMode.tail.rawValue == "tail")
+        // Exact NSLineBreakMode mapping — this is what the item views apply (#90).
+        #expect(TitleTruncationMode.head.lineBreakMode == .byTruncatingHead)
+        #expect(TitleTruncationMode.middle.lineBreakMode == .byTruncatingMiddle)
+        #expect(TitleTruncationMode.tail.lineBreakMode == .byTruncatingTail)
+        // The stored-value fallback in Preferences (init/reloadFromDefaults) is
+        // .tail, so a fresh install keeps the historical truncate-at-end look.
+        let defaults = UserDefaults(suiteName: "titleTruncationModeRoundTripTests")
+        defaults?.removePersistentDomain(forName: "titleTruncationModeRoundTripTests")
+        let fresh = defaults?.string(forKey: Preferences.Keys.titleTruncationMode)
+            .flatMap(TitleTruncationMode.init(rawValue:)) ?? .tail
+        #expect(fresh == .tail)
+    }
+
+    @Test("SwitcherFontScale raw values round-trip and multipliers strictly increase")
+    func fontScaleRoundTrip() {
+        for scale in SwitcherFontScale.allCases {
+            #expect(SwitcherFontScale(rawValue: scale.rawValue) == scale)
+            #expect(!scale.displayName.isEmpty)
+        }
+        // allCases is ordered smallest → largest; the multipliers must agree so
+        // the settings popup reads as a monotonic size ramp.
+        let multipliers = SwitcherFontScale.allCases.map(\.multiplier)
+        #expect(multipliers == multipliers.sorted())
+        #expect(Set(multipliers).count == multipliers.count)
+        #expect(SwitcherFontScale.standard.multiplier == 1.0)
+        // Unknown raw value → nil, so the init read falls back to .standard.
+        #expect(SwitcherFontScale(rawValue: "huge") == nil)
+    }
+
+    @Test("SwitcherFontFace raw values round-trip and map to SystemDesign")
+    func fontFaceRoundTrip() {
+        for face in SwitcherFontFace.allCases {
+            #expect(SwitcherFontFace(rawValue: face.rawValue) == face)
+            #expect(!face.displayName.isEmpty)
+        }
+        #expect(SwitcherFontFace.system.systemDesign == .default)
+        #expect(SwitcherFontFace.rounded.systemDesign == .rounded)
+        #expect(SwitcherFontFace.serif.systemDesign == .serif)
+        #expect(SwitcherFontFace.monospaced.systemDesign == .monospaced)
+        #expect(SwitcherFontFace(rawValue: "papyrus") == nil)
+    }
+
+    @MainActor
+    @Test("titleGroupOriginX places the preview title at the chosen edge")
+    func titleGroupOriginX() {
+        let tile: CGFloat = 200
+        let group: CGFloat = 80   // 120 pt of slack
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .leading, groupWidth: group, tileWidth: tile) == 0)
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .center, groupWidth: group, tileWidth: tile) == 60)
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .trailing, groupWidth: group, tileWidth: tile) == 120)
+
+        // A group wider than the tile never starts off-screen (slack clamps to 0).
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .trailing, groupWidth: 260, tileWidth: tile) == 0)
+        #expect(SwitcherPreviewItemView.titleGroupOriginX(alignment: .center, groupWidth: 260, tileWidth: tile) == 0)
     }
 
     @Test("HideWindowsMode / IgnoreShortcutsMode round-trip through raw values")

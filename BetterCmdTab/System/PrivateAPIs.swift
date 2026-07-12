@@ -10,22 +10,32 @@ import Darwin
 /// dlsym-based so the Xcode project does not need an extra linker flag or
 /// bridging header.
 enum PrivateAPI {
-    private static let RTLD_DEFAULT_HANDLE = UnsafeMutableRawPointer(bitPattern: -2)
-    private static let skyLight: UnsafeMutableRawPointer? = {
-        dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_NOW)
-    }()
+    /// Dynamic-loader handles are immutable process-lifetime capabilities. Raw
+    /// pointers are not modeled as `Sendable`, even though `dlsym` permits
+    /// concurrent reads from a live handle, so contain that audited guarantee in
+    /// one wrapper instead of marking every resolved function unsafe.
+    private struct DynamicHandle: @unchecked Sendable {
+        let raw: UnsafeMutableRawPointer?
+    }
 
-    private static func sym<T>(_ name: String, in handle: UnsafeMutableRawPointer?) -> T? {
-        guard let h = handle, let p = dlsym(h, name) else { return nil }
+    private static let rtldDefaultHandle = DynamicHandle(
+        raw: UnsafeMutableRawPointer(bitPattern: -2)
+    )
+    private static let skyLight = DynamicHandle(
+        raw: dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_NOW)
+    )
+
+    private static func sym<T>(_ name: String, in handle: DynamicHandle) -> T? {
+        guard let h = handle.raw, let p = dlsym(h, name) else { return nil }
         return unsafeBitCast(p, to: T.self)
     }
 
     // MARK: - HIServices (private)
 
     private static let axCreateWithRemoteTokenFn: (@convention(c) (CFData) -> Unmanaged<AXUIElement>?)? =
-        sym("_AXUIElementCreateWithRemoteToken", in: RTLD_DEFAULT_HANDLE)
+        sym("_AXUIElementCreateWithRemoteToken", in: rtldDefaultHandle)
     private static let axGetWindowFn: (@convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError)? =
-        sym("_AXUIElementGetWindow", in: RTLD_DEFAULT_HANDLE)
+        sym("_AXUIElementGetWindow", in: rtldDefaultHandle)
 
     /// Build a remote-token AXUIElement for `(pid, axId)`. Token format is 20
     /// bytes: pid (Int32 LE) | 0 (Int32 LE) | 0x636f636f (Int32 LE) | axId (UInt64 LE).
@@ -60,7 +70,7 @@ enum PrivateAPI {
     // GetProcessForPID is deprecated past macOS 10.9 and the Swift importer
     // hides it — pull the symbol via dlsym instead.
     private static let getProcessForPIDFn: (@convention(c) (pid_t, UnsafeMutablePointer<ProcessSerialNumber>) -> OSStatus)? =
-        sym("GetProcessForPID", in: RTLD_DEFAULT_HANDLE)
+        sym("GetProcessForPID", in: rtldDefaultHandle)
 
     // MARK: - SkyLight: native symbolic-hotkey suppression (⌘Tab)
 
@@ -117,6 +127,11 @@ enum PrivateAPI {
     // swipe will move, so we only post one for jumps within that display.
     private static let getActiveSpaceFn: (@convention(c) (Int32) -> UInt64)? =
         sym("CGSGetActiveSpace", in: skyLight)
+    // (cid) -> the active (bright) menu bar's display UUID string. Tracks the
+    // FOCUSED display — keyboard focus / frontmost window — NOT the cursor,
+    // unlike CGSGetActiveSpace. Backs opening the switcher on the active monitor.
+    private static let copyActiveMenuBarDisplayFn: (@convention(c) (Int32) -> Unmanaged<CFString>?)? =
+        sym("SLSCopyActiveMenuBarDisplayIdentifier", in: skyLight)
 
     // MARK: - SkyLight: current-Space queries (read-only)
 
@@ -128,36 +143,104 @@ enum PrivateAPI {
         return space == 0 ? nil : space
     }
 
-    /// Maps each window id to its single Space. Windows that belong to more
-    /// than one Space (All Desktops / sticky windows) are omitted along with
-    /// windows whose Space can't be resolved — they're visible on the current
-    /// Space too, and the current-Space filter keeps whatever it can't pin
-    /// down. The result is empty when the private API is unavailable (callers
-    /// should then degrade to showing every window).
-    static func spaces(forWindows wids: [CGWindowID]) -> [CGWindowID: UInt64] {
+    /// The Spaces currently on screen: each display's "Current Space" from
+    /// `CGSCopyManagedDisplaySpaces` (#57 — the "visible Spaces" switcher
+    /// filter). One id per connected display; a single-monitor setup yields the
+    /// same id as `activeSpace()`. Empty when the private API is unavailable —
+    /// callers must treat that as "unknown" and degrade, same as a nil
+    /// `activeSpace()`. One CGS round-trip, no per-window IPC.
+    static func visibleSpaces() -> Set<UInt64> {
+        guard let mainConnection = mainConnectionFn,
+              let copyDisplays = copyManagedDisplaySpacesFn,
+              let cfDisplays = copyDisplays(mainConnection())?.takeRetainedValue() else { return [] }
+        var spaces = Set<UInt64>()
+        for display in (cfDisplays as NSArray).compactMap({ $0 as? [String: Any] }) {
+            if let current = display["Current Space"] as? [String: Any], let id = spaceId(current) {
+                spaces.insert(id)
+            }
+        }
+        return spaces
+    }
+
+    /// The CoreGraphics display id of the monitor whose menu bar is currently
+    /// active (the bright one) — i.e. the display the user is working on. This is
+    /// the *focused* display: it follows keyboard focus / the frontmost window,
+    /// NOT the mouse. Hovering the pointer over another monitor leaves that
+    /// monitor's menu bar dimmed and does not change this result.
+    ///
+    /// Resolves via `SLSCopyActiveMenuBarDisplayIdentifier` (a display UUID, or
+    /// the literal "Main"), mapped to a `CGDirectDisplayID`. This is deliberately
+    /// NOT `CGSGetActiveSpace`, whose active-Space id tracks the display under
+    /// the cursor — using that made the switcher follow the mouse onto a dimmed
+    /// monitor instead of staying on the active (bright-menu-bar) one.
+    ///
+    /// Returns nil — so the caller falls back to the focused-window/cursor chain
+    /// — when the private API is unavailable or the identifier can't be placed on
+    /// a live display. CGS/CoreGraphics only (no AppKit) so it is safe to call
+    /// off the main thread, where the switcher resolves its target screen.
+    static func activeMenuBarDisplayID() -> CGDirectDisplayID? {
+        guard let mainConnection = mainConnectionFn,
+              let copyMenuBarDisplay = copyActiveMenuBarDisplayFn,
+              let identifier = copyMenuBarDisplay(mainConnection())?.takeRetainedValue() else { return nil }
+        return displayID(forManagedIdentifier: identifier as String)
+    }
+
+    /// Map a SkyLight "Display Identifier" (e.g. from
+    /// `SLSCopyActiveMenuBarDisplayIdentifier`) to a CG display id. The value is
+    /// the literal "Main" on some macOS builds, otherwise a display UUID string
+    /// matched against the online displays' UUIDs. nil when no online display
+    /// matches (e.g. unplugged between query and lookup).
+    private static func displayID(forManagedIdentifier identifier: String) -> CGDirectDisplayID? {
+        if identifier == "Main" { return CGMainDisplayID() }
+        var count: UInt32 = 0
+        guard CGGetOnlineDisplayList(0, nil, &count) == .success, count > 0 else { return nil }
+        var ids = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetOnlineDisplayList(count, &ids, &count) == .success else { return nil }
+        for id in ids {
+            guard let uuid = CGDisplayCreateUUIDFromDisplayID(id)?.takeRetainedValue() else { continue }
+            if (CFUUIDCreateString(nil, uuid) as String) == identifier { return id }
+        }
+        return nil
+    }
+
+    /// Classify each window id by Space membership in a single CGS pass.
+    /// `resolved[wid]` is its Space when the window belongs to exactly one
+    /// (`count == 1`); `spaceless` holds the wids WindowServer *positively*
+    /// reports as belonging to zero Spaces (`count == 0`) — a never-mapped
+    /// window, the phantom signal. Multi-Space (All Desktops / sticky,
+    /// `count > 1`) windows and windows whose query fails are in NEITHER set: a
+    /// sticky window is on the current Space by definition and a failed query is
+    /// unknown, so callers keep both. Both sets are empty when the private API is
+    /// unavailable (callers degrade to showing every window).
+    static func spaceMembership(forWindows wids: [CGWindowID]) -> (resolved: [CGWindowID: UInt64], spaceless: Set<CGWindowID>) {
         guard !wids.isEmpty,
               let mainConnection = mainConnectionFn,
-              let copySpaces = copySpacesForWindowsFn else { return [:] }
+              let copySpaces = copySpacesForWindowsFn else { return ([:], []) }
         let cid = mainConnection()
-        var result: [CGWindowID: UInt64] = [:]
-        result.reserveCapacity(wids.count)
+        var resolved: [CGWindowID: UInt64] = [:]
+        var spaceless = Set<CGWindowID>()
+        resolved.reserveCapacity(wids.count)
         for wid in wids where wid != 0 {
             // Query one window at a time: `CGSCopySpacesForWindows` returns the
             // union of Spaces for the whole input array, so a single call can't
             // be attributed back to individual windows.
             let list = [NSNumber(value: wid)] as CFArray
-            // == 1: a multi-Space window (All Desktops) is on the current Space
-            // by definition, so leave it unresolved and the filter keeps it.
-            guard let spaces = copySpaces(cid, 0x7, list)?.takeRetainedValue(),
-                  CFArrayGetCount(spaces) == 1,
-                  let raw = CFArrayGetValueAtIndex(spaces, 0) else { continue }
-            let number = Unmanaged<CFNumber>.fromOpaque(raw).takeUnretainedValue()
-            var space: UInt64 = 0
-            if CFNumberGetValue(number, .sInt64Type, &space), space != 0 {
-                result[wid] = space
+            guard let spaces = copySpaces(cid, 0x7, list)?.takeRetainedValue() else { continue }
+            let count = CFArrayGetCount(spaces)
+            if count == 0 {
+                // Positively belongs to no Space — a never-mapped phantom window.
+                spaceless.insert(wid)
+            } else if count == 1, let raw = CFArrayGetValueAtIndex(spaces, 0) {
+                let number = Unmanaged<CFNumber>.fromOpaque(raw).takeUnretainedValue()
+                var space: UInt64 = 0
+                if CFNumberGetValue(number, .sInt64Type, &space), space != 0 {
+                    resolved[wid] = space
+                }
             }
+            // count > 1: a multi-Space (All Desktops) window is on the current
+            // Space by definition — leave it in neither set so the filter keeps it.
         }
-        return result
+        return (resolved, spaceless)
     }
 
     /// One-shot startup diagnostic. Returns the list of dlsym symbols that
@@ -174,6 +257,7 @@ enum PrivateAPI {
         if copySpacesForWindowsFn == nil { missing.append("CGSCopySpacesForWindows") }
         if copyManagedDisplaySpacesFn == nil { missing.append("CGSCopyManagedDisplaySpaces") }
         if getActiveSpaceFn == nil { missing.append("CGSGetActiveSpace") }
+        if copyActiveMenuBarDisplayFn == nil { missing.append("SLSCopyActiveMenuBarDisplayIdentifier") }
         if setSymbolicHotKeyEnabledFn == nil { missing.append("CGSSetSymbolicHotKeyEnabled") }
         return missing
     }

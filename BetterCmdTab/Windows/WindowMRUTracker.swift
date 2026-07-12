@@ -30,6 +30,7 @@ final class WindowMRUTracker {
     private let perAppCap = 64
 
     func start() {
+        guard termObserver == nil else { return }
         let nc = NSWorkspace.shared.notificationCenter
         termObserver = nc.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification,
@@ -38,7 +39,7 @@ final class WindowMRUTracker {
         ) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
             let pid = app.processIdentifier
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 guard let self else { return }
                 // Confirmed-dead purge: the app is gone, so every window we
                 // remembered for it is too.
@@ -50,10 +51,15 @@ final class WindowMRUTracker {
         }
     }
 
-    nonisolated deinit {
-        if let obs = MainActor.assumeIsolated({ termObserver }) {
-            NSWorkspace.shared.notificationCenter.removeObserver(obs)
+    func stop() {
+        if let termObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(termObserver)
+            self.termObserver = nil
         }
+    }
+
+    nonisolated deinit {
+        MainActor.assumeIsolated { stop() }
     }
 
     func bump(pid: pid_t, wid: CGWindowID) {
@@ -67,15 +73,6 @@ final class WindowMRUTracker {
         globalOrder.removeAll { $0 == wid }
         globalOrder.insert(wid, at: 0)
         if globalOrder.count > globalCap { globalOrder.removeLast(globalOrder.count - globalCap) }
-    }
-
-    /// Promote the app's currently focused window to MRU front by querying AX
-    /// directly. Call this at the start of a Cmd+` chord so external focus
-    /// changes (user clicked a different window manually) are reflected before
-    /// rows get reordered.
-    func syncFrontWindow(pid: pid_t) {
-        let wid = Self.focusedWindowID(pid: pid)
-        if wid != 0 { bump(pid: pid, wid: wid) }
     }
 
     /// Resolve the pid's focused-window CGWindowID via a blocking AX query.
@@ -98,6 +95,47 @@ final class WindowMRUTracker {
     func sortRows(_ rows: [SwitcherRow], forPid pid: pid_t) -> [SwitcherRow] {
         guard let list = order[pid], !list.isEmpty, rows.count > 1 else { return rows }
         return sortRows(rows, by: list)
+    }
+
+    /// Re-orders each contiguous run of same-pid windowed rows by that app's
+    /// per-app recency (`sortRows(forPid:)`), leaving run boundaries and every
+    /// other row in place. The app-grouped sorts (.mru / alphabetical / launch
+    /// order) apply this so each app's leading row — the one
+    /// `collapseToApplications` elects, the pid selection anchor lands on, and
+    /// a ⌘Tab app commit activates — is the app's most recently used window
+    /// instead of the AX scan order (#83, #30). Runs never span status buckets
+    /// (the catalog orders buckets before any app's rows repeat), so a recently
+    /// focused but since-minimized window can't jump ahead of a visible one.
+    func sortRowsWithinAppRuns(_ rows: [SwitcherRow]) -> [SwitcherRow] {
+        guard !order.isEmpty, rows.count > 1 else { return rows }
+        let ranges = Self.windowRunRanges(
+            pids: rows.map(\.pid),
+            windowed: rows.map { $0.window != nil || $0.cgWindowID != 0 }
+        )
+        guard !ranges.isEmpty else { return rows }
+        var result = rows
+        for range in ranges {
+            guard let pid = result[range.lowerBound].pid, order[pid] != nil else { continue }
+            result.replaceSubrange(range, with: sortRows(Array(result[range]), forPid: pid))
+        }
+        return result
+    }
+
+    /// Pure index-level core of `sortRowsWithinAppRuns`, split out so run
+    /// detection is unit-testable without live AX rows: the maximal contiguous
+    /// ranges (length ≥ 2) of windowed rows sharing one non-nil pid. A
+    /// windowless row — or a different pid — ends the run it interrupts.
+    static func windowRunRanges(pids: [pid_t?], windowed: [Bool]) -> [Range<Int>] {
+        var ranges: [Range<Int>] = []
+        var i = 0
+        while i < pids.count {
+            guard let pid = pids[i], windowed[i] else { i += 1; continue }
+            var j = i + 1
+            while j < pids.count, pids[j] == pid, windowed[j] { j += 1 }
+            if j - i > 1 { ranges.append(i..<j) }
+            i = j
+        }
+        return ranges
     }
 
     /// Re-orders `rows` by flat cross-app window recency (the `.mruWindows`

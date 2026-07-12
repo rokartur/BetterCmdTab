@@ -54,6 +54,11 @@ struct SwitcherRow {
     /// commit without a raise. Browser tabs aren't separate NSWindows, so there's
     /// no per-tab AX element — activation goes through `BrowserTabs.activateTab`.
     let browserTab: BrowserTabRef?
+    /// True when this row is a background tab of a native window-tab group kept
+    /// as its own row ("expand tabs as windows"). A tabbed-away window belongs
+    /// to no Space — the same signature as an Electron phantom helper — so the
+    /// phantom-window filter exempts these rows instead of dropping them.
+    let isTabSibling: Bool
 
     init(
         app: NSRunningApplication,
@@ -66,7 +71,8 @@ struct SwitcherRow {
         tabs: [AXUIElement] = [],
         tabWindows: [TabWindowRef] = [],
         cgWindowID: CGWindowID = 0,
-        browserTab: BrowserTabRef? = nil
+        browserTab: BrowserTabRef? = nil,
+        isTabSibling: Bool = false
     ) {
         self.subject = .running(app)
         self.window = window
@@ -79,6 +85,7 @@ struct SwitcherRow {
         self.tabs = tabs
         self.tabWindows = tabWindows
         self.browserTab = browserTab
+        self.isTabSibling = isTabSibling
     }
 
     /// Map one enumerated window to its switcher row, carrying its native
@@ -94,7 +101,8 @@ struct SwitcherRow {
             isFullscreen: w.isFullscreen,
             tabs: w.tabs,
             tabWindows: w.tabWindows,
-            cgWindowID: w.cgWindowID
+            cgWindowID: w.cgWindowID,
+            isTabSibling: w.isTabSibling
         )
     }
 
@@ -111,6 +119,7 @@ struct SwitcherRow {
         self.tabs = []
         self.tabWindows = []
         self.browserTab = nil
+        self.isTabSibling = false
     }
 
     /// A recently closed window/app surfaced in search so it can be reopened.
@@ -126,6 +135,7 @@ struct SwitcherRow {
         self.tabs = []
         self.tabWindows = []
         self.browserTab = nil
+        self.isTabSibling = false
     }
 
     /// A copy of this row with an updated window title, used for in-place title
@@ -144,7 +154,8 @@ struct SwitcherRow {
             tabs: tabs,
             tabWindows: tabWindows,
             cgWindowID: cgWindowID,
-            browserTab: browserTab
+            browserTab: browserTab,
+            isTabSibling: isTabSibling
         )
     }
 

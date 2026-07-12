@@ -49,29 +49,23 @@ final class SwipeTrigger {
 
     /// When `true`, sliding right moves the selection left and vice versa.
     func setReverseDirection(_ reverse: Bool) {
-        MTGesture.reverse = reverse
+        MTGesture.setReverse(reverse)
     }
 
     /// When `true`, lifting all fingers commits the current selection; when
     /// `false` (default) the switcher stays open to commit with a click/Return.
     func setCommitOnRelease(_ commit: Bool) {
-        MTGesture.commitOnRelease = commit
+        MTGesture.setCommitOnRelease(commit)
     }
 
     /// Sets how far fingers must travel to advance one app, from a 1–10
     /// sensitivity level. Higher = more sensitive = shorter travel per step.
     func setSensitivity(_ level: Int) {
-        MTGesture.stepDistance = MTGesture.stepDistance(forLevel: level)
+        MTGesture.setSensitivity(level)
     }
 
     func setOneShot(_ oneShot: Bool) {
-        // Only the scalar `oneShot` flag is written from the main actor (same
-        // single-assignment, set-rarely contract as `reverse`/`commitOnRelease`).
-        // The RMW latch fields `fired`/`accumulator` are owned solely by the
-        // callback thread, which clears them on full lift and re-anchors them on
-        // gesture start — writing them here would be a data race against that
-        // thread's `+=`/`-=`/toggle, so we deliberately don't.
-        MTGesture.oneShot = oneShot
+        MTGesture.setOneShot(oneShot)
     }
 
     private func install() {
@@ -89,6 +83,13 @@ final class SwipeTrigger {
         for i in 0..<count {
             guard let raw = CFArrayGetValueAtIndex(list, i) else { continue }
             let device = UnsafeMutableRawPointer(mutating: raw)
+            // Own the MTDeviceRef for the registration's lifetime. The list
+            // array (released at scope exit) holds the only guaranteed retain;
+            // MTDeviceStop's run-thread teardown drops the framework's own
+            // retain before MTUnregisterContactFrameCallback touches the
+            // device, so without this the uninstall path writes to a freed
+            // CF object.
+            _ = Unmanaged<AnyObject>.fromOpaque(device).retain()
             api.registerCallback(device, multitouchSwipeCallback)
             api.start(device, 0)
             devices.append(device)
@@ -99,25 +100,28 @@ final class SwipeTrigger {
     }
 
     private func uninstall() {
+        // Invalidate actions already queued from the private callback before
+        // detaching it. Their generation check on main then cannot deliver an
+        // old gesture into a later re-enable session.
+        MTGesture.reset()
         guard !devices.isEmpty, let api = MultitouchAPI.shared else {
             devices.removeAll()
             if SwipeTrigger.active === self { SwipeTrigger.active = nil }
             return
         }
         for device in devices {
-            api.stop(device)
+            // Unregister while the device is still valid, then stop; release
+            // last — it balances the retain taken in `install()`.
             api.unregisterCallback(device, multitouchSwipeCallback)
+            api.stop(device)
+            Unmanaged<AnyObject>.fromOpaque(device).release()
         }
         devices.removeAll()
         if SwipeTrigger.active === self { SwipeTrigger.active = nil }
     }
 
-    deinit {
-        guard !devices.isEmpty, let api = MultitouchAPI.shared else { return }
-        for device in devices {
-            api.stop(device)
-            api.unregisterCallback(device, multitouchSwipeCallback)
-        }
+    nonisolated deinit {
+        MainActor.assumeIsolated { uninstall() }
     }
 
     /// Called on the main actor from the contact callback once a swipe is
@@ -156,12 +160,19 @@ private struct MultitouchAPI: @unchecked Sendable {
     let unregisterCallback: UnregisterFn
     let start: StartFn
     let stop: StopFn
+    /// Keep the image loaded for as long as its function pointers can be called.
+    /// A partially-resolved image is closed on the failure path in `load()`.
+    private let handle: UnsafeMutableRawPointer
 
     static let shared: MultitouchAPI? = load()
 
     private static func load() -> MultitouchAPI? {
         let path = "/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport"
         guard let handle = dlopen(path, RTLD_LAZY) else { return nil }
+        var loaded = false
+        defer {
+            if !loaded { dlclose(handle) }
+        }
         func sym<T>(_ name: String, _ type: T.Type) -> T? {
             guard let p = dlsym(handle, name) else { return nil }
             return unsafeBitCast(p, to: T.self)
@@ -173,13 +184,16 @@ private struct MultitouchAPI: @unchecked Sendable {
             let start = sym("MTDeviceStart", StartFn.self),
             let stop = sym("MTDeviceStop", StopFn.self)
         else { return nil }
-        return MultitouchAPI(
+        let api = MultitouchAPI(
             createList: createList,
             registerCallback: register,
             unregisterCallback: unregister,
             start: start,
-            stop: stop
+            stop: stop,
+            handle: handle
         )
+        loaded = true
+        return api
     }
 }
 
@@ -194,18 +208,13 @@ private enum MTLayout {
     static let normalizedPosX = 32
 }
 
-/// Per-gesture state. MultitouchSupport serializes callbacks onto a single
-/// dedicated thread, so all but `reverse`/`commitOnRelease` are only ever
-/// touched from that one thread; the `nonisolated(unsafe)` globals reflect that
-/// hand-off contract. The two flags are written from the main actor and read
-/// here (plain `Bool`, set rarely).
-private enum MTGesture {
-    /// Normalized horizontal travel (≈ trackpad fraction) per one-app step.
-    /// Smaller = more sensitive scrubbing. Written from the main actor when the
-    /// sensitivity preference changes and read on the callback thread — same
-    /// plain-value, set-rarely contract as `reverse`/`commitOnRelease`.
-    nonisolated(unsafe) static var stepDistance: Float = stepDistance(forLevel: defaultSensitivityLevel)
-
+/// Per-gesture state shared by MultitouchSupport callbacks and main-actor
+/// preference updates. Private-framework callbacks are not documented to use a
+/// single thread (and separate devices may call concurrently), so every field —
+/// including the read/modify/write accumulator — lives behind one unfair lock.
+/// One lock acquisition per contact frame is cheaper than dispatching the frame
+/// and makes configuration changes immediately coherent with gesture handling.
+enum MTGesture {
     /// Sensitivity 1 (least) → longest travel per step; 10 (most) → shortest.
     /// The 1–10 level is mapped linearly between these bounds.
     static let leastSensitiveStep: Float = 0.10
@@ -219,62 +228,197 @@ private enum MTGesture {
         return leastSensitiveStep - t * (leastSensitiveStep - mostSensitiveStep)
     }
 
-    /// A three-finger gesture has begun and not yet fully lifted. Survives a
-    /// brief drop below three fingers so finger flicker mid-scrub doesn't end it.
-    nonisolated(unsafe) static var active = false
-    /// Currently have three fingers down and are accumulating travel.
-    nonisolated(unsafe) static var tracking = false
-    nonisolated(unsafe) static var lastX: Float = 0
-    /// Horizontal travel banked since the last emitted step.
-    nonisolated(unsafe) static var accumulator: Float = 0
-    nonisolated(unsafe) static var reverse = false
-    nonisolated(unsafe) static var commitOnRelease = false
-
-    nonisolated(unsafe) static var oneShot = false
-    /// Set once a one-shot gesture has fired; cleared only when all fingers lift,
-    /// so a single swipe switches exactly one Space.
-    nonisolated(unsafe) static var fired = false
     /// Normalized horizontal travel needed to trigger a one-shot Space switch.
     static let oneShotThreshold: Float = 0.08
-
-    /// Device the current gesture is latched to (`-1` = none). All registered
-    /// devices share one callback thread, so without this a resting finger on a
-    /// second trackpad would interleave its frames into the gesture state.
-    nonisolated(unsafe) static var latchedDevice: Int32 = -1
-
-    /// Contact-frame timestamp of the latched device's most recent frame. Lets a
-    /// stalled latch (device disconnected/slept mid-gesture, or a dropped
-    /// zero-contact lift frame) be seized by another device instead of pinning
-    /// the latch — and swallowing every gesture on every trackpad — forever.
-    nonisolated(unsafe) static var latchedAt: Double = 0
     /// Silence from the latched device beyond this (seconds) lets another device
     /// take over. Gesture frames arrive at ≥60 Hz, so this is far longer than any
     /// real inter-frame gap — only a truly dead device crosses it.
     static let latchStaleWindow: Double = 0.5
 
+    private struct State: Sendable {
+        /// Bumped at every install/uninstall/reset boundary. An action carries
+        /// the generation that recognized it so a delayed main-queue hop cannot
+        /// target a newer trigger session.
+        var generation: UInt64 = 1
+        var stepDistance = MTGesture.stepDistance(forLevel: defaultSensitivityLevel)
+        /// A three-finger gesture has begun and not yet fully lifted. Survives a
+        /// brief drop below three fingers so finger flicker does not end it.
+        var active = false
+        var tracking = false
+        var lastX: Float = 0
+        var accumulator: Float = 0
+        var reverse = false
+        var commitOnRelease = false
+        var oneShot = false
+        var fired = false
+        /// Device the current gesture is latched to (`-1` = none).
+        var latchedDevice: Int32 = -1
+        /// Timestamp of the latched device's most recent frame.
+        var latchedAt: Double = 0
+    }
+
+    struct Action: Sendable {
+        /// Signed number of selection steps. Positive means forward.
+        var steps = 0
+        var commit = false
+        var generation: UInt64 = 0
+        static let none = Action()
+    }
+
+    private static let state = OSAllocatedUnfairLock<State>(initialState: State())
+
+    static func setReverse(_ reverse: Bool) {
+        state.withLock { $0.reverse = reverse }
+    }
+
+    static func setCommitOnRelease(_ commit: Bool) {
+        state.withLock { $0.commitOnRelease = commit }
+    }
+
+    static func setSensitivity(_ level: Int) {
+        let distance = stepDistance(forLevel: level)
+        state.withLock { $0.stepDistance = distance }
+    }
+
+    static func setOneShot(_ oneShot: Bool) {
+        state.withLock { $0.oneShot = oneShot }
+    }
+
     static func reset() {
-        active = false
-        tracking = false
-        accumulator = 0
-        fired = false
-        latchedDevice = -1
-        latchedAt = 0
+        state.withLock { current in
+            let config = (
+                current.stepDistance,
+                current.reverse,
+                current.commitOnRelease,
+                current.oneShot
+            )
+            var nextGeneration = current.generation &+ 1
+            if nextGeneration == 0 { nextGeneration = 1 }
+            current = State()
+            current.generation = nextGeneration
+            current.stepDistance = config.0
+            current.reverse = config.1
+            current.commitOnRelease = config.2
+            current.oneShot = config.3
+        }
+    }
+
+    static func isCurrent(generation: UInt64) -> Bool {
+        generation != 0 && state.withLock { $0.generation == generation }
+    }
+
+    /// Consume one contact frame and return work to deliver after releasing the
+    /// lock. `averageX` is pre-read from the callback's transient C buffer, so no
+    /// unsafe pointer crosses into the lock closure.
+    static func consume(
+        device: Int32,
+        contactCount: Int32,
+        averageX: Float?,
+        timestamp: Double
+    ) -> Action {
+        state.withLock { state in
+            if state.latchedDevice != -1, device != state.latchedDevice {
+                guard contactCount >= 3,
+                      timestamp.isFinite,
+                      timestamp - state.latchedAt > latchStaleWindow else {
+                    return .none
+                }
+                state.latchedDevice = -1
+                state.tracking = false
+                state.active = false
+                state.accumulator = 0
+                state.fired = false
+            }
+            // A malformed private-framework timestamp must not poison stale-
+            // device takeover forever. Preserve the last valid frame time.
+            if timestamp.isFinite { state.latchedAt = timestamp }
+
+            if contactCount >= 3, let averageX {
+                // Reject before latching/storing `lastX`. In one-shot mode a
+                // NaN accumulator never crosses either threshold and otherwise
+                // remains poisoned until lift.
+                guard averageX.isFinite else {
+                    state.tracking = false
+                    state.accumulator = 0
+                    return .none
+                }
+                state.latchedDevice = device
+                state.active = true
+                if !state.tracking {
+                    state.tracking = true
+                    state.lastX = averageX
+                    return .none
+                }
+
+                state.accumulator += averageX - state.lastX
+                state.lastX = averageX
+                let rightward = state.reverse ? -1 : 1
+
+                if state.oneShot {
+                    guard !state.fired else { return .none }
+                    if state.accumulator >= oneShotThreshold {
+                        state.fired = true
+                        return Action(steps: rightward, generation: state.generation)
+                    }
+                    if state.accumulator <= -oneShotThreshold {
+                        state.fired = true
+                        return Action(steps: -rightward, generation: state.generation)
+                    }
+                    return .none
+                }
+
+                // Convert all whole steps in one calculation instead of a pair
+                // of potentially long while-loops on the private callback thread.
+                guard state.accumulator.isFinite, state.stepDistance.isFinite,
+                      state.stepDistance > 0 else {
+                    state.accumulator = 0
+                    return .none
+                }
+                let quotient = state.accumulator / state.stepDistance
+                // Normalized contact coordinates make |quotient| tiny. Clamp a
+                // malformed private-framework frame so conversion cannot trap or
+                // enqueue an unbounded burst onto the main thread.
+                let bounded = min(16, max(-16, quotient))
+                let physicalSteps = Int(bounded.rounded(.towardZero))
+                if quotient != bounded {
+                    state.accumulator = 0
+                } else if physicalSteps != 0 {
+                    state.accumulator -= Float(physicalSteps) * state.stepDistance
+                }
+                return Action(steps: physicalSteps * rightward, generation: state.generation)
+            }
+
+            state.tracking = false
+            guard contactCount == 0 else { return .none }
+            let shouldCommit = state.active && state.commitOnRelease
+            state.active = false
+            state.accumulator = 0
+            state.fired = false
+            state.latchedDevice = -1
+            return Action(steps: 0, commit: shouldCommit, generation: state.generation)
+        }
     }
 }
 
-/// Hop a single step to the main actor and into the live trigger.
-private func mtEmitStep(_ direction: Int) {
+/// Hop the frame's coalesced steps to the main actor and into the live trigger.
+private func mtEmitSteps(_ signedCount: Int, generation: UInt64) {
+    guard signedCount != 0 else { return }
     DispatchQueue.main.async {
         MainActor.assumeIsolated {
-            SwipeTrigger.deliver(direction)
+            guard MTGesture.isCurrent(generation: generation) else { return }
+            let direction = signedCount > 0 ? 1 : -1
+            for _ in 0..<abs(signedCount) {
+                SwipeTrigger.deliver(direction)
+            }
         }
     }
 }
 
 /// Hop a commit (gesture released) to the main actor.
-private func mtEmitCommit() {
+private func mtEmitCommit(generation: UInt64) {
     DispatchQueue.main.async {
         MainActor.assumeIsolated {
+            guard MTGesture.isCurrent(generation: generation) else { return }
             SwipeTrigger.deliverCommit()
         }
     }
@@ -292,29 +436,7 @@ private func multitouchSwipeCallback(
     _ timestamp: Double,
     _ frame: Int32
 ) -> Int32 {
-    // One gesture at a time: latch onto the device that first reaches three
-    // contacts and ignore every other device until the latched one fully lifts,
-    // so a resting finger on a second trackpad can't stall or end the gesture.
-    if MTGesture.latchedDevice != -1 && device != MTGesture.latchedDevice {
-        // Stale-latch escape: if the latched device went silent (disconnect /
-        // sleep / a dropped zero-contact lift frame), a held latch would
-        // otherwise swallow every gesture on every trackpad until the pref is
-        // toggled. Let a different device that reaches three contacts seize the
-        // gesture once the latched one hasn't delivered a frame for a short
-        // window; keep ignoring it otherwise (one gesture at a time).
-        guard numContacts >= 3, timestamp - MTGesture.latchedAt > MTGesture.latchStaleWindow else {
-            return 0
-        }
-        MTGesture.latchedDevice = -1
-        MTGesture.tracking = false
-        MTGesture.active = false
-        MTGesture.accumulator = 0
-        MTGesture.fired = false
-    }
-    // This frame belongs to (or will establish) the gesture device — refresh the
-    // latch's liveness so a genuine ongoing gesture is never seized.
-    MTGesture.latchedAt = timestamp
-
+    var averageX: Float?
     if let contacts, numContacts >= 3 {
         // Average the normalized x of the first three contacts. Vertical motion
         // is ignored, so a pure three-finger up/down swipe banks no travel and
@@ -324,63 +446,15 @@ private func multitouchSwipeCallback(
             let base = contacts.advanced(by: i * MTLayout.stride)
             sumX += base.loadUnaligned(fromByteOffset: MTLayout.normalizedPosX, as: Float.self)
         }
-        let avgX = sumX / 3
-
-        MTGesture.latchedDevice = device
-        MTGesture.active = true
-        // (Re)anchor on a fresh gesture or when resuming after a brief flicker
-        // below three fingers, so the gap doesn't bank a spurious jump.
-        if !MTGesture.tracking {
-            MTGesture.tracking = true
-            MTGesture.lastX = avgX
-            return 0
-        }
-
-        MTGesture.accumulator += avgX - MTGesture.lastX
-        MTGesture.lastX = avgX
-
-        // Default: moving right (+x) advances the selection right (+1).
-        let rightward = MTGesture.reverse ? -1 : 1
-
-        if MTGesture.oneShot {
-            // One Space jump per swipe: fire once past the fixed threshold, then
-            // latch until all fingers lift (handled below). Sensitivity ignored.
-            if !MTGesture.fired {
-                if MTGesture.accumulator >= MTGesture.oneShotThreshold {
-                    MTGesture.fired = true
-                    mtEmitStep(rightward)
-                } else if MTGesture.accumulator <= -MTGesture.oneShotThreshold {
-                    MTGesture.fired = true
-                    mtEmitStep(-rightward)
-                }
-            }
-            return 0
-        }
-
-        let step = MTGesture.stepDistance
-        while MTGesture.accumulator >= step {
-            MTGesture.accumulator -= step
-            mtEmitStep(rightward)
-        }
-        while MTGesture.accumulator <= -step {
-            MTGesture.accumulator += step
-            mtEmitStep(-rightward)
-        }
-        return 0
+        averageX = sumX / 3
     }
-
-    // Fewer than three fingers: pause accumulation. Only a full lift (zero
-    // contacts) ends the gesture — and commits, if the option is on.
-    MTGesture.tracking = false
-    if numContacts == 0 {
-        if MTGesture.active && MTGesture.commitOnRelease {
-            mtEmitCommit()
-        }
-        MTGesture.active = false
-        MTGesture.accumulator = 0
-        // Re-arm one-shot mode so the next swipe can switch another Space.
-        MTGesture.fired = false
-        MTGesture.latchedDevice = -1
-    }
+    let action = MTGesture.consume(
+        device: device,
+        contactCount: numContacts,
+        averageX: averageX,
+        timestamp: timestamp
+    )
+    mtEmitSteps(action.steps, generation: action.generation)
+    if action.commit { mtEmitCommit(generation: action.generation) }
     return 0
 }

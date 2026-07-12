@@ -88,10 +88,22 @@ final class TabStripView: NSView {
             stack.removeArrangedSubview(cell)
             cell.removeFromSuperview()
         }
+        // Ellipsis position (#90) and text size/face (#62): global preferences
+        // only (the per-shortcut override deliberately does not reach the
+        // strip). Cells are pooled across configures, so apply both here — one
+        // pref read + one memoized font resolve per drill-in — rather than once
+        // in `TabStripCell.init`.
+        let prefs = Preferences.shared
+        let truncation = prefs.titleTruncationMode.lineBreakMode
+        let font = SwitcherFont.font(ofSize: round(12 * prefs.fontScale.multiplier),
+                                     weight: .medium,
+                                     design: prefs.fontFace)
         for (i, title) in titles.enumerated() {
             cells[i].configure(title: title.isEmpty ? String(localized: "Untitled") : title,
                                selected: i == selectedIndex,
-                               accent: accent)
+                               accent: accent,
+                               truncation: truncation,
+                               font: font)
         }
         scrollSelectedIntoView()
     }
@@ -103,6 +115,20 @@ final class TabStripView: NSView {
             cell.setSelected(i == index, accent: accent)
         }
         scrollSelectedIntoView()
+    }
+
+    /// Release titles and bound the high-water pool after dismissal. A browser
+    /// with hundreds of tabs must not leave hundreds of text fields retained
+    /// for the rest of the process; keeping 32 still makes ordinary re-entry
+    /// allocation-free.
+    func releaseIdleResources() {
+        for cell in cells { cell.prepareForIdle() }
+        while cells.count > 32 {
+            let cell = cells.removeLast()
+            stack.removeArrangedSubview(cell)
+            cell.removeFromSuperview()
+        }
+        selectedIndex = 0
     }
 
     /// The cell index containing `windowPoint` (in window coordinates), or nil.
@@ -166,7 +192,13 @@ private final class TabStripCell: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
-    func configure(title: String, selected: Bool, accent: NSColor) {
+    func configure(title: String, selected: Bool, accent: NSColor, truncation: NSLineBreakMode, font: NSFont) {
+        if label.lineBreakMode != truncation {
+            label.lineBreakMode = truncation
+        }
+        if label.font != font {
+            label.font = font
+        }
         label.stringValue = title
         isSelected = selected
         accentColor = accent
@@ -176,6 +208,13 @@ private final class TabStripCell: NSView {
     func setSelected(_ selected: Bool, accent: NSColor) {
         isSelected = selected
         accentColor = accent
+        applyAppearance()
+    }
+
+    func prepareForIdle() {
+        label.stringValue = ""
+        mouseInside = false
+        isSelected = false
         applyAppearance()
     }
 

@@ -1,5 +1,6 @@
 import AppKit
 import BetterShortcuts
+import Carbon.HIToolbox
 
 // Strongly-typed names for BetterCmdTab's two switcher triggers. The recorded
 // shortcuts are stored by the BetterShortcuts package but are NOT registered
@@ -56,6 +57,32 @@ extension BetterShortcuts.Name {
         (.panelQuit, String(localized: "Quit app")),
         (.panelFullscreen, String(localized: "Full screen")),
     ]
+
+    // MARK: Per-profile in-panel action keys (#5)
+
+    /// Each switcher profile (switchApps / switchWindows / scoped) gets its OWN
+    /// in-panel action keys, recorded with `RecorderCocoa` like the triggers and
+    /// stored under "<base>@<target.storageKey>". Each defaults to the shipped key,
+    /// so a new profile is usable immediately and clearing a recorder restores that
+    /// default. Like the legacy panel keys these have NO `onKeyDown` handler, so
+    /// binding ⌘W never registers a global Carbon hotkey.
+    static func panelClose(for key: String) -> Self { Self("panelClose@\(key)", default: .init(.w, modifiers: .command)) }
+    static func panelMinimize(for key: String) -> Self { Self("panelMinimize@\(key)", default: .init(.m, modifiers: .command)) }
+    static func panelHide(for key: String) -> Self { Self("panelHide@\(key)", default: .init(.h, modifiers: .command)) }
+    static func panelQuit(for key: String) -> Self { Self("panelQuit@\(key)", default: .init(.q, modifiers: .command)) }
+    static func panelFullscreen(for key: String) -> Self { Self("panelFullscreen@\(key)", default: .init(.f, modifiers: .command)) }
+
+    /// The per-profile in-panel action-key names for the profile with `storageKey`,
+    /// paired with a stable title — drives the recorder rows and the keycode maps.
+    static func profilePanelKeys(for storageKey: String) -> [(name: Self, title: String)] {
+        [
+            (panelClose(for: storageKey), String(localized: "Close window")),
+            (panelMinimize(for: storageKey), String(localized: "Minimize window")),
+            (panelHide(for: storageKey), String(localized: "Hide app")),
+            (panelQuit(for: storageKey), String(localized: "Quit app")),
+            (panelFullscreen(for: storageKey), String(localized: "Full screen")),
+        ]
+    }
 
     // MARK: Window-management hotkeys (global + in-switcher)
 
@@ -135,12 +162,27 @@ extension BetterShortcuts.Name: @retroactive CaseIterable {
                let slot = Int(rawValue.dropFirst(Self.directActivatePrefix.count)) {
                 return String(localized: "Direct activation \(slot)")
             }
+            // Dynamic list entry (#74): "scopedSwitch.<id>".
+            if rawValue.hasPrefix("scopedSwitch.") {
+                return String(localized: "Scoped shortcut")
+            }
             if rawValue.hasPrefix(Self.scopedSwitchPrefix),
                let slot = Int(rawValue.dropFirst(Self.scopedSwitchPrefix.count)) {
                 return String(localized: "Scoped shortcut \(slot)")
             }
             if let panel = Self.panelActionKeys.first(where: { $0.name == self }) {
                 return panel.title
+            }
+            // Per-profile in-panel action key (#5): "<base>@<target>".
+            if let at = rawValue.firstIndex(of: "@") {
+                switch String(rawValue[..<at]) {
+                case "panelClose": return String(localized: "Close window")
+                case "panelMinimize": return String(localized: "Minimize window")
+                case "panelHide": return String(localized: "Hide app")
+                case "panelQuit": return String(localized: "Quit app")
+                case "panelFullscreen": return String(localized: "Full screen")
+                default: break
+                }
             }
             if let wm = Self.windowMgmt.first(where: { $0.name == self }) {
                 return wm.title
@@ -154,8 +196,65 @@ extension BetterShortcuts.Name: @retroactive CaseIterable {
 }
 
 extension BetterShortcuts {
-    /// Wire the package's conflict-alert label provider to our `displayName`s. Call once at launch.
+    /// Wire the package's conflict-alert label provider to our `displayName`s, and
+    /// publish the switcher-trigger chords the recorder must refuse for any
+    /// non-trigger slot. Call once at launch.
     static func installDisplayNames() {
         BetterShortcuts.displayName = { $0.displayName }
+        // The always-on switcher survivor owns ⌘Tab/⌘` (+ Shift-reverse); a slot
+        // recorded onto one could never fire. Publish them so a recorder opting into
+        // `rejectsReservedShortcuts` warns at record time. Evaluated live, so a
+        // remapped trigger reserves its new chord and frees the old (issue #16).
+        BetterShortcuts.reservedShortcuts = { Set(reservedTriggerShortcuts()) }
+    }
+
+    /// The chords the switcher's secure-input survivor (`CarbonHotkeyTrigger`) holds
+    /// for the whole run — `switchApps` / `switchWindows` and their Shift-reverse,
+    /// exactly the set `computeNativeOverridePlan` registers. Pure so it is unit
+    /// testable; the live overload reads the current bindings.
+    ///
+    /// A user-assignable GLOBAL slot (direct-activation / scoped-switch / window-
+    /// management) bound to one of these collides in-process with that registration:
+    /// two `RegisterEventHotKey` claimants for one chord, which macOS rejects with
+    /// `eventHotKeyExistsErr` (-9878). The slot could never fire anyway — the
+    /// survivor trigger owns the chord — so we refuse to register it (issue #16).
+    static func reservedTriggerShortcuts(app: Shortcut?, window: Shortcut?) -> [Shortcut] {
+        var out: [Shortcut] = []
+        for s in [app, window].compactMap({ $0 }) {
+            out.append(s)
+            // The Shift-reverse variant the survivor also registers (prevApp/prevWindow).
+            out.append(Shortcut(carbonKeyCode: s.carbonKeyCode, carbonModifiers: s.carbonModifiers | shiftKey))
+        }
+        return out
+    }
+
+    /// Live reserved set, read from the current `switchApps` / `switchWindows`
+    /// bindings (so a remapped trigger reserves its new chord and frees the old).
+    static func reservedTriggerShortcuts() -> [Shortcut] {
+        reservedTriggerShortcuts(
+            app: getShortcut(for: .switchApps),
+            window: getShortcut(for: .switchWindows)
+        )
+    }
+
+    /// True when `name`'s current chord is one the survivor trigger already owns, so
+    /// registering it as a global hotkey would only spew -9878 (issue #16). Call at
+    /// every global-slot install site to skip the doomed registration.
+    static func isBoundToReservedTriggerChord(_ name: Name) -> Bool {
+        guard let s = getShortcut(for: name) else { return false }
+        return reservedTriggerShortcuts().contains(s)
+    }
+}
+
+extension BetterShortcuts.RecorderPolicy {
+    /// The current global recorder policy with reservation rejection turned on — for
+    /// any recorder that must NOT shadow the always-on switcher triggers (in-panel
+    /// keys, direct-activation, window-management, scoped triggers). The main
+    /// `switchApps` / `switchWindows` trigger recorders keep the flag off so they can
+    /// still bind those chords (issue #16).
+    static var reservedRejecting: BetterShortcuts.RecorderPolicy {
+        var policy = BetterShortcuts.recorderPolicy
+        policy.rejectsReservedShortcuts = true
+        return policy
     }
 }

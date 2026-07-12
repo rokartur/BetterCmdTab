@@ -12,7 +12,7 @@ protocol SwitcherItemViewProtocol: NSView {
     func hoverAction(atWindowPoint point: NSPoint) -> RowAction?
     /// Highlight the button under `point` (window coords); nil clears it.
     func setHotDot(atWindowPoint point: NSPoint?)
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor)
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings)
     /// Drop per-tile image retains (app icon, window thumbnail) so the shared
     /// `IconCache` / `WindowThumbnailCache` can evict them, without discarding the
     /// view itself. Called when the panel dismisses so the pooled view stays
@@ -33,6 +33,9 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
 
     private var metrics: SwitcherMetrics = .baseline
     private var accent: NSColor = .controlAccentColor
+    /// Resolved appearance for the current reveal (#74); set in `configure`, read
+    /// by render helpers (`applySelection`) that run outside it.
+    private var effective: EffectiveSettings = .defaults
     /// Cheap stable token for the current accent, recomputed only when the
     /// accent changes — used as a memo-cache key instead of re-deriving
     /// `accent.description` on every letter/symbol render.
@@ -186,10 +189,33 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
 
     func prepareForIdle() {
         imageView.image = nil
+        letterLabel.stringValue = ""
+        badgeLabel.stringValue = ""
+        nameLabel.stringValue = ""
+        titleLabel.stringValue = ""
+        currentLabel = ""
+        currentPrefixLength = 0
     }
 
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor) {
-        if metrics != self.metrics {
+    /// Last face the font pass ran with — pooled views must re-apply fonts when
+    /// the user changes the face pref even though `metrics` is unchanged (#62).
+    private var appliedFace: SwitcherFontFace = .system
+
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
+        self.effective = effective
+        // Ellipsis position for long titles (#90). Guarded set — one enum read,
+        // no work when unchanged. (The attributed title's paragraph style in
+        // `buildTitle` is what actually governs truncation; this keeps the
+        // field property consistent.)
+        let truncation = effective.titleTruncationMode.lineBreakMode
+        if titleLabel.lineBreakMode != truncation {
+            titleLabel.lineBreakMode = truncation
+        }
+        // Font face (#62) is not part of `metrics` and views are pooled across
+        // reveals, so track the applied face and re-run the font pass on change.
+        let faceChanged = appliedFace != effective.fontFace
+        if faceChanged { appliedFace = effective.fontFace }
+        if faceChanged || metrics != self.metrics {
             applyMetrics(metrics)
         }
         if self.accent != accent {
@@ -204,8 +230,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         // just the window title with the System Settings icon — no status
         // glyphs — since their host process name/icon are meaningless.
         let isDialog = row.isSystemDialog
-        let showNames = Preferences.shared.showApplicationNames
-        let showTitles = Preferences.shared.showWindowTitleLabel
+        let showNames = effective.showApplicationNames
+        let showTitles = effective.showWindowTitleLabel
         // Both labels hidden → bare icon-only tile: the metrics drop the label area to
         // zero, so the name/title lines and the status glyphs are all dropped.
         let bothHidden = !showNames && !showTitles
@@ -326,7 +352,9 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
             indicators: indicators,
             text: text,
             fontSize: metrics.tileTitleFontSize,
-            accentKey: accentKey
+            accentKey: accentKey,
+            truncation: effective.titleTruncationMode,
+            face: effective.fontFace
         )
         return Self.titleCache.value(for: key) {
             self.buildTitle(indicators: indicators, text: text)
@@ -334,10 +362,10 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     }
 
     private func buildTitle(indicators: [SwitcherIndicator], text: String) -> NSAttributedString {
-        let font = NSFont.systemFont(ofSize: metrics.tileTitleFontSize, weight: .regular)
+        let font = SwitcherFont.font(ofSize: metrics.tileTitleFontSize, weight: .regular, design: effective.fontFace)
         let para = NSMutableParagraphStyle()
         para.alignment = .center
-        para.lineBreakMode = .byTruncatingTail
+        para.lineBreakMode = effective.titleTruncationMode.lineBreakMode
 
         let result = NSMutableAttributedString()
         for (i, indicator) in indicators.enumerated() {
@@ -369,8 +397,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         self.metrics = metrics
         letterLabel.font = NSFont.monospacedSystemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
         badgeLabel.font = NSFont.systemFont(ofSize: metrics.tileLetterFontSize, weight: .bold)
-        nameLabel.font = NSFont.systemFont(ofSize: metrics.tileNameFontSize, weight: .medium)
-        titleLabel.font = NSFont.systemFont(ofSize: metrics.tileTitleFontSize, weight: .regular)
+        nameLabel.font = SwitcherFont.font(ofSize: metrics.tileNameFontSize, weight: .medium, design: effective.fontFace)
+        titleLabel.font = SwitcherFont.font(ofSize: metrics.tileTitleFontSize, weight: .regular, design: effective.fontFace)
         selectionBackdrop.layer?.cornerRadius = metrics.tileSelectionCornerRadius
         needsLayout = true
     }
@@ -378,9 +406,13 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     private func applySelection() {
         selectionBackdrop.isHidden = !isSelected
         nameLabel.textColor = isSelected ? .labelColor : .secondaryLabelColor
-        nameLabel.font = NSFont.systemFont(
+        // Bolding the selected name is optional (#72) — off keeps a steady weight
+        // so the label doesn't grow/shrink as selection moves; it still brightens.
+        let bold = isSelected && effective.boldSelectedLabel
+        nameLabel.font = SwitcherFont.font(
             ofSize: metrics.tileNameFontSize,
-            weight: isSelected ? .semibold : .medium
+            weight: bold ? .semibold : .medium,
+            design: effective.fontFace
         )
         // The jump letter doesn't depend on selection, so it is rendered once in
         // `configure` rather than re-built on every selection move.
@@ -408,6 +440,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         let text: String
         let fontSize: CGFloat
         let accentKey: String
+        let truncation: TitleTruncationMode
+        let face: SwitcherFontFace
     }
     /// The fully assembled secondary line (tinted glyph attachments + text) is
     /// the same immutable string for any tile with the same inputs, so memoize

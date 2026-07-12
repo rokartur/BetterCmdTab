@@ -1,11 +1,13 @@
 import AppKit
-import ApplicationServices
+@preconcurrency import ApplicationServices
+import os
 
 /// File-scope mirror of the panel-visible state. The AX observer callback is a C
 /// function pointer (`AXObserverCallback`) and so cannot reference a type's
 /// stored member without "capturing context"; a global it can read freely. Set
-/// and read only on the main run loop (where the callback fires), so untorn.
-private nonisolated(unsafe) var axCatalogPanelVisible = false
+/// and normally read only on the main run loop. A lock keeps the C callback safe
+/// even if a future AX implementation invokes it from a different run loop.
+private let axCatalogPanelVisible = OSAllocatedUnfairLock<Bool>(initialState: false)
 
 @MainActor
 final class AppCatalogCache {
@@ -63,10 +65,19 @@ final class AppCatalogCache {
     private weak var mru: MRUTracker?
     private var observers: [NSObjectProtocol] = []
     private var axObservers: [pid_t: AXObserver] = [:]
-    private var axObserversInstalling: Set<pid_t> = []
+    private var axObserverFailures: Set<pid_t> = []
+    /// Per-build tokens prevent an observer created for a terminated process from
+    /// attaching after a pid is recycled and a newer install has started.
+    private var axObserversInstalling: [pid_t: UInt64] = [:]
+    private var nextAXObserverInstallToken: UInt64 = 0
     private var pendingOneShotCompletions: [() -> Void] = []
     private let snapshotQueue = DispatchQueue(label: "BetterCmdTab.snapshot", qos: .userInteractive, attributes: .concurrent)
     private let axInstallQueue = DispatchQueue(label: "BetterCmdTab.axInstall", qos: .utility, attributes: .concurrent)
+    private var isRunning = false
+    /// Invalidates completions from a prior start/stop lifetime. Dispatch queues
+    /// cannot cancel an AX scan already executing, so every completion checks
+    /// this token before touching state.
+    private var lifecycleGeneration: UInt64 = 0
 
     /// AX notifications subscribed per running app. These cover the state
     /// changes that affect the switcher's *row set* (and their ordering):
@@ -96,10 +107,50 @@ final class AppCatalogCache {
     ]
 
     func start(mru: MRUTracker) {
+        guard !isRunning else { return }
+        isRunning = true
+        lifecycleGeneration &+= 1
         self.mru = mru
         installWorkspaceObservers()
         installAXObserversForAllApps()
         scheduleFullRefresh()
+    }
+
+    /// Stop all event sources and make every queued completion stale. The
+    /// controller normally calls this only during process termination, but a
+    /// complete lifecycle boundary prevents a retained/stopped controller from
+    /// continuing AX scans or repaint callbacks indefinitely.
+    func stop() {
+        guard isRunning else { return }
+        isRunning = false
+        lifecycleGeneration &+= 1
+        panelVisible = false
+        axCatalogPanelVisible.withLock { $0 = false }
+
+        pendingRefresh = false
+        pendingBumps.removeAll()
+        pidBumpInFlight.removeAll()
+        pidBumpPending.removeAll()
+        pendingOneShotCompletions.removeAll()
+        onFocusChanged = nil
+        onVisibleTitleChanged = nil
+
+        let workspace = NSWorkspace.shared.notificationCenter
+        for observer in observers { workspace.removeObserver(observer) }
+        observers.removeAll()
+
+        // Invalidate builds that have not attached yet, then detach every live
+        // source on main. `uninstallAXObserver` performs the blocking server-side
+        // notification removals on `axInstallQueue`.
+        axObserversInstalling.removeAll()
+        axObserverFailures.removeAll()
+        for pid in Array(axObservers.keys) { uninstallAXObserver(forPid: pid) }
+
+        entries.removeAll()
+        hasCompletedFullScan = false
+        pidCoverage.removeAll()
+        pidWriteGeneration.removeAll()
+        mru = nil
     }
 
     func setPanelVisible(_ visible: Bool) {
@@ -108,10 +159,36 @@ final class AppCatalogCache {
         // idle scan cost; while visible, titles are kept live (see
         // `handleAXNotification` / `kAXTitleChangedNotification`).
         panelVisible = visible
-        axCatalogPanelVisible = visible
+        axCatalogPanelVisible.withLock { $0 = visible }
     }
 
-    func rows(orderedBy mru: [pid_t]) -> [SwitcherRow] {
+    /// Retry only apps whose AX observer failed to install. The common path is
+    /// one empty-set check; a gap gets a targeted pid refresh, never a full sweep.
+    func refreshObserverGaps() {
+        guard !axObserverFailures.isEmpty else { return }
+        let live = Set(axObserverFailures.filter { NSRunningApplication(processIdentifier: $0) != nil })
+        axObserverFailures = live
+        for pid in live { installAXObserver(forPid: pid) }
+        bumpApps(pids: live)
+    }
+
+    /// Pids that currently have at least one catalogued window, for the
+    /// app-level primed filter (#112). `nil` until the first full scan lands:
+    /// unknown window state must never hide an app, so callers treat nil as
+    /// "everything windowed". Pure in-memory read — no AX calls.
+    func windowedPids() -> Set<pid_t>? {
+        guard hasCompletedFullScan else { return nil }
+        var pids = Set<pid_t>(minimumCapacity: entries.count)
+        for (pid, entry) in entries where !entry.windows.isEmpty {
+            pids.insert(pid)
+        }
+        return pids
+    }
+
+    /// `filter` lets a per-shortcut override (#74) replace the global filter for
+    /// this reveal; `nil` (the default) reads the global config, so every existing
+    /// caller and every no-override reveal stays byte-identical.
+    func rows(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil) -> [SwitcherRow] {
         // Sweep terminated apps that the didTerminate workspace observer
         // hasn't reached yet (race: user hits Cmd+Q on a switcher row → row
         // stays visible with empty icon until the observer fires). Filtering
@@ -172,7 +249,7 @@ final class AppCatalogCache {
                 return lhs.offset < rhs.offset
             }
             .map { $0.row }
-        return CatalogFilter.filteredRows(sorted, CatalogFilter.config())
+        return CatalogFilter.filteredRows(sorted, cfg ?? CatalogFilter.config())
     }
 
     /// Internal (not private) so the `.mruWindows` window-recency sort can
@@ -194,15 +271,18 @@ final class AppCatalogCache {
     }
 
     func scheduleFullRefresh(completion: (() -> Void)? = nil) {
+        guard isRunning else { return }
         if let completion { pendingOneShotCompletions.append(completion) }
         guard !pendingRefresh else { return }
         pendingRefresh = true
         scanGeneration += 1
         let gen = scanGeneration
+        let lifecycle = lifecycleGeneration
         snapshotQueue.async { [weak self] in
             let fresh = Self.computeEntries()
             DispatchQueue.main.async {
-                guard let self else { return }
+                guard let self, self.isRunning,
+                      lifecycle == self.lifecycleGeneration else { return }
                 // Merge per pid instead of replacing wholesale: skip any pid a
                 // newer-generation write (a bump dispatched after this scan)
                 // already updated or removed — its data is fresher than ours.
@@ -264,16 +344,18 @@ final class AppCatalogCache {
 
         var windowsBuffer: [[WindowInfo]] = Array(repeating: [], count: count)
         windowsBuffer.withUnsafeMutableBufferPointer { buffer in
-            nonisolated(unsafe) let bufferRef = buffer
+            let output = DisjointWriteBuffer(buffer)
             DispatchQueue.concurrentPerform(iterations: count) { i in
                 let app = candidates[i]
                 let pid = app.processIdentifier
-                bufferRef[i] = WindowEnumerator.windows(
+                output.set(WindowEnumerator.windows(
                     forPid: pid,
                     isRegularApp: app.activationPolicy == .regular,
                     expectedCGWindowIDs: cgSnapshot.ids(for: pid),
-                    cgZOrder: cgSnapshot.zOrder(for: pid)
-                )
+                    cgZOrder: cgSnapshot.zOrder(for: pid),
+                    nonNormalLayerWids: cgSnapshot.nonNormalLayer(for: pid),
+                    onscreenWids: cgSnapshot.onscreen(for: pid)
+                ), at: i)
             }
         }
 
@@ -303,7 +385,7 @@ final class AppCatalogCache {
             let obs = nc.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
                 guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
                 let pid = app.processIdentifier
-                Task { @MainActor [weak self] in
+                MainActor.assumeIsolated {
                     self?.scheduleBumpApp(pid: pid)
                 }
             }
@@ -312,7 +394,7 @@ final class AppCatalogCache {
         let terminateObs = nc.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
             let pid = app.processIdentifier
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 guard let self else { return }
                 self.uninstallAXObserver(forPid: pid)
                 self.entries.removeValue(forKey: pid)
@@ -328,7 +410,7 @@ final class AppCatalogCache {
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
             let pid = app.processIdentifier
             let canHaveWindows = app.activationPolicy == .regular || app.activationPolicy == .accessory
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 if canHaveWindows {
                     self?.installAXObserver(forPid: pid)
                 }
@@ -355,8 +437,11 @@ final class AppCatalogCache {
     }
 
     private func installAXObserver(forPid pid: pid_t) {
-        guard axObservers[pid] == nil, !axObserversInstalling.contains(pid) else { return }
-        axObserversInstalling.insert(pid)
+        guard isRunning, axObservers[pid] == nil,
+              axObserversInstalling[pid] == nil else { return }
+        nextAXObserverInstallToken &+= 1
+        let installToken = nextAXObserverInstallToken
+        axObserversInstalling[pid] = installToken
         // Encode the refcon as a bit-pattern integer so it can cross the
         // sendable boundary without forcing an unchecked wrapper. The
         // pointer is stable for `self`'s lifetime and the observer callback
@@ -366,13 +451,17 @@ final class AppCatalogCache {
             guard let refcon = UnsafeMutableRawPointer(bitPattern: refconBits) else { return }
             let observer = Self.buildAXObserver(pid: pid, refcon: refcon)
             DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                self.axObserversInstalling.remove(pid)
+                guard let self, self.isRunning else { return }
+                // Termination/relaunch can invalidate this build while its AX
+                // calls are blocked. Never clear or replace a newer pid install.
+                guard self.axObserversInstalling[pid] == installToken else { return }
+                self.axObserversInstalling.removeValue(forKey: pid)
                 guard let observer else {
                     // App may not be AX-ready yet — workspace
                     // `didLaunchApplication` fires before AX server registers.
                     // Skip silently; next bumpApp through workspace events
                     // still keeps cache fresh.
+                    self.axObserverFailures.insert(pid)
                     return
                 }
                 guard self.axObservers[pid] == nil else { return }
@@ -386,6 +475,8 @@ final class AppCatalogCache {
                 guard let app = NSRunningApplication(processIdentifier: pid), !app.isTerminated else { return }
                 CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
                 self.axObservers[pid] = observer
+                self.axObserverFailures.remove(pid)
+                self.scheduleBumpApp(pid: pid)
             }
         }
     }
@@ -415,7 +506,7 @@ final class AppCatalogCache {
                 // is hidden it changes nothing on screen, so drop it here before
                 // even a main-queue hop. (Read on the main run loop, where this
                 // callback fires, so the flag is never torn.)
-                if !axCatalogPanelVisible { return }
+                if !axCatalogPanelVisible.withLock({ $0 }) { return }
                 kind = .title
             } else {
                 kind = .set
@@ -441,15 +532,22 @@ final class AppCatalogCache {
         // memo too, before the observer guard so it clears even if no observer
         // was installed.
         pidCoverage.removeValue(forKey: pid)
+        axObserverFailures.remove(pid)
+        // Invalidate an off-main build even when no observer has attached yet.
+        axObserversInstalling.removeValue(forKey: pid)
         guard let observer = axObservers.removeValue(forKey: pid) else { return }
-        // Drop the AX-server subscriptions before detaching the run-loop source,
-        // mirroring the add side in `buildAXObserver` (same names, same element).
-        // Removing only the source leaves the notifications dangling.
-        let axApp = AXUIElementCreateApplication(pid)
-        for name in Self.axNotifications {
-            _ = AXObserverRemoveNotification(observer, axApp, name as CFString)
-        }
         CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
+        // Removing AX-server registrations is synchronous IPC. Keep it off the
+        // main actor (especially on termination, when the target is already gone)
+        // and bound each call with a short timeout. The closure retains `observer`
+        // until every registration has been removed.
+        axInstallQueue.async {
+            let axApp = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(axApp, 0.2)
+            for name in Self.axNotifications {
+                _ = AXObserverRemoveNotification(observer, axApp, name as CFString)
+            }
+        }
     }
 
     /// Classification of an AX notification by its effect on the switcher.
@@ -472,6 +570,7 @@ final class AppCatalogCache {
     /// Dispatch an AX notification by kind: focus → cheap MRU nudge; title →
     /// notify the panel only while visible; everything else → full re-scan.
     func handleAXNotification(pid: pid_t, kind: AXNoteKind) {
+        guard isRunning else { return }
         switch kind {
         case .focus:
             onFocusChanged?(pid)
@@ -489,6 +588,7 @@ final class AppCatalogCache {
     /// `CGWindowListCopyWindowInfo` snapshot for the whole batch instead of one
     /// per pid, so a 5-app storm costs one full-system window-list copy, not 5.
     private func scheduleBumpApp(pid: pid_t) {
+        guard isRunning else { return }
         let wasEmpty = pendingBumps.isEmpty
         pendingBumps.insert(pid)
         if wasEmpty {
@@ -507,9 +607,10 @@ final class AppCatalogCache {
     /// hiding the borderless switcher panel yields no standard window, so a
     /// self bump just clears the entry again.
     func bumpApps(pids: Set<pid_t>) {
-        guard !pids.isEmpty else { return }
+        guard isRunning, !pids.isEmpty else { return }
         scanGeneration += 1
         let gen = scanGeneration
+        let lifecycle = lifecycleGeneration
         // Resolve policy and reserve in-flight slots on main. Pids already in
         // flight collapse into the pending set and re-run when the current scan
         // lands. Value-type `plan` crosses to the snapshot queue; the
@@ -549,13 +650,16 @@ final class AppCatalogCache {
         }
         guard !plan.isEmpty else { return }
 
+        let planSnapshot = plan
+        let appsSnapshot = apps
+        let accessorySnapshot = accessoryPids
         snapshotQueue.async { [weak self] in
             let cgSnapshot = WindowEnumerator.snapshotCGWindowMap()
-            let count = plan.count
+            let count = planSnapshot.count
             // Reuse the memoized uncoverable wids only while the CG hint is
             // unchanged from the bump that produced them; any hint change (a real
             // window opened/closed) drops back to a full sweep that re-memoizes.
-            func scan(_ item: (pid: pid_t, isRegular: Bool, priorCoverage: (expected: Set<CGWindowID>, uncoverable: Set<CGWindowID>)?)) -> BumpScan {
+            @Sendable func scan(_ item: (pid: pid_t, isRegular: Bool, priorCoverage: (expected: Set<CGWindowID>, uncoverable: Set<CGWindowID>)?)) -> BumpScan {
                 let expected = cgSnapshot.ids(for: item.pid)
                 let known = (item.priorCoverage?.expected == expected) ? (item.priorCoverage?.uncoverable ?? []) : []
                 let result = WindowEnumerator.enumerate(
@@ -563,36 +667,39 @@ final class AppCatalogCache {
                     isRegularApp: item.isRegular,
                     expectedCGWindowIDs: expected,
                     cgZOrder: cgSnapshot.zOrder(for: item.pid),
-                    knownUncoverable: known
+                    knownUncoverable: known,
+                    nonNormalLayerWids: cgSnapshot.nonNormalLayer(for: item.pid),
+                    onscreenWids: cgSnapshot.onscreen(for: item.pid)
                 )
                 return BumpScan(windows: result.windows, expected: expected, uncoverable: result.uncoverable)
             }
             var scanBuffer = [BumpScan](repeating: BumpScan(), count: count)
             if count == 1 {
-                scanBuffer[0] = scan(plan[0])
+                scanBuffer[0] = scan(planSnapshot[0])
             } else {
                 // Parallelize the per-pid AX scans (each blocks on AX timeouts)
                 // while still sharing the single CG snapshot above.
                 scanBuffer.withUnsafeMutableBufferPointer { buffer in
-                    nonisolated(unsafe) let bufferRef = buffer
+                    let output = DisjointWriteBuffer(buffer)
                     DispatchQueue.concurrentPerform(iterations: count) { i in
-                        bufferRef[i] = scan(plan[i])
+                        output.set(scan(planSnapshot[i]), at: i)
                     }
                 }
             }
             DispatchQueue.main.async {
-                guard let self else { return }
+                guard let self, self.isRunning,
+                      lifecycle == self.lifecycleGeneration else { return }
                 var rebump = Set<pid_t>()
                 for i in 0..<count {
-                    let pid = plan[i].pid
+                    let pid = planSnapshot[i].pid
                     let scan = scanBuffer[i]
                     self.pidBumpInFlight.remove(pid)
-                    if let app = apps[pid], (self.pidWriteGeneration[pid] ?? 0) <= gen {
+                    if let app = appsSnapshot[pid], (self.pidWriteGeneration[pid] ?? 0) <= gen {
                         self.pidWriteGeneration[pid] = gen
-                        if plan[i].isRegular {
+                        if planSnapshot[i].isRegular {
                             self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows)
                             self.pidCoverage[pid] = (scan.expected, scan.uncoverable)
-                        } else if accessoryPids.contains(pid), !scan.windows.isEmpty {
+                        } else if accessorySnapshot.contains(pid), !scan.windows.isEmpty {
                             self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows)
                             self.pidCoverage[pid] = (scan.expected, scan.uncoverable)
                         } else {
@@ -615,13 +722,16 @@ final class AppCatalogCache {
     }
 
     nonisolated deinit {
-        let nc = NSWorkspace.shared.notificationCenter
-        let snapshot = MainActor.assumeIsolated { (observers, axObservers) }
-        for o in snapshot.0 {
-            nc.removeObserver(o)
-        }
-        for (_, observer) in snapshot.1 {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
+        MainActor.assumeIsolated {
+            let nc = NSWorkspace.shared.notificationCenter
+            for observer in observers { nc.removeObserver(observer) }
+            for (_, observer) in axObservers {
+                CFRunLoopRemoveSource(
+                    CFRunLoopGetMain(),
+                    AXObserverGetRunLoopSource(observer),
+                    .defaultMode
+                )
+            }
         }
     }
 }

@@ -18,14 +18,18 @@ extension Preferences {
     /// Every persisted setting lives under this `UserDefaults` key prefix.
     static let exportKeyPrefix = "Switcher."
 
-    /// `Switcher.*` keys that are machine-local state, not preferences —
-    /// excluded from both export and import. `disabledSymbolicHotKeys` is the
-    /// crash-heal record of which native hotkeys THIS machine has disabled
-    /// (importing another Mac's record could leave native ⌘Tab dead after a
-    /// crash); `recentlyClosed` is session history.
+    /// `Switcher.*` keys excluded from both export and import.
+    /// `disabledSymbolicHotKeys` is the crash-heal record of which native
+    /// hotkeys THIS machine has disabled (importing another Mac's record could
+    /// leave native ⌘Tab dead after a crash); `recentlyClosed` is session
+    /// history. The accent keys were retired in 26.7 (the switcher always
+    /// follows the macOS accent) — skipping them on import keeps old exports
+    /// from re-planting dead keys.
     static let exportExcludedKeys: Set<String> = [
         "Switcher.disabledSymbolicHotKeys",
         "Switcher.recentlyClosed",
+        "Switcher.accentChoice",
+        "Switcher.customAccentHex",
     ]
 
     /// File extension for exported settings documents.
@@ -119,6 +123,18 @@ extension Preferences {
             guard PropertyListSerialization.propertyList(value, isValidFor: .binary) else { continue }
             defaults.set(value, forKey: key)
         }
+        // Pre-#57 exports carry only the legacy `currentSpaceOnly` bool. Clear
+        // any locally stored `spaceScope` so the reload's legacy fallback
+        // derives the scope from the imported bool instead of keeping this
+        // machine's stale enum value.
+        if values[Preferences.Keys.currentSpaceOnly] != nil, values[Preferences.Keys.spaceScope] == nil {
+            defaults.removeObject(forKey: Preferences.Keys.spaceScope)
+        }
         reloadFromDefaults()
+        // The import may have introduced scoped shortcuts with ids that didn't
+        // exist at launch; install their Carbon handlers now (idempotent) so a
+        // freshly-recorded trigger actually opens the switcher instead of being
+        // registered with no handler — a dead, key-swallowing combo until relaunch.
+        ScopedSwitch.installHandlers()
     }
 }

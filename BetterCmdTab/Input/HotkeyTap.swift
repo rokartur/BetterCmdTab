@@ -1,9 +1,13 @@
 import AppKit
 import Carbon.HIToolbox
+@preconcurrency import CoreFoundation
 import os
 
-final class HotkeyTap {
-    enum Event {
+/// The instance intentionally straddles the main thread and its private event-
+/// tap thread. Every value read on both sides is lock-protected; AppKit/TIS
+/// lifecycle state and owner callbacks are main-actor isolated.
+final class HotkeyTap: @unchecked Sendable {
+    enum Event: Sendable {
         case nextApp
         case prevApp
         case nextWindow
@@ -59,18 +63,20 @@ final class HotkeyTap {
         case fullscreen
     }
 
-    var onEvent: (Event) -> Void = { _ in }
+    @MainActor var onEvent: (Event) -> Void = { _ in }
 
     /// Delivered (on main) for every keyDown while a shortcut recorder is active.
     /// The tap consumes the original event so the system shortcut (e.g. ⌘Tab)
     /// never fires, then hands the captured event to the recorder.
-    var onRecordingKeyDown: (CGEvent) -> Void = { _ in }
+    @MainActor var onRecordingKeyDown: (CGEvent) -> Void = { _ in }
 
     /// Fired on the MAIN thread when the tap is being disabled repeatedly in a
     /// tight burst (the re-enable storm — see `handle`). The owner tears the tap
     /// down and re-arms it on a backoff (or leaves it down if Accessibility was
     /// revoked). Set by `SwitcherController`.
-    var onTapDisabledStorm: () -> Void = {}
+    @MainActor var onTapDisabledStorm: () -> Void = {}
+
+    @MainActor init() {}
 
     /// Wraps a CGEvent so it can cross the tap-thread → main hop. CGEvent is a
     /// thread-safe CF reference; the box just silences Sendable checking.
@@ -116,6 +122,9 @@ final class HotkeyTap {
         var auxRunLoopSource: CFRunLoopSource?
         var tapThread: Thread?
         var tapRunLoop: CFRunLoop?
+        /// Signalled only after `CFRunLoopRun` returns. Teardown waits on it so
+        /// an unretained C refcon cannot outlive this object during deinit.
+        var tapThreadFinished: DispatchSemaphore?
     }
     private let ports = OSAllocatedUnfairLock<TapPorts>(initialState: TapPorts())
     private var layoutObserver: NSObjectProtocol?
@@ -157,6 +166,21 @@ final class HotkeyTap {
     /// panel is up, independent of any timer firing. Pushed from main via
     /// `setPanelPresented`.
     private let panelPresentedFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// True iff a panel is on screen AND held open by the trigger modifier (a
+    /// held-chord reveal) — false for stay-open / sticky / gesture / scoped opens.
+    /// Lets the action-key/letter-jump swallow distinguish a *welded* held-chord
+    /// panel (heal it) from a deliberate stay-open panel (where bare keys must keep
+    /// routing). Pushed from main via `setModifierHeldPanel`. See the weld self-heal
+    /// at the swallow gate below (issue #16).
+    private let modifierHeldPanelFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// The trigger's hold-modifier state from the last LIVE event the tap processed
+    /// (`event.flags`), as opposed to `CGEventSource.flagsState`, which can latch a
+    /// stale ⌘-held lie across a Secure-Event-Input flap (issue #16). The controller's
+    /// stranded-panel fast path prefers this under NORMAL input to recover a weld the
+    /// lying flagsState hides. Stale while the tap is deaf (secure input), so the
+    /// reader is only trusted with secure input OFF. Updated on every keyDown /
+    /// flagsChanged; read via `liveTriggerHoldHeld`.
+    private let liveTriggerHoldFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let shiftWasHeld = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let layoutData = OSAllocatedUnfairLock<Data?>(initialState: nil)
     /// When true the tap consumes every keyDown (blocking system shortcuts) and
@@ -171,9 +195,24 @@ final class HotkeyTap {
     /// True while the switcher is in browser-tab drill-in. Nav keys reroute to
     /// `.tabPrev`/`.tabNext`, Esc exits the drill, Cmd release commits the tab.
     private let tabDrillFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
-    /// When true, a discrete mouse-wheel scroll steps the open switcher's
-    /// selection. Continuous (trackpad / precise) scrolls are always ignored.
+    /// When true, a mouse-wheel scroll steps the open switcher's selection.
+    /// Trackpad / Magic Mouse gesture scrolls (which carry a scroll or
+    /// momentum phase) always pass through; phase-less *continuous* wheel
+    /// scrolls from driver-smoothed mice accumulate into steps (issue #68).
     private let scrollEnabledFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// Running line-delta accumulator for continuous (phase-less) wheel
+    /// scrolls plus the uptime of the last accumulated event, so a pause
+    /// drops a stale remainder. Only touched while the switcher is open with
+    /// scroll-to-switch on — the idle path never reads it.
+    private let continuousScrollState =
+        OSAllocatedUnfairLock<(acc: Double, lastNs: UInt64)>(initialState: (0, 0))
+    /// One selection step per this many accumulated scroll lines. Smooth
+    /// wheels report a wheel notch as a burst of continuous line-fraction
+    /// deltas totalling a few lines, so this lands near one step per notch.
+    private static let continuousScrollStepLines: Double = 3.0
+    /// A pause longer than this between continuous scroll events resets the
+    /// accumulated remainder, so leftovers never bleed into the next scroll.
+    private static let continuousScrollResetNs: UInt64 = 250_000_000 // 250 ms
     /// Flip the scroll-to-switch direction.
     private let scrollReverseFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
     /// When true, a mouse-down outside `switcherFrame` while the switcher is
@@ -195,6 +234,24 @@ final class HotkeyTap {
     /// vim user can navigate without leaving the home row. Consulted on the tap
     /// thread, written from main via `setVimNavigationEnabled`. Default off.
     private let vimNavigationFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// When true (the default), tapping Shift on its own while the switcher is
+    /// open steps the selection backwards. Turned off (#45) so reverse needs
+    /// Shift held with the switch key (⌘⇧Tab) instead — the bare-Shift step in
+    /// `flagsChanged` is suppressed; the keyDown ⌘⇧Tab path is unaffected.
+    private let shiftTapStepsBackwardFlag = OSAllocatedUnfairLock<Bool>(initialState: true)
+    /// Synthesizes auto-repeat for a *held* Shift so it steps backwards
+    /// continuously, mirroring a held Tab (a modifier emits no key-repeat
+    /// keyDowns, so the cadence is driven here). Armed on the Shift-down
+    /// transition, torn down on Shift-up / hold-modifier release / switcher
+    /// close. `nil` while idle — no timer exists unless Shift is actively held
+    /// with the switcher open.
+    private let shiftRepeatTimer = OSAllocatedUnfairLock<DispatchSourceTimer?>(initialState: nil)
+    /// Type-to-search: when letter hints are off and fuzzy search is on, every
+    /// letter (incl. the reserved action keys w/m/h/q/f) opens/extends the query
+    /// instead of firing a panel action, so typing filters the switcher like
+    /// Spotlight. Consulted on the tap thread, written from main via
+    /// `setTypeToSearchEnabled`. Default off.
+    private let typeToSearchFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
     /// Rebindable in-panel action keys (#5): physical keycode → action. Consulted
     /// in the non-search switching branch before the letter-jump fallback, so a
     /// bound key suppresses letter-jumping (same as the old hardcoded W/M/H/Q).
@@ -233,6 +290,56 @@ final class HotkeyTap {
     /// `modBits`: control = 1, option = 2, shift = 4, command = 8.
     static func wmFullChordKey(keyCode: Int64, modBits: Int) -> Int {
         (Int(keyCode) << 4) | (modBits & 0b1111)
+    }
+
+    /// Device-independent modifier bits the idle trigger match compares. Raw
+    /// `event.flags` carry extra system bits (non-coalesced, fn, alpha-shift)
+    /// that must never affect the comparison.
+    static let triggerComparableMask: CGEventFlags = [
+        .maskCommand, .maskAlternate, .maskControl, .maskShift,
+    ]
+
+    /// Exact-chord match for a trigger keyDown while the switcher is CLOSED.
+    /// The event's ⌘⌥⌃⇧ bits must equal the configured modifier exactly,
+    /// tolerating Shift as an extra only (Shift reverses the cycle direction,
+    /// like the native switcher). The superset `flags.contains` check alone
+    /// would also swallow unrelated chords that merely include the trigger
+    /// modifier — e.g. ⌘⌥⌃` with a ⌘` window trigger (issue #79).
+    static func triggerChordMatches(_ flags: CGEventFlags, configured: CGEventFlags) -> Bool {
+        let held = flags.intersection(triggerComparableMask)
+        let wanted = configured.intersection(triggerComparableMask)
+        return held == wanted || held == wanted.union(.maskShift)
+    }
+
+    /// Vim-nav modifier gate: true when the only device-independent modifiers
+    /// down are the held trigger's own hold modifier(s). The panel is held
+    /// open by whatever modifier the user recorded — ⌘ for the default ⌘Tab,
+    /// but e.g. ⌥ for an ⌥Tab trigger (issue #71) — so that modifier must not
+    /// block h/j/k/l, while any modifier beyond it still passes the keystroke
+    /// through. With no trigger modifier down (sticky/stay-open panel) this
+    /// requires no modifiers at all. Masked so raw system bits (fn,
+    /// non-coalesced, alpha-shift) never affect the comparison.
+    static func onlyTriggerModifiersHeld(_ flags: CGEventFlags,
+                                         heldTriggerModifiers: CGEventFlags) -> Bool {
+        flags.intersection(triggerComparableMask)
+            == heldTriggerModifiers.intersection(triggerComparableMask)
+    }
+
+    /// Pure step accumulator for continuous mouse-wheel scrolls (issue #68).
+    /// Driver-smoothed wheels (Logitech Options, many Bluetooth mice) report
+    /// a notch as a burst of line-fraction deltas instead of one discrete ±1,
+    /// so the tap sums them and emits one step per `threshold` lines, keeping
+    /// the remainder for the next event. A direction flip discards the
+    /// opposite-sign remainder first so reversing reacts immediately.
+    /// Stateless so the tests can exercise it directly.
+    static func accumulateContinuousScroll(
+        accumulated: Double, delta: Double, threshold: Double
+    ) -> (steps: Int, remainder: Double) {
+        var acc = accumulated
+        if delta != 0, acc != 0, (acc < 0) != (delta < 0) { acc = 0 }
+        acc += delta
+        let steps = Int((acc / threshold).rounded(.towardZero))
+        return (steps, acc - Double(steps) * threshold)
     }
     /// Boot floor for the switcher trigger. `Config` can't be empty, so this
     /// mirrors BetterShortcuts' `switchApps`/`switchWindows` defaults (⌘Tab/⌘`);
@@ -273,8 +380,9 @@ final class HotkeyTap {
     /// Fired (on the caller's thread — currently always main) whenever the
     /// reserved-letter set is recomputed, so `SwitcherController` can mirror it
     /// into `RowLabels`. Set before the first `setPanelKeyBindings` push.
-    var onReservedLettersChanged: ((Set<Character>) -> Void)?
+    @MainActor var onReservedLettersChanged: ((Set<Character>) -> Void)?
 
+    @MainActor
     func install() -> Bool {
         // Idempotent: if a tap is already live, do NOT overwrite the port/thread
         // handles — that would orphan the existing tap and its run-loop thread (a
@@ -382,12 +490,21 @@ final class HotkeyTap {
         // run loop on a userInteractive thread isolates the tap from any
         // main-thread work and keeps Cmd+Tab responsive immediately.
         let started = DispatchSemaphore(value: 0)
+        let finished = DispatchSemaphore(value: 0)
+        ports.withLock { $0.tapThreadFinished = finished }
         let thread = Thread { [weak self] in
+            defer { finished.signal() }
             let loop = CFRunLoopGetCurrent()!
             CFRunLoopAddSource(loop, src, .commonModes)
             if let capturedAuxSrc { CFRunLoopAddSource(loop, capturedAuxSrc, .commonModes) }
             self?.ports.withLock { $0.tapRunLoop = loop }
-            started.signal()
+            // Signal readiness from a block executed *inside* the run-loop
+            // invocation. Signalling immediately before `CFRunLoopRun()` leaves
+            // a stop-before-run gap: uninstall could call `CFRunLoopStop`, then
+            // wait forever while the worker entered a fresh, unstopped run.
+            CFRunLoopPerformBlock(loop, CFRunLoopMode.commonModes.rawValue) {
+                started.signal()
+            }
             CFRunLoopRun()
         }
         thread.name = "pro.bettercmdtab.HotkeyTap"
@@ -403,11 +520,12 @@ final class HotkeyTap {
         let nc = DistributedNotificationCenter.default()
         let name = Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String)
         layoutObserver = nc.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-            self?.loadKeyboardLayout()
+            MainActor.assumeIsolated { self?.loadKeyboardLayout() }
         }
         return true
     }
 
+    @MainActor
     func uninstall() {
         // Snapshot the handles under the lock, then nil them out in the SAME
         // critical section so the callback thread never observes a torn state.
@@ -435,14 +553,28 @@ final class HotkeyTap {
             }
             CFRunLoopStop(loop)
         }
+        // `CFRunLoopStop` is asynchronous. The CG callback's C refcon is an
+        // unretained self pointer, so deinit must not return while a callback can
+        // still be executing on the tap thread. The startup handshake above
+        // proves the loop is already inside CFRunLoopRun before install returns,
+        // and no callback synchronously waits on main, so this join cannot hit a
+        // stop-before-run deadlock.
+        if let thread = snapshot.tapThread,
+           thread !== Thread.current,
+           let finished = snapshot.tapThreadFinished {
+            finished.wait()
+        }
         if let obs = layoutObserver {
             DistributedNotificationCenter.default().removeObserver(obs)
             layoutObserver = nil
         }
+        // A repeating timer never auto-cancels — tear it down so it can't keep
+        // firing into a torn-down tap after uninstall/deinit.
+        stopShiftRepeat()
     }
 
     deinit {
-        uninstall()
+        MainActor.assumeIsolated { uninstall() }
     }
 
     /// Set by SwitcherController when phase transitions. Read by the tap
@@ -450,6 +582,13 @@ final class HotkeyTap {
     /// the access safe without needing `MainActor.assumeIsolated`.
     func setSwitching(_ value: Bool) {
         switchingFlag.withLock { $0 = value }
+        // Closing the switcher (commit, Esc, click-outside, app deactivation)
+        // must always kill a lingering held-Shift backward repeat — catch-all
+        // for any close path the tap-thread stop signals don't observe.
+        if !value { stopShiftRepeat() }
+        // Closing also drops any partially-accumulated continuous scroll so a
+        // leftover fraction can't leak a step into the next open.
+        if !value { continuousScrollState.withLock { $0 = (0, 0) } }
         // The pointer tap is only needed while the switcher is open; keep it
         // live exactly for that window so idle scroll/click traffic never
         // enters this process. Safe to call from main: `tapEnable` just toggles
@@ -465,6 +604,21 @@ final class HotkeyTap {
     /// actually on screen (see `panelPresentedFlag`). Safe to call from main.
     func setPanelPresented(_ value: Bool) {
         panelPresentedFlag.withLock { $0 = value }
+    }
+
+    /// Mirror "panel is on screen AND held open by the trigger modifier" onto the
+    /// tap. Drives the weld self-heal at the swallow gate (issue #16). Safe to call
+    /// from main; pushed from `syncVisibleReleaseBackstop`'s single chokepoint.
+    func setModifierHeldPanel(_ value: Bool) {
+        modifierHeldPanelFlag.withLock { $0 = value }
+    }
+
+    /// The trigger's hold-modifier state from the last live event the tap saw.
+    /// Truthful under normal input (the tap sees real events); stale while the tap
+    /// is deaf under secure input — so callers must gate on secure input being off.
+    /// See `liveTriggerHoldFlag` (issue #16). Safe to call from main.
+    func liveTriggerHoldHeld() -> Bool {
+        liveTriggerHoldFlag.withLock { $0 }
     }
 
     /// Enter/leave recording mode. While recording, keyDowns are consumed and
@@ -500,6 +654,73 @@ final class HotkeyTap {
         clickDismissFlag.withLock { $0 = value }
     }
 
+    /// Enable/disable stepping backwards when Shift is tapped on its own while
+    /// the switcher is open (#45). Pushed from main when the preference changes.
+    func setShiftTapStepsBackward(_ value: Bool) {
+        shiftTapStepsBackwardFlag.withLock { $0 = value }
+        if !value { stopShiftRepeat() }
+    }
+
+    /// The user's keyboard repeat cadence (System Settings → Keyboard: "Delay
+    /// Until Repeat" / "Key Repeat"), so a held Shift steps back at the same
+    /// pace as a held Tab. Both are stored as 1/60 s ticks in the global domain.
+    private func keyRepeatCadence() -> (initial: Double, interval: Double)? {
+        let d = UserDefaults.standard
+        return Self.repeatCadence(
+            initialTicks: (d.object(forKey: "InitialKeyRepeat") as? Double) ?? 0,
+            repeatTicks: (d.object(forKey: "KeyRepeat") as? Double) ?? 0
+        )
+    }
+
+    /// Pure 1/60 s-tick → seconds conversion for the held-Shift repeat. Absent
+    /// (`0`) values fall back to the macOS defaults; a huge `repeatTicks` is the
+    /// system-wide "Off" state, so it returns `nil` (a hold is then one step).
+    /// Both outputs are clamped so a misconfigured global value can't spin a
+    /// runaway timer. Static and pure so the tests can exercise it directly.
+    static func repeatCadence(initialTicks: Double, repeatTicks: Double) -> (initial: Double, interval: Double)? {
+        if repeatTicks >= 300 { return nil }
+        let initial = initialTicks > 0 ? initialTicks / 60.0 : 25.0 / 60.0
+        let interval = repeatTicks > 0 ? repeatTicks / 60.0 : 6.0 / 60.0
+        return (max(0.05, initial), max(0.02, interval))
+    }
+
+    /// Arm the held-Shift backward auto-repeat. The caller delivers the
+    /// immediate first `.prevApp` (so a quick tap is exactly one step); this
+    /// schedules the repeats that follow once the hold passes the initial delay.
+    /// Each tick re-checks live state so the repeat self-stops the instant the
+    /// switcher leaves the bare-Shift-steps-back situation, even if an explicit
+    /// stop signal is missed.
+    private func startShiftRepeat() {
+        guard let cadence = keyRepeatCadence() else { return }
+        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInteractive))
+        timer.schedule(deadline: .now() + cadence.initial, repeating: cadence.interval)
+        timer.setEventHandler { [weak self] in
+            guard let self else { return }
+            guard self.isSwitchingNow(), !self.isSearchingNow(),
+                  !self.tabDrillFlag.withLock({ $0 }),
+                  self.shiftTapStepsBackwardFlag.withLock({ $0 }) else {
+                self.stopShiftRepeat(); return
+            }
+            self.deliver(.prevApp)
+        }
+        shiftRepeatTimer.withLock { existing in
+            existing?.cancel()
+            existing = timer
+            timer.resume()
+        }
+    }
+
+    /// Cancel the held-Shift backward auto-repeat if running. Idempotent and
+    /// safe from any thread (the tap thread, main, or the timer's own handler).
+    private func stopShiftRepeat() {
+        let timer = shiftRepeatTimer.withLock { current -> DispatchSourceTimer? in
+            let t = current
+            current = nil
+            return t
+        }
+        timer?.cancel()
+    }
+
     /// Suppress (pass through) the initial trigger chord for the frontmost app —
     /// the "Ignore shortcuts" exception. Pushed from main on frontmost-app and
     /// active-Space changes.
@@ -509,12 +730,35 @@ final class HotkeyTap {
 
     /// Enable h/j/k/l vim-style navigation while the switcher is open. Pushed
     /// from main when the preference changes.
+    @MainActor
     func setVimNavigationEnabled(_ value: Bool) {
         vimNavigationFlag.withLock { $0 = value }
         // The reserved-letter set depends on the vim flag (h/j/k/l are reserved
         // from hint generation while vim nav is on), so recompute and re-push to
         // RowLabels on every toggle — not only on binding/layout changes.
         recomputeReservedLetters()
+    }
+
+    /// Enable/disable type-to-search routing (letter hints off + fuzzy on).
+    /// Consulted on the tap thread; written from main when either preference
+    /// changes.
+    func setTypeToSearchEnabled(_ value: Bool) {
+        typeToSearchFlag.withLock { $0 = value }
+    }
+
+    /// Pure: the character a key should feed into type-to-search, or `nil` if
+    /// it can't open a query. Unlike letter-jump this deliberately does NOT
+    /// exclude the reserved action letters (w/m/h/q/f) — in type-to-search mode
+    /// every letter must reach the query, so typing e.g. "whatsapp" or "figma"
+    /// filters instead of closing/minimizing the highlighted item. Letters in
+    /// any script (ż, é, ü…) and digits ("1Password") open the query too,
+    /// matching what the search branch accepts once search mode is active;
+    /// everything else (space, \, /, arrows…) keeps its panel meaning.
+    /// Stateless so the tests can exercise it directly.
+    static func typeToSearchLetter(for character: Character) -> Character? {
+        if character.isLetter { return Character(character.lowercased()) }
+        if character.isNumber { return character }
+        return nil
     }
 
     /// Pure mapping from a typed character to the corresponding nav `Event`,
@@ -561,6 +805,7 @@ final class HotkeyTap {
 
     /// Replace the rebindable in-panel action-key map (keycode → action). Pushed
     /// from main on launch and on every preference change; read on the tap thread.
+    @MainActor
     func setPanelKeyBindings(_ map: [Int64: PanelActionKey]) {
         panelKeyMap.withLock { $0 = map }
         recomputeReservedLetters()
@@ -571,6 +816,7 @@ final class HotkeyTap {
     /// active layout), then store it and notify `onReservedLettersChanged`. Called
     /// on every binding push and whenever the keyboard layout changes, so reserved
     /// letters always match what the user actually assigned.
+    @MainActor
     private func recomputeReservedLetters() {
         let map = panelKeyMap.withLock { $0 }
         var collected: Set<Character> = []
@@ -611,17 +857,11 @@ final class HotkeyTap {
         searchModeFlag.withLock { $0 }
     }
 
+    @MainActor
     private func loadKeyboardLayout() {
-        guard let sourceRef = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else {
-            Log.hotkey.warning("TISCopyCurrentKeyboardInputSource returned nil")
-            return
-        }
-        guard let prop = TISGetInputSourceProperty(sourceRef, kTISPropertyUnicodeKeyLayoutData) else {
-            Log.hotkey.warning("TISGetInputSourceProperty kTISPropertyUnicodeKeyLayoutData nil")
-            return
-        }
-        let cfData = Unmanaged<CFData>.fromOpaque(prop).takeUnretainedValue()
-        let data = cfData as Data
+        // Failure branches are logged inside currentOrFallbackLayoutData();
+        // keep the previous cache (possibly nil) rather than clearing it.
+        guard let data = KeyboardLayout.currentOrFallbackLayoutData() else { return }
         layoutData.withLock { $0 = data }
         // Reserved letters are layout-dependent (a bound keycode maps to a
         // different letter per layout) — re-derive them on every layout change.
@@ -670,32 +910,39 @@ final class HotkeyTap {
             // the trust cache hasn't flipped yet.
             if !AccessibilityCheck.isTrusted {
                 Log.hotkey.error("CGEventTap disabled and Accessibility not trusted — tearing down (no re-enable)")
-                let handler = onTapDisabledStorm
-                DispatchQueue.main.async { handler() }
+                DispatchQueue.main.async { [weak self] in self?.onTapDisabledStorm() }
                 return Unmanaged.passUnretained(event)
             }
-            // Storm guard: count rapid consecutive disables. Re-enabling an active
-            // session tap that the WindowServer keeps disabling (a sustained
-            // timeout with AX still granted) pins THIS tap thread in synchronous
-            // WindowServer IPC — and the WindowServer blocks all system input on
-            // it, freezing the whole machine. Once a burst is seen, stop the tight
-            // re-enable loop and hand off to a main-thread recovery that tears the
-            // tap down / re-arms on a backoff.
-            let now = DispatchTime.now().uptimeNanoseconds
-            let storming = disableGate.withLock { gate -> Bool in
-                if now &- gate.lastNs > Self.disableBurstWindowNs { gate.count = 0 }
-                gate.lastNs = now
-                gate.count += 1
-                return gate.count > Self.maxRapidReenables
-            }
-            if storming {
-                // Return WITHOUT re-enabling so the tap thread stops spinning in
-                // WindowServer IPC; recovery happens on main (uninstall + re-arm,
-                // or stay down if AX was revoked).
-                Log.hotkey.error("CGEventTap disabled repeatedly (storm) — bailing to main-thread recovery")
-                let handler = onTapDisabledStorm
-                DispatchQueue.main.async { handler() }
-                return Unmanaged.passUnretained(event)
+            // Storm guard — TIMEOUT only. `kCGEventTapDisabledByUserInput` is the
+            // secure-input / external-input kind of disable, NOT the watchdog
+            // timeout, and it carries no freeze risk beyond what the AX-trust check
+            // above already guards. On affected setups a secure-input source flaps
+            // on/off ~1×/second, so the WindowServer streams `userInput` disables;
+            // routing them through this gate tore the tap down and re-armed it on a
+            // backoff every second, and during each backoff the ⌘-release was lost
+            // — welding the switcher open so the tap swallowed ⌘W/⌘Q system-wide
+            // (issue #16). For `userInput` just fall through and re-enable (as the
+            // simple alt-tab handler does): under secure input the WindowServer
+            // re-disables instantly and the always-armed Carbon survivor trigger
+            // keeps ⌘Tab working; the tap re-takes over the moment it clears.
+            //
+            // The gate stays for TIMEOUT: re-enabling an active session tap the
+            // WindowServer keeps timing out (AX still granted, main thread wedged)
+            // pins this tap thread in synchronous WindowServer IPC, freezing the
+            // whole machine — so a timeout burst still bails to main-thread recovery.
+            if type == .tapDisabledByTimeout {
+                let now = DispatchTime.now().uptimeNanoseconds
+                let storming = disableGate.withLock { gate -> Bool in
+                    if now &- gate.lastNs > Self.disableBurstWindowNs { gate.count = 0 }
+                    gate.lastNs = now
+                    gate.count += 1
+                    return gate.count > Self.maxRapidReenables
+                }
+                if storming {
+                    Log.hotkey.error("CGEventTap disabled repeatedly (storm) — bailing to main-thread recovery")
+                    DispatchQueue.main.async { [weak self] in self?.onTapDisabledStorm() }
+                    return Unmanaged.passUnretained(event)
+                }
             }
             // Final trust re-check immediately before the re-enable closes the
             // TOCTOU window: AX can be revoked in the tiny gap since the check
@@ -704,8 +951,7 @@ final class HotkeyTap {
             // single stray re-enable off an untrusted tap. Cold path (disables are
             // rare), so the extra local trust read costs nothing measurable.
             guard AccessibilityCheck.isTrusted else {
-                let handler = onTapDisabledStorm
-                DispatchQueue.main.async { handler() }
+                DispatchQueue.main.async { [weak self] in self?.onTapDisabledStorm() }
                 return Unmanaged.passUnretained(event)
             }
             // Re-enable INSIDE the ports lock so a concurrent `uninstall()` (which
@@ -728,7 +974,14 @@ final class HotkeyTap {
                     CGEvent.tapEnable(tap: auxTap, enable: true)
                 }
             }
-            Log.hotkey.warning("CGEventTap disabled, re-enabling")
+            // A watchdog timeout is rare and worth a warning; a userInput disable
+            // (secure-input flap) can stream ~1×/s, so log it at debug to avoid
+            // spamming the default log while still being inspectable.
+            if type == .tapDisabledByTimeout {
+                Log.hotkey.warning("CGEventTap disabled (timeout), re-enabling")
+            } else {
+                Log.hotkey.debug("CGEventTap disabled (userInput), re-enabling")
+            }
             return Unmanaged.passUnretained(event)
         }
 
@@ -737,18 +990,16 @@ final class HotkeyTap {
             // and forward a copy to the recorder. Let modifier changes through.
             if type == .keyDown, let copy = event.copy() {
                 let box = EventBox(copy)
-                let handler = onRecordingKeyDown
-                DispatchQueue.main.async { handler(box.event) }
+                DispatchQueue.main.async { [weak self] in
+                    self?.onRecordingKeyDown(box.event)
+                }
                 return nil
             }
             return Unmanaged.passUnretained(event)
         }
 
         if type == .scrollWheel {
-            // Step the open switcher with a discrete mouse wheel. Trackpad and
-            // Magic Mouse produce *continuous* (precise) scrolls — pass those
-            // straight through so two-finger scrolling stays free and the
-            // trackpad keeps its three-finger swipe. Only acts while the
+            // Step the open switcher with a mouse wheel. Only acts while the
             // switcher is already showing; never opens it from idle. Inert
             // while drilled into a tab strip — an app-list step there would
             // desync the highlight from the strip.
@@ -757,15 +1008,51 @@ final class HotkeyTap {
                 return Unmanaged.passUnretained(event)
             }
             let continuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
-            let delta = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
-            guard !continuous, delta != 0 else {
+            if !continuous {
+                let delta = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+                guard delta != 0 else { return Unmanaged.passUnretained(event) }
+                // With macOS natural scrolling, rolling the wheel down gives a
+                // negative delta and should advance the selection forward.
+                let reverse = scrollReverseFlag.withLock { $0 }
+                let forward = (delta < 0) != reverse
+                deliver(forward ? .nextApp : .prevApp)
+                return nil
+            }
+            // Continuous scrolls: trackpad and Magic Mouse gestures carry a
+            // scroll or momentum phase — pass those straight through so
+            // two-finger scrolling stays free and the trackpad keeps its
+            // three-finger swipe. A continuous scroll with NO phase is a
+            // driver-smoothed mouse wheel (Logitech Options, many Bluetooth
+            // mice — issue #68): the user rolled a physical wheel and expects
+            // a step, so accumulate the line-fraction deltas and step per
+            // `continuousScrollStepLines`, swallowing the events like the
+            // discrete path does.
+            let phase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
+            let momentum = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
+            guard phase == 0, momentum == 0 else {
                 return Unmanaged.passUnretained(event)
             }
-            // With macOS natural scrolling, rolling the wheel down gives a
-            // negative delta and should advance the selection forward.
-            let reverse = scrollReverseFlag.withLock { $0 }
-            let forward = (delta < 0) != reverse
-            deliver(forward ? .nextApp : .prevApp)
+            let lineDelta = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
+            guard lineDelta != 0 else { return Unmanaged.passUnretained(event) }
+            let now = DispatchTime.now().uptimeNanoseconds
+            let steps = continuousScrollState.withLock { state -> Int in
+                if now &- state.lastNs > Self.continuousScrollResetNs { state.acc = 0 }
+                state.lastNs = now
+                let result = Self.accumulateContinuousScroll(
+                    accumulated: state.acc, delta: lineDelta,
+                    threshold: Self.continuousScrollStepLines)
+                state.acc = result.remainder
+                return result.steps
+            }
+            if steps != 0 {
+                let reverse = scrollReverseFlag.withLock { $0 }
+                let forward = (steps < 0) != reverse
+                // A single flick can cross several thresholds; cap the burst
+                // so one event can never flood the selection.
+                for _ in 0..<min(abs(steps), 3) {
+                    deliver(forward ? .nextApp : .prevApp)
+                }
+            }
             return nil
         }
 
@@ -813,6 +1100,11 @@ final class HotkeyTap {
         let windowModHeld = cfg.windowKey != nil && flags.contains(cfg.windowModifier)
         // The switcher stays open while either trigger's hold modifier is down.
         let anyModHeld = appModHeld || windowModHeld
+        // Publish the LIVE trigger-hold state (from real event flags, reached by both
+        // keyDown and flagsChanged) for the controller's stranded-panel fast path.
+        // Truthful — unlike CGEventSource.flagsState, which can latch ⌘-held across a
+        // secure-input flap (issue #16). One cheap store on the hot path.
+        liveTriggerHoldFlag.withLock { $0 = anyModHeld }
         let shiftHeld = flags.contains(.maskShift)
         let tabDrillNow = tabDrillFlag.withLock { $0 }
         // Option + arrow (while the switcher is open) moves the highlighted
@@ -861,20 +1153,33 @@ final class HotkeyTap {
             // "Ignore shortcuts" exception: while idle, let the trigger chord
             // fall through to the focused app instead of opening the switcher.
             // Only when not already switching — an open switcher still navigates.
-            let suppressTrigger = !isSwitchingNow() && suppressTriggerFlag.withLock { $0 }
-            if appModHeld, let appKey = cfg.appKey, keyCode == appKey {
+            let switchingNow = isSwitchingNow()
+            let suppressTrigger = !switchingNow && suppressTriggerFlag.withLock { $0 }
+            // While IDLE the trigger must match its chord exactly (modulo an
+            // extra Shift for reverse cycling) so unrelated combos that merely
+            // contain the trigger modifier — ⌘⌥⌃`, ⌘⌥Tab — pass through to
+            // other apps instead of opening the switcher (issue #79). Once the
+            // switcher is open the superset `appModHeld`/`windowModHeld` keeps
+            // cycling alive with ⌥/⌃/⇧ window-management chord keys held.
+            if appModHeld, let appKey = cfg.appKey, keyCode == appKey,
+               switchingNow || Self.triggerChordMatches(flags, configured: cfg.appModifier) {
                 if suppressTrigger { return Unmanaged.passUnretained(event) }
                 let dir: Event = shiftHeld ? .prevApp : .nextApp
                 deliver(dir)
                 return nil
             }
-            if windowModHeld, let windowKey = cfg.windowKey, keyCode == windowKey {
+            if windowModHeld, let windowKey = cfg.windowKey, keyCode == windowKey,
+               switchingNow || Self.triggerChordMatches(flags, configured: cfg.windowModifier) {
                 if suppressTrigger { return Unmanaged.passUnretained(event) }
                 let dir: Event = shiftHeld ? .prevWindow : .nextWindow
                 deliver(dir)
                 return nil
             }
-            if anyModHeld && keyCode == Self.escKey {
+            // Modifier+Esc is the switcher's cancel chord — but only while a
+            // switch is in flight (a `.primed` quick switch counts). Swallowing
+            // it unconditionally ate ⌘Esc (Raycast) and ⌥Esc (Speak Selection)
+            // system-wide whenever the hold modifier matched (issues #49, #73).
+            if anyModHeld && switchingNow && keyCode == Self.escKey {
                 deliver(.escape)
                 return nil
             }
@@ -984,37 +1289,80 @@ final class HotkeyTap {
                         // Gating on a visible panel makes them pass through with
                         // no panel up, independent of any timer.
                         if isPanelPresented() {
+                            // Weld self-heal (issue #16 residual). On a live keyDown
+                            // the tap is alive, so `anyModHeld` (from event.flags,
+                            // computed at the top of this handler) is the TRUE live
+                            // modifier state — unlike `CGEventSource.flagsState`,
+                            // which latches a lie reporting ⌘-held after a ⌘-up was
+                            // dropped during a secure-input tap-disable. A held-chord
+                            // panel reaching this swallow gate with the hold modifier
+                            // physically up is provably welded: tear it down with NO
+                            // commit and NO focus yank (.dismiss restores the app the
+                            // user came from), then SWALLOW this key — present() made
+                            // us key/active (SwitcherPanel.canBecomeKey + NSApp
+                            // .activate), so passing it through would route it to our
+                            // own panel and lose it; the user's next keystroke lands
+                            // on the restored app. `!anyModHeld` is ordered first so a
+                            // genuinely-held ⌘ short-circuits BEFORE the lock read,
+                            // keeping the default reveal/commit path lock-free.
+                            if !anyModHeld && modifierHeldPanelFlag.withLock({ $0 }) {
+                                deliver(.dismiss)
+                                return nil
+                            }
                             // Vim navigation: h/j/k/l mirror the bare arrows.
                             // Opt-in because h overlaps the default Hide panel
                             // binding and j/k/l overlap letter-jump. Checked
                             // before `panelKeyMap` and letter-jump so an enabled
-                            // vim toggle wins over both. ⌘ is intentionally NOT
-                            // gated out: the panel is held open by the ⌘ hold
-                            // modifier, so vim nav — like the letter-jump below —
-                            // must fire while ⌘ is down; ⌥/⌃/⇧ + h/j/k/l still
-                            // pass through. Search mode is handled in the
+                            // vim toggle wins over both. The trigger's hold
+                            // modifier(s) are intentionally NOT gated out: the
+                            // panel is held open by whatever modifier the user
+                            // recorded (⌘ by default, ⌥ for an ⌥Tab trigger —
+                            // issue #71), so vim nav — like the letter-jump
+                            // below — must fire while it is down; any modifier
+                            // beyond the held trigger's own still passes the
+                            // keystroke through. Search mode is handled in the
                             // `isSearchingNow()` branch above, so the query
                             // swallows these letters there. While vim is on,
                             // h/j/k/l are also unioned into `reservedLetters`, so
                             // hint generation never assigns them as letter-jump
                             // hints the tap would silently swallow here.
                             //
-                            // `translate` is the only thing the vim check needs
-                            // ahead of `panelKeyMap`, so it is computed only when
-                            // the vim flag is on — keeping the default (vim-off)
-                            // hot path free of any added cost: a bound action key
-                            // (⌘W/⌘M/⌘H/⌘Q/⌘F) still short-circuits in
-                            // `panelKeyMap` below without ever paying a translate.
-                            // When vim is on the resolved character is reused by
-                            // the letter-jump branch, so a keystroke is still
+                            // `translate` is needed only by the vim check and the
+                            // type-to-search opener ahead of `panelKeyMap`, so it
+                            // is computed only when either flag is on — keeping the
+                            // default (both off) hot path free of any added cost: a
+                            // bound action key (⌘W/⌘M/⌘H/⌘Q/⌘F) still short-circuits
+                            // in `panelKeyMap` below without ever paying a translate.
+                            // When it is computed, the resolved character is reused
+                            // by the branches below, so a keystroke is still
                             // translated at most once.
                             let vimOn = vimNavigationFlag.withLock { $0 }
-                            let typed = vimOn ? translate(keyCode: UInt16(keyCode)) : nil
+                            let typeToSearch = typeToSearchFlag.withLock { $0 }
+                            let typed = (vimOn || typeToSearch) ? translate(keyCode: UInt16(keyCode)) : nil
                             if vimOn,
-                               !shiftHeld, !optionHeld, !controlHeld,
+                               Self.onlyTriggerModifiersHeld(
+                                   flags,
+                                   heldTriggerModifiers: (appModHeld ? cfg.appModifier : [])
+                                       .union(windowModHeld ? cfg.windowModifier : [])),
                                let ch = typed,
                                let vimEvent = Self.vimNavigationEvent(for: Character(ch.lowercased())) {
                                 deliver(vimEvent)
+                                return nil
+                            }
+                            // Type-to-search opener: route every letter and digit
+                            // (incl. the reserved action keys w/m/h/q/f) into the
+                            // query instead of firing a panel action, so a search
+                            // like "whatsapp", "figma" or "1password" works — in
+                            // any keyboard layout. Before `panelKeyMap` so action keys
+                            // don't win; after the vim check so h/j/k/l still
+                            // navigate. ⌥/⌃ pass through (⌘ holds the panel open, ⇧
+                            // is a capital). Only the first keystroke routes here —
+                            // `enterSearch` then sets search mode, after which the
+                            // `isSearchingNow()` branch handles all input.
+                            if typeToSearch, !optionHeld, !controlHeld,
+                               let ch = typed,
+                               let lower = Self.typeToSearchLetter(for: ch) {
+                                deliver(.letterInput(lower))
                                 return nil
                             }
                             if let action = panelKeyMap.withLock({ $0[keyCode] }) {
@@ -1060,11 +1408,21 @@ final class HotkeyTap {
             }
             // Not while drilled into a tab strip (an app step would desync the
             // highlight from the strip) or typing in search (Shift for a
-            // capital must not move the selection). ⌘⇧Tab still steps
-            // explicitly through the keyDown path in both modes.
-            if anyModHeld && shiftHeld && !wasShift && !tabDrillNow
-                && isSwitchingNow() && !isSearchingNow() {
+            // capital must not move the selection). Also off when the user opted
+            // a bare-Shift step out (#45) — ⌘⇧Tab still steps explicitly through
+            // the keyDown path in both modes regardless.
+            let shiftStepsBack = anyModHeld && !tabDrillNow
+                && shiftTapStepsBackwardFlag.withLock({ $0 })
+                && isSwitchingNow() && !isSearchingNow()
+            if shiftHeld && !wasShift && shiftStepsBack {
+                // Immediate first step (a quick tap is exactly one), then a held
+                // Shift keeps stepping back at the key-repeat pace until release
+                // — the modifier-key counterpart to a held Tab going forward.
                 deliver(.prevApp)
+                startShiftRepeat()
+            } else if wasShift && !shiftHeld {
+                // Shift released: stop the backward repeat.
+                stopShiftRepeat()
             }
             // `.releaseCmd` only means anything while the switcher is open
             // (releasing the hold modifier commits the selection). When idle
@@ -1073,6 +1431,9 @@ final class HotkeyTap {
             // no-op `commit()` to the main thread. Gate it on switching so idle
             // typing costs nothing on the main run loop.
             if !anyModHeld && isSwitchingNow() {
+                // The hold modifier went up (commit) while Shift may still be
+                // down — kill the backward repeat before the panel closes.
+                stopShiftRepeat()
                 deliver(.releaseCmd)
             }
         }
@@ -1080,9 +1441,6 @@ final class HotkeyTap {
     }
 
     private func deliver(_ event: Event) {
-        let handler = onEvent
-        DispatchQueue.main.async {
-            handler(event)
-        }
+        DispatchQueue.main.async { [weak self] in self?.onEvent(event) }
     }
 }

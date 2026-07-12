@@ -1,3 +1,5 @@
+import AppKit
+import CoreGraphics
 import Foundation
 import Testing
 @testable import BetterCmdTab
@@ -11,10 +13,10 @@ struct CatalogFilterTests {
         showMinimized: Bool = true,
         showHidden: Bool = true,
         showWindowless: Bool = true,
-        currentSpaceOnly: Bool = false,
+        spaceScope: SpaceScope = .allSpaces,
         sortOrder: SwitcherSortOrder = .mru
     ) -> CatalogFilter.Config {
-        CatalogFilter.Config(hideModes: hideModes, pinned: pinned, showMinimized: showMinimized, showHidden: showHidden, showWindowless: showWindowless, currentSpaceOnly: currentSpaceOnly, sortOrder: sortOrder)
+        CatalogFilter.Config(hideModes: hideModes, pinned: pinned, showMinimized: showMinimized, showHidden: showHidden, showWindowless: showWindowless, spaceScope: spaceScope, sortOrder: sortOrder)
     }
 
     // MARK: - isIdentity
@@ -27,6 +29,8 @@ struct CatalogFilterTests {
         #expect(!config(showMinimized: false).isIdentity)
         #expect(!config(showHidden: false).isIdentity)
         #expect(!config(showWindowless: false).isIdentity)
+        #expect(!config(spaceScope: .currentSpace).isIdentity)
+        #expect(!config(spaceScope: .visibleSpaces).isIdentity)
         #expect(!config(sortOrder: .alphabetical).isIdentity)
         #expect(!config(sortOrder: .launchOrder).isIdentity)
         // .mruWindows is not identity: the full filter path must run so the
@@ -122,6 +126,29 @@ struct CatalogFilterTests {
         #expect(CatalogFilter.includes(bundleID: "com.x", isPlaceholder: true, isMinimized: false, appHidden: false, hasWindow: false, cfg))
     }
 
+    // MARK: - filteredApps window state (#112)
+
+    @Test("app-level filter matches the row filter once window state is known")
+    func filteredAppsWindowState() {
+        let app = NSRunningApplication.current
+        let pid = app.processIdentifier
+        let cfg = config(showWindowless: false)
+        // Window state known, app windowless → dropped, same as the panel.
+        #expect(CatalogFilter.filteredApps([app], cfg, windowedPids: []).isEmpty)
+        // App has a window → kept.
+        #expect(CatalogFilter.filteredApps([app], cfg, windowedPids: [pid]) == [app])
+        // Window state unknown (cold cache) → kept; missing data never hides.
+        #expect(CatalogFilter.filteredApps([app], cfg, windowedPids: nil) == [app])
+
+        // The per-app whenNoWindows exception applies at app level too.
+        if let bid = app.bundleIdentifier {
+            let exc = config(hideModes: [bid: .whenNoWindows])
+            #expect(CatalogFilter.filteredApps([app], exc, windowedPids: []).isEmpty)
+            #expect(CatalogFilter.filteredApps([app], exc, windowedPids: [pid]) == [app])
+            #expect(CatalogFilter.filteredApps([app], exc, windowedPids: nil) == [app])
+        }
+    }
+
     // MARK: - stablePartition (pin reordering)
 
     @Test("no pins preserves original order")
@@ -215,5 +242,213 @@ struct CatalogFilterTests {
         let items = [(name: "a", pid: pid_t(3)), (name: "b", pid: pid_t(1)), (name: "c", pid: pid_t(2))]
         let result = CatalogFilter.applySortOrder(items, .launchOrder, name: { $0.name }, pid: { $0.pid })
         #expect(result.map(\.pid) == [1, 2, 3])
+    }
+
+    // MARK: - phantom-window filtering
+
+    private func win(_ offset: Int, _ pid: pid_t, _ wid: CGWindowID, onScreen: Bool, minimized: Bool = false, tabSibling: Bool = false)
+        -> (offset: Int, pid: pid_t, wid: CGWindowID, onScreen: Bool, isMinimized: Bool, isTabSibling: Bool) {
+        (offset, pid, wid, onScreen, minimized, tabSibling)
+    }
+
+    @Test("phantom dropped when its app has an on-screen sibling")
+    func phantomDroppedWithOnScreenSibling() {
+        // The Teams case: pid 7's real chat window (9168) is on screen, its
+        // never-shown BrowserWindow (49502) is off screen and WindowServer
+        // positively reports it spaceless → only the phantom is dropped.
+        let rows = [win(0, 7, 9168, onScreen: true), win(1, 7, 49502, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [], spacelessWids: [49502])
+        #expect(drop == [1])
+    }
+
+    @Test("phantom dropped when its app has an off-screen sibling that resolved")
+    func phantomDroppedWithResolvedSibling() {
+        // Neither window is on screen, but the real one (9168) resolves to a
+        // Space (e.g. it's on another desktop); the phantom (49502) is spaceless.
+        let rows = [win(0, 7, 9168, onScreen: false), win(1, 7, 49502, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [9168], spacelessWids: [49502])
+        #expect(drop == [1])
+    }
+
+    @Test("spaceless window kept when it's the app's only window")
+    func soleSpacelessWindowKept() {
+        // Nothing resolved/on-screen for pid 5 → its app has no window known to
+        // occupy a Space, so even a confirmed-spaceless lone window is kept
+        // rather than vanishing entirely from the switcher.
+        let rows = [win(0, 5, 100, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [], spacelessWids: [100])
+        #expect(drop.isEmpty)
+    }
+
+    @Test("off-screen sticky / All-Desktops window kept (not confirmed spaceless)")
+    func stickyWindowKept() {
+        // pid 7: on-screen real window (9168) + an off-screen All-Desktops window
+        // (49502) that spaceMembership leaves UNRESOLVED (count > 1, so it's in
+        // neither resolved nor spaceless). It must be kept — only positively
+        // spaceless windows drop.
+        let rows = [win(0, 7, 9168, onScreen: true), win(1, 7, 49502, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [], spacelessWids: [])
+        #expect(drop.isEmpty)
+    }
+
+    @Test("minimized window kept even if WindowServer reports it spaceless")
+    func minimizedSpacelessKept() {
+        // pid 7: on-screen sibling (9168) + a MINIMIZED window (49502) that
+        // failed to map to a Space. A minimized window is a real user window (the
+        // Electron phantom is never minimized), so it must not be dropped.
+        let rows = [win(0, 7, 9168, onScreen: true), win(1, 7, 49502, onScreen: false, minimized: true)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [], spacelessWids: [49502])
+        #expect(drop.isEmpty)
+    }
+
+    @Test("on-screen windows are never dropped")
+    func onScreenWindowsNeverDropped() {
+        let rows = [win(0, 1, 200, onScreen: true), win(1, 2, 201, onScreen: true)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [], spacelessWids: [])
+        #expect(drop.isEmpty)
+    }
+
+    @Test("phantom decision is per-app, not global")
+    func phantomDecisionIsPerApp() {
+        // pid 7 has a real on-screen window + a spaceless phantom; pid 9 has a
+        // single off-screen spaceless window. Only pid 7's phantom is dropped —
+        // pid 9's lone window is kept because pid 9 occupies no known Space.
+        let rows = [
+            win(0, 7, 9168, onScreen: true),
+            win(1, 7, 49502, onScreen: false),
+            win(2, 9, 300, onScreen: false),
+        ]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [], spacelessWids: [49502, 300])
+        #expect(drop == [1])
+    }
+
+    @Test("all windows kept when none are spaceless")
+    func noSpacelessKeepsEverything() {
+        let rows = [win(0, 1, 100, onScreen: false), win(1, 1, 200, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [100, 200], spacelessWids: [])
+        #expect(drop.isEmpty)
+    }
+
+    @Test("tab-sibling row kept even though it is spaceless (expand tabs as windows)")
+    func tabSiblingSpacelessKept() {
+        // "Expand tabs as windows": the front tab (9168) is on screen, its
+        // tabbed-away sibling (49502) is ordered out and spaceless — the same
+        // WindowServer signature as an Electron phantom. The isTabSibling flag
+        // set at enumeration must exempt it, or the expand option shows nothing.
+        let rows = [win(0, 7, 9168, onScreen: true), win(1, 7, 49502, onScreen: false, tabSibling: true)]
+        let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [], spacelessWids: [49502])
+        #expect(drop.isEmpty)
+    }
+
+    // MARK: - needsSpaceResolution (phantom-resolution gate)
+
+    @Test("multi-window app detected for the phantom-resolution gate")
+    func hasMultiWindowAppCore() {
+        #expect(!CatalogFilter.hasMultiWindowApp(pids: [7, 9, 11]))    // all distinct
+        #expect(CatalogFilter.hasMultiWindowApp(pids: [7, 9, 7]))      // pid 7 twice
+        #expect(!CatalogFilter.hasMultiWindowApp(pids: [nil, nil, 7])) // windowless rows ignored
+        #expect(!CatalogFilter.hasMultiWindowApp(pids: []))
+    }
+
+    @Test("a narrowing Space scope forces resolution; otherwise empty/windowless rows skip it")
+    func needsSpaceResolutionGate() {
+        #expect(CatalogFilter.needsSpaceResolution([], config(spaceScope: .currentSpace)))
+        #expect(CatalogFilter.needsSpaceResolution([], config(spaceScope: .visibleSpaces)))
+        #expect(!CatalogFilter.needsSpaceResolution([], config()))
+        // Launchable rows carry cgWindowID 0 → never counted, so the IPC sweep is
+        // skipped even with two rows sharing nothing.
+        #expect(!CatalogFilter.needsSpaceResolution([launchRow("com.a"), launchRow("com.b")], config()))
+    }
+
+    // MARK: - filterToAllowedSpaces (cached-wid path) + degrade
+
+    /// A window-bearing row for the current process carrying an explicit wid.
+    /// Only `cgWindowID` is read by the Space filters; `window` can be nil.
+    private func spaceRow(_ wid: CGWindowID) -> SwitcherRow {
+        SwitcherRow(app: .current, window: nil, windowTitle: "", isMinimized: false, cgWindowID: wid)
+    }
+
+    private func resolution(spaceByWindow: [CGWindowID: UInt64], allowedSpaces: Set<UInt64>) -> CatalogFilter.SpaceResolution {
+        CatalogFilter.SpaceResolution(spaceByWindow: spaceByWindow, confirmedSpaceless: [], onScreen: [], allowedSpaces: allowedSpaces)
+    }
+
+    @Test("current-Space filter drops a window on another Space, keeps active-Space")
+    func currentSpaceDropsOtherSpace() {
+        let active: UInt64 = 100
+        let rows = [spaceRow(10), spaceRow(20)]   // 10 on active space, 20 elsewhere
+        let res = resolution(spaceByWindow: [10: active, 20: 200], allowedSpaces: [active])
+        let kept = CatalogFilter.filterToAllowedSpaces(rows, res)
+        #expect(kept.map(\.cgWindowID) == [10])
+    }
+
+    @Test("visible-Spaces filter keeps each display's on-screen Space, drops the rest")
+    func visibleSpacesKeepsEveryDisplaysSpace() {
+        // Two displays: active Space 100 (display 1) and visible Space 300
+        // (display 2); Space 200 is a background Space of display 1 (#57).
+        let rows = [spaceRow(10), spaceRow(20), spaceRow(30)]
+        let res = resolution(spaceByWindow: [10: 100, 20: 200, 30: 300], allowedSpaces: [100, 300])
+        let kept = CatalogFilter.filterToAllowedSpaces(rows, res)
+        #expect(kept.map(\.cgWindowID) == [10, 30])
+    }
+
+    @Test("Space filter keeps rows whose wid didn't resolve")
+    func currentSpaceKeepsUnresolved() {
+        let active: UInt64 = 100
+        let rows = [spaceRow(10), spaceRow(20)]   // 20 absent from the map
+        let res = resolution(spaceByWindow: [10: 200], allowedSpaces: [active])
+        // 10 resolves to another space → dropped; 20 unresolved → kept.
+        let kept = CatalogFilter.filterToAllowedSpaces(rows, res)
+        #expect(kept.map(\.cgWindowID) == [20])
+    }
+
+    @Test("Space filter keeps wid-0 (windowless) rows regardless")
+    func currentSpaceKeepsWindowlessRows() {
+        let active: UInt64 = 100
+        let rows = [spaceRow(10), launchRow("com.a")]   // launchRow carries wid 0
+        let res = resolution(spaceByWindow: [10: 200], allowedSpaces: [active])
+        let kept = CatalogFilter.filterToAllowedSpaces(rows, res)
+        #expect(kept.contains { $0.isLaunchable })       // wid-0 row always kept
+        #expect(!kept.contains { $0.cgWindowID == 10 })  // other-space window dropped
+    }
+
+    @Test("both Space filters no-op on the unavailable resolution")
+    func unavailableResolutionDegradesToNoOp() {
+        let rows = [spaceRow(10), spaceRow(20)]
+        #expect(CatalogFilter.filterToAllowedSpaces(rows, .unavailable).count == 2)
+        #expect(CatalogFilter.filterPhantomWindows(rows, .unavailable).count == 2)
+    }
+
+    // MARK: - Space-resolution memo reuse
+
+    @Test("memo reuse requires same scope, fresh age, and covered wids")
+    func spaceMemoReuseDecision() {
+        let memoWids: Set<CGWindowID> = [10, 20, 30]
+        // Identical repeat within the TTL — reuse.
+        #expect(CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: memoWids,
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
+        // A subset (scoped re-filter of the same catalog) — reuse.
+        #expect(CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [10, 30],
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
+        // A new window appeared — must re-resolve.
+        #expect(!CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [10, 20, 40],
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
+        // Scope changed — must re-resolve.
+        #expect(!CatalogFilter.spaceMemoValid(
+            scope: .currentSpace, candidates: [10],
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
+        // Expired or non-monotonic age — must re-resolve.
+        #expect(!CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [10],
+            memoScope: .allSpaces, memoWids: memoWids, age: CatalogFilter.spaceMemoTTL))
+        #expect(!CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [10],
+            memoScope: .allSpaces, memoWids: memoWids, age: -0.01))
+        // Empty candidate set is covered by any memo (nothing to resolve).
+        #expect(CatalogFilter.spaceMemoValid(
+            scope: .allSpaces, candidates: [],
+            memoScope: .allSpaces, memoWids: memoWids, age: 0.05))
     }
 }

@@ -1,7 +1,31 @@
 import AppKit
 
+/// Synchronous `concurrentPerform` output where iteration `i` owns exactly slot
+/// `i`. Swift's `UnsafeMutableBufferPointer` is conservatively non-Sendable even
+/// though disjoint initialized elements are independent memory locations. This
+/// wrapper contains that invariant; it must never be used for overlapping slots
+/// or after the enclosing `withUnsafeMutableBufferPointer` returns.
+struct DisjointWriteBuffer<Element>: @unchecked Sendable {
+    private let baseAddress: UnsafeMutablePointer<Element>
+    let count: Int
+
+    init(_ buffer: UnsafeMutableBufferPointer<Element>) {
+        precondition(!buffer.isEmpty && buffer.baseAddress != nil)
+        baseAddress = buffer.baseAddress!
+        count = buffer.count
+    }
+
+    func set(_ value: Element, at index: Int) {
+        precondition(index >= 0 && index < count)
+        baseAddress.advanced(by: index).pointee = value
+    }
+}
+
 enum AppCatalog {
-    static func fastAppList(orderedBy mru: [pid_t]) -> [NSRunningApplication] {
+    /// `filter` lets a per-shortcut override (#74) replace the global filter;
+    /// `nil` (the default) reads the global config, keeping existing callers
+    /// byte-identical.
+    static func fastAppList(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil, windowedPids: Set<pid_t>? = nil) -> [NSRunningApplication] {
         let selfPid = getpid()
         let regulars = NSWorkspace.shared.runningApplications
             .filter { $0.activationPolicy == .regular && $0.processIdentifier != selfPid }
@@ -19,10 +43,10 @@ enum AppCatalog {
         for app in regulars where !seen.contains(app.processIdentifier) {
             ordered.append(app)
         }
-        return CatalogFilter.filteredApps(ordered, CatalogFilter.config())
+        return CatalogFilter.filteredApps(ordered, cfg ?? CatalogFilter.config(), windowedPids: windowedPids)
     }
 
-    static func snapshot(orderedBy mru: [pid_t]) -> [SwitcherRow] {
+    static func snapshot(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil) -> [SwitcherRow] {
         // Self is intentionally included: BetterCmdTab should appear in the
         // switcher when — and only when — it has a real standard window open
         // (the Settings window). The switcher panel is a borderless
@@ -40,15 +64,18 @@ enum AppCatalog {
 
         var windowsBuffer: [[WindowInfo]] = Array(repeating: [], count: count)
         windowsBuffer.withUnsafeMutableBufferPointer { buffer in
+            let output = DisjointWriteBuffer(buffer)
             DispatchQueue.concurrentPerform(iterations: count) { i in
                 let app = candidates[i]
                 let pid = app.processIdentifier
-                buffer[i] = WindowEnumerator.windows(
+                output.set(WindowEnumerator.windows(
                     forPid: pid,
                     isRegularApp: app.activationPolicy == .regular,
                     expectedCGWindowIDs: cgSnapshot.ids(for: pid),
-                    cgZOrder: cgSnapshot.zOrder(for: pid)
-                )
+                    cgZOrder: cgSnapshot.zOrder(for: pid),
+                    nonNormalLayerWids: cgSnapshot.nonNormalLayer(for: pid),
+                    onscreenWids: cgSnapshot.onscreen(for: pid)
+                ), at: i)
             }
         }
 
@@ -109,7 +136,7 @@ enum AppCatalog {
                 return lhs.offset < rhs.offset
             }
             .map { $0.row }
-        return CatalogFilter.filteredRows(sorted, CatalogFilter.config())
+        return CatalogFilter.filteredRows(sorted, cfg ?? CatalogFilter.config())
     }
 
     private static func statusPriority(_ row: SwitcherRow) -> Int {

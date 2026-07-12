@@ -6,6 +6,25 @@ import Foundation
 /// (Cocoa, bottom-left origin) supplied by the caller.
 enum ScreenSelection {
 
+    /// Index of the screen containing the cursor `point`, or nil when the
+    /// point is in a gap/outside the current display arrangement. Uses
+    /// `NSMouseInRect`'s unflipped convention rather than `CGRect.contains`:
+    /// a cursor resting at the top edge of a display reports
+    /// `y == frame.maxY`, so the top edge is inside and the bottom edge
+    /// outside; x keeps `[minX, maxX)`. The first match preserves the
+    /// caller's ordering if display frames overlap.
+    static func index<C: Collection>(
+        containing point: CGPoint,
+        in candidates: C,
+        frame: (C.Element) -> CGRect
+    ) -> C.Index? {
+        candidates.firstIndex { candidate in
+            let r = frame(candidate)
+            return point.x >= r.minX && point.x < r.maxX
+                && point.y > r.minY && point.y <= r.maxY
+        }
+    }
+
     /// Index of the screen frame with the greatest area of overlap with `rect`.
     /// Returns nil when `screenFrames` is empty or nothing overlaps `rect`.
     static func indexOfMaxOverlap(rect: CGRect, screenFrames: [CGRect]) -> Int? {

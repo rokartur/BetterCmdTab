@@ -1,5 +1,5 @@
 import AppKit
-import ApplicationServices
+@preconcurrency import ApplicationServices
 import Carbon.HIToolbox
 import os
 
@@ -208,7 +208,9 @@ enum Activator {
     /// can raise it back on top (the window the user hid everything from). Pid for
     /// the same-session fast path, bundleID as a fallback if the app was relaunched.
     /// Nil once consumed or when nothing qualified.
-    private static var lastHideFrontmost: (pid: pid_t, bundleID: String?)?
+    private static let lastHideFrontmost = OSAllocatedUnfairLock<(pid: pid_t, bundleID: String?)?>(
+        initialState: nil
+    )
 
     /// Pure: choose which running pid `showAllApps()` should raise last, given the
     /// remembered hide-time identity and the live running set. Match by pid first
@@ -233,68 +235,108 @@ enum Activator {
 
     /// Focus the app with the given bundle ID, launching it if it isn't running.
     /// Backs the direct-activation hotkeys (jump straight to a chosen app).
+    @MainActor
     static func activateOrLaunch(bundleID: String) {
         if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
             activateApp(running)
             return
         }
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
+        _ = beginActivation()
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true
         config.createsNewApplicationInstance = false
         NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
     }
 
-    static func activateApp(_ app: NSRunningApplication) {
+    @MainActor
+    static func activateApp(
+        _ app: NSRunningApplication,
+        completion: @escaping @MainActor @Sendable () -> Void = {}
+    ) {
+        let gen = beginActivation()
         if app.isHidden {
             app.unhide()
         }
-        let axApp = AXUIElementCreateApplication(app.processIdentifier)
-        AXUIElementSetMessagingTimeout(axApp, 0.1)
-        var windowsValue: AnyObject?
-        AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsValue)
-        let windows = (windowsValue as? [AXUIElement]) ?? []
-        if windows.isEmpty {
-            openFreshWindow(for: app)
-            return
-        }
-        // Native activation never un-minimizes, so only restore a window when
-        // the app has nothing visible to focus (the all-minimized case).
-        var firstMinimized: AXUIElement?
-        var hasVisibleWindow = false
-        for window in windows {
-            AXUIElementSetMessagingTimeout(window, 0.25)
-            var minimizedValue: AnyObject?
-            AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minimizedValue)
-            if (minimizedValue as? Bool) == true {
-                if firstMinimized == nil { firstMinimized = window }
-            } else {
-                hasVisibleWindow = true
-                break
+        let pid = app.processIdentifier
+        activationQueue.async {
+            guard activationGeneration.withLock({ $0 == gen }) else {
+                DispatchQueue.main.async { completion() }
+                return
+            }
+            let axApp = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(axApp, 0.1)
+            var windowsValue: AnyObject?
+            AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsValue)
+            let windows = (windowsValue as? [AXUIElement]) ?? []
+            var firstMinimized: AXUIElement?
+            var hasVisibleWindow = false
+            for window in windows {
+                AXUIElementSetMessagingTimeout(window, 0.25)
+                var minimizedValue: AnyObject?
+                AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minimizedValue)
+                if (minimizedValue as? Bool) == true {
+                    if firstMinimized == nil { firstMinimized = window }
+                } else {
+                    hasVisibleWindow = true
+                    break
+                }
+            }
+            guard activationGeneration.withLock({ $0 == gen }) else {
+                DispatchQueue.main.async { completion() }
+                return
+            }
+            if !hasVisibleWindow, let firstMinimized {
+                AXUIElementSetAttributeValue(firstMinimized, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+            }
+            let hasWindows = !windows.isEmpty
+            DispatchQueue.main.async {
+                guard activationGeneration.withLock({ $0 == gen }) else {
+                    completion()
+                    return
+                }
+                guard let live = NSRunningApplication(processIdentifier: pid) else {
+                    completion()
+                    return
+                }
+                if hasWindows { bringToFront(live) } else { openFreshWindow(for: live) }
+                completion()
             }
         }
-        if !hasVisibleWindow, let firstMinimized {
-            AXUIElementSetAttributeValue(firstMinimized, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
-        }
-        bringToFront(app)
     }
 
     /// `instantSpace`: when the target window lives on another Space or in full
     /// screen, jump there with no slide animation (private SkyLight) before
     /// raising. No-op when the window is already on the current Space.
-    static func activate(_ row: SwitcherRow, instantSpace: Bool = false) {
+    @MainActor
+    static func activate(
+        _ row: SwitcherRow,
+        instantSpace: Bool = false,
+        completion: @escaping @MainActor @Sendable () -> Void
+    ) {
         switch row.subject {
         case .launchable(let installed):
             launch(installed)
+            completion()
         case .running(let app):
-            activateRunning(app: app, window: row.window, isFullscreen: row.isFullscreen, instantSpace: instantSpace)
+            activateRunning(
+                app: app,
+                window: row.window,
+                cachedWid: row.cgWindowID,
+                isMinimized: row.isMinimized,
+                isFullscreen: row.isFullscreen,
+                instantSpace: instantSpace,
+                completion: completion
+            )
         case .recentlyClosed(let entry):
-            reopen(entry)
+            reopen(entry, completion: completion)
         }
     }
 
     /// Launch a not-yet-running app discovered by `InstalledAppsIndex`.
+    @MainActor
     private static func launch(_ installed: InstalledApp) {
+        _ = beginActivation()
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true
         config.createsNewApplicationInstance = false
@@ -305,21 +347,64 @@ enum Activator {
     /// it's somehow already running again (opening a fresh window when it has
     /// none, so the "Reopen" verb always produces a window). Recently-closed
     /// entries are app-level only, so there's no per-document/window restore here.
-    private static func reopen(_ entry: RecentEntry) {
+    @MainActor
+    private static func reopen(
+        _ entry: RecentEntry,
+        completion: @escaping @MainActor @Sendable () -> Void = {}
+    ) {
         if let running = NSRunningApplication
             .runningApplications(withBundleIdentifier: entry.bundleID).first {
-            activateApp(running)
+            activateApp(running, completion: completion)
             return
         }
+        _ = beginActivation()
         if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: entry.bundleID) {
             let config = NSWorkspace.OpenConfiguration()
             config.activates = true
             NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
         }
+        completion()
     }
 
-    private static func activateRunning(app: NSRunningApplication, window: AXUIElement?, isFullscreen: Bool, instantSpace: Bool) {
+    /// Monotonic id of the latest windowed activation. The deferred re-assert
+    /// and focus-verify closures capture it at schedule time and bail once a
+    /// newer activation starts, so rapid successive switches (fast ⌘⇥ taps,
+    /// ⌘` cycling) can't have an older activation's late re-assert yank focus
+    /// from the newer target — the frontmost-pid guard alone can't catch that
+    /// when both targets belong to the same app. Activations begin on main, while
+    /// AX work and final verification read the generation on the serial activation
+    /// queue, so the generation itself remains lock-protected.
+    /// A future call site must not silently turn the stale-focus guard into a
+    /// Swift data race.
+    private static let activationGeneration = OSAllocatedUnfairLock<UInt64>(initialState: 0)
+    private static let activationQueue = DispatchQueue(
+        label: "BetterCmdTab.activation",
+        qos: .userInitiated
+    )
+
+    private static func beginActivation() -> UInt64 {
+        activationGeneration.withLock { value in
+            value &+= 1
+            return value
+        }
+    }
+
+    static func invalidatePendingActivation() {
+        _ = beginActivation()
+    }
+
+    @MainActor
+    private static func activateRunning(
+        app: NSRunningApplication,
+        window: AXUIElement?,
+        cachedWid: CGWindowID,
+        isMinimized: Bool,
+        isFullscreen: Bool,
+        instantSpace: Bool,
+        completion: @escaping @MainActor @Sendable () -> Void
+    ) {
         let pid = app.processIdentifier
+        let gen = beginActivation()
 
         if app.isHidden {
             app.unhide()
@@ -331,20 +416,11 @@ enum Activator {
             } else {
                 openFreshWindow(for: app)
             }
+            completion()
             return
         }
 
-        // Parity with `activateApp`/`focusedWindow`: cap AX messaging so a wedged
-        // target can't stall the (main-thread) raise + focus writes below.
-        AXUIElementSetMessagingTimeout(window, 0.2)
-
-        var minimizedValue: AnyObject?
-        AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minimizedValue)
-        if (minimizedValue as? Bool) == true {
-            AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
-        }
-
-        let wid = PrivateAPI.cgWindowId(of: window)
+        let wid = resolvedWindowID(live: PrivateAPI.cgWindowId(of: window), cached: cachedWid)
 
         // Jump to the window's Space instantly (no slide) before raising, so the
         // raise lands on the now-current Space instead of animating across. This
@@ -360,18 +436,23 @@ enum Activator {
         // last-active window.
         activateProcess(app)
 
-        AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-
-        if wid != 0 && !postedSpaceSwitch {
-            PrivateAPI.raiseWindow(pid: pid, wid: wid)
+        let applyFocus: @Sendable () -> Void = {
+            defer { DispatchQueue.main.async { completion() } }
+            guard activationGeneration.withLock({ $0 == gen }) else { return }
+            AXUIElementSetMessagingTimeout(window, 0.2)
+            if isMinimized {
+                AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+            }
+            guard activationGeneration.withLock({ $0 == gen }) else { return }
+            AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+            if wid != 0 && !postedSpaceSwitch {
+                PrivateAPI.raiseWindow(pid: pid, wid: wid)
+            }
+            guard activationGeneration.withLock({ $0 == gen }) else { return }
+            AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
+            AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
         }
-
-        // Non-AppKit windowing (Ghostty/Alacritty/Wezterm GPU-rendered apps)
-        // doesn't auto-route keyboard focus on NSApplication activation —
-        // it listens for AX focus changes. Write directly; we're already
-        // post-activation so the AX server accepts.
-        AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
-        AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        if pid == getpid() { applyFocus() } else { activationQueue.async(execute: applyFocus) }
 
         // `activateProcess` (NSRunningApplication.activate) brings the app forward
         // asynchronously; its effect can land *after* the writes above and
@@ -381,11 +462,70 @@ enum Activator {
         // once activation has settled, but only while our target is still frontmost
         // so we never yank focus the user may have since moved elsewhere.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
-            AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-            AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
-            AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+            guard activationGeneration.withLock({ $0 == gen }),
+                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
+            let reassert: @Sendable () -> Void = {
+                guard activationGeneration.withLock({ $0 == gen }) else { return }
+                AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+                AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
+                AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+                if pid != getpid() {
+                    verifyFocusSettled(window: window, wid: wid, pid: pid, generation: gen)
+                }
+            }
+            if pid == getpid() { reassert() } else { activationQueue.async(execute: reassert) }
         }
+    }
+
+    /// Last line of defense for the async-activation focus race: ~0.2s after
+    /// activation, read the app's focused window OFF-main and — only when focus
+    /// visibly settled somewhere else — repeat the raise + focus writes once on
+    /// main. The 0.08s re-assert above can itself lose to a slow
+    /// `NSRunningApplication.activate` landing after it; this catches that tail.
+    /// Happy path costs a single off-main AX read (no writes, no main-thread
+    /// work). The generation + frontmost guards drop the retry when the user
+    /// (or a newer activation) has since moved focus deliberately.
+    private static func verifyFocusSettled(window: AXUIElement, wid: CGWindowID, pid: pid_t, generation: UInt64) {
+        activationQueue.asyncAfter(deadline: .now() + 0.12) {
+            let focused = focusedWindow(pid: pid)
+            let focusedWid = focused.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
+            let sameElement = focused.map { CFEqual($0, window) } ?? false
+            if focusSettled(targetWid: wid, focusedWid: focusedWid, sameElement: sameElement) { return }
+            DispatchQueue.main.async {
+                guard activationGeneration.withLock({ $0 == generation }),
+                      NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
+                activationQueue.async {
+                    guard activationGeneration.withLock({ $0 == generation }) else { return }
+                    AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+                    if wid != 0 { PrivateAPI.raiseWindow(pid: pid, wid: wid) }
+                    AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
+                    AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+                }
+            }
+        }
+    }
+
+    /// The WindowServer id to raise: the live `_AXUIElementGetWindow` resolve
+    /// when it succeeded, else the id cached at enumeration time
+    /// (`SwitcherRow.cgWindowID`). Chromium/Electron apps invalidate AX window
+    /// elements aggressively and go deaf to AX while busy, so on a fast switch
+    /// the live resolve can return 0 from a stale element — which used to skip
+    /// the SLPS raise entirely and leave the app active with its window still
+    /// behind. The cached id keeps the WindowServer-level raise working; it
+    /// needs no cooperation from the target's AX server. Pure, split out for
+    /// unit tests.
+    static func resolvedWindowID(live: CGWindowID, cached: CGWindowID) -> CGWindowID {
+        live != 0 ? live : cached
+    }
+
+    /// Pure decision core of `verifyFocusSettled`, split out for unit tests:
+    /// did focus land on the target window? Compare by CGWindowID when both
+    /// sides resolved one; otherwise fall back to AX element identity. An
+    /// unresolved focused window with no element match reads as "not settled" —
+    /// the retry's own guards keep a false negative harmless.
+    static func focusSettled(targetWid: CGWindowID, focusedWid: CGWindowID, sameElement: Bool) -> Bool {
+        if targetWid != 0, focusedWid != 0 { return focusedWid == targetWid }
+        return sameElement
     }
 
     /// Activate a specific tab inside `window`. Same window-bringing steps as
@@ -394,34 +534,50 @@ enum Activator {
      /// others (Safari for non-current tabs) only flip selection via the
      /// `kAXSelectedAttribute` write. Try the press first, then the attribute —
      /// neither call short-circuits, so doing both is safe.
-    static func activateTab(in app: NSRunningApplication, window: AXUIElement, tab: AXUIElement, instantSpace: Bool) {
+    @MainActor
+    static func activateTab(
+        in app: NSRunningApplication,
+        window: AXUIElement,
+        tab: AXUIElement,
+        cachedWid: CGWindowID = 0,
+        isMinimized: Bool,
+        instantSpace: Bool,
+        completion: @escaping @MainActor @Sendable () -> Void
+    ) {
         let pid = app.processIdentifier
+        let gen = beginActivation()
 
         if app.isHidden {
             app.unhide()
         }
 
-        var minimizedValue: AnyObject?
-        AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minimizedValue)
-        if (minimizedValue as? Bool) == true {
-            AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
-        }
-
-        let wid = PrivateAPI.cgWindowId(of: window)
+        let wid = resolvedWindowID(live: PrivateAPI.cgWindowId(of: window), cached: cachedWid)
         let postedSpaceSwitch = instantSpace && wid != 0 && PrivateAPI.switchToSpace(ofWindow: wid)
 
         activateProcess(app)
-        AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-        if wid != 0 && !postedSpaceSwitch {
-            PrivateAPI.raiseWindow(pid: pid, wid: wid)
+        let apply: @Sendable () -> Void = {
+            defer { DispatchQueue.main.async { completion() } }
+            guard activationGeneration.withLock({ $0 == gen }) else { return }
+            AXUIElementSetMessagingTimeout(window, 0.2)
+            AXUIElementSetMessagingTimeout(tab, 0.2)
+            if isMinimized {
+                AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+            }
+            guard activationGeneration.withLock({ $0 == gen }) else { return }
+            AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+            if wid != 0 && !postedSpaceSwitch {
+                PrivateAPI.raiseWindow(pid: pid, wid: wid)
+            }
+            AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
+            AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+            guard activationGeneration.withLock({ $0 == gen }) else { return }
+            AXUIElementPerformAction(tab, kAXPressAction as CFString)
+            AXUIElementSetAttributeValue(tab, kAXSelectedAttribute as CFString, kCFBooleanTrue)
         }
-        AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
-        AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-
-        AXUIElementPerformAction(tab, kAXPressAction as CFString)
-        AXUIElementSetAttributeValue(tab, kAXSelectedAttribute as CFString, kCFBooleanTrue)
+        if pid == getpid() { apply() } else { activationQueue.async(execute: apply) }
     }
 
+    @MainActor
     private static func activateProcess(_ app: NSRunningApplication) {
         if #available(macOS 14.0, *) {
             _ = app.activate(from: NSRunningApplication.current, options: [])
@@ -430,14 +586,13 @@ enum Activator {
         }
     }
 
-    private static func bringToFront(_ app: NSRunningApplication, completion: (() -> Void)? = nil) {
+    @MainActor
+    private static func bringToFront(_ app: NSRunningApplication) {
         if let url = app.bundleURL {
             let cfg = NSWorkspace.OpenConfiguration()
             cfg.activates = true
             cfg.createsNewApplicationInstance = false
-            NSWorkspace.shared.openApplication(at: url, configuration: cfg) { _, _ in
-                completion?()
-            }
+            NSWorkspace.shared.openApplication(at: url, configuration: cfg) { _, _ in }
             return
         }
         if #available(macOS 14.0, *) {
@@ -445,9 +600,9 @@ enum Activator {
         } else {
             app.activate(options: [.activateIgnoringOtherApps])
         }
-        completion?()
     }
 
+    @MainActor
     private static func openFreshWindow(for app: NSRunningApplication) {
         if app.bundleIdentifier == finderBundleID {
             openNewFinderWindow()
@@ -551,32 +706,159 @@ enum Activator {
         return AXUIElementPerformAction(buttonValue as! AXUIElement, kAXPressAction as CFString) == .success
     }
 
-    static func minimizeWindow(_ row: SwitcherRow) {
-        guard let window = row.window, let app = row.app else { return }
-        let wasMinimized = row.isMinimized
+    enum FullscreenMinimizeDecision: Equatable {
+        case waitForExit
+        case requestMinimize
+        case complete
+        case finalAttempt
+    }
 
-        let apply = {
+    /// Pure decision core for the asynchronous full-screen -> minimized
+    /// transition. `AXFullScreen = false` only requests a Space transition; it
+    /// does not guarantee that the window is ready to accept `AXMinimized` when
+    /// the setter returns. Keep polling until full screen is observably off,
+    /// then retry minimization until AX confirms it. A bounded final attempt
+    /// prevents a broken target app from keeping the action alive forever.
+    static func fullscreenMinimizeDecision(
+        fullscreen: Bool?,
+        minimized: Bool?,
+        timedOut: Bool
+    ) -> FullscreenMinimizeDecision {
+        if minimized == true { return .complete }
+        if timedOut { return .finalAttempt }
+        if fullscreen == false { return .requestMinimize }
+        return .waitForExit
+    }
+
+    private static let fullscreenMinimizePollInterval: TimeInterval = 0.05
+    private static let fullscreenMinimizeTimeout: TimeInterval = 2.0
+
+    /// Toggle a window's minimized state. `completion` always runs on the main
+    /// actor after the final AX mutation (and, for a full-screen window, after
+    /// AX confirms minimization or the bounded fallback fires). This lets the
+    /// switcher refresh from completed state instead of racing a fixed timer.
+    static func minimizeWindow(
+        _ row: SwitcherRow,
+        completion: @escaping @MainActor () -> Void = {}
+    ) {
+        guard let window = row.window, let app = row.app else {
+            finishMinimize(completion)
+            return
+        }
+        let wasMinimized = row.isMinimized
+        let wasFullscreen = row.isFullscreen
+
+        // In-process AX writes drive AppKit window-management code and must run
+        // on the main thread. Cross-process AX stays off-main so a slow target
+        // never stalls our UI. GCD is used for both paths so every poll remains
+        // on the executor appropriate for that window.
+        let queue = app.processIdentifier == getpid()
+            ? DispatchQueue.main
+            : DispatchQueue.global(qos: .userInitiated)
+        queue.async {
             if wasMinimized {
                 AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
-                DispatchQueue.main.async {
-                    if #available(macOS 14.0, *) {
-                        _ = app.activate(from: NSRunningApplication.current, options: [])
-                    } else {
-                        app.activate(options: [.activateIgnoringOtherApps])
-                    }
-                }
+                activateAndFinish(app, completion: completion)
                 return
             }
-            AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
-        }
 
-        // Mutating AX state on our own window must happen on the main thread
-        // (same window-management constraint as closeWindow). Other apps stay
-        // off-main so a slow cross-process AX call never blocks ours.
-        if app.processIdentifier == getpid() {
-            DispatchQueue.main.async(execute: apply)
-        } else {
-            DispatchQueue.global(qos: .userInitiated).async(execute: apply)
+            guard wasFullscreen else {
+                AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+                finishMinimize(completion)
+                return
+            }
+
+            let retryFullscreenExit = AXUIElementSetAttributeValue(
+                window,
+                "AXFullScreen" as CFString,
+                kCFBooleanFalse
+            ) != .success
+            let deadline = DispatchTime.now() + fullscreenMinimizeTimeout
+            scheduleFullscreenMinimizePoll(
+                window: window,
+                on: queue,
+                deadline: deadline,
+                retryFullscreenExit: retryFullscreenExit,
+                completion: completion
+            )
+        }
+    }
+
+    private static func scheduleFullscreenMinimizePoll(
+        window: AXUIElement,
+        on queue: DispatchQueue,
+        deadline: DispatchTime,
+        retryFullscreenExit: Bool,
+        completion: @escaping @MainActor () -> Void
+    ) {
+        queue.asyncAfter(deadline: .now() + fullscreenMinimizePollInterval) {
+            let fullscreen = booleanAttribute("AXFullScreen" as CFString, of: window)
+            let minimized = fullscreen == true
+                ? nil
+                : booleanAttribute(kAXMinimizedAttribute as CFString, of: window)
+            let timedOut = DispatchTime.now().uptimeNanoseconds >= deadline.uptimeNanoseconds
+
+            switch fullscreenMinimizeDecision(
+                fullscreen: fullscreen,
+                minimized: minimized,
+                timedOut: timedOut
+            ) {
+            case .waitForExit:
+                // Retry only when the initial setter was rejected. Once AX
+                // accepts the request, polling observes the asynchronous Space
+                // transition without repeatedly restarting the same mutation.
+                let stillNeedsExitRetry = retryFullscreenExit
+                    && AXUIElementSetAttributeValue(
+                        window,
+                        "AXFullScreen" as CFString,
+                        kCFBooleanFalse
+                    ) != .success
+                scheduleFullscreenMinimizePoll(
+                    window: window,
+                    on: queue,
+                    deadline: deadline,
+                    retryFullscreenExit: stillNeedsExitRetry,
+                    completion: completion
+                )
+            case .requestMinimize:
+                _ = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+                scheduleFullscreenMinimizePoll(
+                    window: window,
+                    on: queue,
+                    deadline: deadline,
+                    retryFullscreenExit: false,
+                    completion: completion
+                )
+            case .complete:
+                finishMinimize(completion)
+            case .finalAttempt:
+                Log.activator.warning("Timed out confirming full-screen minimization; applying one final AXMinimized request")
+                if fullscreen != false {
+                    _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, kCFBooleanFalse)
+                }
+                _ = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+                finishMinimize(completion)
+            }
+        }
+    }
+
+    private static func activateAndFinish(
+        _ app: NSRunningApplication,
+        completion: @escaping @MainActor () -> Void
+    ) {
+        DispatchQueue.main.async {
+            if #available(macOS 14.0, *) {
+                _ = app.activate(from: NSRunningApplication.current, options: [])
+            } else {
+                app.activate(options: [.activateIgnoringOtherApps])
+            }
+            completion()
+        }
+    }
+
+    private static func finishMinimize(_ completion: @escaping @MainActor () -> Void) {
+        DispatchQueue.main.async {
+            completion()
         }
     }
 
@@ -601,7 +883,7 @@ enum Activator {
     /// button. Apps without a zoom button (some dialogs/utilities) are no-ops.
     static func zoomWindow(_ row: SwitcherRow) {
         guard let window = row.window, let app = row.app else { return }
-        let apply = {
+        let apply: @Sendable () -> Void = {
             var buttonValue: AnyObject?
             let err = AXUIElementCopyAttributeValue(window, kAXZoomButtonAttribute as CFString, &buttonValue)
             guard err == .success, CFGetTypeID(buttonValue as CFTypeRef) == AXUIElementGetTypeID() else { return }
@@ -625,8 +907,9 @@ enum Activator {
     /// launchable) or apps that don't expose the attribute.
     static func toggleFullscreen(_ row: SwitcherRow) {
         guard let window = row.window, let app = row.app else { return }
-        let target: CFBoolean = row.isFullscreen ? kCFBooleanFalse : kCFBooleanTrue
-        let apply = {
+        let shouldEnterFullscreen = !row.isFullscreen
+        let apply: @Sendable () -> Void = {
+            let target: CFBoolean = shouldEnterFullscreen ? kCFBooleanTrue : kCFBooleanFalse
             _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, target)
         }
         if app.processIdentifier == getpid() {
@@ -680,9 +963,9 @@ enum Activator {
         if let frontApp, frontApp.activationPolicy == .regular,
            frontApp.processIdentifier != selfPid,
            let bid = frontApp.bundleIdentifier {
-            lastHideFrontmost = (frontApp.processIdentifier, bid)
+            lastHideFrontmost.withLock { $0 = (frontApp.processIdentifier, bid) }
         } else {
-            lastHideFrontmost = nil
+            lastHideFrontmost.withLock { $0 = nil }
         }
         let running = NSWorkspace.shared.runningApplications
         let targets = running.filter { app in
@@ -710,14 +993,18 @@ enum Activator {
     /// last ran *last*, so the window the user hid everything from returns on top.
     /// When there's no remembered hide-time app (show-all without a prior shortcut
     /// hide, or after a relaunch), it activates nothing — the apps just reappear
-    /// and focus stays put, the old stateless behaviour.
+    /// and focus stays put, the old stateless behavior.
+    @MainActor
     static func showAllApps() {
         let running = NSWorkspace.shared.runningApplications
         let runningIDs = running.map {
             (pid: $0.processIdentifier, bundleID: $0.bundleIdentifier, terminated: $0.isTerminated)
         }
-        let targetPid = showAllRaisePid(remembered: lastHideFrontmost, running: runningIDs)
-        lastHideFrontmost = nil
+        let remembered = lastHideFrontmost.withLock { value -> (pid: pid_t, bundleID: String?)? in
+            defer { value = nil }
+            return value
+        }
+        let targetPid = showAllRaisePid(remembered: remembered, running: runningIDs)
         let raiseTarget = targetPid.flatMap { pid in running.first { $0.processIdentifier == pid } }
         // Unhide everything except the raise target first, so the target's
         // activation below is the final, on-top transition (no focus thrash).
@@ -1008,13 +1295,16 @@ enum Activator {
         AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value)
     }
 
+    private static func booleanAttribute(_ attribute: CFString, of window: AXUIElement) -> Bool? {
+        var ref: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(window, attribute, &ref) == .success else { return nil }
+        return ref as? Bool
+    }
+
     /// Read a window's native full-screen state. Best-effort: any AX failure or a
     /// window that doesn't expose `AXFullScreen` reads as not-full-screen.
     private static func isFullscreen(window: AXUIElement) -> Bool {
-        var ref: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window, "AXFullScreen" as CFString, &ref) == .success,
-              let flag = ref as? Bool else { return false }
-        return flag
+        booleanAttribute("AXFullScreen" as CFString, of: window) ?? false
     }
 
     /// Put `window` back to its `PreviousFrameStore` snapshot. Re-enters full

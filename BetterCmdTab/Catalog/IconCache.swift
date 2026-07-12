@@ -74,11 +74,6 @@ enum IconCache {
         bundleCache.removeAllObjects()
     }
 
-    /// Number of most-recent app icons to flatten ahead of the first reveal.
-    /// Bounded well under `capacity` so prewarm can never inflate RSS toward
-    /// the cache ceiling (~3 MB at 12 × 262 KB) — only the apps most likely to
-    /// be on the first panel are warmed.
-    private static let prewarmLimit = 12
     /// Icons flattened per run-loop turn. The flatten must stay on the main
     /// actor (it touches the AutoLayout engine under Tahoe — see `flattened`),
     /// so it is chunked across turns to keep any single main-thread slice short.
@@ -100,10 +95,17 @@ enum IconCache {
         // working-set size signal: keep the cache large enough to hold every
         // app the panel can show, or each reveal re-flattens the overflow.
         sizeToCatalog(pids.count)
+        // Warm every uncached catalog app (a reveal configures every row
+        // eagerly, so any cold icon is a synchronous flatten on the show
+        // path), clamped to the cache's own count limit so a pathological
+        // catalog can't flatten icons NSCache would immediately evict. The
+        // 3-per-turn chunking below keeps each main-thread slice short and
+        // lets a chord landing mid-prewarm reveal first; RSS stays bounded
+        // by the cache's cost limit that `sizeToCatalog` just set.
         var targets: [pid_t] = []
-        targets.reserveCapacity(prewarmLimit)
+        targets.reserveCapacity(min(pids.count, cache.countLimit))
         for pid in pids {
-            if targets.count >= prewarmLimit { break }
+            if targets.count >= cache.countLimit { break }
             if cache.object(forKey: NSNumber(value: pid)) == nil { targets.append(pid) }
         }
         guard !targets.isEmpty else { return }

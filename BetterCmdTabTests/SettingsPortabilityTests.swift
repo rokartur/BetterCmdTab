@@ -13,8 +13,9 @@ import Testing
 struct SettingsPortabilityTests {
 
     /// A valid envelope at the current schema version with the given values.
-    private func envelope(_ values: [String: Any], version: Int = Preferences.exportSchemaVersion) -> Data {
-        let root: [String: Any] = ["app": "BetterCmdTab", "schemaVersion": version, "values": values]
+    private func envelope(_ values: [String: Any], version: Int? = nil) -> Data {
+        let schemaVersion = version ?? Preferences.exportSchemaVersion
+        let root: [String: Any] = ["app": "BetterCmdTab", "schemaVersion": schemaVersion, "values": values]
         return try! JSONSerialization.data(withJSONObject: root)
     }
 
@@ -62,6 +63,41 @@ struct SettingsPortabilityTests {
         #expect(prefs.pinnedBundleIDs == ["com.apple.finder", "com.apple.Safari"])
     }
 
+    @Test("pre-#57 import (legacy currentSpaceOnly bool, no spaceScope) applies through the fallback")
+    func legacySpaceScopeImport() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.spaceScope
+        defer {
+            try? prefs.importSettings(from: envelope([
+                Preferences.Keys.spaceScope: saved.rawValue,
+                Preferences.Keys.currentSpaceOnly: saved == .currentSpace,
+            ]))
+        }
+
+        // Local state has the new enum key set to a non-legacy value…
+        prefs.spaceScope = .visibleSpaces
+        // …then an old export carrying only the legacy bool is imported. The
+        // stale local enum key must not shadow the imported bool.
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.currentSpaceOnly: true
+        ]))
+        #expect(prefs.spaceScope == .currentSpace)
+
+        // Same with the bool off → all Spaces.
+        prefs.spaceScope = .visibleSpaces
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.currentSpaceOnly: false
+        ]))
+        #expect(prefs.spaceScope == .allSpaces)
+
+        // A new-format export carries both keys; the enum wins.
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.spaceScope: SpaceScope.visibleSpaces.rawValue,
+            Preferences.Keys.currentSpaceOnly: false,
+        ]))
+        #expect(prefs.spaceScope == .visibleSpaces)
+    }
+
     @Test("round-trip: switcherDisplayMode survives export/import")
     func displayModeRoundTrip() throws {
         let prefs = Preferences.shared
@@ -77,6 +113,72 @@ struct SettingsPortabilityTests {
         prefs.switcherDisplayMode = .mainDisplay
         try prefs.importSettings(from: data)
         #expect(prefs.switcherDisplayMode == .activeWindow)
+    }
+
+    @Test("round-trip: shortcutOverrides survive export/import")
+    func shortcutOverridesRoundTrip() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.shortcutOverrides
+        defer { prefs.shortcutOverrides = saved }
+        var ov = ShortcutOverride()
+        ov.spaceScope = .allSpaces
+        ov.sortOrder = .alphabetical
+        ov.panelOpacity = 70
+        prefs.shortcutOverrides = [SwitchTarget.switchWindows.storageKey: ov]
+        let data = try prefs.exportedJSONData()
+        prefs.shortcutOverrides = [:] // flip live, then restore from the export
+        try prefs.importSettings(from: data)
+        let restored = prefs.override(for: .switchWindows)
+        #expect(restored.spaceScope == .allSpaces)
+        #expect(restored.sortOrder == .alphabetical)
+        #expect(restored.panelOpacity == 70)
+    }
+
+    @Test("round-trip: shiftTapStepsBackward survives export/import")
+    func shiftTapStepsBackwardRoundTrip() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.shiftTapStepsBackward
+        defer {
+            try? prefs.importSettings(from: envelope([
+                Preferences.Keys.shiftTapStepsBackward: saved
+            ]))
+        }
+        // Flip away from the default (on), export, flip live back, import.
+        prefs.shiftTapStepsBackward = false
+        let data = try prefs.exportedJSONData()
+        prefs.shiftTapStepsBackward = true
+        try prefs.importSettings(from: data)
+        #expect(prefs.shiftTapStepsBackward == false)
+    }
+
+    @Test("import missing shiftTapStepsBackward leaves the current value untouched")
+    func shiftTapStepsBackwardPartialImport() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.shiftTapStepsBackward
+        defer { prefs.shiftTapStepsBackward = saved }
+        prefs.shiftTapStepsBackward = false
+        // Envelope without the key (partial-import contract).
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.panelOpacity: 100
+        ]))
+        #expect(prefs.shiftTapStepsBackward == false)
+    }
+
+    @Test("round-trip: backtickReversesAppSwitching survives export/import")
+    func backtickReversesAppSwitchingRoundTrip() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.backtickReversesAppSwitching
+        defer {
+            try? prefs.importSettings(from: envelope([
+                Preferences.Keys.backtickReversesAppSwitching: saved
+            ]))
+        }
+        // Flip away from the default (off), export, flip live back, import.
+        prefs.backtickReversesAppSwitching = true
+        let data = try prefs.exportedJSONData()
+        prefs.backtickReversesAppSwitching = false
+        try prefs.importSettings(from: data)
+        #expect(prefs.backtickReversesAppSwitching == true)
     }
 
     @Test("import missing switcherDisplayMode leaves the current value untouched")

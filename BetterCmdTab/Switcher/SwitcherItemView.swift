@@ -18,6 +18,8 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
     private let badgeLabel = NSTextField(labelWithString: "")
 
     private var metrics: SwitcherMetrics = .baseline
+    /// Resolved appearance for the current reveal (#74); set in `configure`.
+    private var effective: EffectiveSettings = .defaults
     private static let statusIconGap: CGFloat = 4
 
     /// Indicator → image view, in display order. Drives setup, tinting, and
@@ -167,10 +169,31 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         // once at init (not in `configure`), so clearing them would leave a reused
         // row blank; leave them be.
         imageView.image = nil
+        letterLabel.stringValue = ""
+        appNameLabel.stringValue = ""
+        titleLabel.stringValue = ""
+        badgeLabel.stringValue = ""
+        currentLabel = ""
+        currentPrefixLength = 0
     }
 
-    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor) {
-        if metrics != self.metrics {
+    /// Last face the font pass ran with — pooled views must re-apply fonts when
+    /// the user changes the face pref even though `metrics` is unchanged (#62).
+    private var appliedFace: SwitcherFontFace = .system
+
+    func configure(with row: SwitcherRow, label: String, prefixLength: Int, selected: Bool, metrics: SwitcherMetrics, accent: NSColor, effective: EffectiveSettings) {
+        self.effective = effective
+        // Ellipsis position for long titles (#90). Guarded set — one enum read,
+        // no work when unchanged.
+        let truncation = effective.titleTruncationMode.lineBreakMode
+        if titleLabel.lineBreakMode != truncation {
+            titleLabel.lineBreakMode = truncation
+        }
+        // Font face (#62) is not part of `metrics` and views are pooled across
+        // reveals, so track the applied face and re-run the font pass on change.
+        let faceChanged = appliedFace != effective.fontFace
+        if faceChanged { appliedFace = effective.fontFace }
+        if faceChanged || metrics != self.metrics {
             applyMetrics(metrics)
         }
         if self.accent != accent {
@@ -184,7 +207,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         // the window title with the System Settings icon — no status icons.
         let isDialog = row.isSystemDialog
 
-        let showAppNames = Preferences.shared.showApplicationNames
+        let showAppNames = effective.showApplicationNames
         if isDialog {
             appNameLabel.stringValue = row.windowTitle.isEmpty ? row.appName : row.windowTitle
             titleLabel.stringValue = ""
@@ -250,7 +273,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
 
     private func applyMetrics(_ metrics: SwitcherMetrics) {
         self.metrics = metrics
-        let font = NSFont.systemFont(ofSize: metrics.fontSize)
+        let font = SwitcherFont.font(ofSize: metrics.fontSize, weight: .regular, design: effective.fontFace)
         appNameLabel.font = font
         titleLabel.font = font
         badgeLabel.font = NSFont.systemFont(ofSize: max(9, metrics.fontSize - 2), weight: .bold)

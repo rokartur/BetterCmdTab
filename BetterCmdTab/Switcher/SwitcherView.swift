@@ -44,6 +44,9 @@ final class SwitcherView: NSView, TabStripDelegate {
     private let emptyIcon = NSImageView()
     private let emptyTitle = NSTextField(labelWithString: "")
     private var itemViews: [SwitcherItemViewProtocol] = []
+    /// Keep the common reveal working set warm, but do not retain an extreme
+    /// one-off row count (hundreds of browser tabs/windows) for process life.
+    private static let idleItemPoolLimit = 64
     private var rows: [SwitcherRow] = []
     private(set) var labels: [String] = []
     private var selectedIndex: Int = 0
@@ -110,14 +113,27 @@ final class SwitcherView: NSView, TabStripDelegate {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
+    private static let livePreviewInterval: TimeInterval = 0.1
+    private var livePreviewTimer: Timer?
+
+    nonisolated deinit {
+        MainActor.assumeIsolated { stopLivePreviewTimer() }
+    }
+
     private var highlightPrefix: String = ""
     private var searchActive: Bool = false
     private var accent: NSColor = .controlAccentColor
     private var tabStripActive: Bool = false
+    /// Resolved appearance for the current reveal (#74). Set at the top of
+    /// `configure` so the layout helpers below (and on standalone relayouts) read
+    /// the firing shortcut's overrides instead of the global preferences.
+    private var effective: EffectiveSettings = .defaults
 
-    func configure(rows: [SwitcherRow], labels: [String], selectedIndex: Int, metrics: SwitcherMetrics, highlightPrefix: String = "", searchActive: Bool = false, searchQuery: String = "", tabStripTitles: [String]? = nil, tabStripSelectedIndex: Int = 0) {
+    func configure(rows: [SwitcherRow], labels: [String], selectedIndex: Int, metrics: SwitcherMetrics, effective: EffectiveSettings, highlightPrefix: String = "", searchActive: Bool = false, searchQuery: String = "", tabStripTitles: [String]? = nil, tabStripSelectedIndex: Int = 0) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        // Set before `fittedMetrics`/layout below read it (see ivar note).
+        self.effective = effective
         // Item frames depend only on the row count, the metrics, and whether the
         // search strip is showing — not on row content or selection. When none
         // of those changed (a reorder, a glyph flip, an audio/badge repaint, a
@@ -141,9 +157,12 @@ final class SwitcherView: NSView, TabStripDelegate {
         self.labels = labels
         self.highlightPrefix = highlightPrefix
         self.searchActive = searchActive
-        self.accent = Preferences.shared.resolvedAccent
+        // The selection highlight / jump-letter color always follows the
+        // user's macOS accent (re-read per reveal so it stays reactive).
+        self.accent = .controlAccentColor
         self.selectedIndex = selectedIndex
         searchBar.update(query: searchQuery)
+        searchBar.applyFont(fontScale: metrics.fontScale, face: effective.fontFace)
         searchBar.isHidden = !searchActive
         if let titles = tabStripTitles, !titles.isEmpty {
             tabStrip.configure(titles: titles, selectedIndex: tabStripSelectedIndex, accent: accent)
@@ -163,7 +182,7 @@ final class SwitcherView: NSView, TabStripDelegate {
             emptyTitle.stringValue = searchActive
                 ? String(localized: "No matches")
                 : String(localized: "No open windows")
-            emptyTitle.font = .systemFont(ofSize: round(14 * metrics.scale), weight: .semibold)
+            emptyTitle.font = SwitcherFont.font(ofSize: round(14 * metrics.scale * metrics.fontScale), weight: .semibold, design: effective.fontFace)
         }
         emptyIcon.isHidden = !rows.isEmpty
         emptyTitle.isHidden = !rows.isEmpty
@@ -200,6 +219,7 @@ final class SwitcherView: NSView, TabStripDelegate {
     private func updatePreviewWiring() {
         guard metrics.layoutMode == .windowPreview else {
             WindowThumbnailCache.shared.onReady = nil
+            stopLivePreviewTimer()
             return
         }
         WindowThumbnailCache.shared.ensurePermission()
@@ -209,6 +229,50 @@ final class SwitcherView: NSView, TabStripDelegate {
                 guard let preview = view as? SwitcherPreviewItemView, preview.windowID == wid else { continue }
                 preview.setThumbnail(WindowThumbnailCache.shared.image(for: wid), for: wid)
             }
+        }
+        syncLivePreviewTimer()
+    }
+
+    /// Live previews use short, tile-sized SCScreenshotManager captures rather
+    /// than persistent SCStreams. Persistent per-window streams are smoother,
+    /// but macOS marks every captured window with sharing UI; one-shot captures
+    /// avoid that intrusive system overlay. 10 Hz is a practical middle ground
+    /// between the old 2 fps behavior and the cost of continuously recapturing
+    /// every visible window.
+    private func syncLivePreviewTimer() {
+        guard #available(macOS 14.0, *), Preferences.shared.experimentalLivePreviews else {
+            stopLivePreviewTimer()
+            return
+        }
+        guard livePreviewTimer == nil else { return }
+        let timer = Timer(timeInterval: Self.livePreviewInterval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.livePreviewTick() }
+        }
+        timer.tolerance = Self.livePreviewInterval * 0.1
+        RunLoop.main.add(timer, forMode: .common)
+        livePreviewTimer = timer
+    }
+
+    private func stopLivePreviewTimer() {
+        livePreviewTimer?.invalidate()
+        livePreviewTimer = nil
+    }
+
+    private func livePreviewTick() {
+        guard window?.isVisible == true, metrics.layoutMode == .windowPreview else {
+            stopLivePreviewTimer()
+            return
+        }
+        let scale = window?.backingScaleFactor ?? 2
+        let pixelHeight = metrics.previewThumbHeight * scale
+        for view in itemViews {
+            guard let preview = view as? SwitcherPreviewItemView,
+                  !preview.isHidden,
+                  preview.windowID != 0 else { continue }
+            WindowThumbnailCache.shared.requestLiveFrame(
+                wid: preview.windowID,
+                pixelHeight: pixelHeight
+            )
         }
     }
 
@@ -240,9 +304,14 @@ final class SwitcherView: NSView, TabStripDelegate {
     /// A layout-mode change between opens still rebuilds the pool with the right
     /// view class (handled in `configure`).
     func releaseIdleResources() {
+        stopLivePreviewTimer()
         for v in itemViews {
             v.prepareForIdle()
             v.isHidden = true
+        }
+        while itemViews.count > Self.idleItemPoolLimit {
+            let view = itemViews.removeLast()
+            view.removeFromSuperview()
         }
         rows = []
         labels = []
@@ -251,10 +320,12 @@ final class SwitcherView: NSView, TabStripDelegate {
         hoveredIndex = -1
         tabStripActive = false
         tabStrip.isHidden = true
+        tabStrip.releaseIdleResources()
         searchBar.isHidden = true
         emptyIcon.isHidden = true
         emptyTitle.isHidden = true
         WindowThumbnailCache.shared.onReady = nil
+        WindowThumbnailCache.shared.releaseCaptureMetadata()
     }
 
     var selectedRow: SwitcherRow? {
@@ -275,7 +346,7 @@ final class SwitcherView: NSView, TabStripDelegate {
 
     /// User-pinned corner radius when set (> 0), otherwise the size-derived metric.
     private func effectiveCornerRadius(_ metrics: SwitcherMetrics) -> CGFloat {
-        let pref = Preferences.shared.panelCornerRadius
+        let pref = effective.panelCornerRadius
         return pref > 0 ? CGFloat(pref) : metrics.cornerRadius
     }
 
@@ -284,7 +355,7 @@ final class SwitcherView: NSView, TabStripDelegate {
     private func applyBackdropMaterial() {
         if #available(macOS 26.0, *), glassBackdrop is NSGlassEffectView { return }
         guard let effect = glassBackdrop as? NSVisualEffectView else { return }
-        effect.material = Preferences.shared.backdropMaterial.material
+        effect.material = effective.backdropMaterial.material
         // Pin to `.active` on every reveal: the switcher must always read as
         // active/focused, never follow the (non-activating) panel's key state and
         // dim. Idempotent — cheap to re-assert alongside the material.
@@ -367,7 +438,13 @@ final class SwitcherView: NSView, TabStripDelegate {
         let idx = indexAtWindowPoint(event.locationInWindow)
         setHoveredIndex(idx ?? -1)
         if let idx {
-            delegate?.switcherViewDidHover(index: idx)
+            // Hover-select moves the selection to the row under the pointer; the
+            // user can turn it off so the mouse can't change the selection by
+            // accident (issue #47). The visual hover + action dots still track
+            // the pointer either way.
+            if Preferences.shared.mouseHoverSelectionEnabled {
+                delegate?.switcherViewDidHover(index: idx)
+            }
             // Highlight the hover-action dot under the pointer, if any.
             itemViews[idx].setHotDot(atWindowPoint: event.locationInWindow)
         }
@@ -406,7 +483,12 @@ final class SwitcherView: NSView, TabStripDelegate {
             delegate?.switcherViewDidInvokeAction(action, atIndex: idx)
             return
         }
-        delegate?.switcherViewDidClick(index: idx)
+        // Click-select commits the row under the pointer; the user can turn it
+        // off so a stray click inside the panel can't pick a window (issue #47).
+        // Tab-strip and hover-action clicks above stay live regardless.
+        if Preferences.shared.mouseClickSelectionEnabled {
+            delegate?.switcherViewDidClick(index: idx)
+        }
     }
 
     /// Re-entrancy guard: when the strip's scroll view can't use a wheel event
@@ -478,9 +560,19 @@ final class SwitcherView: NSView, TabStripDelegate {
             listContainer.addSubview(view)
             itemViews.append(view)
         }
-        while itemViews.count > rows.count {
+        // Park surplus views instead of destroying them: a search keystroke
+        // shrinks and regrows the row count within one session, and destroying
+        // views per keystroke defeats the idle pool. `prepareForIdle` drops
+        // their image retains and windowID so a late thumbnail callback can't
+        // paint a parked tile; the hard trim stays in `releaseIdleResources`,
+        // which bounds the pool at dismiss.
+        while itemViews.count > max(rows.count, Self.idleItemPoolLimit) {
             let v = itemViews.removeLast()
             v.removeFromSuperview()
+        }
+        for i in rows.count..<itemViews.count {
+            itemViews[i].prepareForIdle()
+            itemViews[i].isHidden = true
         }
         // `configure` writes `isSelected` directly below, so the next
         // `applySelection` call should not assume the previous selection is
@@ -498,7 +590,8 @@ final class SwitcherView: NSView, TabStripDelegate {
                 prefixLength: highlightLen,
                 selected: i == selectedIndex,
                 metrics: metrics,
-                accent: accent
+                accent: accent,
+                effective: effective
             )
             itemViews[i].isHovered = (i == hoveredIndex)
             itemViews[i].isHidden = false
@@ -607,7 +700,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         guard base.layoutMode == .gridView || base.layoutMode == .windowPreview else { return base }
         let frame = layoutScreenFrame()
         let letterHints = base.tileLetterArea > 0
-        let userCap = Preferences.shared.gridMaxColumns
+        let userCap = effective.gridMaxColumns
 
         func fits(_ m: SwitcherMetrics) -> Bool {
             let reservedSearch = searchActive ? round(30 * m.scale) + m.outerPadding : 0
@@ -637,7 +730,16 @@ final class SwitcherView: NSView, TabStripDelegate {
         var candidate = base
         while scale > minScale + 0.001 {
             scale = max(minScale, scale - 0.05)
-            candidate = SwitcherMetrics.forScale(scale, layoutMode: base.layoutMode, letterHints: letterHints, showAppNames: Preferences.shared.showApplicationNames, showWindowTitles: Preferences.shared.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: Preferences.shared.expandBrowserTabsAsWindows && !Preferences.shared.applicationsOnly)
+            // Shares `SwitcherMetrics.reserveTabBand` with the controller so a
+            // shrink pass reserves the preview label band on the same rule that
+            // produced `base` — otherwise it would drop the tab titles base
+            // computed while searching with the transient browser-tab feature.
+            let reserveBand = SwitcherMetrics.reserveTabBand(
+                expandAsWindows: effective.expandBrowserTabsAsWindows,
+                applicationsOnly: effective.applicationsOnly,
+                searchActive: searchActive,
+                searchExpandsTabs: Preferences.shared.searchExpandsBrowserTabs)
+            candidate = SwitcherMetrics.forScale(scale, layoutMode: base.layoutMode, fontScale: effective.fontScale.multiplier, letterHints: letterHints, showAppNames: effective.showApplicationNames, showWindowTitles: effective.showWindowTitleLabel, hoverActionCount: Preferences.shared.enabledHoverActionCount, browserTabsExpanded: reserveBand)
             if fits(candidate) { return candidate }
         }
         return candidate
@@ -820,7 +922,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         let itemH = letterArea + tile + labelArea
         let fit = Self.gridFit(count: count, tileW: tile, itemH: itemH, gap: gap,
                                maxListWidth: maxListWidth, maxListHeight: maxListHeight,
-                               userCap: Preferences.shared.gridMaxColumns)
+                               userCap: effective.gridMaxColumns)
         let cols = fit.cols
         let rowsCount = fit.rowsCount
         let listWidth = fit.listWidth
@@ -879,7 +981,7 @@ final class SwitcherView: NSView, TabStripDelegate {
         // even max-width columns can't fit (both auto and explicit-column-cap).
         let fit = Self.gridFit(count: count, tileW: tileW, itemH: itemH, gap: gap,
                                maxListWidth: maxListWidth, maxListHeight: maxListHeight,
-                               userCap: Preferences.shared.gridMaxColumns)
+                               userCap: effective.gridMaxColumns)
         let cols = fit.cols
         let rowsCount = fit.rowsCount
         let listWidth = fit.listWidth
@@ -940,6 +1042,8 @@ private final class SwitcherSearchBarView: NSView {
         field.font = .systemFont(ofSize: 14, weight: .medium)
         field.lineBreakMode = .byTruncatingTail
         field.translatesAutoresizingMaskIntoConstraints = false
+        // Text size/face applied per reveal via `applyFont` (#62) — the bar is
+        // created once, so the init font is only the pre-first-reveal default.
 
         addSubview(icon)
         addSubview(field)
@@ -981,6 +1085,15 @@ private final class SwitcherSearchBarView: NSView {
             field.stringValue = query
             field.textColor = .labelColor
         }
+    }
+
+    /// Text size/face for the query text (#62), applied per reveal — the bar is
+    /// created once and pooled, so a pref change must reach the live field.
+    /// Guarded: `SwitcherFont` memoizes, so the common no-change path is one
+    /// dictionary hit + pointer compare.
+    func applyFont(fontScale: CGFloat, face: SwitcherFontFace) {
+        let font = SwitcherFont.font(ofSize: round(14 * fontScale), weight: .medium, design: face)
+        if field.font != font { field.font = font }
     }
 
     private func updateAppearance() {

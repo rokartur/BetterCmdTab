@@ -40,6 +40,13 @@ final class CarbonHotkeyTrigger {
     private var handlerRef: EventHandlerRef?
     private var nextId: UInt32 = 1
 
+    nonisolated deinit {
+        // Carbon stores an unretained pointer to this instance in its event
+        // handler. Normal shutdown uninstalls explicitly; this backstop makes a
+        // controller teardown safe even when it bypasses that path.
+        MainActor.assumeIsolated { uninstall() }
+    }
+
     /// Bumped on every `update(_:)` so a queued retry from a superseded call
     /// bails instead of registering stale chords. Also lets `uninstall()`
     /// invalidate any in-flight retry.
@@ -106,7 +113,12 @@ final class CarbonHotkeyTrigger {
     /// `update(_:)` (or `uninstall()`) cancels a stale retry.
     private func scheduleRetry(_ chords: [Chord], generation: UInt64, attempt: Int) {
         guard attempt <= Self.maxRegisterRetries else {
-            Log.hotkey.warning("RegisterEventHotKey still failing for \(chords.count) chord(s) after \(Self.maxRegisterRetries) retries")
+            // Log the exact (keyCode, carbonModifiers) of each still-failing chord —
+            // a chord whose native symbolic hotkey has no disable-able id (e.g. the
+            // ⌘⇧` reverse-above-tab) stays reserved by macOS and fails forever; the
+            // keycodes pin which one so the registration set can drop it (issue #16).
+            let failing = chords.map { "\($0.keyCode):\($0.modifiers)" }.joined(separator: ",")
+            Log.hotkey.warning("RegisterEventHotKey still failing for \(chords.count) chord(s) after \(Self.maxRegisterRetries) retries: \(failing)")
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.retryDelay) { [weak self] in

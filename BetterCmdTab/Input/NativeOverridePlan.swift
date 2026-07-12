@@ -165,11 +165,23 @@ func computeNativeOverridePlan(
     // a remapped trigger reserves nothing, so nothing is disabled. A *disabled*
     // trigger likewise frees nothing — the user wants the native chord back.
     var symbolic: [Int32] = []
-    if trigger.appEnabled && trigger.appIsCommandOnly && trigger.appKeyCode == 48 {
+    // Free the native symbolic hotkey that reserves a chord we register on the
+    // Carbon survivor, keyed on the ACTUAL reserved chord regardless of which role
+    // (app/window) holds it. The old role-pinned test (`appKeyCode == 48` /
+    // `windowKeyCode == 50`) missed a swapped/remapped binding — e.g. the window
+    // switch on ⌘Tab (kc 48) or the app switch on ⌘` (kc 50) — leaving the native
+    // symbolic hotkey enabled while we still RegisterEventHotKey that exact chord,
+    // so macOS rejects it with eventHotKeyExistsErr (-9878) on every retry forever
+    // (issue #16). The `||` dedupes when both roles sit on the same keycode.
+    func reservesCommandOnly(_ keyCode: UInt32) -> Bool {
+        (trigger.appEnabled && trigger.appIsCommandOnly && trigger.appKeyCode == keyCode)
+            || (trigger.windowEnabled && trigger.windowIsCommandOnly && trigger.windowKeyCode == keyCode)
+    }
+    if reservesCommandOnly(48) {
         symbolic.append(PrivateAPI.SymbolicHotKey.commandTab.rawValue)      // 1
         symbolic.append(PrivateAPI.SymbolicHotKey.commandShiftTab.rawValue) // 2
     }
-    if trigger.windowEnabled && trigger.windowIsCommandOnly && trigger.windowKeyCode == 50 {
+    if reservesCommandOnly(50) {
         symbolic.append(PrivateAPI.SymbolicHotKey.commandKeyAboveTab.rawValue) // 6
     }
 

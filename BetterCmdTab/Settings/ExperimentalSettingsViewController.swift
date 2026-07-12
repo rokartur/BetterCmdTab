@@ -15,20 +15,23 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
     private let sensitivitySlider = NSSlider()
     private let sensitivityValueLabel = NSTextField(labelWithString: "")
     private let instantSpaceSwitch = NSSwitch()
-    private let mruWindowsSortSwitch = NSSwitch()
-    private let displayMonitorPopup = NSPopUpButton(frame: .zero, pullsDown: false)
-    private let displayModes: [SwitcherDisplayMode] = SwitcherDisplayMode.allCases
+    private let browserTabMRUSwitch = NSSwitch()
+    private let livePreviewSwitch = NSSwitch()
+    private let rankResultsSwitch = NSSwitch()
+    private let searchTabsSwitch = NSSwitch()
 
     override func setupContent() {
-        // Experimental section — off by default, clearly flagged as unstable.
-        let experimental = addSection(title: String(localized: "Experimental"), anchor: SettingsAnchor.experimental)
-
-        addRow(to: experimental, title: String(localized: "These features are unstable"),
+        // Untitled intro card — the unstable warning applies to the whole tab,
+        // so it sits above the per-feature sections.
+        let notice = addSection(anchor: SettingsAnchor.experimental)
+        addRow(to: notice, title: String(localized: "These features are unstable"),
                subtitle: String(localized: "Off by default. They may change or break."))
-        addDivider(to: experimental)
+
+        // Trackpad swipe section — the three-finger gesture and its sub-options.
+        let swipe = addSection(title: String(localized: "Trackpad swipe"), anchor: SettingsAnchor.experimentalSwipe)
 
         configureSwitch(swipeSwitch, action: #selector(toggleSwipe(_:)))
-        addRow(to: experimental, title: String(localized: "Three-finger swipe"),
+        addRow(to: swipe, title: String(localized: "Three-finger swipe"),
                subtitle: String(localized: "Slide three fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed."),
                accessory: swipeSwitch, searchItemID: SearchID.swipe)
 
@@ -39,49 +42,57 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         swipeModePopup.addItems(withTitles: swipeModes.map(\.displayName))
         swipeModePopup.target = self
         swipeModePopup.action = #selector(swipeModeChanged)
-        addRow(to: experimental, title: String(localized: "Swipe action"),
+        addRow(to: swipe, title: String(localized: "Swipe action"),
                subtitle: String(localized: "Open switcher: scrub through apps (commit with Return/click, Esc to cancel). Switch Spaces: jump to the Space on that side, one per step. Quick switch: flip to your last app, like a quick ⌘Tab tap — swipe again to flip back."),
                accessory: swipeModePopup, searchItemID: SearchID.swipeMode)
 
         configureSwitch(reverseSwitch, action: #selector(toggleReverse(_:)))
-        addRow(to: experimental, title: String(localized: "Reverse swipe direction"),
+        addRow(to: swipe, title: String(localized: "Reverse swipe direction"),
                subtitle: String(localized: "Slide right to move left and left to move right."),
                accessory: reverseSwitch, searchItemID: SearchID.reverseSwipe)
         configureSwitch(commitSwitch, action: #selector(toggleCommit(_:)))
-        addRow(to: experimental, title: String(localized: "Switch on release"),
+        addRow(to: swipe, title: String(localized: "Switch on release"),
                subtitle: String(localized: "Lift your fingers to switch to the highlighted app. When off, pick with a click or Return."),
                accessory: commitSwitch, searchItemID: SearchID.switchOnRelease)
 
-        addRow(to: experimental, title: String(localized: "Swipe sensitivity"),
+        addRow(to: swipe, title: String(localized: "Swipe sensitivity"),
                subtitle: String(localized: "How far to slide to move one app. Higher means a shorter slide steps further."),
                accessory: makeSensitivityControl(), searchItemID: SearchID.sensitivity)
 
-        addDivider(to: experimental)
+        // Spaces section.
+        let spaces = addSection(title: String(localized: "Spaces"), anchor: SettingsAnchor.experimentalSpaces)
         configureSwitch(instantSpaceSwitch, action: #selector(toggleInstantSpace(_:)))
-        addRow(to: experimental, title: String(localized: "Switch Spaces without animation"),
+        addRow(to: spaces, title: String(localized: "Switch Spaces without animation"),
                subtitle: String(localized: "Picking an app on another Space or in full screen jumps there instantly, with no slide animation. Applies to keyboard switching too."),
                accessory: instantSpaceSwitch, searchItemID: SearchID.instantSpace)
 
-        addDivider(to: experimental)
-        configureSwitch(mruWindowsSortSwitch, action: #selector(toggleMRUWindowsSort(_:)))
-        addRow(to: experimental, title: String(localized: "Most recent (windows) sort order"),
-               subtitle: String(localized: "Orders the list by when you last focused each window, across all apps."),
-               accessory: mruWindowsSortSwitch, searchItemID: SearchID.mruWindowsSort)
+        // Browser tabs section.
+        let browserTabs = addSection(title: String(localized: "Browser tabs"), anchor: SettingsAnchor.experimentalTabs)
+        configureSwitch(browserTabMRUSwitch, action: #selector(toggleBrowserTabMRU(_:)))
+        addRow(to: browserTabs, title: String(localized: "Track browser tabs in recency"),
+               subtitle: String(localized: "With “Show browser tabs as separate entries” and the “Most recent (windows)” sort order on, ⌘Tab returns to the tab you last used, not just the last window. Needs always-on monitoring of your browsers, so it costs a little energy."),
+               accessory: browserTabMRUSwitch, searchItemID: SearchID.browserTabMRU)
 
-        addDivider(to: experimental)
-        displayMonitorPopup.controlSize = .small
-        displayMonitorPopup.translatesAutoresizingMaskIntoConstraints = false
-        displayMonitorPopup.setContentHuggingPriority(.required, for: .horizontal)
-        displayMonitorPopup.removeAllItems()
-        displayMonitorPopup.addItems(withTitles: displayModes.map(\.displayName))
-        displayMonitorPopup.target = self
-        displayMonitorPopup.action = #selector(displayModeChanged)
-        addRow(to: experimental, title: String(localized: "Show switcher on"),
-               subtitle: String(localized: "Choose which monitor the switcher opens on when you have more than one display."),
-               accessory: displayMonitorPopup, searchItemID: SearchID.displayMonitor)
-        // Tab drill-in (the `\` peek) + tab expansion graduated to the Switcher
-        // tab's "Tabs" section — they are stable, on by default, and belong with
-        // the other content options.
+        // Search section.
+        let searchSection = addSection(title: String(localized: "Search"), anchor: SettingsAnchor.experimentalSearch)
+        configureSwitch(rankResultsSwitch, action: #selector(toggleRankResults(_:)))
+        addRow(to: searchSection, title: String(localized: "Rank search"),
+               subtitle: String(localized: "Order results by how well they match instead of by recent use, so the closest match is selected first."),
+               accessory: rankResultsSwitch, searchItemID: SearchID.rankResults)
+        configureSwitch(searchTabsSwitch, action: #selector(toggleSearchExpandsTabs(_:)))
+        addRow(to: searchSection, title: String(localized: "Search browser tabs"),
+               subtitle: String(localized: "Searching matches any browser tab by its title, not just each window's active tab. Matching tabs appear as temporary rows while the search field is active and disappear when you leave search. Not needed if you already use “Show browser tabs as separate entries.”"),
+               accessory: searchTabsSwitch, searchItemID: SearchID.searchExpandsBrowserTabs)
+
+        // Previews section (the window-preview layout).
+        let previews = addSection(title: String(localized: "Previews"), anchor: SettingsAnchor.experimentalPreviews)
+        configureSwitch(livePreviewSwitch, action: #selector(toggleLivePreviews(_:)))
+        addRow(to: previews, title: String(localized: "Live window previews"),
+               subtitle: String(localized: "In the Previews layout, thumbnails keep refreshing while the switcher is open, so they show what is happening in each window right now. Uses extra CPU and GPU while the panel is up."),
+               accessory: livePreviewSwitch, searchItemID: SearchID.livePreviews)
+        // "Show switcher on" (multi-monitor placement), the `\` tab peek + tab
+        // expansion, and the "Most recent (windows)" sort graduated to the
+        // Behavior tab once stable — see its "Display" and "Contents" sections.
     }
 
     private func configureSwitch(_ toggle: NSSwitch, action: Selector) {
@@ -128,8 +139,10 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         commitSwitch.state = prefs.swipeCommitOnRelease ? .on : .off
         applySensitivity(prefs.swipeSensitivity)
         instantSpaceSwitch.state = prefs.experimentalInstantSpaceSwitch ? .on : .off
-        mruWindowsSortSwitch.state = prefs.sortOrder == .mruWindows ? .on : .off
-        if let i = displayModes.firstIndex(of: prefs.switcherDisplayMode) { displayMonitorPopup.selectItem(at: i) }
+        browserTabMRUSwitch.state = prefs.experimentalBrowserTabMRU ? .on : .off
+        livePreviewSwitch.state = prefs.experimentalLivePreviews ? .on : .off
+        rankResultsSwitch.state = prefs.fuzzySearchRankBestMatchFirst ? .on : .off
+        searchTabsSwitch.state = prefs.searchExpandsBrowserTabs ? .on : .off
         setSwipeSubOptionsEnabled(prefs.experimentalSwipeTrigger)
     }
 
@@ -168,20 +181,20 @@ final class ExperimentalSettingsViewController: SettingsTabViewController {
         Preferences.shared.experimentalInstantSpaceSwitch = (sender.state == .on)
     }
 
-    @objc private func displayModeChanged() {
-        let idx = displayMonitorPopup.indexOfSelectedItem
-        guard displayModes.indices.contains(idx) else { return }
-        Preferences.shared.switcherDisplayMode = displayModes[idx]
+    @objc private func toggleBrowserTabMRU(_ sender: NSSwitch) {
+        Preferences.shared.experimentalBrowserTabMRU = (sender.state == .on)
     }
 
-    @objc private func toggleMRUWindowsSort(_ sender: NSSwitch) {
-        if sender.state == .on {
-            Preferences.shared.sortOrder = .mruWindows
-        } else if Preferences.shared.sortOrder == .mruWindows {
-            // Only revert if we own the current value — leave any other order
-            // the user picked in the Switcher popup untouched.
-            Preferences.shared.sortOrder = .mru
-        }
+    @objc private func toggleLivePreviews(_ sender: NSSwitch) {
+        Preferences.shared.experimentalLivePreviews = (sender.state == .on)
+    }
+
+    @objc private func toggleRankResults(_ sender: NSSwitch) {
+        Preferences.shared.fuzzySearchRankBestMatchFirst = (sender.state == .on)
+    }
+
+    @objc private func toggleSearchExpandsTabs(_ sender: NSSwitch) {
+        Preferences.shared.searchExpandsBrowserTabs = (sender.state == .on)
     }
 
     /// The reverse/commit/sensitivity controls only make sense while the swipe

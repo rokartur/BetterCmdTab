@@ -63,6 +63,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in self?.updateStatusItem() }
             .store(in: &cancellables)
 
+        // Configure the updater before any BetterUpdater type is touched.
+        // Must run before the Settings auto-show below —
+        // GeneralSettingsViewController.viewWillAppear touches
+        // GitHubUpdater.shared, whose init traps if bootstrap has not run (#89).
+        // The pinned Ed25519 public key is the trust anchor for the signed
+        // repo-identity manifest (see BetterUpdater README).
+        BetterUpdater.bootstrap(configuration: .init(
+            owner: "rokartur",
+            repo: "BetterCmdTab",
+            displayName: AppInfo.displayName,
+            bundleIdentifier: "pro.bettercmdtab.BetterCmdTab",
+            pinnedPublicKeyBase64: "EdGQwfRFT04hggloIRmN2twIC/UIlM6yoAAzZ97jgcI=",
+            userAgentProduct: "BetterCmdTab-Updater",
+            manifestRequired: true
+        ))
+
         // With the menu bar icon hidden there's no in-menu way to reach
         // Settings, so a manual launch (Spotlight/Finder) surfaces it. Skip
         // the automatic login launch, which would otherwise pop Settings on
@@ -78,19 +94,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Log.priv.warning("Missing private symbols: \(missing.joined(separator: ", "), privacy: .public)")
         }
 
-        // Configure the updater before any BetterUpdater type is touched.
-        // The pinned Ed25519 public key is the trust anchor for the signed
-        // repo-identity manifest (see BetterUpdater README).
-        BetterUpdater.bootstrap(configuration: .init(
-            owner: "rokartur",
-            repo: "BetterCmdTab",
-            displayName: AppInfo.displayName,
-            bundleIdentifier: "pro.bettercmdtab.BetterCmdTab",
-            pinnedPublicKeyBase64: "EdGQwfRFT04hggloIRmN2twIC/UIlM6yoAAzZ97jgcI=",
-            userAgentProduct: "BetterCmdTab-Updater",
-            manifestRequired: true
-        ))
-
         // Refuse to start the switcher (and updater) while running from a
         // translocated mount — Gatekeeper Path Randomization will keep
         // bouncing the user between the Downloads copy and /Applications.
@@ -98,13 +101,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let waiter = AccessibilityWaiter()
         waiter.onTrusted = { [weak self] in
-            self?.bootController()
+            self?.handleAccessibilityGranted()
         }
-        waiter.onTrustChanged = { [weak self] trusted in
-            self?.handleAccessibilityTrustChange(trusted)
-        }
-        waiter.start()
         axWaiter = waiter
+        waiter.start()
 
         Task { @MainActor in
             // Touch the singleton so it boots its scheduled auto-check task,
@@ -122,8 +122,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func bootController() {
         guard controller == nil else { return }
         let c = SwitcherController()
-        c.start()
+        c.onAccessibilityRevoked = { [weak self] in
+            self?.axWaiter?.waitForTrust()
+            self?.notifyAccessibilityRevoked()
+        }
         controller = c
+        c.start()
+        // Close the trust-check → tap-install TOCTOU window without a lifetime
+        // poll: the controller reports the revoke and the waiter resumes only
+        // while permission is actually absent.
+        if !AccessibilityCheck.isTrusted { c.handleAccessibilityRevoked() }
         // Hold the App Nap opt-out only once the switcher is live (held for the
         // remaining process lifetime — never ended). Booting untrusted leaves
         // the switcher inert, where napping is harmless anyway.
@@ -136,31 +144,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Whether the "Accessibility was revoked" alert is currently being shown,
-    /// so a repeating poll doesn't stack duplicate alerts.
+    /// so duplicate tap callbacks don't stack alerts.
     private var accessibilityLostShown = false
 
-    /// React to a runtime Accessibility trust transition surfaced by
-    /// `AccessibilityWaiter`. On re-grant, boot the controller (if the app
-    /// launched untrusted) or re-arm the now-dead CGEvent tap. On revoke, tell
-    /// the user — otherwise ⌘Tab just stops working with no explanation.
-    private func handleAccessibilityTrustChange(_ trusted: Bool) {
-        if trusted {
-            accessibilityLostShown = false
-            if controller == nil {
-                bootController()
-            } else {
-                controller?.reinstallHotkeyTap()
-                // Re-assert the native-shortcut override we dropped on revoke so
-                // the always-armed symbolic-⌘Tab suppression comes back.
-                controller?.reassertNativeOverrideAfterRegrant()
-            }
+    /// Boot after the initial grant, or re-arm the dead tap after a re-grant.
+    private func handleAccessibilityGranted() {
+        accessibilityLostShown = false
+        if controller == nil {
+            bootController()
         } else {
-            // Re-enable the native symbolic ⌘Tab before anything else: with AX
-            // gone our tap is dead and Activator can't raise windows, so the
-            // user's only working switcher is macOS's own — which stays disabled
-            // unless we restore it here (the IPC needs no AX).
-            controller?.handleAccessibilityRevoked()
-            notifyAccessibilityRevoked()
+            controller?.reinstallHotkeyTap()
+            controller?.reassertNativeOverrideAfterRegrant()
         }
     }
 
@@ -243,7 +237,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// (so the switcher works under Secure Event Input) persists after the app
     /// exits, so it must be re-enabled here or macOS's own ⌘Tab stays dead.
     func applicationWillTerminate(_ notification: Notification) {
+        axWaiter?.stop()
         controller?.shutdown()
+        if let antiNapActivity {
+            ProcessInfo.processInfo.endActivity(antiNapActivity)
+            self.antiNapActivity = nil
+        }
     }
 
     /// Fired when the user launches the already-running app again (e.g. from

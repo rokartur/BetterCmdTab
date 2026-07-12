@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import os
 
 /// Best-effort restoration of the WindowServer symbolic hotkeys (⌘Tab, ⌘⇧Tab,
 /// ⌘`) that we disable at runtime via `PrivateAPI.setSymbolicHotKey`.
@@ -35,39 +36,26 @@ import Foundation
 /// leaves native ⌘Tab disabled until that next launch rather than restoring it
 /// in the handler.
 enum SymbolicHotkeyGuard {
-    /// Max managed keys: ⌘Tab, ⌘⇧Tab, ⌘`. A `0` slot means "empty".
+    /// Max managed keys: ⌘Tab, ⌘⇧Tab, ⌘`.
     private static let capacity = 3
 
-    /// Pre-allocated, never freed: the signal handler reads these slots without
-    /// allocating. Initialized to all-zero.
-    private static let slots: UnsafeMutablePointer<Int32> = {
-        let p = UnsafeMutablePointer<Int32>.allocate(capacity: capacity)
-        p.initialize(repeating: 0, count: capacity)
-        return p
-    }()
+    private struct State {
+        var disabled: [Int32] = []
+        var installed = false
+    }
 
-    // dlsym'd `CGSSetSymbolicHotKeyEnabled` — resolved once up front so the
-    // signal handler only does a plain C call (no dlopen/dlsym in-handler).
-    private typealias SetEnabledFn = @convention(c) (Int32, Bool) -> Int32
-    private static let setEnabledFn: SetEnabledFn? = {
-        guard let h = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_NOW),
-              let sym = dlsym(h, "CGSSetSymbolicHotKeyEnabled") else { return nil }
-        return unsafeBitCast(sym, to: SetEnabledFn.self)
-    }()
+    /// Neither the signal handler nor any async-signal context touches this
+    /// state. Normal controller/atexit paths may run on different threads,
+    /// however, so keep the install flag and disabled-key snapshot synchronized.
+    /// This also replaces the old manually allocated, never-freed slot buffer.
+    private static let state = OSAllocatedUnfairLock(initialState: State())
 
-    private static var installed = false
-
-    /// Record the raw symbolic-hotkey ids currently disabled, so the signal /
-    /// atexit handlers know what to restore. Call on every change to the
-    /// disabled set (disable *and* the empty set on clean re-enable).
-    ///
-    /// A signal arriving mid-write can read a torn set, but each slot is a
-    /// word-sized store (atomic on arm64/x86-64) and the consequence is benign:
-    /// a missed slot just stays disabled until the next-launch self-heal, and a
-    /// stale slot re-enables an already-enabled key (a no-op).
+    /// Record the raw symbolic-hotkey ids currently disabled so the normal
+    /// `atexit` path knows what to restore. Call on every change to the disabled
+    /// set (disable *and* the empty set on clean re-enable).
     static func setDisabled(_ rawIds: [Int32]) {
-        for i in 0..<capacity {
-            slots[i] = i < rawIds.count ? rawIds[i] : 0
+        state.withLock { value in
+            value.disabled = Array(rawIds.prefix(capacity))
         }
     }
 
@@ -76,21 +64,22 @@ enum SymbolicHotkeyGuard {
     /// can block on a CGS lock) and must never be called from a signal handler;
     /// signal-context restoration is delegated to the next-launch self-heal.
     private static func restore() {
-        guard let fn = setEnabledFn else { return }
-        for i in 0..<capacity where slots[i] != 0 {
-            _ = fn(slots[i], true)
+        let disabled = state.withLock { $0.disabled }
+        for raw in disabled {
+            guard let key = PrivateAPI.SymbolicHotKey(rawValue: raw) else { continue }
+            _ = PrivateAPI.setSymbolicHotKey(key, enabled: true)
         }
     }
 
     /// Install the signal + `atexit` handlers once. Idempotent. Call early in
     /// app startup, before any symbolic hotkey gets disabled.
     static func install() {
-        guard !installed else { return }
-        installed = true
-        // Force lazy init of the buffer + function pointer now, off the handler
-        // path — neither may safely initialize inside a signal handler.
-        _ = slots
-        _ = setEnabledFn
+        let shouldInstall = state.withLock { value -> Bool in
+            guard !value.installed else { return false }
+            value.installed = true
+            return true
+        }
+        guard shouldInstall else { return }
 
         atexit { SymbolicHotkeyGuard.restore() }
 

@@ -88,10 +88,18 @@ struct WindowArrangementTests {
     func cyclerAdvances() {
         TileCycler.reset()
         let wid: CGWindowID = 42
-        #expect(isClose(TileCycler.nextFraction(windowId: wid, side: .left), 1.0 / 2.0))
-        #expect(isClose(TileCycler.nextFraction(windowId: wid, side: .left), 2.0 / 3.0))
-        #expect(isClose(TileCycler.nextFraction(windowId: wid, side: .left), 1.0 / 3.0))
-        #expect(isClose(TileCycler.nextFraction(windowId: wid, side: .left), 1.0 / 2.0))
+        let first = TileCycler.nextFraction(windowId: wid, side: .left)
+        let second = TileCycler.nextFraction(windowId: wid, side: .left)
+        let third = TileCycler.nextFraction(windowId: wid, side: .left)
+        let fourth = TileCycler.nextFraction(windowId: wid, side: .left)
+        let firstMatches = isClose(first, 1.0 / 2.0)
+        let secondMatches = isClose(second, 2.0 / 3.0)
+        let thirdMatches = isClose(third, 1.0 / 3.0)
+        let fourthMatches = isClose(fourth, 1.0 / 2.0)
+        #expect(firstMatches)
+        #expect(secondMatches)
+        #expect(thirdMatches)
+        #expect(fourthMatches)
     }
 
     @MainActor
@@ -100,7 +108,9 @@ struct WindowArrangementTests {
         TileCycler.reset()
         _ = TileCycler.nextFraction(windowId: 42, side: .left) // ½
         _ = TileCycler.nextFraction(windowId: 42, side: .left) // ⅓
-        #expect(isClose(TileCycler.nextFraction(windowId: 42, side: .right), 1.0 / 2.0))
+        let restarted = TileCycler.nextFraction(windowId: 42, side: .right)
+        let restartedAtHalf = isClose(restarted, 1.0 / 2.0)
+        #expect(restartedAtHalf)
     }
 
     @MainActor
@@ -109,7 +119,9 @@ struct WindowArrangementTests {
         TileCycler.reset()
         _ = TileCycler.nextFraction(windowId: 1, side: .left) // ½
         _ = TileCycler.nextFraction(windowId: 1, side: .left) // ⅓
-        #expect(isClose(TileCycler.nextFraction(windowId: 2, side: .left), 1.0 / 2.0))
+        let restarted = TileCycler.nextFraction(windowId: 2, side: .left)
+        let restartedAtHalf = isClose(restarted, 1.0 / 2.0)
+        #expect(restartedAtHalf)
     }
 
     @MainActor
@@ -119,7 +131,9 @@ struct WindowArrangementTests {
         _ = TileCycler.nextFraction(windowId: 7, side: .left) // ½
         _ = TileCycler.nextFraction(windowId: 7, side: .left) // ⅓
         TileCycler.reset() // applyArrangement does this when maximize/center/a corner intervenes
-        #expect(isClose(TileCycler.nextFraction(windowId: 7, side: .left), 1.0 / 2.0))
+        let restarted = TileCycler.nextFraction(windowId: 7, side: .left)
+        let restartedAtHalf = isClose(restarted, 1.0 / 2.0)
+        #expect(restartedAtHalf)
     }
 
     @MainActor
@@ -127,6 +141,8 @@ struct WindowArrangementTests {
     func cyclerZeroId() {
         TileCycler.reset()
         _ = TileCycler.nextFraction(windowId: 0, side: .left) // ½ (id can't be tracked)
-        #expect(isClose(TileCycler.nextFraction(windowId: 0, side: .left), 1.0 / 2.0))
+        let restarted = TileCycler.nextFraction(windowId: 0, side: .left)
+        let restartedAtHalf = isClose(restarted, 1.0 / 2.0)
+        #expect(restartedAtHalf)
     }
 }
