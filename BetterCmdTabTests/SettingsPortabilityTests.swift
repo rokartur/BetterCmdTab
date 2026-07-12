@@ -102,6 +102,27 @@ struct SettingsPortabilityTests {
         #expect(prefs.spaceScope == .visibleSpaces)
     }
 
+    @Test("pre-#105 panel preset import replaces a local continuous scale")
+    func legacyPanelScaleImport() throws {
+        let prefs = Preferences.shared
+        let saved = prefs.panelScalePercent
+        defer { prefs.panelScalePercent = saved }
+
+        prefs.panelScalePercent = 73
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.panelSize: "standard"
+        ]))
+        #expect(prefs.panelScalePercent == 120)
+        #expect(UserDefaults.standard.object(forKey: Preferences.Keys.panelSize) == nil)
+        #expect(UserDefaults.standard.integer(forKey: Preferences.Keys.panelScalePercent) == 120)
+
+        try prefs.importSettings(from: envelope([
+            Preferences.Keys.panelSize: "small",
+            Preferences.Keys.panelScalePercent: 61,
+        ]))
+        #expect(prefs.panelScalePercent == 61)
+    }
+
     @Test("round-trip: switcherDisplayMode survives export/import")
     func displayModeRoundTrip() throws {
         let prefs = Preferences.shared

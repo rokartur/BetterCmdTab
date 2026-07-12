@@ -13,7 +13,8 @@ struct EffectiveSettings {
     // Appearance. The selection accent isn't here: it always follows the
     // user's macOS accent (`NSColor.controlAccentColor`), read at draw time.
     let layoutMode: SwitcherLayoutMode
-    let panelSize: PanelSize
+    let panelScalePercent: Int
+    let panelAppearance: PanelAppearance
     let fontScale: SwitcherFontScale
     let fontFace: SwitcherFontFace
     let gridMaxColumns: Int
@@ -48,7 +49,8 @@ extension Preferences {
     func effectiveSettings(for override: ShortcutOverride) -> EffectiveSettings {
         EffectiveSettings(
             layoutMode: override.layoutMode ?? switcherLayoutMode,
-            panelSize: override.panelSize ?? panelSize,
+            panelScalePercent: override.panelScalePercent.map(Self.clampPanelScalePercent) ?? panelScalePercent,
+            panelAppearance: override.panelAppearance ?? panelAppearance,
             fontScale: override.fontScale ?? fontScale,
             fontFace: override.fontFace ?? fontFace,
             gridMaxColumns: override.gridMaxColumns ?? gridMaxColumns,

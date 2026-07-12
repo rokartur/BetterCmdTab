@@ -5360,7 +5360,7 @@ final class SwitcherController: SwitcherViewDelegate {
         SwitcherMetrics.forScreen(
             screen,
             layoutMode: effective.layoutMode,
-            userScale: effective.panelSize.scale,
+            userScale: CGFloat(effective.panelScalePercent) / 100,
             fontScale: effective.fontScale.multiplier,
             letterHints: effective.letterHintsEnabled,
             showAppNames: effective.showApplicationNames,

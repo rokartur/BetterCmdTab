@@ -161,6 +161,16 @@ struct SwitcherMetricsTests {
         #expect(m.iconSize == (SwitcherMetrics.baseIconSize * 0.85).rounded())
     }
 
+    @Test("minimum user scale proportionally shrinks panel geometry")
+    func userScaleMinimum() {
+        let m = SwitcherMetrics.forScreen(nil, userScale: 0.5)
+        #expect(m.scale == 0.5)
+        #expect(m.iconSize == (SwitcherMetrics.baseIconSize * 0.5).rounded())
+        #expect(m.outerPadding == (SwitcherMetrics.baseOuterPadding * 0.5).rounded())
+        #expect(m.interGap == (SwitcherMetrics.baseInterGap * 0.5).rounded())
+        #expect(m.fontSize == SwitcherMetrics.baseFontSize * 0.5)
+    }
+
     @Test("userScale above 1.0 enlarges the panel")
     func userScaleLarge() {
         let m = SwitcherMetrics.forScreen(nil, userScale: 1.2)

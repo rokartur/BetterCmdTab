@@ -84,7 +84,8 @@ final class ShortcutOptionsFormView: NSView {
         // MARK: Appearance
         let appearance = SettingsSectionView(title: String(localized: "Appearance"))
         addEnumRow(to: appearance, title: String(localized: "Layout"), options: [.gridView, .list, .windowPreview] as [SwitcherLayoutMode], display: { $0.displayName }, current: override.layoutMode) { [weak self] in self?.override.layoutMode = $0; self?.persist() }
-        addEnumRow(to: appearance, title: String(localized: "Size"), options: PanelSize.allCases, display: { $0.displayName }, current: override.panelSize) { [weak self] in self?.override.panelSize = $0; self?.persist() }
+        addPanelScaleRow(to: appearance)
+        addEnumRow(to: appearance, title: String(localized: "Appearance"), options: PanelAppearance.allCases, display: { $0.displayName }, current: override.panelAppearance) { [weak self] in self?.override.panelAppearance = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Text size"), options: SwitcherFontScale.allCases, display: { $0.displayName }, current: override.fontScale) { [weak self] in self?.override.fontScale = $0; self?.persist() }
         addEnumRow(to: appearance, title: String(localized: "Font"), options: SwitcherFontFace.allCases, display: { $0.displayName }, current: override.fontFace) { [weak self] in self?.override.fontFace = $0; self?.persist() }
         addIntRow(to: appearance, title: String(localized: "Grid columns"),
@@ -142,6 +143,94 @@ final class ShortcutOptionsFormView: NSView {
     private func addIntRow(to section: SettingsSectionView, title: String, subtitle: String? = nil, values: [Int], display: (Int) -> String, current: Int?, set: @escaping (Int?) -> Void) {
         addPopupRow(to: section, title: title, subtitle: subtitle,
                     values: values, titles: values.map(display), current: current, set: set)
+    }
+
+    /// Continuous per-profile scale while preserving nil = inherit.
+    private func addPanelScaleRow(to section: SettingsSectionView) {
+        let title = String(localized: "Size")
+        let mode = NSPopUpButton(frame: .zero, pullsDown: false)
+        mode.controlSize = .small
+        mode.addItems(withTitles: [Self.useGlobal, String(localized: "Custom")])
+        mode.setAccessibilityLabel(title)
+
+        let slider = NSSlider(value: Double(override.panelScalePercent ?? prefs.panelScalePercent),
+                              minValue: Double(Preferences.panelScalePercentRange.lowerBound),
+                              maxValue: Double(Preferences.panelScalePercentRange.upperBound),
+                              target: nil, action: nil)
+        slider.controlSize = .small
+        slider.isContinuous = true
+        slider.setAccessibilityLabel(title)
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        slider.widthAnchor.constraint(equalToConstant: 120).isActive = true
+
+        let field = NSTextField(string: String(override.panelScalePercent ?? prefs.panelScalePercent))
+        field.controlSize = .small
+        field.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        field.alignment = .right
+        field.setAccessibilityLabel(title)
+        field.cell?.sendsActionOnEndEditing = true
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.isLenient = true
+        field.formatter = formatter
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        let unit = NSTextField(labelWithString: "%")
+        unit.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        unit.textColor = .secondaryLabelColor
+
+        let controls = NSStackView(views: [mode, slider, field, unit])
+        controls.orientation = .horizontal
+        controls.spacing = 6
+        controls.alignment = .centerY
+
+        let apply = { [weak self] (value: Int?, enabled: Bool) in
+            guard let self else { return }
+            let shown = value ?? self.prefs.panelScalePercent
+            if slider.integerValue != shown { slider.integerValue = shown }
+            field.stringValue = String(shown)
+            slider.isEnabled = enabled
+            field.isEnabled = enabled
+            mode.selectItem(at: enabled ? 1 : 0)
+        }
+        apply(override.panelScalePercent, override.panelScalePercent != nil)
+
+        wire(mode) { [weak self] in
+            guard let self else { return }
+            if mode.indexOfSelectedItem == 0 {
+                self.override.panelScalePercent = nil
+                apply(nil, false)
+            } else {
+                let value = self.override.panelScalePercent ?? self.prefs.panelScalePercent
+                self.override.panelScalePercent = value
+                apply(value, true)
+            }
+            self.persist()
+        }
+        wire(slider) { [weak self] in
+            guard let self, mode.indexOfSelectedItem == 1 else { return }
+            let value = Preferences.clampPanelScalePercent(slider.integerValue)
+            self.override.panelScalePercent = value
+            field.stringValue = String(value)
+            self.persist()
+        }
+        wire(field) { [weak self] in
+            guard let self, mode.indexOfSelectedItem == 1 else { return }
+            let text = field.stringValue.trimmingCharacters(in: .whitespaces)
+            guard let parsed = Int(text) ?? formatter.number(from: text)?.intValue else {
+                NSSound.beep()
+                apply(self.override.panelScalePercent, true)
+                return
+            }
+            let value = Preferences.clampPanelScalePercent(parsed)
+            self.override.panelScalePercent = value
+            apply(value, true)
+            self.persist()
+        }
+        section.addContent(SettingsRowView(
+            title: title,
+            accessory: controls
+        ))
     }
 
     /// Core builder: a `SettingsRowView` whose accessory is a popup whose first

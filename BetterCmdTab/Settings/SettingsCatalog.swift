@@ -130,8 +130,10 @@ enum SearchID {
     static let textSize = "appearance.textSize"
     static let fontFace = "appearance.fontFace"
     static let boldSelected = "appearance.boldSelected"
+    static let theme = "appearance.theme"
     static let opacity = "appearance.opacity"
     static let cornerRadius = "appearance.cornerRadius"
+    static let preview = "appearance.preview"
     // Experimental
     static let swipe = "experimental.swipe"
     static let swipeMode = "experimental.swipeMode"
@@ -347,7 +349,7 @@ enum SettingsCatalog {
         item(SearchID.layout, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Layout"), ["layout", "grid", "list", "preview"]),
         item(SearchID.size, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
-             String(localized: "Size"), ["size", "panel size", "small", "large"]),
+             String(localized: "Size"), ["size", "panel size", "scale", "percent", "compact", "small", "large"]),
         item(SearchID.gridColumns, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Grid columns"), ["grid", "columns"]),
         // Appearance · Labels
@@ -367,10 +369,14 @@ enum SettingsCatalog {
              String(localized: "Show application names"),
              ["application names", "app name", "app names", "name", "label", "icon only", "hide name"]),
         // Appearance · Panel
+        item(SearchID.theme, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
+             String(localized: "Appearance"), ["theme", "appearance", "light", "dark", "system", "color scheme"]),
         item(SearchID.opacity, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
              String(localized: "Panel opacity"), ["opacity", "transparency", "alpha", "translucent"]),
         item(SearchID.cornerRadius, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
              String(localized: "Corner radius"), ["corner", "radius", "rounded", "rounding"]),
+        item(SearchID.preview, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
+             String(localized: "Preview"), ["preview", "sample", "test", "live"]),
 
         // Behavior · Contents
         item(SearchID.showMinimized, .switcher, SettingsAnchor.contents, String(localized: "Behavior"), String(localized: "Contents"),

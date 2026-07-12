@@ -132,6 +132,12 @@ extension Preferences {
         if values[Preferences.Keys.currentSpaceOnly] != nil, values[Preferences.Keys.spaceScope] == nil {
             defaults.removeObject(forKey: Preferences.Keys.spaceScope)
         }
+        // A pre-#105 export has only the preset string. Remove this Mac's newer
+        // continuous value so reload migrates the imported preset instead of
+        // correctly-but-surprisingly preferring the pre-existing new key.
+        if values[Preferences.Keys.panelSize] != nil, values[Preferences.Keys.panelScalePercent] == nil {
+            defaults.removeObject(forKey: Preferences.Keys.panelScalePercent)
+        }
         reloadFromDefaults()
         // The import may have introduced scoped shortcuts with ids that didn't
         // exist at launch; install their Carbon handlers now (idempotent) so a

@@ -96,7 +96,8 @@ struct ShortcutOverrideTests {
         ov.stayOpenOnRelease = true
         ov.stayOpenOnQuickTap = false
         ov.layoutMode = .list
-        ov.panelSize = .large
+        ov.panelScalePercent = 73
+        ov.panelAppearance = .dark
         ov.fontScale = .small
         ov.fontFace = .monospaced
         ov.gridMaxColumns = 7
@@ -124,6 +125,17 @@ struct ShortcutOverrideTests {
         #expect(parsed?.spaceScope == .currentSpace)
         #expect(parsed?.sortOrder == nil)
         #expect(parsed?.applicationsOnly == nil)
+    }
+
+    @Test("legacy panel preset migrates to a clamped continuous override")
+    func legacyPanelScaleOverride() {
+        let legacy = ShortcutOverride(dictionary: ["panelSize": "standard"])
+        #expect(legacy?.panelScalePercent == 120)
+        #expect(legacy?.dictionary["panelScalePercent"] == "120")
+        #expect(legacy?.dictionary["panelSize"] == nil)
+
+        let corrupt = ShortcutOverride(dictionary: ["panelScalePercent": "999"])
+        #expect(corrupt?.panelScalePercent == 150)
     }
 
     @Test("unknown keys survive the round-trip instead of being stripped")
@@ -264,7 +276,8 @@ struct ShortcutOverrideTests {
         let prefs = Preferences.shared
         let eff = prefs.effectiveSettings(for: ShortcutOverride())
         #expect(eff.layoutMode == prefs.switcherLayoutMode)
-        #expect(eff.panelSize == prefs.panelSize)
+        #expect(eff.panelScalePercent == prefs.panelScalePercent)
+        #expect(eff.panelAppearance == prefs.panelAppearance)
         #expect(eff.applicationsOnly == prefs.applicationsOnly)
         #expect(eff.sortOrder == prefs.sortOrder)
         #expect(eff.showUnreadBadges == prefs.showUnreadBadges)
@@ -280,8 +293,20 @@ struct ShortcutOverrideTests {
         let eff = prefs.effectiveSettings(for: ov)
         #expect(eff.layoutMode == target)
         // Everything else still tracks the global.
-        #expect(eff.panelSize == prefs.panelSize)
+        #expect(eff.panelScalePercent == prefs.panelScalePercent)
+        #expect(eff.panelAppearance == prefs.panelAppearance)
         #expect(eff.sortOrder == prefs.sortOrder)
+    }
+
+    @Test("panel scale and theme resolve profile overrides over globals")
+    func effectivePanelAppearanceOverride() {
+        let prefs = Preferences.shared
+        var ov = ShortcutOverride()
+        ov.panelScalePercent = prefs.panelScalePercent == 50 ? 51 : 50
+        ov.panelAppearance = prefs.panelAppearance == .dark ? .light : .dark
+        let eff = prefs.effectiveSettings(for: ov)
+        #expect(eff.panelScalePercent == ov.panelScalePercent)
+        #expect(eff.panelAppearance == ov.panelAppearance)
     }
 
     @Test("stay-open resolves the override over the global (#77)")

@@ -34,6 +34,7 @@ final class SwitcherView: NSView, TabStripDelegate {
     weak var delegate: SwitcherViewDelegate?
 
     private let glassBackdrop: NSView
+    private let allowsWindowCapture: Bool
     private let contentContainer = NSView()
     private let listContainer = NSView()
     private let searchBar = SwitcherSearchBarView()
@@ -65,7 +66,12 @@ final class SwitcherView: NSView, TabStripDelegate {
     let maxScreenHeightFraction: CGFloat = 0.85
     let maxScreenWidthFraction: CGFloat = 0.92
 
-    override init(frame frameRect: NSRect) {
+    override convenience init(frame frameRect: NSRect) {
+        self.init(frame: frameRect, allowsWindowCapture: true)
+    }
+
+    init(frame frameRect: NSRect, allowsWindowCapture: Bool) {
+        self.allowsWindowCapture = allowsWindowCapture
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
             glass.style = .regular
@@ -124,12 +130,14 @@ final class SwitcherView: NSView, TabStripDelegate {
     private var searchActive: Bool = false
     private var accent: NSColor = .controlAccentColor
     private var tabStripActive: Bool = false
+    private var appliedPanelAppearance: PanelAppearance = .system
     /// Resolved appearance for the current reveal (#74). Set at the top of
     /// `configure` so the layout helpers below (and on standalone relayouts) read
     /// the firing shortcut's overrides instead of the global preferences.
     private var effective: EffectiveSettings = .defaults
 
     func configure(rows: [SwitcherRow], labels: [String], selectedIndex: Int, metrics: SwitcherMetrics, effective: EffectiveSettings, highlightPrefix: String = "", searchActive: Bool = false, searchQuery: String = "", tabStripItems: [TabStripItem]? = nil, tabStripSelectedIndex: Int = 0) {
+        applyPanelAppearance(effective.panelAppearance)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         // Set before `fittedMetrics`/layout below read it (see ivar note).
@@ -217,6 +225,10 @@ final class SwitcherView: NSView, TabStripDelegate {
     /// captures left over from an earlier preview reveal can't fire into list /
     /// grid tiles.
     private func updatePreviewWiring() {
+        guard allowsWindowCapture else {
+            stopLivePreviewTimer()
+            return
+        }
         guard metrics.layoutMode == .windowPreview else {
             WindowThumbnailCache.shared.onReady = nil
             stopLivePreviewTimer()
@@ -329,8 +341,10 @@ final class SwitcherView: NSView, TabStripDelegate {
         searchBar.isHidden = true
         emptyIcon.isHidden = true
         emptyTitle.isHidden = true
-        WindowThumbnailCache.shared.onReady = nil
-        WindowThumbnailCache.shared.releaseCaptureMetadata()
+        if allowsWindowCapture {
+            WindowThumbnailCache.shared.onReady = nil
+            WindowThumbnailCache.shared.releaseCaptureMetadata()
+        }
     }
 
     var selectedRow: SwitcherRow? {
@@ -346,6 +360,18 @@ final class SwitcherView: NSView, TabStripDelegate {
             glass.cornerRadius = radius
         } else {
             glassBackdrop.layer?.cornerRadius = radius
+        }
+    }
+
+    /// Set a forced Aqua/Dark Aqua only when the preference changes. Leaving the
+    /// override nil preserves AppKit's live system-appearance inheritance.
+    private func applyPanelAppearance(_ value: PanelAppearance) {
+        guard value != appliedPanelAppearance || (value == .system && appearance != nil) else { return }
+        appliedPanelAppearance = value
+        switch value {
+        case .system: appearance = nil
+        case .light: appearance = NSAppearance(named: .aqua)
+        case .dark: appearance = NSAppearance(named: .darkAqua)
         }
     }
 

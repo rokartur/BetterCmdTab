@@ -336,7 +336,8 @@ struct ShortcutOverride: Equatable, Sendable {
     var stayOpenOnQuickTap: Bool?
     // Appearance (resolved into `EffectiveSettings`).
     var layoutMode: SwitcherLayoutMode?
-    var panelSize: PanelSize?
+    var panelScalePercent: Int?
+    var panelAppearance: PanelAppearance?
     var fontScale: SwitcherFontScale?
     var fontFace: SwitcherFontFace?
     var gridMaxColumns: Int?
@@ -365,7 +366,7 @@ struct ShortcutOverride: Equatable, Sendable {
             && showWindowless == nil && sortOrder == nil && applicationsOnly == nil
             && expandBrowserTabsAsWindows == nil && stayOpenOnRelease == nil
             && stayOpenOnQuickTap == nil
-            && layoutMode == nil && panelSize == nil
+            && layoutMode == nil && panelScalePercent == nil && panelAppearance == nil
             && fontScale == nil && fontFace == nil
             && gridMaxColumns == nil
             && panelOpacity == nil && panelCornerRadius == nil && backdropMaterial == nil
@@ -393,7 +394,8 @@ struct ShortcutOverride: Equatable, Sendable {
         put("stayOpenOnRelease", stayOpenOnRelease)
         put("stayOpenOnQuickTap", stayOpenOnQuickTap)
         if let layoutMode { d["layoutMode"] = layoutMode.rawValue }
-        if let panelSize { d["panelSize"] = panelSize.rawValue }
+        put("panelScalePercent", panelScalePercent.map(Preferences.clampPanelScalePercent))
+        if let panelAppearance { d["panelAppearance"] = panelAppearance.rawValue }
         if let fontScale { d["fontScale"] = fontScale.rawValue }
         if let fontFace { d["fontFace"] = fontFace.rawValue }
         put("gridMaxColumns", gridMaxColumns)
@@ -417,7 +419,8 @@ struct ShortcutOverride: Equatable, Sendable {
         "target",
         "spaceScope", "showMinimized", "showHidden", "showWindowless", "sortOrder",
         "applicationsOnly", "expandBrowserTabsAsWindows", "stayOpenOnRelease",
-        "stayOpenOnQuickTap", "layoutMode", "panelSize", "fontScale", "fontFace",
+        "stayOpenOnQuickTap", "layoutMode", "panelSize", "panelScalePercent",
+        "panelAppearance", "fontScale", "fontFace",
         "gridMaxColumns", "panelOpacity", "panelCornerRadius", "backdropMaterial",
         "showWindowTitleLabel", "previewTitleAlignment", "titleTruncationMode",
         "boldSelectedLabel", "showApplicationNames", "showUnreadBadges",
@@ -440,7 +443,10 @@ struct ShortcutOverride: Equatable, Sendable {
         stayOpenOnRelease = bool("stayOpenOnRelease")
         stayOpenOnQuickTap = bool("stayOpenOnQuickTap")
         layoutMode = dictionary["layoutMode"].flatMap(SwitcherLayoutMode.init(rawValue:))
-        panelSize = dictionary["panelSize"].flatMap(PanelSize.init(rawValue:))
+        panelScalePercent = dictionary["panelScalePercent"].flatMap(Int.init)
+            .map(Preferences.clampPanelScalePercent)
+            ?? dictionary["panelSize"].flatMap(Preferences.legacyPanelScalePercent)
+        panelAppearance = dictionary["panelAppearance"].flatMap(PanelAppearance.init(rawValue:))
         fontScale = dictionary["fontScale"].flatMap(SwitcherFontScale.init(rawValue:))
         fontFace = dictionary["fontFace"].flatMap(SwitcherFontFace.init(rawValue:))
         gridMaxColumns = dictionary["gridMaxColumns"].flatMap(Int.init)
@@ -478,38 +484,27 @@ enum SwipeMode: String, CaseIterable {
     }
 }
 
-/// Overall size multiplier applied to the switcher panel (icons, text, spacing).
-enum PanelSize: String, CaseIterable {
-    case small
-    case standard
-    case large
-
-    // Scale remap (2026-05-28): old Small was too tight; the new Small is
-    // what used to be Default, Medium is what used to be Large, and Large is
-    // a genuinely big tile. Raw values stay the same so persisted prefs
-    // still parse — users transparently shift up one notch on first launch.
-    var scale: CGFloat {
-        switch self {
-        case .small: return 1.0
-        case .standard: return 1.2
-        case .large: return 1.5
-        }
-    }
+/// Light/dark appearance applied to the switcher independently of the rest of
+/// macOS. `.system` leaves AppKit appearance inheritance untouched.
+enum PanelAppearance: String, CaseIterable, Sendable {
+    case system
+    case light
+    case dark
 
     var displayName: String {
         switch self {
-        case .small: return String(localized: "Small")
-        case .standard: return String(localized: "Medium")
-        case .large: return String(localized: "Large")
+        case .system: return String(localized: "System")
+        case .light: return String(localized: "Light")
+        case .dark: return String(localized: "Dark")
         }
     }
 }
 
 /// Multiplier applied to the switcher's name/title text only, independent of
-/// the panel size (#62). On very wide displays the screen-adaptive clamp in
-/// `SwitcherMetrics.forScreen` renders text at up to 1.8× base even at panel
-/// size Small; this lets users shrink (or grow) just the text while icons,
-/// tiles, and spacing keep following the panel size.
+/// the panel scale (#62). On very wide displays the screen-adaptive clamp in
+/// `SwitcherMetrics.forScreen` renders text at up to 1.8× base; this lets users
+/// shrink (or grow) just the text while icons, tiles, and spacing keep following
+/// the panel scale.
 enum SwitcherFontScale: String, CaseIterable, Sendable {
     case extraSmall
     case small
@@ -669,6 +664,8 @@ final class Preferences: ObservableObject {
     static let defaultSwipeSensitivity = 5
     static let swipeSensitivityRange: ClosedRange<Int> = 1...10
 
+    nonisolated static let defaultPanelScalePercent = 120
+    nonisolated static let panelScalePercentRange: ClosedRange<Int> = 50...150
     static let panelOpacityRange: ClosedRange<Int> = 30...100
     /// `0` means "automatic" (track the size-derived metric); above that the
     /// user pins an explicit radius in points.
@@ -700,7 +697,9 @@ final class Preferences: ObservableObject {
         static let revealDelayMs = "Switcher.revealDelayMs"
         static let letterChainTimeoutMs = "Switcher.letterChainTimeoutMs"
         static let titleRefreshIntervalMs = "Switcher.titleRefreshIntervalMs"
-        static let panelSize = "Switcher.panelSize"
+        static let panelSize = "Switcher.panelSize" // legacy presets
+        static let panelScalePercent = "Switcher.panelScalePercent"
+        static let panelAppearance = "Switcher.panelAppearance"
         static let fontScale = "Switcher.fontScale"
         static let fontFace = "Switcher.fontFace"
         static let gridMaxColumns = "Switcher.gridMaxColumns"
@@ -879,15 +878,27 @@ final class Preferences: ObservableObject {
         }
     }
 
-    @Published var panelSize: PanelSize {
+    @Published var panelScalePercent: Int {
         didSet {
-            guard oldValue != panelSize else { return }
-            UserDefaults.standard.set(panelSize.rawValue, forKey: Keys.panelSize)
+            let clamped = Self.clampPanelScalePercent(panelScalePercent)
+            if clamped != panelScalePercent {
+                panelScalePercent = clamped
+                return
+            }
+            guard oldValue != panelScalePercent else { return }
+            UserDefaults.standard.set(panelScalePercent, forKey: Keys.panelScalePercent)
+        }
+    }
+
+    @Published var panelAppearance: PanelAppearance {
+        didSet {
+            guard oldValue != panelAppearance else { return }
+            UserDefaults.standard.set(panelAppearance.rawValue, forKey: Keys.panelAppearance)
         }
     }
 
     /// Multiplier applied to the switcher's name/title text only (#62) — icons,
-    /// tiles, and spacing keep following `panelSize`. Default `.standard` (1.0×,
+    /// tiles, and spacing keep following `panelScalePercent`. Default `.standard` (1.0×,
     /// identical to the pre-#62 rendering).
     @Published var fontScale: SwitcherFontScale {
         didSet {
@@ -1741,6 +1752,40 @@ final class Preferences: ObservableObject {
         min(swipeSensitivityRange.upperBound, max(swipeSensitivityRange.lowerBound, value))
     }
 
+    nonisolated static func clampPanelScalePercent(_ value: Int) -> Int {
+        min(panelScalePercentRange.upperBound, max(panelScalePercentRange.lowerBound, value))
+    }
+
+    /// Convert the three pre-#105 persisted presets to their exact effective
+    /// percentages. Kept nonisolated so profile dictionaries can migrate too.
+    nonisolated static func legacyPanelScalePercent(_ rawValue: String) -> Int? {
+        switch rawValue {
+        case "small": return 100
+        case "standard": return 120
+        case "large": return 150
+        default: return nil
+        }
+    }
+
+    /// Prefer the continuous value, otherwise migrate the legacy preset once.
+    /// Called on import reload too, so old `.cmdtab` files upgrade in place.
+    private static func loadPanelScalePercent(_ defaults: UserDefaults) -> Int {
+        if let stored = defaults.object(forKey: Keys.panelScalePercent) as? Int {
+            let clamped = clampPanelScalePercent(stored)
+            if clamped != stored { defaults.set(clamped, forKey: Keys.panelScalePercent) }
+            defaults.removeObject(forKey: Keys.panelSize)
+            return clamped
+        }
+        if let raw = defaults.string(forKey: Keys.panelSize),
+           let migrated = legacyPanelScalePercent(raw) {
+            defaults.set(migrated, forKey: Keys.panelScalePercent)
+            defaults.removeObject(forKey: Keys.panelSize)
+            return migrated
+        }
+        defaults.removeObject(forKey: Keys.panelSize)
+        return defaultPanelScalePercent
+    }
+
     static func clampOpacity(_ value: Int) -> Int {
         min(panelOpacityRange.upperBound, max(panelOpacityRange.lowerBound, value))
     }
@@ -1804,8 +1849,9 @@ final class Preferences: ObservableObject {
         let titleRefresh = defaults.object(forKey: Keys.titleRefreshIntervalMs) as? Int ?? Self.defaultTitleRefreshIntervalMs
         self.titleRefreshIntervalMs = Self.clampTitleRefreshInterval(titleRefresh)
 
-        let sizeRaw = defaults.string(forKey: Keys.panelSize)
-        self.panelSize = sizeRaw.flatMap(PanelSize.init(rawValue:)) ?? .standard
+        self.panelScalePercent = Self.loadPanelScalePercent(defaults)
+        self.panelAppearance = defaults.string(forKey: Keys.panelAppearance)
+            .flatMap(PanelAppearance.init(rawValue:)) ?? .system
 
         self.fontScale = defaults.string(forKey: Keys.fontScale).flatMap(SwitcherFontScale.init(rawValue:)) ?? .standard
         self.fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system
@@ -1927,7 +1973,12 @@ final class Preferences: ObservableObject {
             defaults.set(migrated.map(\.dictionary), forKey: Keys.scopedShortcutList)
             defaults.set(resolvedNextID, forKey: Keys.nextScopedShortcutID)
         }
-        self.shortcutOverrides = Self.decodeShortcutOverrides(defaults.array(forKey: Keys.shortcutOverrides) as? [[String: String]])
+        let rawOverrides = defaults.array(forKey: Keys.shortcutOverrides) as? [[String: String]]
+        let decodedOverrides = Self.decodeShortcutOverrides(rawOverrides)
+        self.shortcutOverrides = decodedOverrides
+        if rawOverrides?.contains(where: { $0["panelSize"] != nil }) == true {
+            defaults.set(Self.encodeShortcutOverrides(decodedOverrides), forKey: Keys.shortcutOverrides)
+        }
         self.mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
         self.mouseClickSelectionEnabled = defaults.object(forKey: Keys.mouseClickSelectionEnabled) as? Bool ?? true
         self.hoverActionsEnabled = defaults.object(forKey: Keys.hoverActionsEnabled) as? Bool ?? false
@@ -1946,7 +1997,8 @@ final class Preferences: ObservableObject {
     /// `@Published` assignments fire `objectWillChange` and the per-property
     /// publishers `SwitcherController` subscribes to. The didSet observers
     /// persist the same value back (a no-op when unchanged), so this is safe to
-    /// call repeatedly. No legacy-key migration here — that runs once in `init`.
+    /// call repeatedly. Legacy panel-size values are migrated here too so old
+    /// settings imports take effect without a relaunch.
     func reloadFromDefaults() {
         let defaults = UserDefaults.standard
 
@@ -1957,7 +2009,9 @@ final class Preferences: ObservableObject {
         revealDelayMs = Self.clampDelay(defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs)
         letterChainTimeoutMs = Self.clampLetterChainTimeout(defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs)
         titleRefreshIntervalMs = Self.clampTitleRefreshInterval(defaults.object(forKey: Keys.titleRefreshIntervalMs) as? Int ?? Self.defaultTitleRefreshIntervalMs)
-        panelSize = defaults.string(forKey: Keys.panelSize).flatMap(PanelSize.init(rawValue:)) ?? .standard
+        panelScalePercent = Self.loadPanelScalePercent(defaults)
+        panelAppearance = defaults.string(forKey: Keys.panelAppearance)
+            .flatMap(PanelAppearance.init(rawValue:)) ?? .system
         fontScale = defaults.string(forKey: Keys.fontScale).flatMap(SwitcherFontScale.init(rawValue:)) ?? .standard
         fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system
         gridMaxColumns = defaults.object(forKey: Keys.gridMaxColumns) as? Int ?? 0
@@ -2033,7 +2087,12 @@ final class Preferences: ObservableObject {
             scopedShortcuts = Self.migrateScopedShortcuts(legacyScopes: reloadedScopes)
         }
         nextScopedShortcutID = max(defaults.object(forKey: Keys.nextScopedShortcutID) as? Int ?? 0, (scopedShortcuts.map(\.id).max() ?? -1) + 1)
-        shortcutOverrides = Self.decodeShortcutOverrides(defaults.array(forKey: Keys.shortcutOverrides) as? [[String: String]])
+        let rawOverrides = defaults.array(forKey: Keys.shortcutOverrides) as? [[String: String]]
+        let decodedOverrides = Self.decodeShortcutOverrides(rawOverrides)
+        shortcutOverrides = decodedOverrides
+        if rawOverrides?.contains(where: { $0["panelSize"] != nil }) == true {
+            defaults.set(Self.encodeShortcutOverrides(decodedOverrides), forKey: Keys.shortcutOverrides)
+        }
 
         hoverActionsEnabled = defaults.object(forKey: Keys.hoverActionsEnabled) as? Bool ?? false
         hoverShowClose = defaults.object(forKey: Keys.hoverShowClose) as? Bool ?? true

@@ -54,12 +54,24 @@ struct PreferencesEnumTests {
         #expect(Preferences.storedSpaceScope(defaults) == .currentSpace)
     }
 
-    @Test("PanelSize scale ordering: small < standard < large")
-    func panelSizeOrdering() {
-        // Scale remap (2026-05-28): small=1.0, standard=1.2, large=1.5.
-        #expect(PanelSize.small.scale < PanelSize.standard.scale)
-        #expect(PanelSize.standard.scale == 1.2)
-        #expect(PanelSize.standard.scale < PanelSize.large.scale)
+    @Test("panel scale clamps and migrates every legacy preset")
+    func panelScaleMigration() {
+        #expect(Preferences.clampPanelScalePercent(1) == 50)
+        #expect(Preferences.clampPanelScalePercent(125) == 125)
+        #expect(Preferences.clampPanelScalePercent(999) == 150)
+        #expect(Preferences.legacyPanelScalePercent("small") == 100)
+        #expect(Preferences.legacyPanelScalePercent("standard") == 120)
+        #expect(Preferences.legacyPanelScalePercent("large") == 150)
+        #expect(Preferences.legacyPanelScalePercent("unknown") == nil)
+    }
+
+    @Test("panel appearance raw values round-trip")
+    func panelAppearanceRoundTrip() {
+        for appearance in PanelAppearance.allCases {
+            #expect(PanelAppearance(rawValue: appearance.rawValue) == appearance)
+            #expect(!appearance.displayName.isEmpty)
+        }
+        #expect(PanelAppearance(rawValue: "sepia") == nil)
     }
 
     @MainActor
