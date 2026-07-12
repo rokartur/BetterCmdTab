@@ -2164,6 +2164,13 @@ final class SwitcherController: SwitcherViewDelegate {
             // Click outside the panel: always fully dismiss, even mid-search or
             // drilled into a tab strip, leaving the current window focused.
             cancel()
+        case .panelClick(let point):
+            // A tap-swallowed click inside the panel (#36): the CGEvent never
+            // reaches AppKit, so run the same hit-test a native mouseDown
+            // would. `.visible` gates out a click racing a commit's `vanish()`
+            // across the tap-thread → main hop.
+            guard phase == .visible else { return }
+            view.handleClick(atWindowPoint: point)
         case .toggleSearch:
             toggleSearch()
         case .searchInput(let ch):

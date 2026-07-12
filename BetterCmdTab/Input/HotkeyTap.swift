@@ -38,6 +38,12 @@ final class HotkeyTap: @unchecked Sendable {
         /// committing, leaving the current window focused (the tap swallows the
         /// click so it doesn't activate whatever was under the pointer).
         case dismiss
+        /// A left click landed inside the open switcher panel, carrying the
+        /// window-local point (bottom-left origin, y-up). The tap swallows the
+        /// CGEvent so other session taps and global monitors (EasyMoveResize
+        /// and friends, #36) can't steal a modifier-held click as their own
+        /// drag gesture, then hands the click back through this channel.
+        case panelClick(CGPoint)
         case closeWindow
         case minimizeWindow
         case hideApp
@@ -797,6 +803,16 @@ final class HotkeyTap: @unchecked Sendable {
         switcherFrame.withLock { $0 = frame }
     }
 
+    /// Pure: the window-local point (AppKit, bottom-left origin, y-up) for a
+    /// click at `location` inside the panel frame `frame`, both in CGEvent
+    /// global coordinates (top-left origin, y-down). Because both inputs share
+    /// the same space, the primary-display height cancels out of the y flip —
+    /// no screen lookup, multi-display safe. Stateless so the tests can
+    /// exercise it directly.
+    static func windowPoint(forClick location: CGPoint, inPanelFrame frame: CGRect) -> CGPoint {
+        CGPoint(x: location.x - frame.minX, y: frame.maxY - location.y)
+    }
+
     /// Apply user-chosen modifiers + trigger keys. Safe to call any time; the
     /// tap callback reads the new value on its next event.
     func updateConfig(_ newConfig: Config) {
@@ -1057,20 +1073,36 @@ final class HotkeyTap: @unchecked Sendable {
         }
 
         if type == .leftMouseDown || type == .rightMouseDown || type == .otherMouseDown {
-            // Click-outside-to-dismiss: only while the switcher is open and the
-            // feature is enabled. A click inside the panel passes through so row
-            // clicks and hover-action buttons keep working; a click outside is
-            // swallowed (return nil) and dismisses the switcher, leaving the
-            // current window focused instead of activating whatever was clicked.
-            guard isSwitchingNow(), clickDismissFlag.withLock({ $0 }),
-                  let frame = switcherFrame.withLock({ $0 }) else {
+            // While the switcher is open, a mouse-down inside the panel is
+            // swallowed and handed back through the event channel instead of
+            // passing through the tap. A passed-through click stays visible to
+            // every later session tap and global monitor — utilities like
+            // EasyMoveResize see the held trigger modifier + mouse-down and
+            // steal the click as their own window-drag gesture (#36).
+            // Re-posting a copy as an NSEvent can't replace pass-through:
+            // `NSEvent(cgEvent:)` yields a windowless event that
+            // `NSApplication.sendEvent` silently drops.
+            //
+            // A click outside the panel keeps the click-outside-to-dismiss
+            // behavior: swallowed + dismiss when enabled, pass-through when not.
+            guard isSwitchingNow(), let frame = switcherFrame.withLock({ $0 }) else {
                 return Unmanaged.passUnretained(event)
             }
             if frame.contains(event.location) {
-                return Unmanaged.passUnretained(event)
+                // Right/middle clicks are swallowed without delivery — the
+                // panel ignores them, but no button may reach a third-party
+                // monitor while the trigger modifier is held.
+                if type == .leftMouseDown {
+                    deliver(.panelClick(Self.windowPoint(
+                        forClick: event.location, inPanelFrame: frame)))
+                }
+                return nil
             }
-            deliver(.dismiss)
-            return nil
+            if clickDismissFlag.withLock({ $0 }) {
+                deliver(.dismiss)
+                return nil
+            }
+            return Unmanaged.passUnretained(event)
         }
 
         let cfg = config.withLock { $0 }

@@ -465,21 +465,29 @@ final class SwitcherView: NSView, TabStripDelegate {
     }
 
     override func mouseDown(with event: NSEvent) {
+        handleClick(atWindowPoint: event.locationInWindow)
+    }
+
+    /// Route a click at a window-local point to the tab strip, hover-action
+    /// dots, or row selection. Split from `mouseDown` because clicks inside
+    /// the panel are swallowed by the tap (#36) and arrive from the controller
+    /// as a bare point — they never exist as deliverable NSEvents.
+    func handleClick(atWindowPoint point: NSPoint) {
         // The hitTest override pins every mouse event to this view, so clicks
         // over the drill-in tab strip are routed to its cells manually (the
         // same way hover-action dots are hit-tested below).
         if tabStripActive, !tabStrip.isHidden,
-           tabStrip.bounds.contains(tabStrip.convert(event.locationInWindow, from: nil)) {
-            if let tabIdx = tabStrip.index(atWindowPoint: event.locationInWindow) {
+           tabStrip.bounds.contains(tabStrip.convert(point, from: nil)) {
+            if let tabIdx = tabStrip.index(atWindowPoint: point) {
                 delegate?.switcherViewDidSelectTab(tabIdx)
             }
             return
         }
-        guard let idx = indexAtWindowPoint(event.locationInWindow), itemViews.indices.contains(idx) else { return }
+        guard let idx = indexAtWindowPoint(point), itemViews.indices.contains(idx) else { return }
         // A click on a hover-action dot runs that action instead of committing.
         // The dots can't receive events themselves (glass-hosted subtree), so
         // hit-test them here against the hovered row.
-        if let action = itemViews[idx].hoverAction(atWindowPoint: event.locationInWindow) {
+        if let action = itemViews[idx].hoverAction(atWindowPoint: point) {
             delegate?.switcherViewDidInvokeAction(action, atIndex: idx)
             return
         }
