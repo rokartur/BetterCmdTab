@@ -1,0 +1,99 @@
+name: update-issue-release-options
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  update-template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Update release options
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate --slurp \
+            "/repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            > "${RUNNER_TEMP}/releases.json"
+          gh api "/repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name \
+            > "${RUNNER_TEMP}/latest-tag"
+          python3 - "${RUNNER_TEMP}/releases.json" "${RUNNER_TEMP}/latest-tag" \
+            .github/ISSUE_TEMPLATE/bug_report.yml <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          releases_path, latest_tag_path, template_path = map(Path, sys.argv[1:])
+          pages = json.loads(releases_path.read_text())
+          latest_tag = latest_tag_path.read_text().strip()
+          releases = [release for page in pages for release in page if not release["draft"]]
+          releases.sort(key=lambda release: release["published_at"] or "", reverse=True)
+
+          def version_key(tag):
+              match = re.match(r"v?(\d+)\.(\d+)(?:\.(\d+))?", tag)
+              return tuple(int(part or 0) for part in match.groups()) if match else (0, 0, 0)
+
+          stable_releases = [release for release in releases if not release["prerelease"]]
+          beta_releases = [release for release in releases if release["prerelease"]]
+          selected_releases = stable_releases[:3]
+          if beta_releases:
+              latest_beta = max(beta_releases, key=lambda release: version_key(release["tag_name"]))
+              if version_key(latest_beta["tag_name"]) > version_key(latest_tag):
+                  selected_releases.insert(0, latest_beta)
+
+          options = []
+          for release in selected_releases:
+              version = release["tag_name"].removeprefix("v")
+              build = next(
+                  (
+                      match.group(1)
+                      for asset in release["assets"]
+                      if (match := re.fullmatch(
+                          rf"BetterCmdTab-{re.escape(version)}-(\d+)\.(?:dmg|zip)",
+                          asset["name"],
+                      ))
+                  ),
+                  None,
+              )
+              if build is None:
+                  continue
+              channel = (
+                  "latest" if release["tag_name"] == latest_tag
+                  else "beta" if release["prerelease"]
+                  else "release"
+              )
+              options.append(f'        - {json.dumps(f"{version} ({build}) — {channel}", ensure_ascii=False)}')
+
+          template = template_path.read_text()
+          start = "        # release-options:start"
+          end = "        # release-options:end"
+          before, separator, rest = template.partition(start)
+          if not separator:
+              raise SystemExit("Missing release-options:start marker")
+          _, separator, after = rest.partition(end)
+          if not separator:
+              raise SystemExit("Missing release-options:end marker")
+          template_path.write_text(f"{before}{start}\n{'\n'.join(options)}\n{end}{after}")
+          PY
+
+      - name: Commit template update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if git diff --quiet -- .github/ISSUE_TEMPLATE/bug_report.yml; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/ISSUE_TEMPLATE/bug_report.yml
+          git commit -m "chore: update issue release options"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "HEAD:${DEFAULT_BRANCH}"
