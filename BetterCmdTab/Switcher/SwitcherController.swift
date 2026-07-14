@@ -559,16 +559,7 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         workspaceObservers.append(activationObserver)
         // The active Space flipping (full-screen enter/exit is its own Space)
-        // affects trigger suppression, and is also the moment the WindowServer
-        // can drop the panel's canJoinAllSpaces sticky tag (a full-screen app
-        // quitting destroys its Space — #46/#64; switching displays/Spaces
-        // while the panel is hidden can rot it too — #93/#94).
-        // `isOnActiveSpace` can keep reporting true for a canJoinAllSpaces
-        // window even after the WindowServer has lost the tag, so it can't
-        // gate this. Hidden panels re-assert unconditionally; a deliberately
-        // visible/sticky panel verifies composition after the Space transition
-        // settles and heals only if needed. present() performs the same check
-        // after order-front as the reveal backstop.
+        // affects trigger suppression, so refresh it on every Space change.
         let activeSpaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil,
@@ -577,7 +568,6 @@ final class SwitcherController: SwitcherViewDelegate {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.updateTriggerSuppression()
-                self.panel.activeSpaceDidChange()
             }
         }
         workspaceObservers.append(activeSpaceObserver)

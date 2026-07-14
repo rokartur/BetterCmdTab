@@ -5,57 +5,25 @@ import os
 
 @MainActor
 final class SwitcherPanel: NSPanel {
-    enum SpaceVisibilityDecision: Equatable {
-        case none
-        /// Healthy on the first sample — confirm once after a short delay, in
-        /// case both AppKit indicators still carry the previous presentation's
-        /// healthy values (fast dismiss→reopen).
-        case verify
-        /// Unhealthy on the first sample — occlusion may simply be stale this
-        /// soon after order-front; re-sample before healing.
-        case retry
-        case heal
-    }
-
-    struct SpaceCheckGeneration {
-        private(set) var value: UInt = 0
-
-        @discardableResult
-        mutating func advance() -> UInt {
-            value &+= 1
-            return value
-        }
-
-        func matches(_ token: UInt) -> Bool { value == token }
-    }
-
-    /// The complete, known-good Space behavior for this transient system
-    /// overlay. `.canJoinAllApplications` (macOS 13+) explicitly lets overlays
-    /// join other apps' full-screen and Stage Manager sets, while
-    /// `.canJoinAllSpaces` keeps it available across per-display Desktops (#93).
+    /// Space behavior for this transient overlay. `.canJoinAllSpaces` alone
+    /// keeps it on every Desktop and over other apps' full-screen Spaces — the
+    /// app is an LSUIElement accessory, so no full-screen-auxiliary binding is
+    /// needed. `.fullScreenAuxiliary` was removed for #46: it bound the panel as
+    /// an auxiliary of a full-screen window's Space, so quitting that full-screen
+    /// app destroyed the panel's all-Spaces membership and it went invisible on
+    /// the other Spaces. `.stationary`/`.ignoresCycle` are cycling / Exposé-group
+    /// flags, orthogonal to Space membership.
     static let canonicalCollectionBehavior: NSWindow.CollectionBehavior = [
         .canJoinAllSpaces,
         .stationary,
-        .ignoresCycle,
-        .fullScreenAuxiliary,
-        .canJoinAllApplications
+        .ignoresCycle
     ]
 
-    private static let spaceVisibilityRetryDelay: TimeInterval = 0.05
-    private static let spaceTransitionSettleDelay: TimeInterval = 0.20
-    private static let spaceRecoveryVerificationDelay: TimeInterval = 0.10
-    private static let maxSpaceRecoveryAttempts = 2
-
     private var prefCancellable: AnyCancellable?
-    /// Invalidates delayed WindowServer visibility checks across dismiss/reopen
-    /// and across consecutive Space changes. Without this token, a retry queued
-    /// by presentation A can reorder a rapidly-opened presentation B (#64).
-    private var spaceCheckGeneration = SpaceCheckGeneration()
-    /// True between `present()` and `dismiss()`. The reveal edge can't key off
-    /// `isVisible` alone: the boot prewarm orders the panel in off-screen via
-    /// `orderFrontRegardless()` without presenting, and a chord landing in that
-    /// window would then read `isVisible == true` and skip the first real
-    /// presentation's Space verification.
+    /// True between `present()` and `dismiss()`. `resignKey()` keys off this
+    /// (not `isVisible`) for its glass-dim suppression: the boot prewarm orders
+    /// the panel in off-screen via `orderFrontRegardless()` without presenting,
+    /// so `isVisible` would read true before the first real presentation.
     private var isPresented = false
 
     /// The screen the owning controller resolved for this open session. Set
@@ -182,13 +150,7 @@ final class SwitcherPanel: NSPanel {
     /// `opacity` is the resolved per-shortcut panel opacity (#74), 30–100.
     func present(opacity: Int = 100) {
         guard let content = contentView else { return }
-        // `present()` also relays out an already-visible panel during live
-        // filtering. Only a real hidden→visible edge starts a new verification
-        // generation; relayouts remain part of the current presentation.
-        let startsNewPresentation = Self.shouldStartSpaceVerification(isAlreadyVisible: isPresented)
         isPresented = true
-        if startsNewPresentation { spaceCheckGeneration.advance() }
-        let spaceCheckToken = spaceCheckGeneration.value
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         let fitting = Log.reveal.withIntervalSignpost("present.layout") { () -> NSSize in
@@ -248,15 +210,6 @@ final class SwitcherPanel: NSPanel {
         DispatchQueue.main.async { [weak self] in
             guard let self, self.isVisible, self.isPresented else { return }
             if !self.isKeyWindow { self.makeKeyAndOrderFront(nil) }
-            // Live filtering and title/badge refreshes call present() again only
-            // to relayout. They must not fork parallel recovery chains; the one
-            // started at the hidden→visible edge owns this presentation.
-            // Sample immediately so a rotted panel heals at ~50ms; a healthy
-            // first verdict is re-confirmed once (`.verify`) because both AppKit
-            // indicators can briefly retain the previous presentation's values.
-            if startsNewPresentation {
-                self.healSpaceAssignmentIfNeeded(token: spaceCheckToken)
-            }
         }
     }
 
@@ -271,9 +224,6 @@ final class SwitcherPanel: NSPanel {
     /// it. No fade plays because `animationBehavior` is `.none` and implicit
     /// actions are disabled here.
     func dismiss() {
-        // Cancel every queued visibility retry before the panel can be opened as
-        // a new presentation. The closures remain cheap no-ops when they fire.
-        spaceCheckGeneration.advance()
         isPresented = false
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -297,7 +247,6 @@ final class SwitcherPanel: NSPanel {
     /// is unchanged; `ignoresMouseEvents` keeps the invisible panel from
     /// swallowing clicks until `dismiss()` lands. `present()` restores both.
     func vanish() {
-        spaceCheckGeneration.advance()
         isPresented = false
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -306,128 +255,6 @@ final class SwitcherPanel: NSPanel {
         CATransaction.commit()
         ignoresMouseEvents = true
         onFrameDidChange?(nil)
-    }
-
-    /// A visible `present()` call is only a relayout. Space verification belongs
-    /// to the hidden→visible reveal edge and must have one owner per session.
-    static func shouldStartSpaceVerification(isAlreadyVisible: Bool) -> Bool {
-        !isAlreadyVisible
-    }
-
-    /// The WindowServer can lose the `.canJoinAllSpaces` sticky tag when the
-    /// Space topology changes while the panel is ordered out — e.g. quitting a
-    /// full-screen app destroys its Space (#46, #64), or the active Space flips
-    /// onto another display's or a live full-screen app's Space (#93/#94). The
-    /// next order-front then puts the panel only on its original Space:
-    /// switching still works, but the panel is invisible everywhere else.
-    /// `isOnActiveSpace` alone can't detect this — for a canJoinAllSpaces window
-    /// it can keep reporting true after the WindowServer has dropped the tag
-    /// (#93/#94), so also require the panel to actually composite
-    /// (`occlusionState.visible`; at `.popUpMenu`
-    /// level nothing covers it, so on the active Space it is always visible).
-    /// Occlusion state is delivered asynchronously from the WindowServer and
-    /// may still be stale one runloop turn after order-front — in either
-    /// direction: an unhealthy first verdict is confirmed before healing
-    /// (`.retry`), and a healthy first verdict is re-checked once (`.verify`)
-    /// because fast dismiss→reopen can leave both indicators reporting the
-    /// previous presentation's healthy state. Runs after `present()`; the
-    /// healthy path costs two property reads plus one settled confirm.
-    static func spaceVisibilityDecision(
-        isVisible: Bool,
-        isOnActiveSpace: Bool,
-        isOcclusionVisible: Bool,
-        isRetry: Bool
-    ) -> SpaceVisibilityDecision {
-        guard isVisible else { return .none }
-        guard isOnActiveSpace, isOcclusionVisible else {
-            return isRetry ? .heal : .retry
-        }
-        return isRetry ? .none : .verify
-    }
-
-    private func healSpaceAssignmentIfNeeded(
-        token: UInt,
-        isRetry: Bool = false,
-        recoveryAttempt: Int = 0
-    ) {
-        guard spaceCheckGeneration.matches(token) else { return }
-        let onActiveSpace = isOnActiveSpace
-        let decision = Self.spaceVisibilityDecision(
-            isVisible: isVisible,
-            isOnActiveSpace: onActiveSpace,
-            isOcclusionVisible: occlusionState.contains(.visible),
-            isRetry: isRetry
-        )
-        switch decision {
-        case .none:
-            return
-        case .verify, .retry:
-            DispatchQueue.main.asyncAfter(deadline: .now() + Self.spaceVisibilityRetryDelay) { [weak self] in
-                self?.healSpaceAssignmentIfNeeded(
-                    token: token,
-                    isRetry: true,
-                    recoveryAttempt: recoveryAttempt
-                )
-            }
-            return
-        case .heal:
-            break
-        }
-
-        guard recoveryAttempt < Self.maxSpaceRecoveryAttempts else {
-            Log.ui.fault("panel still not compositing after bounded Space recovery (#46/#64/#93/#94)")
-            return
-        }
-        Log.ui.error("panel \(onActiveSpace ? "not compositing on active Space" : "not on active Space") after reveal/Space change — re-asserting canJoinAllSpaces (#46/#64/#93/#94)")
-        reassertAllSpacesTag()
-        orderOut(nil)
-        makeKeyAndOrderFront(nil)
-        // Unlike `orderFront`, this is honored even if a Space transition made
-        // another app active between the visibility verdict and the recovery.
-        orderFrontRegardless()
-
-        // WindowServer state is asynchronous. Verify the repair and allow one
-        // additional bounded recovery instead of assuming the first re-order
-        // succeeded under load.
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.spaceRecoveryVerificationDelay) { [weak self] in
-            self?.healSpaceAssignmentIfNeeded(
-                token: token,
-                // A recovery starts a fresh pair of samples. One stale-negative
-                // verdict must not immediately trigger another visible re-order.
-                isRetry: false,
-                recoveryAttempt: recoveryAttempt + 1
-            )
-        }
-    }
-
-    /// A Space can change while the switcher is deliberately kept open (sticky
-    /// mode, swipe trigger). Hidden panels can safely refresh their WindowServer
-    /// tag immediately; visible panels wait for the transition's occlusion state
-    /// to settle and then use the same bounded verifier as a fresh reveal.
-    func activeSpaceDidChange() {
-        let token = spaceCheckGeneration.advance()
-        guard isVisible else {
-            reassertAllSpacesTag()
-            return
-        }
-        // NSWorkspace posts at the active-Space edge, while the WindowServer's
-        // visual transition and occlusion bookkeeping may continue briefly.
-        // Debounce that transition before taking the first sample; a second
-        // unhealthy sample is still required by `spaceVisibilityDecision`.
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.spaceTransitionSettleDelay) { [weak self] in
-            self?.healSpaceAssignmentIfNeeded(token: token)
-        }
-    }
-
-    /// Force the WindowServer to re-apply the collection behavior. Re-assigning
-    /// an identical mask may be short-circuited, so clear it first; the empty
-    /// intermediate state is never user-visible (the panel is hidden or on the
-    /// wrong Space whenever this runs).
-    func reassertAllSpacesTag() {
-        collectionBehavior = []
-        // Restore the canonical mask, not the value we just read: AppKit may
-        // lose the property bit as well as WindowServer's internal sticky tag.
-        collectionBehavior = Self.canonicalCollectionBehavior
     }
 
     /// Convert a Cocoa global rect (bottom-left origin, y-up) to the CGEvent
