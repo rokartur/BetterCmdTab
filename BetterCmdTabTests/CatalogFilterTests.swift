@@ -246,9 +246,24 @@ struct CatalogFilterTests {
 
     // MARK: - phantom-window filtering
 
-    private func win(_ offset: Int, _ pid: pid_t, _ wid: CGWindowID, onScreen: Bool, minimized: Bool = false, tabSibling: Bool = false)
-        -> (offset: Int, pid: pid_t, wid: CGWindowID, onScreen: Bool, isMinimized: Bool, isTabSibling: Bool) {
-        (offset, pid, wid, onScreen, minimized, tabSibling)
+    private func win(
+        _ offset: Int,
+        _ pid: pid_t,
+        _ wid: CGWindowID,
+        onScreen: Bool,
+        minimized: Bool = false,
+        tabSibling: Bool = false,
+        hasTitle: Bool = false
+    ) -> CatalogFilter.PhantomWindowCandidate {
+        CatalogFilter.PhantomWindowCandidate(
+            offset: offset,
+            pid: pid,
+            wid: wid,
+            onScreen: onScreen,
+            isMinimized: minimized,
+            isTabSibling: tabSibling,
+            hasTitle: hasTitle
+        )
     }
 
     @Test("phantom dropped when its app has an on-screen sibling")
@@ -268,6 +283,19 @@ struct CatalogFilterTests {
         let rows = [win(0, 7, 9168, onScreen: false), win(1, 7, 49502, onScreen: false)]
         let drop = CatalogFilter.phantomWindowOffsets(windowRows: rows, resolvedCandidateWids: [9168], spacelessWids: [49502])
         #expect(drop == [1])
+    }
+
+    @Test("Stage Manager keeps titled spaceless windows")
+    func stageManagerWindowsKept() {
+        let rows = (0..<4).map { win($0, 7, CGWindowID(100 + $0), onScreen: true, hasTitle: true) }
+            + (4..<10).map { win($0, 7, CGWindowID(100 + $0), onScreen: false, hasTitle: true) }
+            + [win(10, 7, 999, onScreen: false)]
+        let drop = CatalogFilter.phantomWindowOffsets(
+            windowRows: rows,
+            resolvedCandidateWids: [],
+            spacelessWids: Set((4..<10).map { CGWindowID(100 + $0) } + [999])
+        )
+        #expect(drop == [10])
     }
 
     @Test("spaceless window kept when it's the app's only window")

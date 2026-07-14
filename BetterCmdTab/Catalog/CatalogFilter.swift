@@ -149,14 +149,14 @@ enum CatalogFilter {
         var seen = Set<pid_t>()
         var kept: [Int] = []
         kept.reserveCapacity(pids.count)
-        for i in pids.indices {
-            let isPlaceholder = i < placeholders.count && placeholders[i]
+        for index in pids.indices {
+            let isPlaceholder = index < placeholders.count && placeholders[index]
             if isPlaceholder {
-                kept.append(i)                       // cache-warm rows pass through
-            } else if let pid = pids[i] {
-                if seen.insert(pid).inserted { kept.append(i) }  // first window of the app
+                kept.append(index)                       // cache-warm rows pass through
+            } else if let pid = pids[index] {
+                if seen.insert(pid).inserted { kept.append(index) }  // first window of the app
             } else {
-                kept.append(i)                       // no pid (launchable / recently-closed)
+                kept.append(index)                       // no pid (launchable / recently-closed)
             }
         }
         return kept
@@ -227,11 +227,11 @@ enum CatalogFilter {
         let candidates = Set(rows.lazy.map(\.cgWindowID).filter { $0 != 0 })
         let now = ProcessInfo.processInfo.systemUptime
         let hit = spaceMemo.withLock { memo -> SpaceResolution? in
-            guard let m = memo,
+            guard let cached = memo,
                   spaceMemoValid(scope: scope, candidates: candidates,
-                                 memoScope: m.scope, memoWids: m.wids, age: now - m.at)
+                                 memoScope: cached.scope, memoWids: cached.wids, age: now - cached.at)
             else { return nil }
-            return m.res
+            return cached.res
         }
         if let hit { return hit }
         let res = resolveSpaces(rows, scope: scope)
@@ -292,6 +292,16 @@ enum CatalogFilter {
         return rows.enumerated().filter { !dropOffsets.contains($0.offset) }.map(\.element)
     }
 
+    struct PhantomWindowCandidate {
+        let offset: Int
+        let pid: pid_t
+        let wid: CGWindowID
+        let onScreen: Bool
+        let isMinimized: Bool
+        let isTabSibling: Bool
+        let hasTitle: Bool
+    }
+
     /// Drop "phantom" windows: real CGWindow-backed rows that WindowServer
     /// reports as belonging to no Space at all. Electron apps (Teams, Signal, …)
     /// keep a hidden `BrowserWindow` that the AX window list still reports — it
@@ -300,7 +310,7 @@ enum CatalogFilter {
     /// window belongs to no Space; minimized, hidden-app, other-Space, sticky
     /// (All Desktops) and fullscreen windows all keep theirs.
     ///
-    /// Three guards keep the failure bias on the safe side — drop only what we're
+    /// Four guards keep the failure bias on the safe side — drop only what we're
     /// sure is unreachable, never the user's actual window:
     ///   1. Only a window WindowServer *positively* reports as spaceless
     ///      (`confirmedSpaceless`, `count == 0`) is a candidate. A multi-Space /
@@ -312,7 +322,11 @@ enum CatalogFilter {
     ///      tabs surfaced as their own rows ("expand tabs as windows",
     ///      `isTabSibling`) are never candidates either: a tabbed-away window is
     ///      spaceless exactly like the Electron helper, but the user asked for it.
-    ///   3. A spaceless window is dropped only when its app *also* has a window
+    ///   3. Titled windows are never candidates. Stage Manager can order real
+    ///      windows out and make them spaceless; the hidden Electron helpers this
+    ///      filter targets have no AX title. Titled overlays are filtered earlier
+    ///      by their non-switchable WindowServer level.
+    ///   4. A spaceless window is dropped only when its app *also* has a window
     ///      that occupies a Space (on-screen, or a sibling that resolved). A
     ///      phantom always coexists with the app's real window, so this still
     ///      catches it — but if an app's *only* window is spaceless, it's kept
@@ -328,11 +342,18 @@ enum CatalogFilter {
         // enumeration time (no AX round-trip). Rows without a real window
         // (placeholders/launchables/recents) carry wid 0 or no pid and are never
         // candidates.
-        let windowRows: [(offset: Int, pid: pid_t, wid: CGWindowID, onScreen: Bool, isMinimized: Bool, isTabSibling: Bool)] =
-            rows.enumerated().compactMap { idx, row in
-                guard row.cgWindowID != 0, let pid = row.pid else { return nil }
-                return (idx, pid, row.cgWindowID, spaces.onScreen.contains(row.cgWindowID), row.isMinimized, row.isTabSibling)
-            }
+        let windowRows = rows.enumerated().compactMap { index, row -> PhantomWindowCandidate? in
+            guard row.cgWindowID != 0, let pid = row.pid else { return nil }
+            return PhantomWindowCandidate(
+                offset: index,
+                pid: pid,
+                wid: row.cgWindowID,
+                onScreen: spaces.onScreen.contains(row.cgWindowID),
+                isMinimized: row.isMinimized,
+                isTabSibling: row.isTabSibling,
+                hasTitle: !row.windowTitle.isEmpty
+            )
+        }
         let dropOffsets = phantomWindowOffsets(
             windowRows: windowRows,
             resolvedCandidateWids: Set(spaces.spaceByWindow.keys),
@@ -345,30 +366,31 @@ enum CatalogFilter {
     /// Pure index-level core of `filterPhantomWindows`, split out so it can be
     /// unit-tested without CGS calls or `SwitcherRow`/AX. `windowRows` is every
     /// window-bearing row (offset, owning pid, wid, on-screen flag, minimized
-    /// flag, tab-sibling flag); `resolvedCandidateWids` is the set of wids that
-    /// resolved to a Space; `spacelessWids` is the set WindowServer positively
-    /// reports as belonging to no Space. Returns the offsets to drop:
-    /// non-minimized, non-tab, confirmed-spaceless windows whose app also has a
-    /// window occupying a Space (so a real window exists and this one is the
-    /// never-shown helper).
+    /// flag, tab-sibling flag, title presence); `resolvedCandidateWids` is the
+    /// set of wids that resolved to a Space; `spacelessWids` is the set
+    /// WindowServer positively reports as belonging to no Space. Returns the
+    /// offsets to drop: untitled, non-minimized, non-tab, confirmed-spaceless
+    /// windows whose app also has a window occupying a Space (so a real window
+    /// exists and this one is the never-shown helper).
     static func phantomWindowOffsets(
-        windowRows: [(offset: Int, pid: pid_t, wid: CGWindowID, onScreen: Bool, isMinimized: Bool, isTabSibling: Bool)],
+        windowRows: [PhantomWindowCandidate],
         resolvedCandidateWids: Set<CGWindowID>,
         spacelessWids: Set<CGWindowID>
     ) -> Set<Int> {
         // Apps with at least one window known to occupy a Space: any on-screen
         // window, or any window that resolved to a Space.
         var pidsOccupyingSpace = Set<pid_t>()
-        for r in windowRows where r.onScreen || resolvedCandidateWids.contains(r.wid) {
-            pidsOccupyingSpace.insert(r.pid)
+        for candidate in windowRows where candidate.onScreen || resolvedCandidateWids.contains(candidate.wid) {
+            pidsOccupyingSpace.insert(candidate.pid)
         }
         var drop = Set<Int>()
-        for r in windowRows
-        where !r.isMinimized
-            && !r.isTabSibling
-            && spacelessWids.contains(r.wid)
-            && pidsOccupyingSpace.contains(r.pid) {
-            drop.insert(r.offset)
+        for candidate in windowRows
+        where !candidate.isMinimized
+            && !candidate.isTabSibling
+            && !candidate.hasTitle
+            && spacelessWids.contains(candidate.wid)
+            && pidsOccupyingSpace.contains(candidate.pid) {
+            drop.insert(candidate.offset)
         }
         return drop
     }
@@ -383,7 +405,9 @@ enum CatalogFilter {
         var ids = Set<CGWindowID>()
         ids.reserveCapacity(arr.count)
         for entry in arr {
-            if let n = entry[kCGWindowNumber as String] as? Int { ids.insert(CGWindowID(n)) }
+            if let windowNumber = entry[kCGWindowNumber as String] as? Int {
+                ids.insert(CGWindowID(windowNumber))
+            }
         }
         return ids
     }
@@ -484,8 +508,8 @@ enum CatalogFilter {
         var rest: [T] = []
         rest.reserveCapacity(items.count)
         for (offset, item) in items.enumerated() {
-            if let r = rank(item) {
-                pinned.append((r, offset, item))
+            if let itemRank = rank(item) {
+                pinned.append((itemRank, offset, item))
             } else {
                 rest.append(item)
             }
