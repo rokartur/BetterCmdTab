@@ -3878,7 +3878,10 @@ final class SwitcherController: SwitcherViewDelegate {
             cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
         )
         guard let app = eligiblePrimedApp(in: rows) else { return nil }
-        return rows.first(where: { $0.pid == app.processIdentifier })
+        let scope = (activeFilterConfig ?? CatalogFilter.config()).spaceScope
+        return rows.first {
+            $0.pid == app.processIdentifier && (scope != .allSpaces || $0.window != nil)
+        }
     }
 
     /// The window row a `.mruWindows` fast tap-release should activate: the
