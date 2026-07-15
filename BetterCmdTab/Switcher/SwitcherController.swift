@@ -2887,7 +2887,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let snapshotApps = primedApps
         let targetIdx = primedIndex
-        var targetPid = snapshotApps.indices.contains(targetIdx)
+        let targetPid = snapshotApps.indices.contains(targetIdx)
             ? snapshotApps[targetIdx].processIdentifier : nil
 
         // Scoped-shortcut open: narrow BEFORE the applications-only collapse —
@@ -2907,13 +2907,6 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         let cachedRows = applyApplicationsOnly(sortedRows)
         if !cachedRows.isEmpty {
-            // The quick path starts from the app-level MRU list, which has no
-            // Space membership. When the preference narrows Spaces, derive the
-            // app target from these already scoped rows so the panel selects the
-            // same app a release-to-commit will activate.
-            if activeScope == nil, effective.sortOrder != .mruWindows {
-                targetPid = eligiblePrimedApp(in: cachedRows)?.processIdentifier
-            }
             baseRows = cachedRows
             baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
@@ -3032,16 +3025,7 @@ final class SwitcherController: SwitcherViewDelegate {
             cache.scheduleFullRefresh { [weak self] in
                 guard let self, gen == self.revealGeneration else { return }
                 let fresh = self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig)
-                // Placeholder rows have only the raw app-MRU target. Once the
-                // first complete snapshot arrives, remap it through its scoped
-                // rows before restoring selection so cold and warm reveals agree.
-                let scopedTargetPid: pid_t?
-                if self.activeScope == nil, self.effective.sortOrder != .mruWindows {
-                    scopedTargetPid = self.eligiblePrimedApp(in: fresh)?.processIdentifier
-                } else {
-                    scopedTargetPid = targetPid
-                }
-                self.applyFullSnapshot(fresh, anchorPid: scopedTargetPid)
+                self.applyFullSnapshot(fresh, anchorPid: targetPid)
             }
         }
 
@@ -3348,12 +3332,10 @@ final class SwitcherController: SwitcherViewDelegate {
             if next.isEmpty { return }
         }
 
-        // `refreshDisplay` normally preserves the user's current selection by
-        // identity so a Tab press landing between reveal-from-cache and this
+        // `refreshDisplay` preserves the user's current selection by identity so
+        // a Tab press landing between reveal-from-cache and this
         // background-refreshed apply isn't reverted to the originally-primed
-        // app. A placeholder-only list has no real selection, though: prefer
-        // the freshly recomputed scope-aware anchor over its raw-MRU identity.
-        let replacingPlaceholders = rows.allSatisfy { $0.isPlaceholder }
+        // app, falling back to `anchorPid` only if the row is gone.
         // Re-expand inline browser-tab rows from the (warm) per-session cache so a
         // background refresh doesn't visibly collapse them back to one row; then
         // scan any browser window that newly appeared. Collapse to one row per app
@@ -3361,7 +3343,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // window each app keeps is identical across the reveal→refresh transition.
         baseRows = applyBrowserTabMRU(expandBrowserTabs(applyApplicationsOnly(applyPerAppWindowMRU(applyWindowMRUSort(next)))))
         baseLabels = RowLabels.labels(for: baseRows)
-        refreshDisplay(anchorPid: anchorPid, preferAnchorOverSelection: replacingPlaceholders)
+        refreshDisplay(anchorPid: anchorPid)
         scheduleBrowserTabExpansion()
     }
 
@@ -5208,13 +5190,9 @@ final class SwitcherController: SwitcherViewDelegate {
     /// letter-prefix reorder, or plain pass-through. Selection is restored by
     /// identity (then `anchorPid`, then clamped), and the result is pushed to
     /// the panel. Replaces the old `applyPrefixReorder`.
-    private func refreshDisplay(
-        resetSelectionToTop: Bool = false,
-        anchorPid: pid_t? = nil,
-        preferAnchorOverSelection: Bool = false
-    ) {
+    private func refreshDisplay(resetSelectionToTop: Bool = false, anchorPid: pid_t? = nil) {
         guard phase == .visible else { return }
-        let key = resetSelectionToTop || preferAnchorOverSelection ? nil : selectionKey()
+        let key = resetSelectionToTop ? nil : selectionKey()
 
         if searchActive, !searchQuery.isEmpty {
             // When the transient tab-expansion feature applies, filter over the
