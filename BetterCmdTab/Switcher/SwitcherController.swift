@@ -3870,9 +3870,9 @@ final class SwitcherController: SwitcherViewDelegate {
         return eligibleApps[index]
     }
 
-    /// The row the visible switcher would activate for the scoped primed app.
-    /// Reads the warm cache ONLY: this runs inside commit() on the main actor,
-    /// so it must never trigger a synchronous cross-process AppCatalog.snapshot().
+    /// The scoped row a quick release-to-commit should activate. Reads the warm
+    /// cache ONLY: this runs inside commit() on the main actor, so it must never
+    /// trigger a synchronous cross-process AppCatalog.snapshot().
     private func primedAppTargetRow() -> SwitcherRow? {
         let rows = applyPerAppWindowMRU(
             cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
