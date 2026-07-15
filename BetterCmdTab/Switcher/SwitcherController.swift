@@ -2887,7 +2887,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
         let snapshotApps = primedApps
         let targetIdx = primedIndex
-        let targetPid = snapshotApps.indices.contains(targetIdx)
+        var targetPid = snapshotApps.indices.contains(targetIdx)
             ? snapshotApps[targetIdx].processIdentifier : nil
 
         // Scoped-shortcut open: narrow BEFORE the applications-only collapse —
@@ -2907,6 +2907,13 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         let cachedRows = applyApplicationsOnly(sortedRows)
         if !cachedRows.isEmpty {
+            // The quick path starts from the app-level MRU list, which has no
+            // Space membership. When the preference narrows Spaces, derive the
+            // app target from these already scoped rows so the panel selects the
+            // same app a release-to-commit will activate.
+            if activeScope == nil, effective.sortOrder != .mruWindows {
+                targetPid = eligiblePrimedApp(in: cachedRows)?.processIdentifier
+            }
             baseRows = cachedRows
             baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
@@ -3025,7 +3032,16 @@ final class SwitcherController: SwitcherViewDelegate {
             cache.scheduleFullRefresh { [weak self] in
                 guard let self, gen == self.revealGeneration else { return }
                 let fresh = self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig)
-                self.applyFullSnapshot(fresh, anchorPid: targetPid)
+                // Placeholder rows have only the raw app-MRU target. Once the
+                // first complete snapshot arrives, remap it through its scoped
+                // rows before restoring selection so cold and warm reveals agree.
+                let scopedTargetPid: pid_t?
+                if self.activeScope == nil, self.effective.sortOrder != .mruWindows {
+                    scopedTargetPid = self.eligiblePrimedApp(in: fresh)?.processIdentifier
+                } else {
+                    scopedTargetPid = targetPid
+                }
+                self.applyFullSnapshot(fresh, anchorPid: scopedTargetPid)
             }
         }
 
@@ -3332,10 +3348,12 @@ final class SwitcherController: SwitcherViewDelegate {
             if next.isEmpty { return }
         }
 
-        // `refreshDisplay` preserves the user's current selection by identity so
-        // a Tab press landing between reveal-from-cache and this
+        // `refreshDisplay` normally preserves the user's current selection by
+        // identity so a Tab press landing between reveal-from-cache and this
         // background-refreshed apply isn't reverted to the originally-primed
-        // app, falling back to `anchorPid` only if the row is gone.
+        // app. A placeholder-only list has no real selection, though: prefer
+        // the freshly recomputed scope-aware anchor over its raw-MRU identity.
+        let replacingPlaceholders = rows.allSatisfy { $0.isPlaceholder }
         // Re-expand inline browser-tab rows from the (warm) per-session cache so a
         // background refresh doesn't visibly collapse them back to one row; then
         // scan any browser window that newly appeared. Collapse to one row per app
@@ -3343,7 +3361,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // window each app keeps is identical across the reveal→refresh transition.
         baseRows = applyBrowserTabMRU(expandBrowserTabs(applyApplicationsOnly(applyPerAppWindowMRU(applyWindowMRUSort(next)))))
         baseLabels = RowLabels.labels(for: baseRows)
-        refreshDisplay(anchorPid: anchorPid)
+        refreshDisplay(anchorPid: anchorPid, preferAnchorOverSelection: replacingPlaceholders)
         scheduleBrowserTabExpansion()
     }
 
@@ -3841,19 +3859,44 @@ final class SwitcherController: SwitcherViewDelegate {
         return candidates[target]
     }
 
-    /// The row the visible switcher would activate for `app`: its most recently
-    /// used catalogued window. Runs the same `applyPerAppWindowMRU` pass as
-    /// reveal(), so the first windowed row for the pid is the app's window-MRU
-    /// front (#83) — a fast ⌘⇥ tap and a held-open panel agree on the target.
-    /// Reads the warm cache ONLY: this runs inside commit() on the main
-    /// actor (the hottest path), so it must never trigger a synchronous
-    /// cross-process AppCatalog.snapshot(). nil — a windowless app, or the brief
-    /// cold-cache window at boot/AX-regrant — makes the caller fall back to the
-    /// cheap, main-safe `activateApp`.
-    private func primedAppTargetRow(for app: NSRunningApplication) -> SwitcherRow? {
-        let pid = app.processIdentifier
-        return applyPerAppWindowMRU(cache.rows(orderedBy: mru.order, filter: activeFilterConfig))
-            .first(where: { $0.pid == pid && $0.window != nil })
+    /// The primed app after removing apps with no row in the current Space
+    /// scope. `primedApps` deliberately remains the cheap app-level MRU list
+    /// while a chord is held; this maps its accumulated step onto the scoped
+    /// rows only when choosing an activation target.
+    private func eligiblePrimedApp(in rows: [SwitcherRow]) -> NSRunningApplication? {
+        let scope = (activeFilterConfig ?? CatalogFilter.config()).spaceScope
+        guard scope != .allSpaces else {
+            guard primedApps.indices.contains(primedIndex) else { return nil }
+            return primedApps[primedIndex]
+        }
+
+        let eligiblePids = Set(rows.compactMap(\.pid))
+        let eligibleApps = primedApps.filter { eligiblePids.contains($0.processIdentifier) }
+        guard !eligibleApps.isEmpty else { return nil }
+
+        let anchor: Int?
+        if effective.sortOrder.anchorsPrimedOnFrontmost, let front = mru.order.first {
+            anchor = eligibleApps.firstIndex { $0.processIdentifier == front }
+        } else {
+            anchor = nil
+        }
+        let index = Self.primedStartIndex(
+            count: eligibleApps.count,
+            step: primedStepDelta,
+            anchor: anchor
+        )
+        return eligibleApps[index]
+    }
+
+    /// The row the visible switcher would activate for the scoped primed app.
+    /// Reads the warm cache ONLY: this runs inside commit() on the main actor,
+    /// so it must never trigger a synchronous cross-process AppCatalog.snapshot().
+    private func primedAppTargetRow() -> SwitcherRow? {
+        let rows = applyPerAppWindowMRU(
+            cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
+        )
+        guard let app = eligiblePrimedApp(in: rows) else { return nil }
+        return rows.first(where: { $0.pid == app.processIdentifier })
     }
 
     /// The window row a `.mruWindows` fast tap-release should activate: the
@@ -3986,22 +4029,21 @@ final class SwitcherController: SwitcherViewDelegate {
                 if let p = row.pid { mru.bump(p) }
                 bumpWindowMRUIfPossible(for: row)
                 pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
-            } else if primedApps.indices.contains(primedIndex) {
+            } else if let row = primedAppTargetRow() {
+                // Under a narrowed Space scope, `primedAppTargetRow()` maps the
+                // app-level MRU step onto apps represented by scoped rows. This
+                // prevents a tap from falling back to an app on another Space.
+                if let pid = row.pid { mru.bump(pid) }
+                bumpWindowMRUIfPossible(for: row)
+                pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
+            } else if (activeFilterConfig ?? CatalogFilter.config()).spaceScope == .allSpaces,
+                      primedApps.indices.contains(primedIndex) {
+                // Preserve the legacy all-Spaces fallback for the brief
+                // cold-cache period. Narrowed scopes deliberately no-op instead:
+                // activating the raw MRU app could switch Spaces.
                 let app = primedApps[primedIndex]
                 mru.bump(app.processIdentifier)
-                // Activate through the app's frontmost catalogued window — the
-                // same row the visible switcher would have committed — so a
-                // fast ⌘⇥ tap jumps Spaces / exits full screen exactly like
-                // releasing ⌘ over the panel. `activateApp` carries no window
-                // and no `instantSpace`, so it can't switch Spaces; that's why
-                // rapid ⌘⇥ between Spaces (or Space↔window) used to land on the
-                // wrong Space. Fall back to it only for windowless apps.
-                if let row = primedAppTargetRow(for: app) {
-                    bumpWindowMRUIfPossible(for: row)
-                    pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
-                } else {
-                    pendingActivation = { Activator.activateApp(app, completion: finishDismiss) }
-                }
+                pendingActivation = { Activator.activateApp(app, completion: finishDismiss) }
             }
         case .idle:
             break
@@ -5166,9 +5208,13 @@ final class SwitcherController: SwitcherViewDelegate {
     /// letter-prefix reorder, or plain pass-through. Selection is restored by
     /// identity (then `anchorPid`, then clamped), and the result is pushed to
     /// the panel. Replaces the old `applyPrefixReorder`.
-    private func refreshDisplay(resetSelectionToTop: Bool = false, anchorPid: pid_t? = nil) {
+    private func refreshDisplay(
+        resetSelectionToTop: Bool = false,
+        anchorPid: pid_t? = nil,
+        preferAnchorOverSelection: Bool = false
+    ) {
         guard phase == .visible else { return }
-        let key = resetSelectionToTop ? nil : selectionKey()
+        let key = resetSelectionToTop || preferAnchorOverSelection ? nil : selectionKey()
 
         if searchActive, !searchQuery.isEmpty {
             // When the transient tab-expansion feature applies, filter over the
