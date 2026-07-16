@@ -373,6 +373,29 @@ struct SwitcherWindowSelectionTests {
         #expect(SwitcherController.windowSelectionIndex(in: refreshed, selected: selected) == 2)
     }
 
+    @Test("duplicate tab URLs fall back to a unique title over a stale index")
+    func duplicateUrlFallsBackToTitle() {
+        let browser = window(1)
+        let parent = row(window: browser, title: "Browser")
+        let selected = parent.browserTabRows(
+            tabs: [
+                BrowserTabInfo(title: "Inbox", url: "https://example.test/dup"),
+                BrowserTabInfo(title: "Docs", url: "https://example.test/dup"),
+            ],
+            activeIndex: 0
+        )[1]
+        let refreshed = parent.browserTabRows(
+            tabs: [
+                BrowserTabInfo(title: "New", url: "https://example.test/new"),
+                BrowserTabInfo(title: "Inbox", url: "https://example.test/dup"),
+                BrowserTabInfo(title: "Docs", url: "https://example.test/dup"),
+            ],
+            activeIndex: 0
+        )
+
+        #expect(SwitcherController.windowSelectionIndex(in: refreshed, selected: selected) == 2)
+    }
+
     @Test("ordinary window keeps its identity after an earlier window expands")
     func preservesOrdinaryWindow() {
         let browserRows = row(window: window(1), title: "Browser")
