@@ -247,8 +247,12 @@ final class WindowThumbnailCache {
         guard !didRequestPermission else { return }
         didRequestPermission = true
         DispatchQueue.global(qos: .utility).async {
-            if !CGPreflightScreenCaptureAccess() {
-                _ = CGRequestScreenCaptureAccess()
+            guard !CGPreflightScreenCaptureAccess() else { return }
+            // Granting flips a prior "denied" enumeration into a stale 5 s
+            // backoff; drop it so the next reveal captures immediately instead of
+            // showing app icons until the backoff elapses.
+            if CGRequestScreenCaptureAccess(), #available(macOS 14.0, *) {
+                Task { await SCWindowProvider.shared.clearFailureBackoff() }
             }
         }
     }
@@ -423,8 +427,28 @@ private actor SCWindowProvider {
     /// a denied permission doesn't fire XPC round trips per tile per repaint.
     private let failureBackoff: TimeInterval = 5.0
 
+    /// A transient enumeration failure (SCK busy, a just-opened window not yet in
+    /// the inventory) clears on its own in a fraction of a second, so pacing it
+    /// behind the 5 s permission backoff needlessly blanks every tile until the
+    /// next reveal. Only a *denied permission* — which the app tolerates
+    /// indefinitely — warrants the long backoff. `performRefresh` picks the
+    /// window based on whether Screen Recording is currently granted.
+    private let transientFailureBackoff: TimeInterval = 0.5
+    /// Whether the last failure happened while Screen Recording was granted
+    /// (transient) vs denied (permission). Selects the backoff length above.
+    private var lastFailureWasTransient = false
+
     private var refreshGeneration: UInt64 = 0
     private var inFlightRefresh: (generation: UInt64, task: Task<Void, Never>)?
+
+    /// Reset the failure pacing so the next enumeration retries immediately.
+    /// Called when Screen Recording is granted at runtime: without this, a denial
+    /// recorded moments earlier would keep every tile on its app icon for up to
+    /// `failureBackoff` seconds after the user already fixed the permission.
+    func clearFailureBackoff() {
+        lastFailureAt = .distantPast
+        lastFailureWasTransient = false
+    }
 
     /// Resolve and capture entirely inside the actor so the non-Sendable
     /// ScreenCaptureKit `SCWindow` never crosses an isolation boundary.
@@ -503,7 +527,8 @@ private actor SCWindowProvider {
     }
 
     private func performRefresh(generation: UInt64) async {
-        guard Date().timeIntervalSince(lastFailureAt) >= failureBackoff else { return }
+        let backoff = lastFailureWasTransient ? transientFailureBackoff : failureBackoff
+        guard Date().timeIntervalSince(lastFailureAt) >= backoff else { return }
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(
                 false,
@@ -520,10 +545,13 @@ private actor SCWindowProvider {
             fetchedAt = Date()
         } catch {
             guard !Task.isCancelled, generation == refreshGeneration else { return }
-            // Permission missing or transient failure — leave the previous map
-            // (possibly empty); the CG fallback path still gets a chance.
+            // Leave the previous map (possibly empty); the CG fallback path still
+            // gets a chance. Classify the failure so the pacing above can retry a
+            // transient hiccup quickly while still holding back per-tile XPC when
+            // the permission is genuinely denied.
             fetchedAt = .distantPast
             lastFailureAt = Date()
+            lastFailureWasTransient = CGPreflightScreenCaptureAccess()
         }
     }
 
