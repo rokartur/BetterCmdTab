@@ -4032,9 +4032,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
             } else if (activeFilterConfig ?? CatalogFilter.config()).spaceScope == .allSpaces,
                       primedApps.indices.contains(primedIndex) {
-                // Preserve the legacy all-Spaces fallback for the brief
-                // cold-cache period. Narrowed scopes deliberately no-op instead:
-                // activating the raw MRU app could switch Spaces.
+                // Only All Spaces may fall back to raw MRU; a narrowed scope could switch Spaces.
                 let app = primedApps[primedIndex]
                 mru.bump(app.processIdentifier)
                 pendingActivation = { Activator.activateApp(app, completion: finishDismiss) }
