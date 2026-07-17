@@ -763,6 +763,9 @@ final class Preferences: ObservableObject {
         /// collapsed row + `\` peek is the default. Browser tabs aren't separate
         /// NSWindows, so the rows are built from an async Apple Events tab scan.
         static let expandBrowserTabsAsWindows = "Switcher.expandBrowserTabsAsWindows"
+        /// Badge each expanded browser-tab row's favicon with the source
+        /// browser's app icon (#131). Default off — favicon-only stays the look.
+        static let showBrowserIconOnTabs = "Switcher.showBrowserIconOnTabs"
         static let showUnreadBadges = "Switcher.showUnreadBadges"
         /// Pre-graduation key (badges used to live behind the Experimental tab);
         /// read once at launch to carry a user's earlier choice over to the new key.
@@ -1393,6 +1396,20 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Badge each browser-tab row's favicon with the source browser's app
+    /// icon, so the same site open in two browsers is tellable apart (#131).
+    /// Applies to tab rows from `expandBrowserTabsAsWindows` (global or
+    /// per-shortcut override) and the `\` drill-in. Default off.
+    @Published var showBrowserIconOnTabs: Bool {
+        didSet {
+            guard oldValue != showBrowserIconOnTabs else { return }
+            UserDefaults.standard.set(showBrowserIconOnTabs, forKey: Keys.showBrowserIconOnTabs)
+            // Off → release the composited favicons right away instead of
+            // holding ~8 MB until NSCache memory pressure.
+            if !showBrowserIconOnTabs { IconCache.clearBadges() }
+        }
+    }
+
     /// Show app unread-badge counts (e.g. Mail's unread mail) on switcher rows,
     /// read from the Dock via the Accessibility API. On by default.
     @Published var showUnreadBadges: Bool {
@@ -1920,6 +1937,7 @@ final class Preferences: ObservableObject {
         self.windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
+        self.showBrowserIconOnTabs = defaults.object(forKey: Keys.showBrowserIconOnTabs) as? Bool ?? false
         self.experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
         self.experimentalBrowserTabPreviews = defaults.object(forKey: Keys.experimentalBrowserTabPreviews) as? Bool ?? false
         self.experimentalLivePreviews = defaults.object(forKey: Keys.experimentalLivePreviews) as? Bool ?? false
@@ -2064,6 +2082,7 @@ final class Preferences: ObservableObject {
         windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
+        showBrowserIconOnTabs = defaults.object(forKey: Keys.showBrowserIconOnTabs) as? Bool ?? false
         experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
         experimentalBrowserTabPreviews = defaults.object(forKey: Keys.experimentalBrowserTabPreviews) as? Bool ?? false
         experimentalLivePreviews = defaults.object(forKey: Keys.experimentalLivePreviews) as? Bool ?? false

@@ -9,14 +9,16 @@ final class PrivacySettingsViewController: SettingsTabViewController {
 
     private let permissionIcon = NSImageView()
     private let permissionButton = NSButton(title: "", target: nil, action: nil)
+    private let fullDiskIcon = NSImageView()
+    private let fullDiskButton = NSButton(title: "", target: nil, action: nil)
 
-    private var observationTask: Task<Void, Never>?
+    private var observationTasks: [Task<Void, Never>] = []
 
     deinit {
         // Releasing a Task handle does not cancel the task. This is the final
         // backstop for teardown paths that skip both viewWillDisappear and
         // BetterSettings' prepareForMemoryRelease hook.
-        observationTask?.cancel()
+        observationTasks.forEach { $0.cancel() }
     }
 
     override func setupContent() {
@@ -35,32 +37,20 @@ final class PrivacySettingsViewController: SettingsTabViewController {
         // Permissions section.
         let permissions = addSection(title: String(localized: "Permissions"), anchor: SettingsAnchor.permissions)
 
-        permissionIcon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-        permissionIcon.translatesAutoresizingMaskIntoConstraints = false
-        permissionIcon.setContentHuggingPriority(.required, for: .horizontal)
-        NSLayoutConstraint.activate([
-            permissionIcon.widthAnchor.constraint(equalToConstant: 16),
-            permissionIcon.heightAnchor.constraint(equalToConstant: 16),
-        ])
-
-        permissionButton.bezelStyle = .rounded
-        permissionButton.controlSize = .small
-        permissionButton.target = self
-        permissionButton.action = #selector(grantAccess)
-
-        let permissionAccessory = NSStackView()
-        permissionAccessory.orientation = .horizontal
-        permissionAccessory.spacing = 8
-        permissionAccessory.alignment = .centerY
-        permissionAccessory.addArrangedSubview(permissionIcon)
-        permissionAccessory.addArrangedSubview(permissionButton)
-
         addRow(
             to: permissions,
             title: String(localized: "Accessibility access"),
             subtitle: String(localized: "Lets BetterCmdTab capture the shortcut and read your open windows. Required to work."),
-            accessory: permissionAccessory,
+            accessory: makePermissionAccessory(icon: permissionIcon, button: permissionButton, action: #selector(grantAccess)),
             searchItemID: SearchID.accessibility
+        )
+
+        addRow(
+            to: permissions,
+            title: String(localized: "Full Disk Access"),
+            subtitle: String(localized: "Lets BetterCmdTab read Safari's favicon store so Safari tab entries show site icons. Optional — other browsers don't need it."),
+            accessory: makePermissionAccessory(icon: fullDiskIcon, button: fullDiskButton, action: #selector(grantFullDiskAccess)),
+            searchItemID: SearchID.fullDiskAccess
         )
 
         // The Recovery section (restore macOS keyboard shortcuts) moved to the
@@ -73,6 +63,30 @@ final class PrivacySettingsViewController: SettingsTabViewController {
         toggle.action = action
     }
 
+    /// Status icon + grant button pair used by every permission row.
+    private func makePermissionAccessory(icon: NSImageView, button: NSButton, action: Selector) -> NSStackView {
+        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.setContentHuggingPriority(.required, for: .horizontal)
+        NSLayoutConstraint.activate([
+            icon.widthAnchor.constraint(equalToConstant: 16),
+            icon.heightAnchor.constraint(equalToConstant: 16),
+        ])
+
+        button.bezelStyle = .rounded
+        button.controlSize = .small
+        button.target = self
+        button.action = action
+
+        let stack = NSStackView()
+        stack.orientation = .horizontal
+        stack.spacing = 8
+        stack.alignment = .centerY
+        stack.addArrangedSubview(icon)
+        stack.addArrangedSubview(button)
+        return stack
+    }
+
     override func viewWillAppear() {
         super.viewWillAppear()
 
@@ -82,26 +96,40 @@ final class PrivacySettingsViewController: SettingsTabViewController {
         // immediately, then every change (TCC notification / app activation / adaptive
         // poll), replacing the hand-rolled 1 Hz timer + didBecomeActive observer. The
         // engine disarms when this task is cancelled on disappear / memory release.
-        observationTask?.cancel() // never leak a second armed observation
-        observationTask = Task { @MainActor [weak self] in
-            for await snapshot in BetterPermissions.changes(.accessibility) {
-                self?.refreshAccessibilityStatus(isUsable: snapshot.status.isUsable)
-            }
-        }
+        cancelObservations() // never leak a second armed observation
+        observationTasks = [
+            Task { @MainActor [weak self] in
+                for await snapshot in BetterPermissions.changes(.accessibility) {
+                    guard let self else { return }
+                    self.refreshPermission(icon: self.permissionIcon, button: self.permissionButton,
+                                           isUsable: snapshot.status.isUsable, optional: false)
+                }
+            },
+            Task { @MainActor [weak self] in
+                for await snapshot in BetterPermissions.changes(.fullDiskAccess) {
+                    guard let self else { return }
+                    self.refreshPermission(icon: self.fullDiskIcon, button: self.fullDiskButton,
+                                           isUsable: snapshot.status.isUsable, optional: true)
+                }
+            },
+        ]
     }
 
     override func viewWillDisappear() {
         super.viewWillDisappear()
-        observationTask?.cancel()
-        observationTask = nil
+        cancelObservations()
+    }
+
+    private func cancelObservations() {
+        observationTasks.forEach { $0.cancel() }
+        observationTasks.removeAll()
     }
 
     // BetterSettings can tear down the active tab (window close / memory eviction)
     // without a matching viewWillDisappear, which would orphan the observation Task and
     // leave the BetterPermissions accessibility detector armed for the process lifetime.
     override func prepareForMemoryRelease() {
-        observationTask?.cancel()
-        observationTask = nil
+        cancelObservations()
         super.prepareForMemoryRelease()
     }
 
@@ -116,17 +144,28 @@ final class PrivacySettingsViewController: SettingsTabViewController {
         }
     }
 
-    private func refreshAccessibilityStatus(isUsable: Bool) {
+    @objc private func grantFullDiskAccess() {
+        // FDA has no prompt API — the button always deep-links to the
+        // System Settings pane; the observation picks up the grant on return.
+        BetterPermissions.openSettings(for: .fullDiskAccess)
+    }
+
+    /// Shared status render for a permission row. `optional` picks the
+    /// not-granted look: a neutral gray minus for nice-to-have permissions,
+    /// an orange warning for required ones.
+    private func refreshPermission(icon: NSImageView, button: NSButton, isUsable: Bool, optional: Bool) {
         if isUsable {
             // Granted: show the state only — no actionable button.
-            permissionIcon.image = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: String(localized: "Granted"))
-            permissionIcon.contentTintColor = .systemGreen
-            permissionButton.isHidden = true
+            icon.image = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: String(localized: "Granted"))
+            icon.contentTintColor = .systemGreen
+            button.isHidden = true
         } else {
-            permissionIcon.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: String(localized: "Required"))
-            permissionIcon.contentTintColor = .systemOrange
-            permissionButton.isHidden = false
-            permissionButton.title = String(localized: "Grant Access")
+            icon.image = optional
+                ? NSImage(systemSymbolName: "minus.circle.fill", accessibilityDescription: String(localized: "Not granted"))
+                : NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: String(localized: "Required"))
+            icon.contentTintColor = optional ? .secondaryLabelColor : .systemOrange
+            button.isHidden = false
+            button.title = String(localized: "Grant Access")
         }
     }
 }

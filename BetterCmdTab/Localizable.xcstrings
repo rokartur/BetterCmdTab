@@ -3301,6 +3301,40 @@
         }
       }
     },
+    "Full Disk Access" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Festplattenvollzugriff"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceso total al disco"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès complet au disque"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełny dostęp do dysku"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完全磁盘访问权限"
+          }
+        }
+      }
+    },
     "Full Screen" : {
       "localizations" : {
         "de" : {
@@ -5036,6 +5070,40 @@
         }
       }
     },
+    "Lets BetterCmdTab read Safari's favicon store so Safari tab entries show site icons. Optional — other browsers don't need it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaubt BetterCmdTab, Safaris Favicon-Speicher zu lesen, damit Safari-Tab-Einträge Website-Symbole zeigen. Optional — andere Browser brauchen es nicht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite a BetterCmdTab leer el almacén de favicons de Safari para que las entradas de pestañas de Safari muestren los iconos de los sitios. Opcional: otros navegadores no lo necesitan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet à BetterCmdTab de lire le stockage des favicons de Safari pour que les entrées d'onglets Safari affichent les icônes des sites. Facultatif — les autres navigateurs n'en ont pas besoin."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala BetterCmdTab odczytywać magazyn favicon Safari, aby wpisy kart Safari pokazywały ikony stron. Opcjonalne — inne przeglądarki tego nie potrzebują."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许 BetterCmdTab 读取 Safari 的网站图标存储，使 Safari 标签页条目显示网站图标。可选——其他浏览器不需要此权限。"
+          }
+        }
+      }
+    },
     "Lets the app keep ⌘Tab for itself: the chord is passed through to the app instead of opening the switcher. Useful for apps with their own window switching — virtual machines, remote desktop, some games.\n\n• Never — the switcher always opens.\n• Always — the app keeps ⌘Tab whenever it's focused.\n• In full screen — only while the app is in full screen." : {
       "localizations" : {
         "de" : {
@@ -5984,6 +6052,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "默认关闭。它们可能会变更或失效。"
+          }
+        }
+      }
+    },
+    "Not granted" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht erteilt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No concedido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non accordé"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie przyznano"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未授予"
           }
         }
       }
@@ -8165,6 +8267,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示无窗口应用"
+          }
+        }
+      }
+    },
+    "Badge each tab entry's favicon with the source browser's app icon, so you can tell which browser a tab belongs to when the same site is open in more than one." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versieht das Favicon jedes Tab-Eintrags mit dem App-Symbol des zugehörigen Browsers, damit erkennbar ist, zu welchem Browser ein Tab gehört, wenn dieselbe Seite in mehreren geöffnet ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añade al favicon de cada entrada de pestaña el icono de la app del navegador de origen, para distinguir a qué navegador pertenece una pestaña cuando el mismo sitio está abierto en varios."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoute au favicon de chaque entrée d’onglet l’icône de l’app du navigateur d’origine, pour savoir à quel navigateur appartient un onglet lorsque le même site est ouvert dans plusieurs."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaje do favikony każdego wpisu karty ikonę aplikacji przeglądarki źródłowej, aby było widać, do której przeglądarki należy karta, gdy ta sama strona jest otwarta w kilku."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在每个标签页条目的网站图标上叠加来源浏览器的应用图标，当同一网站在多个浏览器中打开时，可以分辨标签页属于哪个浏览器。"
+          }
+        }
+      }
+    },
+    "Show browser icon on tab entries" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser-Symbol auf Tab-Einträgen anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar el icono del navegador en las entradas de pestañas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher l’icône du navigateur sur les entrées d’onglets"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj ikonę przeglądarki na wpisach kart"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在标签页条目上显示浏览器图标"
           }
         }
       }
