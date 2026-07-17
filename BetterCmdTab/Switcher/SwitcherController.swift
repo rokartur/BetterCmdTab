@@ -3841,15 +3841,16 @@ final class SwitcherController: SwitcherViewDelegate {
         return candidates[target]
     }
 
-    /// The row a quick Cmd-Tab release would activate: its most recently used
+    /// The row a quick ⌘⇥ tap would activate: its most recently used
     /// catalogued window or a scoped windowless row. Runs the same
     /// `applyPerAppWindowMRU` pass as reveal(), so the first windowed row for
     /// the pid is the app's window-MRU front (#83).
     /// Reads the warm cache ONLY: this runs inside commit() on the main actor
     /// (the hottest path), so it must never trigger a synchronous cross-process
-    /// AppCatalog.snapshot(). nil — no eligible scoped row, or the brief
-    /// cold-cache window at boot/AX-regrant — leaves narrowed scopes inactive
-    /// and preserves the all-Spaces `activateApp` fallback.
+    /// AppCatalog.snapshot(). Under All Spaces, nil — a windowless app or the
+    /// brief cold-cache window at boot/AX-regrant — makes the caller fall back
+    /// to the cheap, main-safe `activateApp`. Narrowed scopes do nothing when
+    /// no scoped row is eligible.
     private func primedAppTargetRow() -> SwitcherRow? {
         let rows = applyPerAppWindowMRU(
             cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
