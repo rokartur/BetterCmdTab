@@ -76,6 +76,7 @@ enum SearchID {
     static let sound = "general.sound"
     static let hideFromScreenSharing = "general.hideFromScreenSharing"
     static let accessibility = "general.accessibility"
+    static let fullDiskAccess = "privacy.fullDiskAccess"
     static let restoreShortcuts = "privacy.restoreShortcuts"
     static let updateInterval = "general.updateInterval"
     static let beta = "general.beta"
@@ -99,6 +100,7 @@ enum SearchID {
     static let windowDrill = "switcher.windowDrill"
     static let expandTabs = "switcher.expandTabs"
     static let expandBrowserTabs = "switcher.expandBrowserTabs"
+    static let browserIconOnTabs = "switcher.browserIconOnTabs"
     static let tabPermissions = "switcher.tabPermissions"
     static let letterHints = "switcher.letterHints"
     static let applicationNames = "switcher.applicationNames"
@@ -290,6 +292,8 @@ enum SettingsCatalog {
         // Privacy · Permissions
         item(SearchID.accessibility, .privacy, SettingsAnchor.permissions, String(localized: "Privacy"), String(localized: "Permissions"),
              String(localized: "Accessibility access"), ["accessibility", "permission", "grant", "trusted"]),
+        item(SearchID.fullDiskAccess, .privacy, SettingsAnchor.permissions, String(localized: "Privacy"), String(localized: "Permissions"),
+             String(localized: "Full Disk Access"), ["full", "disk", "access", "fda", "permission", "safari", "favicon", "favicons"]),
 
         // Behavior · Display
         item(SearchID.displayMonitor, .switcher, SettingsAnchor.display, String(localized: "Behavior"), String(localized: "Display"),
@@ -305,6 +309,8 @@ enum SettingsCatalog {
              String(localized: "Show tabs as separate entries"), ["tabs", "tab", "expand", "separate", "rows", "per tab", "finder", "terminal", "native tabs"]),
         item(SearchID.expandBrowserTabs, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Show browser tabs as separate entries"), ["tabs", "tab", "browser", "expand", "separate", "rows", "per tab", "safari", "chrome", "arc", "brave", "edge"]),
+        item(SearchID.browserIconOnTabs, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
+             String(localized: "Show browser icon on tab entries"), ["tabs", "tab", "browser", "icon", "badge", "favicon", "source", "safari", "chrome", "arc", "brave", "edge"]),
         item(SearchID.tabPermissions, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Browser tab access"), ["tabs", "apple events", "automation", "permission", "browser", "consent"]),
         // Switcher · Search

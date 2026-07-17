@@ -38,6 +38,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     private let tabDrillSwitch = NSSwitch()
     private let expandTabsSwitch = NSSwitch()
     private let expandBrowserTabsSwitch = NSSwitch()
+    private let browserIconOnTabsSwitch = NSSwitch()
 
     // Search
     private let letterHintsSwitch = NSSwitch()
@@ -201,6 +202,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         addRow(to: tabs, title: String(localized: "Show browser tabs as separate entries"),
                subtitle: String(localized: "List each tab of a browser window (Safari, Chrome, Arc, Brave, Edge, …) as its own row alongside the other windows, instead of one collapsed window. Needs Apple Events access (below); off keeps one row per window — peek its tabs with \\."),
                accessory: expandBrowserTabsSwitch, searchItemID: SearchID.expandBrowserTabs)
+        configureSwitch(browserIconOnTabsSwitch, action: #selector(toggleBrowserIconOnTabs(_:)))
+        addRow(to: tabs, title: String(localized: "Show browser icon on tab entries"),
+               subtitle: String(localized: "Badge each tab entry's favicon with the source browser's app icon, so you can tell which browser a tab belongs to when the same site is open in more than one."),
+               accessory: browserIconOnTabsSwitch, searchItemID: SearchID.browserIconOnTabs)
 
         let grantButton = NSButton(title: String(localized: "Grant permissions…"), target: self, action: #selector(grantBrowserPermissions))
         grantButton.bezelStyle = .rounded
@@ -367,6 +372,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         windowDrillSwitch.state = prefs.windowDrillEnabled ? .on : .off
         expandTabsSwitch.state = prefs.expandTabsAsWindows ? .on : .off
         expandBrowserTabsSwitch.state = prefs.expandBrowserTabsAsWindows ? .on : .off
+        browserIconOnTabsSwitch.state = prefs.showBrowserIconOnTabs ? .on : .off
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off
         applyLetterTimeout(prefs.letterChainTimeoutMs)
         letterTimeoutSlider.isEnabled = prefs.letterHintsEnabled
@@ -492,6 +498,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         // Listing browser tabs needs Apple Events consent; opting in while
         // Settings is foreground is the moment TCC can surface the prompt.
         if on { BrowserTabs.requestPermissionForRunningBrowsers() }
+    }
+
+    @objc private func toggleBrowserIconOnTabs(_ sender: NSSwitch) {
+        Preferences.shared.showBrowserIconOnTabs = (sender.state == .on)
     }
 
     @objc private func grantBrowserPermissions() {
