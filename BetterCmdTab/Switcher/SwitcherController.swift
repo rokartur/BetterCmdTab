@@ -3841,10 +3841,7 @@ final class SwitcherController: SwitcherViewDelegate {
         return candidates[target]
     }
 
-    /// The primed app after removing apps with no row in the current Space
-    /// scope. `primedApps` deliberately remains the cheap app-level MRU list
-    /// while a chord is held; this maps its accumulated step onto the scoped
-    /// rows only when choosing an activation target.
+    /// App priming is Space-agnostic; remap it to scoped rows at commit time.
     private func eligiblePrimedApp(in rows: [SwitcherRow]) -> NSRunningApplication? {
         let scope = (activeFilterConfig ?? CatalogFilter.config()).spaceScope
         guard scope != .allSpaces else {
@@ -3862,15 +3859,12 @@ final class SwitcherController: SwitcherViewDelegate {
         return eligibleApps[index]
     }
 
-    /// MRU order already puts the frontmost app at offset zero, so stepping
-    /// starts from the head of the eligible sequence.
+    /// Steps from the start of the MRU list.
     private func mruPrimedIndex(count: Int) -> Int {
         Self.primedStartIndex(count: count, step: primedStepDelta, anchor: nil)
     }
 
-    /// Name and launch-order sorts need the frontmost app's position as their
-    /// stepping origin. If it is absent after filtering, retain the legacy
-    /// head-anchored behavior.
+    /// Steps from the frontmost app, or the list start if it was filtered out.
     private func anchoredPrimedIndex(in apps: [NSRunningApplication]) -> Int {
         let anchor = mru.order.first.flatMap { front in
             apps.firstIndex { $0.processIdentifier == front }
@@ -3878,9 +3872,7 @@ final class SwitcherController: SwitcherViewDelegate {
         return Self.primedStartIndex(count: apps.count, step: primedStepDelta, anchor: anchor)
     }
 
-    /// The scoped row a quick release-to-commit should activate. Reads the warm
-    /// cache ONLY: this runs inside commit() on the main actor, so it must never
-    /// trigger a synchronous cross-process AppCatalog.snapshot().
+    /// Use the warm cache here; commit must not synchronously scan windows.
     private func primedAppTargetRow() -> SwitcherRow? {
         let rows = applyPerAppWindowMRU(
             cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
