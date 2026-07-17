@@ -3841,6 +3841,18 @@ final class SwitcherController: SwitcherViewDelegate {
         return candidates[target]
     }
 
+    /// Use the warm cache here; commit must not synchronously scan windows.
+    private func primedAppTargetRow() -> SwitcherRow? {
+        let rows = applyPerAppWindowMRU(
+            cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
+        )
+        guard let app = eligiblePrimedApp(in: rows) else { return nil }
+        let scope = (activeFilterConfig ?? CatalogFilter.config()).spaceScope
+        return rows.first {
+            $0.pid == app.processIdentifier && (scope != .allSpaces || $0.window != nil)
+        }
+    }
+
     /// App priming is Space-agnostic; remap it to scoped rows at commit time.
     private func eligiblePrimedApp(in rows: [SwitcherRow]) -> NSRunningApplication? {
         let scope = (activeFilterConfig ?? CatalogFilter.config()).spaceScope
@@ -3870,18 +3882,6 @@ final class SwitcherController: SwitcherViewDelegate {
             apps.firstIndex { $0.processIdentifier == front }
         }
         return Self.primedStartIndex(count: apps.count, step: primedStepDelta, anchor: anchor)
-    }
-
-    /// Use the warm cache here; commit must not synchronously scan windows.
-    private func primedAppTargetRow() -> SwitcherRow? {
-        let rows = applyPerAppWindowMRU(
-            cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
-        )
-        guard let app = eligiblePrimedApp(in: rows) else { return nil }
-        let scope = (activeFilterConfig ?? CatalogFilter.config()).spaceScope
-        return rows.first {
-            $0.pid == app.processIdentifier && (scope != .allSpaces || $0.window != nil)
-        }
     }
 
     /// The window row a `.mruWindows` fast tap-release should activate: the
