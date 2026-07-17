@@ -3501,9 +3501,9 @@ final class SwitcherController: SwitcherViewDelegate {
 
     /// Replace each browser-family window row with one row per tab, using titles
     /// already resolved in `browserTabsCache`. Rows whose tabs aren't cached yet
-    /// (or resolved to <2 tabs) stay collapsed until the background scan lands.
-    /// Already-expanded tab rows pass through untouched, so re-applying is
-    /// idempotent. No-op (returns the input) when the pref is off — pure, no AX.
+    /// stay collapsed until the background scan lands. Already-expanded tab rows
+    /// pass through untouched, so re-applying is idempotent. No-op (returns the
+    /// input) when the pref is off — pure, no AX.
     private func expandBrowserTabs(_ source: [SwitcherRow]) -> [SwitcherRow] {
         // Applications-only mode collapses to one row per app; re-expanding a
         // browser into per-tab rows would defeat it, so leave the rows untouched.
@@ -3521,13 +3521,15 @@ final class SwitcherController: SwitcherViewDelegate {
         out.reserveCapacity(source.count)
         for row in source {
             // Expand only a still-collapsed (`browserTab == nil`) browser window
-            // whose tabs are cached and number 2+. Anything else — already a tab
-            // row, non-browser, uncached, or single-tab — passes through as-is.
+            // whose tabs are cached — including a single tab, so the row still
+            // gets its favicon (+ source-browser badge, #131) instead of the
+            // bare app icon. Anything else — already a tab row, non-browser,
+            // uncached, or negative-cached empty — passes through as-is.
             guard row.browserTab == nil,
                   let window = row.window,
                   BrowserTabs.Family.from(bundleID: row.bundleIdentifier) != nil,
                   let cached = browserTabsCache[AXRef(element: window)],
-                  cached.tabs.count > 1 else { out.append(row); continue }
+                  !cached.tabs.isEmpty else { out.append(row); continue }
             out.append(contentsOf: row.browserTabRows(tabs: cached.tabs, activeIndex: cached.activeIndex))
         }
         return out

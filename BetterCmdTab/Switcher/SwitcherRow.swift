@@ -180,10 +180,12 @@ struct SwitcherRow {
     /// Expand this collapsed browser-window row into one row per tab. Each output
     /// row shows a tab's title and carries its 0-based index plus this window's
     /// title (`parentTitle`) so commit can resolve the AppleScript window without
-    /// a raise. Fewer than 2 titles, a non-running subject, or no window → just
-    /// this row (nothing to expand). Pure — no AX messaging.
+    /// a raise. No tabs, a non-running subject, or no window → just this row.
+    /// A single tab still expands — the tab row carries its URL, which is what
+    /// gives the row a favicon (+ the #131 browser badge) instead of the bare
+    /// app icon. Pure — no AX messaging.
     func browserTabRows(tabs: [BrowserTabInfo], activeIndex: Int) -> [SwitcherRow] {
-        guard case .running(let app) = subject, window != nil, tabs.count > 1 else { return [self] }
+        guard case .running(let app) = subject, window != nil, !tabs.isEmpty else { return [self] }
         let parentTitle = windowTitle
         return tabs.enumerated().map { i, tab in
             SwitcherRow(

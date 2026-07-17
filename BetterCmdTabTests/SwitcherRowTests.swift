@@ -225,13 +225,17 @@ struct SwitcherRowTests {
         #expect(rows[0].browserTabPreviewKey != reordered[1].browserTabPreviewKey) // index is part of identity
     }
 
-    @Test("browserTabRows leaves a single-tab (or empty) window collapsed")
-    func browserTabsNoExpandUnderTwo() {
+    @Test("a single tab expands into a tab row; an empty window stays collapsed")
+    func browserTabsSingleTabExpands() {
         let parent = browserWindowRow(title: "Solo")
-        #expect(parent.browserTabRows(tabTitles: ["Only"]).count == 1)
+        // Single tab → a real tab row (carries the URL, so the row gets a
+        // favicon + #131 browser badge instead of the bare app icon).
+        let single = parent.browserTabRows(tabTitles: ["Only"])
+        #expect(single.count == 1)
+        #expect(single.first?.browserTab?.index == 0)
+        // Empty (negative-cached) window keeps its collapsed identity.
         #expect(parent.browserTabRows(tabTitles: []).count == 1)
-        // Unchanged row keeps its collapsed identity (no browserTab marker).
-        #expect(parent.browserTabRows(tabTitles: ["Only"]).first?.browserTab == nil)
+        #expect(parent.browserTabRows(tabTitles: []).first?.browserTab == nil)
     }
 
     @Test("browserTabRows is a no-op for a non-running subject")
