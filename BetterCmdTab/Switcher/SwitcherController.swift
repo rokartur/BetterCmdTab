@@ -3856,18 +3856,26 @@ final class SwitcherController: SwitcherViewDelegate {
         let eligibleApps = primedApps.filter { eligiblePids.contains($0.processIdentifier) }
         guard !eligibleApps.isEmpty else { return nil }
 
-        let anchor: Int?
-        if effective.sortOrder.anchorsPrimedOnFrontmost, let front = mru.order.first {
-            anchor = eligibleApps.firstIndex { $0.processIdentifier == front }
-        } else {
-            anchor = nil
-        }
-        let index = Self.primedStartIndex(
-            count: eligibleApps.count,
-            step: primedStepDelta,
-            anchor: anchor
-        )
+        let index = effective.sortOrder.anchorsPrimedOnFrontmost
+            ? anchoredPrimedIndex(in: eligibleApps)
+            : mruPrimedIndex(count: eligibleApps.count)
         return eligibleApps[index]
+    }
+
+    /// MRU order already puts the frontmost app at offset zero, so stepping
+    /// starts from the head of the eligible sequence.
+    private func mruPrimedIndex(count: Int) -> Int {
+        Self.primedStartIndex(count: count, step: primedStepDelta, anchor: nil)
+    }
+
+    /// Name and launch-order sorts need the frontmost app's position as their
+    /// stepping origin. If it is absent after filtering, retain the legacy
+    /// head-anchored behavior.
+    private func anchoredPrimedIndex(in apps: [NSRunningApplication]) -> Int {
+        let anchor = mru.order.first.flatMap { front in
+            apps.firstIndex { $0.processIdentifier == front }
+        }
+        return Self.primedStartIndex(count: apps.count, step: primedStepDelta, anchor: anchor)
     }
 
     /// The scoped row a quick release-to-commit should activate. Reads the warm
