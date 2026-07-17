@@ -3017,7 +3017,10 @@ final class SwitcherController: SwitcherViewDelegate {
         // tabs now so the rows expand as soon as Apple Events answers. Self-
         // guards on the pref; a no-op on the cold (placeholder) branch since
         // those rows carry no windows yet — the post-scan apply kicks it again.
-        scheduleBrowserTabExpansion()
+        // Forced: a reveal must reflect tabs opened/closed in the last few
+        // seconds, so it bypasses the per-window TTL (the 0.4 s forced-scan
+        // rate limit still bounds osascript spawns on rapid re-opens).
+        scheduleBrowserTabExpansion(force: true)
 
         if !cache.hasCompletedFullScan {
             // Reuse the startup scan already in flight. Warm reveals are served
@@ -3113,7 +3116,9 @@ final class SwitcherController: SwitcherViewDelegate {
         prewarmActiveBrowserTabPreview()
         cache.setPanelVisible(true)
         dockBadgeObserver.start(enabled: effective.showUnreadBadges)
-        scheduleBrowserTabExpansion()
+        // Forced for the same reason as the apps-mode reveal: fresh tab state
+        // on open, TTL bypassed, bounded by the forced-scan rate limit.
+        scheduleBrowserTabExpansion(force: true)
     }
 
     private func scheduleWindowsOnlyRefresh(pid: pid_t, gen: UInt64) {
@@ -3659,6 +3664,7 @@ final class SwitcherController: SwitcherViewDelegate {
                         .init(bundleID: bundleID, url: $0.url)
                     })
                 }
+                let scriptBounds = perWindow.map(\.bounds)
                 var activeCounts: [String: Int] = [:]
                 var byActive: [String: (tabs: [BrowserTabInfo], active: Int)] = [:]
                 var titleCounts: [String: Int] = [:]
@@ -3678,6 +3684,14 @@ final class SwitcherController: SwitcherViewDelegate {
                         fetched[t.key] = hit
                     } else if titleCounts[k] == 1, let hit = byTitle[k] {
                         fetched[t.key] = hit
+                    } else if let frame = Self.scanAXFrame(of: t.window),
+                              let bi = Self.uniqueBoundsMatch(frame: frame, in: scriptBounds) {
+                        // Titles are duplicated (two windows on the same page /
+                        // Start Page) or stale (the catalog only tracks titles
+                        // while the panel is visible) — fall back to the window's
+                        // geometry, which needs no freshness and is near-unique.
+                        let w = perWindow[bi]
+                        fetched[t.key] = (w.tabs, w.activeIndex)
                     } else if perWindow.count == 1 && entry.wins.count == 1 {
                         let only = perWindow[0]
                         fetched[t.key] = (only.tabs, only.activeIndex)
@@ -5084,6 +5098,35 @@ final class SwitcherController: SwitcherViewDelegate {
         closedTombstones = closedTombstones.enumerated()
             .compactMap { matchedSigIndices.contains($0.offset) ? $0.element : nil }
         return result
+    }
+
+    /// `Activator.axBounds` with a short messaging timeout so a busy browser
+    /// can't stall the off-main scan worker. Same space as AppleScript `bounds`.
+    nonisolated private static func scanAXFrame(of window: AXUIElement) -> CGRect? {
+        AXUIElementSetMessagingTimeout(window, 0.1)
+        return Activator.axBounds(of: window)
+    }
+
+    /// Resolve an AX window to one of the AppleScript-scanned windows by screen
+    /// geometry: the unique candidate whose edges all sit within `tolerance`
+    /// points of `frame`. Returns nil when no candidate matches or two do (two
+    /// perfectly stacked same-size windows are genuinely indistinguishable).
+    nonisolated static func uniqueBoundsMatch(
+        frame: CGRect,
+        in candidates: [CGRect?],
+        tolerance: CGFloat = 3
+    ) -> Int? {
+        var hit: Int?
+        for (i, c) in candidates.enumerated() {
+            guard let c,
+                  abs(c.minX - frame.minX) <= tolerance,
+                  abs(c.minY - frame.minY) <= tolerance,
+                  abs(c.width - frame.width) <= tolerance,
+                  abs(c.height - frame.height) <= tolerance else { continue }
+            if hit != nil { return nil }
+            hit = i
+        }
+        return hit
     }
 
     nonisolated static func windowSelectionIndex(

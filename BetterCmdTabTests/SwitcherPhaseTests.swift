@@ -416,6 +416,31 @@ struct SwitcherWindowSelectionTests {
 /// app A→Z regardless of which app was focused (#88). The first step now
 /// anchors on the frontmost app's position and wraps from there; a nil anchor
 /// (frontmost filtered out, or an MRU sort) reproduces the legacy start.
+@Suite("Browser window bounds matching (#119)")
+struct BoundsMatchTests {
+    private let a = CGRect(x: 0, y: 25, width: 800, height: 600)
+    private let b = CGRect(x: 900, y: 25, width: 800, height: 600)
+
+    @Test("resolves the unique window whose bounds match within tolerance")
+    func uniqueHit() {
+        let frame = CGRect(x: 1, y: 26, width: 799, height: 601)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: frame, in: [a, b]) == 0)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: b, in: [a, b]) == 1)
+    }
+
+    @Test("two candidates inside tolerance are ambiguous — no match")
+    func ambiguousIsNil() {
+        #expect(SwitcherController.uniqueBoundsMatch(frame: a, in: [a, a]) == nil)
+    }
+
+    @Test("nil candidates and out-of-tolerance frames never match")
+    func misses() {
+        let far = CGRect(x: 50, y: 25, width: 800, height: 600)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: far, in: [a, nil]) == nil)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: a, in: [nil, nil]) == nil)
+    }
+}
+
 @Suite("Primed start anchor (#88)")
 struct PrimedStartAnchorTests {
     @Test func legacyHeadAnchor_whenAnchorNil() {
