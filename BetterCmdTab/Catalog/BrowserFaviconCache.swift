@@ -98,16 +98,27 @@ enum BrowserFaviconCache {
             var result: [String: NSImage] = [:]
             var complete = true
             for url in normalized {
-                sqlite3_reset(statement)
-                sqlite3_clear_bindings(statement)
-                sqlite3_bind_text(statement, 1, url, -1, SQLITE_TRANSIENT)
-                let status = sqlite3_step(statement)
-                guard status == SQLITE_ROW else {
-                    if status != SQLITE_DONE { complete = false }
-                    continue
+                // Safari's favicon store strips trailing slashes from page
+                // URLs (AppleScript reports "…/pl/", page_url stores "…/pl"),
+                // so a URL that misses verbatim is retried without the slash.
+                var candidates = [url]
+                if url.hasSuffix("/") { candidates.append(String(url.dropLast())) }
+                var uuid: String?
+                for candidate in candidates {
+                    sqlite3_reset(statement)
+                    sqlite3_clear_bindings(statement)
+                    sqlite3_bind_text(statement, 1, candidate, -1, SQLITE_TRANSIENT)
+                    let status = sqlite3_step(statement)
+                    if status == SQLITE_ROW {
+                        if let text = sqlite3_column_text(statement, 0) { uuid = String(cString: text) }
+                        break
+                    }
+                    if status != SQLITE_DONE {
+                        complete = false
+                        break
+                    }
                 }
-                guard let text = sqlite3_column_text(statement, 0) else { continue }
-                let uuid = String(cString: text)
+                guard let uuid else { continue }
                 let digest = Insecure.MD5.hash(data: Data(uuid.utf8)).map { String(format: "%02X", $0) }.joined()
                 if let image = decode(iconsURL.appendingPathComponent(digest)) { result[url] = image }
             }

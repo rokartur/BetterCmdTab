@@ -35,6 +35,30 @@ struct BrowserFaviconCacheTests {
         #expect(found["https://example.test/icon"] != nil)
     }
 
+    @Test("Safari lookup retries a trailing-slash URL without the slash")
+    func safariTrailingSlash() throws {
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let icons = root.appendingPathComponent("favicons")
+        try FileManager.default.createDirectory(at: icons, withIntermediateDirectories: true)
+        let database = root.appendingPathComponent("favicons.db")
+        let db = try open(database)
+        defer { sqlite3_close(db) }
+        try exec(db, "CREATE TABLE page_url (url TEXT UNIQUE, uuid TEXT NOT NULL)")
+
+        // Safari stores page URLs with the trailing slash stripped.
+        let uuid = "33333333-3333-3333-3333-333333333333"
+        try exec(db, "INSERT INTO page_url VALUES ('https://example.test/pl', '\(uuid)')")
+        try png(size: 5).write(to: icons.appendingPathComponent(md5(uuid)))
+
+        let found = BrowserFaviconCache.loadSafari(
+            urls: ["https://example.test/pl/"],
+            databaseURL: database,
+            iconsURL: icons
+        )
+        #expect(found["https://example.test/pl/"]?.size.width == 5)
+    }
+
     @Test("Chromium starts with last_used, decodes data, and falls back silently")
     func chromiumProfilesAndFailures() throws {
         let root = temporaryDirectory()
