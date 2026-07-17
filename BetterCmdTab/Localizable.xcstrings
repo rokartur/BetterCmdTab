@@ -7659,36 +7659,70 @@
         }
       }
     },
-    "Rounding of the panel's corners. Automatic follows the panel size." : {
+    "Rounding of the panel's corners. Automatic follows the panel size; Square turns rounding off." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rundung der Ecken des Bedienfelds. „Automatisch“ richtet sich nach der Größe des Bedienfelds."
+            "value" : "Rundung der Ecken des Bedienfelds. „Automatisch“ richtet sich nach der Größe des Bedienfelds, „Eckig“ deaktiviert die Rundung."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Redondeo de las esquinas del panel. «Automático» se ajusta al tamaño del panel."
+            "value" : "Redondeo de las esquinas del panel. «Automático» se ajusta al tamaño del panel; «Cuadrado» desactiva el redondeo."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Arrondi des coins du panneau. Le mode automatique suit la taille du panneau."
+            "value" : "Arrondi des coins du panneau. Le mode automatique suit la taille du panneau ; « Carré » désactive l'arrondi."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zaokrąglenie narożników panelu. Automatyczny dopasowuje się do rozmiaru panelu."
+            "value" : "Zaokrąglenie narożników panelu. Automatyczny dopasowuje się do rozmiaru panelu; Kwadratowe wyłącza zaokrąglenie."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "面板圆角大小。自动模式会随面板大小调整。"
+            "value" : "面板圆角大小。自动模式会随面板大小调整；直角则关闭圆角。"
+          }
+        }
+      }
+    },
+    "Square" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eckig"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuadrado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carré"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kwadratowe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直角"
           }
         }
       }

@@ -183,6 +183,18 @@ struct SwitcherMetricsTests {
         #expect(SwitcherMetrics.forScreen(nil) == SwitcherMetrics.forScreen(nil, userScale: 1.0))
     }
 
+    @Test("corner-radius pref: 0 = automatic, -1 = square, > 0 = explicit points")
+    func resolvedCornerRadius() {
+        let m = SwitcherMetrics.forScale(1.0)
+        #expect(m.resolvedCornerRadius(pref: 0) == m.cornerRadius)
+        #expect(m.resolvedCornerRadius(pref: -1) == 0)
+        #expect(m.resolvedCornerRadius(pref: 17) == 17)
+        // Grid derives a different automatic radius; square must still win.
+        let grid = SwitcherMetrics.forScale(1.0, layoutMode: .gridView)
+        #expect(grid.resolvedCornerRadius(pref: 0) == SwitcherMetrics.baseTileCornerRadius)
+        #expect(grid.resolvedCornerRadius(pref: -1) == 0)
+    }
+
     @Test("fontScale defaults to 1.0 (no behavior change)")
     func fontScaleDefaultIdentity() {
         #expect(SwitcherMetrics.forScale(1.2) == SwitcherMetrics.forScale(1.2, fontScale: 1.0))

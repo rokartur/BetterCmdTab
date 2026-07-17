@@ -375,10 +375,10 @@ final class SwitcherView: NSView, TabStripDelegate {
         }
     }
 
-    /// User-pinned corner radius when set (> 0), otherwise the size-derived metric.
+    /// User-pinned corner radius when set (`-1` = square, `> 0` = explicit
+    /// points), otherwise the size-derived metric.
     private func effectiveCornerRadius(_ metrics: SwitcherMetrics) -> CGFloat {
-        let pref = effective.panelCornerRadius
-        return pref > 0 ? CGFloat(pref) : metrics.cornerRadius
+        metrics.resolvedCornerRadius(pref: effective.panelCornerRadius)
     }
 
     /// Apply the chosen blur material to the fallback backdrop. The macOS 26

@@ -146,7 +146,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             range: Preferences.panelCornerRadiusRange, action: #selector(radiusChanged(_:))
         )
         addRow(to: panel, title: String(localized: "Corner radius"),
-               subtitle: String(localized: "Rounding of the panel's corners. Automatic follows the panel size."),
+               subtitle: String(localized: "Rounding of the panel's corners. Automatic follows the panel size; Square turns rounding off."),
                accessory: radiusStack, searchItemID: SearchID.cornerRadius)
 
         previewButton.title = String(localized: "Show Preview")
@@ -444,7 +444,12 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     @objc private func radiusChanged(_ sender: NSSlider) {
         Preferences.shared.panelCornerRadius = sender.integerValue
-        radiusValueLabel.stringValue = sender.integerValue == 0 ? String(localized: "Auto") : "\(sender.integerValue) pt"
+        radiusValueLabel.stringValue = Self.radiusDisplay(sender.integerValue)
+    }
+
+    private static func radiusDisplay(_ value: Int) -> String {
+        if value < 0 { return String(localized: "Square") }
+        return value == 0 ? String(localized: "Auto") : "\(value) pt"
     }
 
     private func applyOpacity(_ value: Int) {
@@ -461,7 +466,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private func applyRadius(_ value: Int) {
         if radiusSlider.integerValue != value { radiusSlider.integerValue = value }
-        radiusValueLabel.stringValue = value == 0 ? String(localized: "Auto") : "\(value) pt"
+        radiusValueLabel.stringValue = Self.radiusDisplay(value)
     }
 
     @objc private func togglePreview() {

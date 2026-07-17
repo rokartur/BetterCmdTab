@@ -667,9 +667,10 @@ final class Preferences: ObservableObject {
     nonisolated static let defaultPanelScalePercent = 120
     nonisolated static let panelScalePercentRange: ClosedRange<Int> = 50...150
     static let panelOpacityRange: ClosedRange<Int> = 30...100
-    /// `0` means "automatic" (track the size-derived metric); above that the
-    /// user pins an explicit radius in points.
-    static let panelCornerRadiusRange: ClosedRange<Int> = 0...40
+    /// `0` means "automatic" (track the size-derived metric), `-1` pins fully
+    /// square corners (#129); above `0` the user pins an explicit radius in
+    /// points.
+    static let panelCornerRadiusRange: ClosedRange<Int> = -1...40
 
     /// Grid layout column cap. `0` = automatic (width-driven); above that the
     /// user pins an explicit count. Bounded so a hand-edited/corrupted import

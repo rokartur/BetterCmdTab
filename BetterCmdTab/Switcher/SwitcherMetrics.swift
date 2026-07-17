@@ -101,6 +101,13 @@ struct SwitcherMetrics: Equatable {
 
     static let baseline = SwitcherMetrics.forScale(1.0, layoutMode: .list)
 
+    /// Resolve the panel-corner-radius preference against this metrics set:
+    /// `0` follows the size-derived radius, `-1` pins square corners (#129),
+    /// anything above is an explicit point value.
+    func resolvedCornerRadius(pref: Int) -> CGFloat {
+        pref == 0 ? cornerRadius : CGFloat(max(0, pref))
+    }
+
     /// Whether the Window Preview label band must be reserved (the
     /// `browserTabsExpanded` input to `forScreen`/`forScale`): always when tabs
     /// are expanded as windows, and transiently while searching with the
