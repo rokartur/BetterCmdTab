@@ -308,11 +308,139 @@ struct SwitcherActiveBrowserTabTests {
     }
 }
 
+@Suite("Switcher window selection")
+struct SwitcherWindowSelectionTests {
+    private var hostApp: NSRunningApplication { .current }
+
+    private func window(_ offset: Int) -> AXUIElement {
+        AXUIElementCreateApplication(getpid() + pid_t(offset))
+    }
+
+    private func row(window: AXUIElement, title: String) -> SwitcherRow {
+        SwitcherRow(app: hostApp, window: window, windowTitle: title,
+                    isMinimized: false, cgWindowID: 99)
+    }
+
+    @Test("collapsed browser window selects its active tab")
+    func collapsedBrowserSelectsActiveTab() {
+        let browser = window(1)
+        let parent = row(window: browser, title: "Browser")
+        let rows = parent.browserTabRows(
+            tabs: [
+                BrowserTabInfo(title: "Inbox", url: "https://example.test/inbox"),
+                BrowserTabInfo(title: "Docs", url: "https://example.test/docs"),
+            ],
+            activeIndex: 1
+        )
+
+        #expect(SwitcherController.windowSelectionIndex(in: rows, selected: parent) == 1)
+    }
+
+    @Test("existing browser-tab selection wins over the active tab")
+    func preservesExistingTab() {
+        let browser = window(1)
+        let rows = row(window: browser, title: "Browser").browserTabRows(
+            tabs: [
+                BrowserTabInfo(title: "Inbox", url: ""),
+                BrowserTabInfo(title: "Docs", url: ""),
+            ],
+            activeIndex: 1
+        )
+
+        #expect(SwitcherController.windowSelectionIndex(in: rows, selected: rows[0]) == 0)
+    }
+
+    @Test("stable page identity beats a stale index after tab insertion")
+    func preservesTabAfterInsertion() {
+        let browser = window(1)
+        let parent = row(window: browser, title: "Browser")
+        let selected = parent.browserTabRows(
+            tabs: [
+                BrowserTabInfo(title: "Inbox", url: "https://example.test/inbox"),
+                BrowserTabInfo(title: "Docs", url: "https://example.test/docs"),
+            ],
+            activeIndex: 0
+        )[1]
+        let refreshed = parent.browserTabRows(
+            tabs: [
+                BrowserTabInfo(title: "New", url: "https://example.test/new"),
+                BrowserTabInfo(title: "Inbox", url: "https://example.test/inbox"),
+                BrowserTabInfo(title: "Docs", url: "https://example.test/docs"),
+            ],
+            activeIndex: 0
+        )
+
+        #expect(SwitcherController.windowSelectionIndex(in: refreshed, selected: selected) == 2)
+    }
+
+    @Test("duplicate tab URLs fall back to a unique title over a stale index")
+    func duplicateUrlFallsBackToTitle() {
+        let browser = window(1)
+        let parent = row(window: browser, title: "Browser")
+        let selected = parent.browserTabRows(
+            tabs: [
+                BrowserTabInfo(title: "Inbox", url: "https://example.test/dup"),
+                BrowserTabInfo(title: "Docs", url: "https://example.test/dup"),
+            ],
+            activeIndex: 0
+        )[1]
+        let refreshed = parent.browserTabRows(
+            tabs: [
+                BrowserTabInfo(title: "New", url: "https://example.test/new"),
+                BrowserTabInfo(title: "Inbox", url: "https://example.test/dup"),
+                BrowserTabInfo(title: "Docs", url: "https://example.test/dup"),
+            ],
+            activeIndex: 0
+        )
+
+        #expect(SwitcherController.windowSelectionIndex(in: refreshed, selected: selected) == 2)
+    }
+
+    @Test("ordinary window keeps its identity after an earlier window expands")
+    func preservesOrdinaryWindow() {
+        let browserRows = row(window: window(1), title: "Browser")
+            .browserTabRows(tabTitles: ["A", "B", "C"])
+        let ordinary = row(window: window(2), title: "Editor")
+        let rows = browserRows + [ordinary]
+
+        #expect(SwitcherController.windowSelectionIndex(in: rows, selected: ordinary) == browserRows.count)
+        #expect(SwitcherController.windowSelectionIndex(
+            in: rows,
+            selected: row(window: window(3), title: "Missing")
+        ) == nil)
+    }
+}
+
 /// Under a stable sort (alphabetical / launch order) the primed list is not
 /// MRU-ordered, so the old `primedIndex = 1` start always landed on the second
 /// app A→Z regardless of which app was focused (#88). The first step now
 /// anchors on the frontmost app's position and wraps from there; a nil anchor
 /// (frontmost filtered out, or an MRU sort) reproduces the legacy start.
+@Suite("Browser window bounds matching (#119)")
+struct BoundsMatchTests {
+    private let a = CGRect(x: 0, y: 25, width: 800, height: 600)
+    private let b = CGRect(x: 900, y: 25, width: 800, height: 600)
+
+    @Test("resolves the unique window whose bounds match within tolerance")
+    func uniqueHit() {
+        let frame = CGRect(x: 1, y: 26, width: 799, height: 601)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: frame, in: [a, b]) == 0)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: b, in: [a, b]) == 1)
+    }
+
+    @Test("two candidates inside tolerance are ambiguous — no match")
+    func ambiguousIsNil() {
+        #expect(SwitcherController.uniqueBoundsMatch(frame: a, in: [a, a]) == nil)
+    }
+
+    @Test("nil candidates and out-of-tolerance frames never match")
+    func misses() {
+        let far = CGRect(x: 50, y: 25, width: 800, height: 600)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: far, in: [a, nil]) == nil)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: a, in: [nil, nil]) == nil)
+    }
+}
+
 @Suite("Primed start anchor (#88)")
 struct PrimedStartAnchorTests {
     @Test func legacyHeadAnchor_whenAnchorNil() {

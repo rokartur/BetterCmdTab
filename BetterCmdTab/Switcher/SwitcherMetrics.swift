@@ -106,8 +106,8 @@ struct SwitcherMetrics: Equatable {
     /// are expanded as windows, and transiently while searching with the
     /// search-tab feature — the matched tab rows then need their title (the only
     /// thing distinguishing sibling tabs) shown even when "show window title" is
-    /// off. Pure single source of truth shared by the controller and the view's
-    /// shrink loop so the two predicates can't drift.
+    /// off. The controller evaluates this once; fitted view metrics preserve the
+    /// resulting label band instead of re-deriving mode-specific state.
     static func reserveTabBand(expandAsWindows: Bool, applicationsOnly: Bool,
                                searchActive: Bool, searchExpandsTabs: Bool) -> Bool {
         (expandAsWindows || (searchActive && searchExpandsTabs)) && !applicationsOnly

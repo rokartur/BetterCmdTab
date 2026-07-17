@@ -518,6 +518,18 @@ enum BrowserTabs {
             let title: String
             let activeIndex: Int
             let tabs: [BrowserTabInfo]
+            /// Screen bounds from AppleScript (top-left origin, y-down — the same
+            /// space as `Activator.axBounds`), the title-independent identity used
+            /// to resolve windows whose titles are duplicated or stale. Nil when
+            /// the script couldn't read them.
+            let bounds: CGRect?
+
+            init(title: String, activeIndex: Int, tabs: [BrowserTabInfo], bounds: CGRect? = nil) {
+                self.title = title
+                self.activeIndex = activeIndex
+                self.tabs = tabs
+                self.bounds = bounds
+            }
         }
 
         let windows: [Window]
@@ -534,10 +546,10 @@ enum BrowserTabs {
     /// and lighter on CPU than calling `tabTitles` per window. No `AXRaise`, so
     /// it never reorders the user's windows.
     ///
-    /// Returns `(windowTitle, activeTab, tabTitles)` per window, in window order,
-    /// plus `failed` (osascript error vs. genuinely empty). The caller maps results
-    /// back to its AX window elements by (trimmed) title; windows whose title isn't
-    /// unique are left for the caller to skip.
+    /// Returns `(windowTitle, activeTab, tabTitles, bounds)` per window, in window
+    /// order, plus `failed` (osascript error vs. genuinely empty). The caller maps
+    /// results back to its AX window elements by (trimmed) title, falling back to
+    /// the window bounds when titles are duplicated or stale.
     ///
     /// Records are framed with ASCII control chars that can't appear in titles:
     /// GS (29) between windows, RS (30) between a window's title, its active-tab
@@ -566,6 +578,11 @@ enum BrowserTabs {
                     try
                         set activeIndex to \(activeExpr)
                     end try
+                    set boundsText to ""
+                    try
+                        set wBounds to bounds of window i
+                        set boundsText to ((item 1 of wBounds) as text) & " " & ((item 2 of wBounds) as text) & " " & ((item 3 of wBounds) as text) & " " & ((item 4 of wBounds) as text)
+                    end try
                     set tabText to ""
                     set tc to count of tabs of window i
                     repeat with j from 1 to tc
@@ -577,7 +594,7 @@ enum BrowserTabs {
                         set tabText to tabText & tabTitle & (ASCII character 28) & tabURL
                         if j < tc then set tabText to tabText & (ASCII character 31)
                     end repeat
-                    set outText to outText & wTitle & (ASCII character 30) & (activeIndex as text) & (ASCII character 30) & tabText
+                    set outText to outText & wTitle & (ASCII character 30) & (activeIndex as text) & (ASCII character 30) & tabText & (ASCII character 30) & boundsText
                     if i < wc then set outText to outText & (ASCII character 29)
                 end repeat
                 return outText
@@ -597,10 +614,17 @@ enum BrowserTabs {
         var out: [AllWindowTabs.Window] = []
         for block in raw.components(separatedBy: "\u{1D}") {
             let parts = block.components(separatedBy: "\u{1E}")
-            guard parts.count == 3, let oneBased = Int(parts[1]) else { continue }
+            guard parts.count >= 3, let oneBased = Int(parts[1]) else { continue }
             let tabs = parseTabs(parts[2])
             let activeIndex = tabs.isEmpty ? 0 : min(max(0, oneBased - 1), tabs.count - 1)
-            out.append(.init(title: parts[0], activeIndex: activeIndex, tabs: tabs))
+            var bounds: CGRect?
+            if parts.count >= 4 {
+                let n = parts[3].split(separator: " ").compactMap { Double($0) }
+                if n.count == 4, n[2] > n[0], n[3] > n[1] {
+                    bounds = CGRect(x: n[0], y: n[1], width: n[2] - n[0], height: n[3] - n[1])
+                }
+            }
+            out.append(.init(title: parts[0], activeIndex: activeIndex, tabs: tabs, bounds: bounds))
         }
         return out
     }
