@@ -3017,7 +3017,10 @@ final class SwitcherController: SwitcherViewDelegate {
         // tabs now so the rows expand as soon as Apple Events answers. Self-
         // guards on the pref; a no-op on the cold (placeholder) branch since
         // those rows carry no windows yet — the post-scan apply kicks it again.
-        scheduleBrowserTabExpansion()
+        // Forced: a reveal must reflect tabs opened/closed in the last few
+        // seconds, so it bypasses the per-window TTL (the 0.4 s forced-scan
+        // rate limit still bounds osascript spawns on rapid re-opens).
+        scheduleBrowserTabExpansion(force: true)
 
         if !cache.hasCompletedFullScan {
             // Reuse the startup scan already in flight. Warm reveals are served
@@ -3088,13 +3091,18 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func presentWindowsOnly(_ filtered: [SwitcherRow], pid: pid_t) {
         let sorted = windowMRU.sortRows(filtered, forPid: pid)
-        baseRows = sorted
+        let count = sorted.count
+        let delta = windowsOnlyPrimedDelta
+        let collapsedIndex = count > 0 ? ((delta % count) + count) % count : 0
+        let selectedRow = sorted.indices.contains(collapsedIndex) ? sorted[collapsedIndex] : nil
+
+        baseRows = applyBrowserTabMRU(expandBrowserTabs(sorted))
         baseLabels = RowLabels.labels(for: baseRows)
         rows = baseRows
         labels = baseLabels
-        let count = rows.count
-        let delta = windowsOnlyPrimedDelta
-        index = count > 0 ? ((delta % count) + count) % count : 0
+        index = selectedRow.flatMap {
+            Self.windowSelectionIndex(in: rows, selected: $0)
+        } ?? (rows.isEmpty ? 0 : max(0, min(collapsedIndex, rows.count - 1)))
 
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
@@ -3108,6 +3116,9 @@ final class SwitcherController: SwitcherViewDelegate {
         prewarmActiveBrowserTabPreview()
         cache.setPanelVisible(true)
         dockBadgeObserver.start(enabled: effective.showUnreadBadges)
+        // Forced for the same reason as the apps-mode reveal: fresh tab state
+        // on open, TTL bypassed, bounded by the forced-scan rate limit.
+        scheduleBrowserTabExpansion(force: true)
     }
 
     private func scheduleWindowsOnlyRefresh(pid: pid_t, gen: UInt64) {
@@ -3123,9 +3134,10 @@ final class SwitcherController: SwitcherViewDelegate {
         guard phase == .visible, windowsOnlyMode else { return }
         if fresh.isEmpty { cancel(); return }
         let sorted = windowsOnlyPid.map { windowMRU.sortRows(fresh, forPid: $0) } ?? fresh
-        baseRows = sorted
+        baseRows = applyBrowserTabMRU(expandBrowserTabs(sorted))
         baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay()
+        scheduleBrowserTabExpansion()
     }
 
     /// Apply the flat cross-app window-recency sort when `.mruWindows` is the
@@ -3190,7 +3202,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // panel; if so the rows aren't expanded, so the order must not be
             // consumed (would sort plain window rows by the tab timeline).
             && effective.expandBrowserTabsAsWindows
-            && !effective.applicationsOnly
+            && !applicationsCollapseActive
             && effective.sortOrder == .mruWindows
     }
 
@@ -3248,7 +3260,7 @@ final class SwitcherController: SwitcherViewDelegate {
     private func sinkInactiveBrowserTabs(_ rows: [SwitcherRow]) -> [SwitcherRow] {
         guard effective.sortOrder == .mruWindows,
               effective.expandBrowserTabsAsWindows,
-              !effective.applicationsOnly else { return rows }
+              !applicationsCollapseActive else { return rows }
         return Self.sinkInactiveBrowserTabs(
             rows,
             activeIndexFor: { [browserTabsCache] in browserTabsCache[$0]?.activeIndex },
@@ -3496,7 +3508,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // Applications-only mode collapses to one row per app; re-expanding a
         // browser into per-tab rows would defeat it, so leave the rows untouched.
         guard effective.expandBrowserTabsAsWindows,
-              !effective.applicationsOnly else { return source }
+              !applicationsCollapseActive else { return source }
         return expandBrowserTabsCore(source)
     }
 
@@ -3527,7 +3539,7 @@ final class SwitcherController: SwitcherViewDelegate {
     private var searchUsesExpandedTabs: Bool {
         Preferences.shared.searchExpandsBrowserTabs
             && !effective.expandBrowserTabsAsWindows
-            && !effective.applicationsOnly
+            && !applicationsCollapseActive
     }
 
     /// Rebuild the transient tab-expanded search set (rows + folded strings) from
@@ -3617,10 +3629,11 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         // The cache persists across opens, so prune entries for browser windows
         // that are no longer present (closed since last seen) — keeps it bounded
-        // to the currently-open browser windows over a long session. Unscoped
-        // sessions only: a scoped open sees a scope-filtered row subset, and
-        // pruning against it would evict every out-of-scope browser window.
-        if activeScope == nil, browserTabsCache.contains(where: { !liveKeys.contains($0.key) }) {
+        // to the currently-open browser windows over a long session. Only a full
+        // Apps list is authoritative: scoped and windows-only sessions see a row
+        // subset, so pruning against either would evict unrelated browser windows.
+        if activeScope == nil, !windowsOnlyMode,
+           browserTabsCache.contains(where: { !liveKeys.contains($0.key) }) {
             browserTabsCache = browserTabsCache.filter { liveKeys.contains($0.key) }
         }
         guard !byApp.isEmpty else { return }
@@ -3651,6 +3664,7 @@ final class SwitcherController: SwitcherViewDelegate {
                         .init(bundleID: bundleID, url: $0.url)
                     })
                 }
+                let scriptBounds = perWindow.map(\.bounds)
                 var activeCounts: [String: Int] = [:]
                 var byActive: [String: (tabs: [BrowserTabInfo], active: Int)] = [:]
                 var titleCounts: [String: Int] = [:]
@@ -3670,6 +3684,14 @@ final class SwitcherController: SwitcherViewDelegate {
                         fetched[t.key] = hit
                     } else if titleCounts[k] == 1, let hit = byTitle[k] {
                         fetched[t.key] = hit
+                    } else if let frame = Self.scanAXFrame(of: t.window),
+                              let bi = Self.uniqueBoundsMatch(frame: frame, in: scriptBounds) {
+                        // Titles are duplicated (two windows on the same page /
+                        // Start Page) or stale (the catalog only tracks titles
+                        // while the panel is visible) — fall back to the window's
+                        // geometry, which needs no freshness and is near-unique.
+                        let w = perWindow[bi]
+                        fetched[t.key] = (w.tabs, w.activeIndex)
                     } else if perWindow.count == 1 && entry.wins.count == 1 {
                         let only = perWindow[0]
                         fetched[t.key] = (only.tabs, only.activeIndex)
@@ -3777,7 +3799,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // Mirror expandBrowserTabs' applications-only guard: with it on, the
         // expansion no-ops, so spawning the osascript scan is pure waste.
         guard effective.expandBrowserTabsAsWindows,
-              !effective.applicationsOnly, phase == .visible else { return }
+              !applicationsCollapseActive, phase == .visible else { return }
         scanBrowserTabs(rows: collapsedBrowserSource(), force: force) { [weak self] in
             self?.reExpandBrowserTabs()
         }
@@ -3792,8 +3814,12 @@ final class SwitcherController: SwitcherViewDelegate {
     /// up the now-warm cache itself).
     private func prewarmBrowserTabs() {
         guard effective.expandBrowserTabsAsWindows,
-              !effective.applicationsOnly else { return }
-        scanBrowserTabs(rows: cache.rows(orderedBy: mru.order, filter: activeFilterConfig), force: false) { [weak self] in
+              !applicationsCollapseActive else { return }
+        var source = cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
+        if windowsOnlyMode, let pid = windowsOnlyPid {
+            source.removeAll { $0.pid != pid }
+        }
+        scanBrowserTabs(rows: source, force: false) { [weak self] in
             self?.reExpandBrowserTabs()
         }
     }
@@ -5108,6 +5134,74 @@ final class SwitcherController: SwitcherViewDelegate {
         return result
     }
 
+    /// `Activator.axBounds` with a short messaging timeout so a busy browser
+    /// can't stall the off-main scan worker. Same space as AppleScript `bounds`.
+    nonisolated private static func scanAXFrame(of window: AXUIElement) -> CGRect? {
+        AXUIElementSetMessagingTimeout(window, 0.1)
+        return Activator.axBounds(of: window)
+    }
+
+    /// Resolve an AX window to one of the AppleScript-scanned windows by screen
+    /// geometry: the unique candidate whose edges all sit within `tolerance`
+    /// points of `frame`. Returns nil when no candidate matches or two do (two
+    /// perfectly stacked same-size windows are genuinely indistinguishable).
+    nonisolated static func uniqueBoundsMatch(
+        frame: CGRect,
+        in candidates: [CGRect?],
+        tolerance: CGFloat = 3
+    ) -> Int? {
+        var hit: Int?
+        for (i, c) in candidates.enumerated() {
+            guard let c,
+                  abs(c.minX - frame.minX) <= tolerance,
+                  abs(c.minY - frame.minY) <= tolerance,
+                  abs(c.width - frame.width) <= tolerance,
+                  abs(c.height - frame.height) <= tolerance else { continue }
+            if hit != nil { return nil }
+            hit = i
+        }
+        return hit
+    }
+
+    nonisolated static func windowSelectionIndex(
+        in rows: [SwitcherRow],
+        selected: SwitcherRow
+    ) -> Int? {
+        guard let selectedWindow = selected.window else { return nil }
+        let window = AXRef(element: selectedWindow)
+        let selectedTab = selected.browserTab
+        var urlMatch: Int?
+        var urlMatchCount = 0
+        var titleMatch: Int?
+        var titleMatchCount = 0
+        var indexMatch: Int?
+        var activeTab: Int?
+        var firstWindowRow: Int?
+
+        for index in rows.indices {
+            guard let candidate = rows[index].window,
+                  AXRef(element: candidate) == window else { continue }
+            if firstWindowRow == nil { firstWindowRow = index }
+            if activeTab == nil, rows[index].browserTab?.isActive == true {
+                activeTab = index
+            }
+            guard let selectedTab, let candidateTab = rows[index].browserTab else { continue }
+            if candidateTab.index == selectedTab.index { indexMatch = index }
+            if !selectedTab.url.isEmpty, candidateTab.url == selectedTab.url {
+                urlMatch = index
+                urlMatchCount += 1
+            }
+            if !selected.windowTitle.isEmpty, rows[index].windowTitle == selected.windowTitle {
+                titleMatch = index
+                titleMatchCount += 1
+            }
+        }
+
+        if urlMatchCount == 1 { return urlMatch }
+        if titleMatchCount == 1 { return titleMatch }
+        return indexMatch ?? activeTab ?? firstWindowRow
+    }
+
     private func selectionKey() -> (pid_t, String, Bool)? {
         guard rows.indices.contains(index), let pid = rows[index].pid else { return nil }
         return (pid, rows[index].windowTitle, rows[index].window != nil)
@@ -5202,6 +5296,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// the panel. Replaces the old `applyPrefixReorder`.
     private func refreshDisplay(resetSelectionToTop: Bool = false, anchorPid: pid_t? = nil) {
         guard phase == .visible else { return }
+        let selectedRow: SwitcherRow? = resetSelectionToTop || !rows.indices.contains(index) ? nil : rows[index]
         let key = resetSelectionToTop ? nil : selectionKey()
 
         if searchActive, !searchQuery.isEmpty {
@@ -5333,6 +5428,9 @@ final class SwitcherController: SwitcherViewDelegate {
 
         if resetSelectionToTop {
             index = 0
+        } else if let selectedRow,
+                  let restored = Self.windowSelectionIndex(in: rows, selected: selectedRow) {
+            index = restored
         } else if let key, let restored = rows.firstIndex(where: { keyMatches($0, key) }) {
             index = restored
         } else if let anchorPid, let match = rows.firstIndex(where: { $0.pid == anchorPid }) {
@@ -5372,7 +5470,7 @@ final class SwitcherController: SwitcherViewDelegate {
     private var browserTabsExpandedForMetrics: Bool {
         SwitcherMetrics.reserveTabBand(
             expandAsWindows: effective.expandBrowserTabsAsWindows,
-            applicationsOnly: effective.applicationsOnly,
+            applicationsOnly: applicationsCollapseActive,
             searchActive: searchActive,
             searchExpandsTabs: Preferences.shared.searchExpandsBrowserTabs)
     }
