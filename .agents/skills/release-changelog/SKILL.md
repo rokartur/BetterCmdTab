@@ -14,11 +14,12 @@ Read `compose_release_notes_interactively` in `scripts/build_release.sh`. Its
 section names, heading levels, and order are canonical. Read the
 release/changelog rules in `AGENTS.md` for the audience and compare footer.
 
-Use the requested base ref. For a stable version without a matching ref, try
-its `v`-prefixed tag. If no base was given, use
-`git describe --tags --abbrev=0 HEAD` and state that choice. The target is
-`HEAD` unless the user supplied another commit. Resolve both endpoints with
-`git rev-parse` and verify the range with `git merge-base --is-ancestor`.
+Use the requested base ref. Resolve a bare stable version first; only try its
+`v`-prefixed tag when reading a historical release without a bare ref. If no
+base was given, use `git describe --tags --abbrev=0 HEAD` and state that choice.
+The target is `HEAD` unless the user supplied another commit. Resolve both
+endpoints with `git rev-parse` and verify the range with
+`git merge-base --is-ancestor`.
 
 **Complete when:** the exact `BASE..TARGET` range is valid and the canonical
 output structure is known from the current repository files.
@@ -68,8 +69,9 @@ After a blank line, end with:
 **Full changelog:** https://github.com/rokartur/BetterCmdTab/compare/<BASE>...<TARGET-REF>
 ```
 
-Use the intended release tag as `TARGET-REF` when the user supplied it;
-otherwise use the resolved target commit SHA.
+Use the intended bare release tag as `TARGET-REF` when the user supplied it;
+strip a leading `v` from a new target tag. Otherwise use the resolved target
+commit SHA.
 
 **Complete when:** the first line is the canonical Highlights heading, all
 headings exactly match `build_release.sh`, empty sections are absent, every

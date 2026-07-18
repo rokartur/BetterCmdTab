@@ -59,8 +59,8 @@ and the `BetterCmdTabNotarization` notarytool keychain profile (see the script h
 The changelog *is* the GitHub Release body (no `CHANGELOG.md`). Pass it to
 `build_release.sh --auto-release --notes notes.md`, or write it after the fact with
 `gh release create <tag> -R rokartur/BetterCmdTab --title "BetterCmdTab <version>" --notes-file notes.md`.
-Tags carry a `v` prefix for stable releases (`v26.4.3`) and a bare `MAJOR.MINOR-beta.N` for
-prereleases (`26.0-beta.1`, published with `--prerelease`); `MAJOR` tracks the macOS year.
+New tags are bare for stable releases (`26.4.3`) and prereleases (`26.0-beta.1`, published
+with `--prerelease`); historical stable tags retain their `v` prefix. `MAJOR` tracks the macOS year.
 
 Match the established BetterCmdTab body shape — this is an end-user app, so bullets are
 **user-facing and outcome-first**, not internal symbol names:
@@ -70,6 +70,7 @@ Match the established BetterCmdTab body shape — this is an end-user app, so bu
 - Each bullet describes the observable behavior change for the user — what now works / changed,
   not which type was renamed. Exclude `chore`/`refactor`/`build`/`test`/`ci`/`docs`-only changes.
 - End with a compare footer for any release with a predecessor (blank line before it):
+
   ```
   **Full changelog:** https://github.com/rokartur/BetterCmdTab/compare/<prev-tag>...<tag>
   ```

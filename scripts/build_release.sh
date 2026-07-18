@@ -41,7 +41,7 @@ skip_build_bump=0
 release_notes=""
 
 usage() {
-  cat <<'EOF'
+	cat <<'EOF'
 Usage: scripts/build_release.sh [OPTIONS]
 
 Options:
@@ -75,30 +75,33 @@ EOF
 }
 
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --beta)           is_beta=1 ;;
-    --stable)         is_beta=0 ;;
-    --auto-release)   auto_release=1 ;;
-    --notes)
-      shift
-      if [[ $# -eq 0 ]]; then
-        echo "❌ --notes requires release notes text" >&2
-        usage
-        exit 64
-      fi
-      release_notes="$1"
-      ;;
-    --skip-build-bump) skip_build_bump=1 ;;
-    --skip-notarization) skip_notarization=1 ;;
-    --clean)          clean_build=1 ;;
-    -h|--help)        usage; exit 0 ;;
-    *)
-      echo "❌ Unknown option: $1" >&2
-      usage
-      exit 64
-      ;;
-  esac
-  shift
+	case "$1" in
+	--beta) is_beta=1 ;;
+	--stable) is_beta=0 ;;
+	--auto-release) auto_release=1 ;;
+	--notes)
+		shift
+		if [[ $# -eq 0 ]]; then
+			echo "❌ --notes requires release notes text" >&2
+			usage
+			exit 64
+		fi
+		release_notes="$1"
+		;;
+	--skip-build-bump) skip_build_bump=1 ;;
+	--skip-notarization) skip_notarization=1 ;;
+	--clean) clean_build=1 ;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	*)
+		echo "❌ Unknown option: $1" >&2
+		usage
+		exit 64
+		;;
+	esac
+	shift
 done
 
 # ─── Paths ───────────────────────────────────────────────────────────────────
@@ -113,10 +116,10 @@ EXPORT_PATH="${BUILD_DIR}/export"
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 step() {
-  echo ""
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "  $1"
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo ""
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo "  $1"
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
 # Extract bullets (lines starting with "- ") under a given Markdown heading
@@ -128,24 +131,27 @@ step() {
 # canonical section so prior notes carry over even when their wording
 # predates docs/agents/changelog.md.
 extract_bullets_under_heading() {
-  local heading="$1"
-  local file="$2"
-  [[ -f "$file" ]] || return 0
+	local heading="$1"
+	local file="$2"
+	[[ -f "$file" ]] || return 0
 
-  local prefix="${heading% *}"
-  local section="${heading##* }"
-  local aliases=("$section")
-  case "$section" in
-    Added)   aliases+=("New" "Enhancements") ;;
-    Changed) aliases+=("Changes" "Improvements") ;;
-    Fixed)   aliases+=("Fixes" "Bug fixes") ;;
-    Removed) aliases+=("Deprecated") ;;
-  esac
+	local prefix="${heading% *}"
+	local section="${heading##* }"
+	local aliases=("$section")
+	case "$section" in
+	Added) aliases+=("New" "Enhancements") ;;
+	Changed) aliases+=("Changes" "Improvements") ;;
+	Fixed) aliases+=("Fixes" "Bug fixes") ;;
+	Removed) aliases+=("Deprecated") ;;
+	esac
 
-  local joined
-  joined=$(IFS='|'; echo "${aliases[*]}")
+	local joined
+	joined=$(
+		IFS='|'
+		echo "${aliases[*]}"
+	)
 
-  awk -v prefix="$prefix" -v joined="$joined" '
+	awk -v prefix="$prefix" -v joined="$joined" '
     BEGIN {
       n = split(joined, arr, "|")
       for (i = 1; i <= n; i++) targets[prefix " " arr[i]] = 1
@@ -158,9 +164,9 @@ extract_bullets_under_heading() {
 
 # Extract the first non-empty line under "## Highlights" until the next heading.
 extract_highlight_line() {
-  local file="$1"
-  [[ -f "$file" ]] || return 0
-  awk '
+	local file="$1"
+	[[ -f "$file" ]] || return 0
+	awk '
     /^## Highlights/ { in_section = 1; next }
     /^#/             { in_section = 0 }
     in_section && NF { print; exit }
@@ -171,25 +177,25 @@ extract_highlight_line() {
 # If $3 is non-empty, that text is shown as carried-over and kept when
 # the user submits empty input.
 prompt_section_oneline() {
-  local section="$1"
-  local heading="${2:-##}"
-  local prior_text="${3:-}"
-  echo "" >&2
-  echo "── ${section} ──" >&2
-  if [[ -n "$prior_text" ]]; then
-    echo "  Carried over: ${prior_text}" >&2
-    echo "  Enter replacement, or leave empty to keep carried-over." >&2
-  else
-    echo "  Enter one sentence. Empty input skips this section." >&2
-  fi
-  printf "  > " >&2
-  local line
-  IFS= read -r line || line=""
-  if [[ -z "$line" ]]; then
-    [[ -z "$prior_text" ]] && return 0
-    line="$prior_text"
-  fi
-  printf "%s %s\n%s\n\n" "$heading" "$section" "$line"
+	local section="$1"
+	local heading="${2:-##}"
+	local prior_text="${3:-}"
+	echo "" >&2
+	echo "── ${section} ──" >&2
+	if [[ -n "$prior_text" ]]; then
+		echo "  Carried over: ${prior_text}" >&2
+		echo "  Enter replacement, or leave empty to keep carried-over." >&2
+	else
+		echo "  Enter one sentence. Empty input skips this section." >&2
+	fi
+	printf "  > " >&2
+	local line
+	IFS= read -r line || line=""
+	if [[ -z "$line" ]]; then
+		[[ -z "$prior_text" ]] && return 0
+		line="$prior_text"
+	fi
+	printf "%s %s\n%s\n\n" "$heading" "$section" "$line"
 }
 
 # Prompt user for bullets, one per line. Blank line finishes the section.
@@ -199,71 +205,70 @@ prompt_section_oneline() {
 # emitted first; user input is appended.
 # Final bullet count (prior + new) zero → section skipped entirely.
 prompt_section_bullets() {
-  local section="$1"
-  local heading="${2:-###}"
-  local prior_file="${3:-}"
+	local section="$1"
+	local heading="${2:-###}"
+	local prior_file="${3:-}"
 
-  local prior_bullets=()
-  if [[ -n "$prior_file" && -s "$prior_file" ]]; then
-    local _b
-    while IFS= read -r _b; do
-      [[ -n "$_b" ]] && prior_bullets+=("$_b")
-    done < <(extract_bullets_under_heading "${heading} ${section}" "$prior_file")
-  fi
+	local prior_bullets=()
+	if [[ -n "$prior_file" && -s "$prior_file" ]]; then
+		local _b
+		while IFS= read -r _b; do
+			[[ -n "$_b" ]] && prior_bullets+=("$_b")
+		done < <(extract_bullets_under_heading "${heading} ${section}" "$prior_file")
+	fi
 
-  echo "" >&2
-  echo "── ${section} ──" >&2
-  if [[ ${#prior_bullets[@]} -gt 0 ]]; then
-    echo "  Carried over from prior beta:" >&2
-    printf "    %s\n" "${prior_bullets[@]}" >&2
-    echo "  Add more bullets (blank line finishes, empty input keeps only carried-over):" >&2
-  else
-    echo "  Enter bullets, one per line. Blank line finishes. Leave empty to skip." >&2
-  fi
+	echo "" >&2
+	echo "── ${section} ──" >&2
+	if [[ ${#prior_bullets[@]} -gt 0 ]]; then
+		echo "  Carried over from prior beta:" >&2
+		printf "    %s\n" "${prior_bullets[@]}" >&2
+		echo "  Add more bullets (blank line finishes, empty input keeps only carried-over):" >&2
+	else
+		echo "  Enter bullets, one per line. Blank line finishes. Leave empty to skip." >&2
+	fi
 
-  local new_bullets=()
-  local line
-  while :; do
-    printf "  > " >&2
-    IFS= read -r line || break
-    [[ -z "$line" ]] && break
-    [[ "$line" =~ ^[[:space:]]*- ]] || line="- ${line}"
-    new_bullets+=("$line")
-  done
+	local new_bullets=()
+	local line
+	while :; do
+		printf "  > " >&2
+		IFS= read -r line || break
+		[[ -z "$line" ]] && break
+		[[ "$line" =~ ^[[:space:]]*- ]] || line="- ${line}"
+		new_bullets+=("$line")
+	done
 
-  local total=$(( ${#prior_bullets[@]} + ${#new_bullets[@]} ))
-  [[ $total -eq 0 ]] && return 0
+	local total=$((${#prior_bullets[@]} + ${#new_bullets[@]}))
+	[[ $total -eq 0 ]] && return 0
 
-  printf "%s %s\n" "$heading" "$section"
-  [[ ${#prior_bullets[@]} -gt 0 ]] && printf "%s\n" "${prior_bullets[@]}"
-  [[ ${#new_bullets[@]}   -gt 0 ]] && printf "%s\n" "${new_bullets[@]}"
-  printf "\n"
+	printf "%s %s\n" "$heading" "$section"
+	[[ ${#prior_bullets[@]} -gt 0 ]] && printf "%s\n" "${prior_bullets[@]}"
+	[[ ${#new_bullets[@]} -gt 0 ]] && printf "%s\n" "${new_bullets[@]}"
+	printf "\n"
 }
 
 # Build release notes Markdown by prompting through every category.
 # $1 = output file path. $2 (optional) = prior-notes file to prefill from.
 compose_release_notes_interactively() {
-  local out_file="$1"
-  local prior_file="${2:-}"
-  : > "$out_file"
-  echo "" >&2
-  echo "📝 Compose release notes. Follow docs/agents/changelog.md style." >&2
-  if [[ -n "$prior_file" && -s "$prior_file" ]]; then
-    echo "   Prior notes loaded: existing bullets carry over per section." >&2
-  fi
+	local out_file="$1"
+	local prior_file="${2:-}"
+	: >"$out_file"
+	echo "" >&2
+	echo "📝 Compose release notes. Follow docs/agents/changelog.md style." >&2
+	if [[ -n "$prior_file" && -s "$prior_file" ]]; then
+		echo "   Prior notes loaded: existing bullets carry over per section." >&2
+	fi
 
-  local prior_highlight=""
-  [[ -n "$prior_file" ]] && prior_highlight=$(extract_highlight_line "$prior_file")
+	local prior_highlight=""
+	[[ -n "$prior_file" ]] && prior_highlight=$(extract_highlight_line "$prior_file")
 
-  prompt_section_oneline "Highlights"   "##"  "$prior_highlight" >> "$out_file"
-  prompt_section_bullets "Added"        "###" "$prior_file"      >> "$out_file"
-  prompt_section_bullets "Changed"      "###" "$prior_file"      >> "$out_file"
-  prompt_section_bullets "Fixed"        "###" "$prior_file"      >> "$out_file"
-  prompt_section_bullets "Security"     "###" "$prior_file"      >> "$out_file"
-  prompt_section_bullets "Removed"      "###" "$prior_file"      >> "$out_file"
-  prompt_section_bullets "Known issues" "###" "$prior_file"      >> "$out_file"
+	prompt_section_oneline "Highlights" "##" "$prior_highlight" >>"$out_file"
+	prompt_section_bullets "Added" "###" "$prior_file" >>"$out_file"
+	prompt_section_bullets "Changed" "###" "$prior_file" >>"$out_file"
+	prompt_section_bullets "Fixed" "###" "$prior_file" >>"$out_file"
+	prompt_section_bullets "Security" "###" "$prior_file" >>"$out_file"
+	prompt_section_bullets "Removed" "###" "$prior_file" >>"$out_file"
+	prompt_section_bullets "Known issues" "###" "$prior_file" >>"$out_file"
 }
-
 
 # ─── Pre-flight checks ──────────────────────────────────────────────────────
 
@@ -271,42 +276,42 @@ step "Pre-flight checks"
 
 # Verify signing identity is available
 if ! security find-identity -v -p codesigning | grep -q "${TEAM_ID}"; then
-  echo "❌ Signing identity not found for team ${TEAM_ID}."
-  echo "   Install a 'Developer ID Application' certificate from the Apple Developer portal."
-  exit 1
+	echo "❌ Signing identity not found for team ${TEAM_ID}."
+	echo "   Install a 'Developer ID Application' certificate from the Apple Developer portal."
+	exit 1
 fi
 echo "✅ Signing identity found"
 
 # Verify notarytool credentials (unless skipping)
 if [[ $skip_notarization -eq 0 ]]; then
-  # Use `notarytool info` with a dummy ID to validate credentials.
-  # It will return "Invalid" (exit 0 or 69) if creds are valid but ID doesn't exist,
-  # vs a credentials/auth error if the profile is wrong.
-  notary_check_output=$(xcrun notarytool info "00000000-0000-0000-0000-000000000000" \
-    --keychain-profile "${NOTARYTOOL_PROFILE}" 2>&1) || true
+	# Use `notarytool info` with a dummy ID to validate credentials.
+	# It will return "Invalid" (exit 0 or 69) if creds are valid but ID doesn't exist,
+	# vs a credentials/auth error if the profile is wrong.
+	notary_check_output=$(xcrun notarytool info "00000000-0000-0000-0000-000000000000" \
+		--keychain-profile "${NOTARYTOOL_PROFILE}" 2>&1) || true
 
-  if echo "$notary_check_output" | grep -qi "credentials\|authentication\|could not find credentials\|profile not found"; then
-    echo "❌ Notarization credentials not found. Set them up with:"
-    echo "   xcrun notarytool store-credentials \"${NOTARYTOOL_PROFILE}\" \\"
-    echo "     --apple-id \"your@email.com\" \\"
-    echo "     --team-id \"${TEAM_ID}\" \\"
-    echo "     --password \"xxxx-xxxx-xxxx-xxxx\""
-    exit 1
-  fi
-  echo "✅ Notarization credentials found"
+	if echo "$notary_check_output" | grep -qi "credentials\|authentication\|could not find credentials\|profile not found"; then
+		echo "❌ Notarization credentials not found. Set them up with:"
+		echo "   xcrun notarytool store-credentials \"${NOTARYTOOL_PROFILE}\" \\"
+		echo "     --apple-id \"your@email.com\" \\"
+		echo "     --team-id \"${TEAM_ID}\" \\"
+		echo "     --password \"xxxx-xxxx-xxxx-xxxx\""
+		exit 1
+	fi
+	echo "✅ Notarization credentials found"
 fi
 
 # Verify gh CLI auth if --auto-release requested (beta only)
 if [[ $is_beta -eq 1 ]] && [[ $auto_release -eq 1 ]]; then
-  if ! command -v gh &>/dev/null; then
-    echo "❌ gh CLI not installed. Install with: brew install gh"
-    exit 1
-  fi
-  if ! gh auth status --hostname github.com &>/dev/null; then
-    echo "❌ gh CLI not authenticated. Run: gh auth login"
-    exit 1
-  fi
-  echo "✅ gh CLI authenticated"
+	if ! command -v gh &>/dev/null; then
+		echo "❌ gh CLI not installed. Install with: brew install gh"
+		exit 1
+	fi
+	if ! gh auth status --hostname github.com &>/dev/null; then
+		echo "❌ gh CLI not authenticated. Run: gh auth login"
+		exit 1
+	fi
+	echo "✅ gh CLI authenticated"
 fi
 
 # ─── Step -1: Wipe build artifacts (--clean only) ───────────────────────────
@@ -318,13 +323,13 @@ fi
 # to also drop DerivedData for the scheme.
 
 if [[ $clean_build -eq 1 ]]; then
-  step "Step -1: Wipe build folder"
-  if [[ -d "${BUILD_DIR}" ]]; then
-    echo "🧹 Removing ${BUILD_DIR}..."
-    rm -rf "${BUILD_DIR:?}"
-  fi
-  mkdir -p "$BUILD_DIR"
-  echo "✅ Build folder wiped"
+	step "Step -1: Wipe build folder"
+	if [[ -d "${BUILD_DIR}" ]]; then
+		echo "🧹 Removing ${BUILD_DIR}..."
+		rm -rf "${BUILD_DIR:?}"
+	fi
+	mkdir -p "$BUILD_DIR"
+	echo "✅ Build folder wiped"
 fi
 
 # ─── Step 0: Release quality gate ───────────────────────────────────────────
@@ -341,18 +346,18 @@ QUALITY_GATE_LOG="${BUILD_DIR}/release_quality_gate.log"
 mkdir -p "$BUILD_DIR"
 
 if [[ ! -x "$QUALITY_GATE" ]]; then
-  echo "❌ release_quality_gate.sh not found or not executable at ${QUALITY_GATE}"
-  exit 1
+	echo "❌ release_quality_gate.sh not found or not executable at ${QUALITY_GATE}"
+	exit 1
 fi
 
 _quality_gate_args=(--fail-on-high-risk-warnings --log-path "$QUALITY_GATE_LOG")
 [[ $is_beta -eq 1 ]] && _quality_gate_args+=(--skip-i18n)
 
 if ! "$QUALITY_GATE" "${_quality_gate_args[@]}"; then
-  echo ""
-  echo "❌ Release quality gate failed."
-  echo "   Full xcodebuild log: ${QUALITY_GATE_LOG}"
-  exit 1
+	echo ""
+	echo "❌ Release quality gate failed."
+	echo "   Full xcodebuild log: ${QUALITY_GATE_LOG}"
+	exit 1
 fi
 
 echo "✅ Release quality gate passed"
@@ -360,9 +365,9 @@ echo "✅ Release quality gate passed"
 step "Step 1: Configure build type"
 
 if [[ $is_beta -eq 1 ]]; then
-  echo "🔶 Building BETA (pre-release)"
+	echo "🔶 Building BETA (pre-release)"
 else
-  echo "🟢 Building STABLE release"
+	echo "🟢 Building STABLE release"
 fi
 
 # Read version from project. Capture the settings once and parse with a
@@ -370,10 +375,11 @@ fi
 # whole script silently when head's early exit SIGPIPEs grep (exit 141).
 _build_settings=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME" -showBuildSettings 2>/dev/null || true)
 VERSION=$(awk '/ MARKETING_VERSION =/{print $NF; exit}' <<<"$_build_settings")
+VERSION="${VERSION#v}"
 
 if [[ -z "$VERSION" ]]; then
-  echo "❌ Could not determine MARKETING_VERSION from project"
-  exit 1
+	echo "❌ Could not determine MARKETING_VERSION from project"
+	exit 1
 fi
 
 BUILD_NUMBER=$(awk '/ CURRENT_PROJECT_VERSION =/{print $NF; exit}' <<<"$_build_settings")
@@ -386,29 +392,29 @@ echo "   Version: ${VERSION} (build ${BUILD_NUMBER})"
 BETA_N=""
 BETA_TAG=""
 if [[ $is_beta -eq 1 ]]; then
-  if ! command -v gh &>/dev/null; then
-    echo "❌ gh CLI required for beta builds (need to query existing tags). Install: brew install gh"
-    exit 1
-  fi
+	if ! command -v gh &>/dev/null; then
+		echo "❌ gh CLI required for beta builds (need to query existing tags). Install: brew install gh"
+		exit 1
+	fi
 
-  _beta_tags=$(gh api "repos/rokartur/BetterCmdTab/tags?per_page=100" \
-    --jq "[.[].name | select(startswith(\"${VERSION}-beta.\"))] | join(\"\n\")" 2>/dev/null || true)
-  _last_beta=$(echo "$_beta_tags" | sort -V | tail -1)
+	_beta_tags=$(gh api "repos/rokartur/BetterCmdTab/tags?per_page=100" \
+		--jq "[.[].name | select(startswith(\"${VERSION}-beta.\"))] | join(\"\n\")" 2>/dev/null || true)
+	_last_beta=$(echo "$_beta_tags" | sort -V | tail -1)
 
-  if [[ -z "$_last_beta" ]]; then
-    BETA_N=1
-  else
-    BETA_N=$(( ${_last_beta##*beta.} + 1 ))
-  fi
-  BETA_TAG="${VERSION}-beta.${BETA_N}"
-  echo "   Beta tag: ${BETA_TAG} (previous: ${_last_beta:-none})"
+	if [[ -z "$_last_beta" ]]; then
+		BETA_N=1
+	else
+		BETA_N=$((${_last_beta##*beta.} + 1))
+	fi
+	BETA_TAG="${VERSION}-beta.${BETA_N}"
+	echo "   Beta tag: ${BETA_TAG} (previous: ${_last_beta:-none})"
 fi
 
 # Compose artifact version: stable uses VERSION, beta appends -beta.N.
 if [[ $is_beta -eq 1 ]]; then
-  _artifact_version="${VERSION}-beta.${BETA_N}"
+	_artifact_version="${VERSION}-beta.${BETA_N}"
 else
-  _artifact_version="${VERSION}"
+	_artifact_version="${VERSION}"
 fi
 
 # ─── Step 1b: Set build number (timestamp) ──────────────────────────────────
@@ -425,36 +431,36 @@ fi
 _commit_ref="${BETA_TAG:-${VERSION}}"
 
 if [[ $skip_build_bump -eq 0 ]]; then
-  step "Step 1b: Set build number (timestamp)"
+	step "Step 1b: Set build number (timestamp)"
 
-  NEW_BUILD_NUMBER=$(date +%Y%m%d%H%M%S)
-  echo "   Build number: ${BUILD_NUMBER} → ${NEW_BUILD_NUMBER}"
+	NEW_BUILD_NUMBER=$(date +%Y%m%d%H%M%S)
+	echo "   Build number: ${BUILD_NUMBER} → ${NEW_BUILD_NUMBER}"
 
-  sed -i '' \
-    "s/CURRENT_PROJECT_VERSION = ${BUILD_NUMBER};/CURRENT_PROJECT_VERSION = ${NEW_BUILD_NUMBER};/g" \
-    "${PROJECT_PATH}/project.pbxproj"
+	sed -i '' \
+		"s/CURRENT_PROJECT_VERSION = ${BUILD_NUMBER};/CURRENT_PROJECT_VERSION = ${NEW_BUILD_NUMBER};/g" \
+		"${PROJECT_PATH}/project.pbxproj"
 
-  # Verify the replacement landed correctly (single awk — a grep|head pipe
-  # can SIGPIPE under pipefail and kill the script silently)
-  _actual=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME" -showBuildSettings 2>/dev/null \
-    | awk '/ CURRENT_PROJECT_VERSION =/{print $NF; exit}')
-  if [[ "$_actual" != "$NEW_BUILD_NUMBER" ]]; then
-    echo "❌ Build number increment verification failed (got ${_actual}, expected ${NEW_BUILD_NUMBER})"
-    exit 1
-  fi
+	# Verify the replacement landed correctly (single awk — a grep|head pipe
+	# can SIGPIPE under pipefail and kill the script silently)
+	_actual=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME" -showBuildSettings 2>/dev/null |
+		awk '/ CURRENT_PROJECT_VERSION =/{print $NF; exit}')
+	if [[ "$_actual" != "$NEW_BUILD_NUMBER" ]]; then
+		echo "❌ Build number increment verification failed (got ${_actual}, expected ${NEW_BUILD_NUMBER})"
+		exit 1
+	fi
 
-  echo "✅ project.pbxproj updated"
+	echo "✅ project.pbxproj updated"
 
-  # Commit and push the bump before any archive work begins.
-  git -C "$REPO_ROOT" add BetterCmdTab.xcodeproj/project.pbxproj
-  git -C "$REPO_ROOT" commit -m "chore: bump build number to ${NEW_BUILD_NUMBER} for ${_commit_ref}"
-  git -C "$REPO_ROOT" push origin HEAD
+	# Commit and push the bump before any archive work begins.
+	git -C "$REPO_ROOT" add BetterCmdTab.xcodeproj/project.pbxproj
+	git -C "$REPO_ROOT" commit -m "chore: bump build number to ${NEW_BUILD_NUMBER} for ${_commit_ref}"
+	git -C "$REPO_ROOT" push origin HEAD
 
-  echo "✅ Build number ${NEW_BUILD_NUMBER} committed and pushed"
+	echo "✅ Build number ${NEW_BUILD_NUMBER} committed and pushed"
 
-  BUILD_NUMBER="$NEW_BUILD_NUMBER"
+	BUILD_NUMBER="$NEW_BUILD_NUMBER"
 else
-  echo "⏭️  Skipping build number bump (--skip-build-bump). Reusing ${BUILD_NUMBER}."
+	echo "⏭️  Skipping build number bump (--skip-build-bump). Reusing ${BUILD_NUMBER}."
 fi
 
 # Artifact names include build number so the updater can detect same-version newer builds.
@@ -479,15 +485,15 @@ NOTARIZE_ZIP_PATH="${BUILD_DIR}/${NOTARIZE_ZIP_NAME}"
 # building a new beta so the updater re-downloads the fresh artifact.
 
 if [[ $is_beta -eq 1 ]]; then
-  UPDATER_DOWNLOADS="${HOME}/Library/Application Support/BetterCmdTab/UpdaterDownloads"
-  if [[ -d "$UPDATER_DOWNLOADS" ]]; then
-    _stale_count=$(find "$UPDATER_DOWNLOADS" -maxdepth 1 -name "*.dmg" | wc -l | tr -d ' ')
-    if [[ "$_stale_count" -gt 0 ]]; then
-      echo "🧹 Removing ${_stale_count} stale DMG(s) from UpdaterDownloads..."
-      find "$UPDATER_DOWNLOADS" -maxdepth 1 -name "*.dmg" -delete
-      echo "✅ UpdaterDownloads cleaned"
-    fi
-  fi
+	UPDATER_DOWNLOADS="${HOME}/Library/Application Support/BetterCmdTab/UpdaterDownloads"
+	if [[ -d "$UPDATER_DOWNLOADS" ]]; then
+		_stale_count=$(find "$UPDATER_DOWNLOADS" -maxdepth 1 -name "*.dmg" | wc -l | tr -d ' ')
+		if [[ "$_stale_count" -gt 0 ]]; then
+			echo "🧹 Removing ${_stale_count} stale DMG(s) from UpdaterDownloads..."
+			find "$UPDATER_DOWNLOADS" -maxdepth 1 -name "*.dmg" -delete
+			echo "✅ UpdaterDownloads cleaned"
+		fi
+	fi
 fi
 
 # ─── Step 2: Clean (optional) & Archive ──────────────────────────────────────
@@ -501,48 +507,48 @@ rm -rf "$ARCHIVE_PATH" "$EXPORT_PATH"
 rm -f "$ZIP_PATH"
 
 build_cmd=(
-  xcodebuild archive
-  -allowProvisioningUpdates
-  -project "$PROJECT_PATH"
-  -scheme "$SCHEME"
-  -configuration Release
-  -destination "platform=macOS"
-  -archivePath "$ARCHIVE_PATH"
-  CODE_SIGN_STYLE=Automatic
-  DEVELOPMENT_TEAM="$TEAM_ID"
-  OTHER_CODE_SIGN_FLAGS="--timestamp"
+	xcodebuild archive
+	-allowProvisioningUpdates
+	-project "$PROJECT_PATH"
+	-scheme "$SCHEME"
+	-configuration Release
+	-destination "platform=macOS"
+	-archivePath "$ARCHIVE_PATH"
+	CODE_SIGN_STYLE=Automatic
+	DEVELOPMENT_TEAM="$TEAM_ID"
+	OTHER_CODE_SIGN_FLAGS="--timestamp"
 )
 
 if [[ $clean_build -eq 1 ]]; then
-  echo "🧹 Cleaning build folder..."
-  xcodebuild clean -project "$PROJECT_PATH" -scheme "$SCHEME" -configuration Release -quiet
+	echo "🧹 Cleaning build folder..."
+	xcodebuild clean -project "$PROJECT_PATH" -scheme "$SCHEME" -configuration Release -quiet
 fi
 
 echo "📦 Archiving..."
 if command -v xcbeautify &>/dev/null; then
-  "${build_cmd[@]}" 2>&1 | xcbeautify
+	"${build_cmd[@]}" 2>&1 | xcbeautify
 else
-  "${build_cmd[@]}"
+	"${build_cmd[@]}"
 fi
 
 if [[ ! -d "$ARCHIVE_PATH" ]]; then
-  echo "❌ Archive failed — .xcarchive not found"
-  exit 1
+	echo "❌ Archive failed — .xcarchive not found"
+	exit 1
 fi
 
 ARCHIVE_INFO_PLIST="${ARCHIVE_PATH}/Info.plist"
 ARCHIVED_APP_PATH="${ARCHIVE_PATH}/Products/Applications/BetterCmdTab.app"
 
 if [[ ! -d "$ARCHIVED_APP_PATH" ]]; then
-  echo "❌ Archive failed — BetterCmdTab.app not found in archive products"
-  exit 1
+	echo "❌ Archive failed — BetterCmdTab.app not found in archive products"
+	exit 1
 fi
 
 if ! /usr/libexec/PlistBuddy -c "Print :ApplicationProperties:ApplicationPath" "$ARCHIVE_INFO_PLIST" >/dev/null 2>&1; then
-  echo "❌ Archive is missing ApplicationProperties in ${ARCHIVE_INFO_PLIST}"
-  echo "   Xcode will refuse exportArchive when the archive is not recognized as a proper macOS app archive."
-  echo "   Check installable targets/helpers in the scheme and ensure only BetterCmdTab.app is archived as an installable product."
-  exit 1
+	echo "❌ Archive is missing ApplicationProperties in ${ARCHIVE_INFO_PLIST}"
+	echo "   Xcode will refuse exportArchive when the archive is not recognized as a proper macOS app archive."
+	echo "   Check installable targets/helpers in the scheme and ensure only BetterCmdTab.app is archived as an installable product."
+	exit 1
 fi
 
 echo "✅ Archive created: ${ARCHIVE_PATH}"
@@ -553,7 +559,7 @@ step "Step 3: Export"
 
 # Create export options plist (Developer ID, automatic signing)
 EXPORT_OPTIONS_PLIST="${BUILD_DIR}/ExportOptions.plist"
-cat > "$EXPORT_OPTIONS_PLIST" <<PLIST
+cat >"$EXPORT_OPTIONS_PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -572,25 +578,25 @@ PLIST
 
 echo "📤 Exporting archive..."
 if command -v xcbeautify &>/dev/null; then
-  xcodebuild -exportArchive \
-    -allowProvisioningUpdates \
-    -archivePath "$ARCHIVE_PATH" \
-    -exportPath "$EXPORT_PATH" \
-    -exportOptionsPlist "$EXPORT_OPTIONS_PLIST" \
-    2>&1 | xcbeautify
+	xcodebuild -exportArchive \
+		-allowProvisioningUpdates \
+		-archivePath "$ARCHIVE_PATH" \
+		-exportPath "$EXPORT_PATH" \
+		-exportOptionsPlist "$EXPORT_OPTIONS_PLIST" \
+		2>&1 | xcbeautify
 else
-  xcodebuild -exportArchive \
-    -allowProvisioningUpdates \
-    -archivePath "$ARCHIVE_PATH" \
-    -exportPath "$EXPORT_PATH" \
-    -exportOptionsPlist "$EXPORT_OPTIONS_PLIST"
+	xcodebuild -exportArchive \
+		-allowProvisioningUpdates \
+		-archivePath "$ARCHIVE_PATH" \
+		-exportPath "$EXPORT_PATH" \
+		-exportOptionsPlist "$EXPORT_OPTIONS_PLIST"
 fi
 
 APP_PATH="${EXPORT_PATH}/BetterCmdTab.app"
 
 if [[ ! -d "$APP_PATH" ]]; then
-  echo "❌ Export failed — BetterCmdTab.app not found in ${EXPORT_PATH}"
-  exit 1
+	echo "❌ Export failed — BetterCmdTab.app not found in ${EXPORT_PATH}"
+	exit 1
 fi
 
 echo "✅ Exported: ${APP_PATH}"
@@ -614,8 +620,8 @@ echo ""
 # Verify the correct team signed it
 codesign_info=$(codesign -dvv "$APP_PATH" 2>&1) || true
 if ! echo "$codesign_info" | grep -q "TeamIdentifier=${TEAM_ID}"; then
-  echo "❌ App is NOT signed by team ${TEAM_ID}"
-  exit 1
+	echo "❌ App is NOT signed by team ${TEAM_ID}"
+	exit 1
 fi
 
 echo "✅ Code signature valid"
@@ -628,43 +634,43 @@ echo "✅ Code signature valid"
 # Apple lookup at first launch after the user copies it out of the DMG).
 
 if [[ $skip_notarization -eq 0 ]]; then
-  step "Step 5: Notarize the .app"
+	step "Step 5: Notarize the .app"
 
-  rm -f "$NOTARIZE_ZIP_PATH"
-  ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$NOTARIZE_ZIP_PATH"
+	rm -f "$NOTARIZE_ZIP_PATH"
+	ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$NOTARIZE_ZIP_PATH"
 
-  echo "📡 Submitting .app for notarization..."
-  echo "   This may take a few minutes..."
+	echo "📡 Submitting .app for notarization..."
+	echo "   This may take a few minutes..."
 
-  xcrun notarytool submit "$NOTARIZE_ZIP_PATH" \
-    --keychain-profile "${NOTARYTOOL_PROFILE}" \
-    --wait \
-    2>&1 | tee "${BUILD_DIR}/notarization-app.log"
+	xcrun notarytool submit "$NOTARIZE_ZIP_PATH" \
+		--keychain-profile "${NOTARYTOOL_PROFILE}" \
+		--wait \
+		2>&1 | tee "${BUILD_DIR}/notarization-app.log"
 
-  if ! grep -q "status: Accepted" "${BUILD_DIR}/notarization-app.log"; then
-    echo ""
-    echo "❌ App notarization failed. Check the log above."
-    echo "   For detailed info, get the submission ID from the log and run:"
-    echo "   xcrun notarytool log <submission-id> --keychain-profile ${NOTARYTOOL_PROFILE}"
-    exit 1
-  fi
+	if ! grep -q "status: Accepted" "${BUILD_DIR}/notarization-app.log"; then
+		echo ""
+		echo "❌ App notarization failed. Check the log above."
+		echo "   For detailed info, get the submission ID from the log and run:"
+		echo "   xcrun notarytool log <submission-id> --keychain-profile ${NOTARYTOOL_PROFILE}"
+		exit 1
+	fi
 
-  echo "✅ App notarization accepted"
+	echo "✅ App notarization accepted"
 
-  # ─── Step 6: Staple the .app ─────────────────────────────────────────────
+	# ─── Step 6: Staple the .app ─────────────────────────────────────────────
 
-  step "Step 6: Staple notarization ticket to .app"
+	step "Step 6: Staple notarization ticket to .app"
 
-  echo "📎 Stapling ticket to app..."
-  xcrun stapler staple "$APP_PATH"
+	echo "📎 Stapling ticket to app..."
+	xcrun stapler staple "$APP_PATH"
 
-  echo "🔍 Verifying staple..."
-  xcrun stapler validate "$APP_PATH"
+	echo "🔍 Verifying staple..."
+	xcrun stapler validate "$APP_PATH"
 
-  echo "✅ App ticket stapled"
+	echo "✅ App ticket stapled"
 else
-  echo ""
-  echo "⏭️  Skipping app notarization (--skip-notarization)"
+	echo ""
+	echo "⏭️  Skipping app notarization (--skip-notarization)"
 fi
 
 # ─── Step 7: Build ZIP ──────────────────────────────────────────────────────
@@ -699,12 +705,12 @@ rm -f "$DMG_PATH"
 
 # UDZO = zlib-compressed, read-only, smallest practical mount overhead.
 hdiutil create \
-  -volname "$DMG_VOLNAME" \
-  -srcfolder "$DMG_STAGE_DIR" \
-  -ov \
-  -format UDZO \
-  -fs HFS+ \
-  "$DMG_PATH" >/dev/null
+	-volname "$DMG_VOLNAME" \
+	-srcfolder "$DMG_STAGE_DIR" \
+	-ov \
+	-format UDZO \
+	-fs HFS+ \
+	"$DMG_PATH" >/dev/null
 
 DMG_SIZE=$(du -h "$DMG_PATH" | awk '{print $1}')
 echo "✅ Created: ${DMG_PATH} (${DMG_SIZE})"
@@ -721,35 +727,35 @@ echo "✅ DMG signed"
 # ─── Step 10: Notarize DMG ─────────────────────────────────────────────────
 
 if [[ $skip_notarization -eq 0 ]]; then
-  step "Step 10: Notarize DMG"
+	step "Step 10: Notarize DMG"
 
-  echo "📡 Submitting DMG for notarization..."
-  echo "   This may take a few minutes..."
+	echo "📡 Submitting DMG for notarization..."
+	echo "   This may take a few minutes..."
 
-  xcrun notarytool submit "$DMG_PATH" \
-    --keychain-profile "${NOTARYTOOL_PROFILE}" \
-    --wait \
-    2>&1 | tee "${BUILD_DIR}/notarization-dmg.log"
+	xcrun notarytool submit "$DMG_PATH" \
+		--keychain-profile "${NOTARYTOOL_PROFILE}" \
+		--wait \
+		2>&1 | tee "${BUILD_DIR}/notarization-dmg.log"
 
-  if ! grep -q "status: Accepted" "${BUILD_DIR}/notarization-dmg.log"; then
-    echo ""
-    echo "❌ DMG notarization failed. Check the log above."
-    exit 1
-  fi
+	if ! grep -q "status: Accepted" "${BUILD_DIR}/notarization-dmg.log"; then
+		echo ""
+		echo "❌ DMG notarization failed. Check the log above."
+		exit 1
+	fi
 
-  echo "✅ DMG notarization accepted"
+	echo "✅ DMG notarization accepted"
 
-  # ─── Step 11: Staple DMG ────────────────────────────────────────────────
+	# ─── Step 11: Staple DMG ────────────────────────────────────────────────
 
-  step "Step 11: Staple notarization ticket to DMG"
+	step "Step 11: Staple notarization ticket to DMG"
 
-  xcrun stapler staple "$DMG_PATH"
-  xcrun stapler validate "$DMG_PATH"
+	xcrun stapler staple "$DMG_PATH"
+	xcrun stapler validate "$DMG_PATH"
 
-  echo "✅ DMG ticket stapled"
+	echo "✅ DMG ticket stapled"
 else
-  echo ""
-  echo "⏭️  Skipping DMG notarization (--skip-notarization)"
+	echo ""
+	echo "⏭️  Skipping DMG notarization (--skip-notarization)"
 fi
 
 # ─── Step 12: Create GitHub pre-release (beta + --auto-release only) ────────
@@ -760,111 +766,111 @@ fi
 # skips pre-releases by design, so no further action is needed.
 
 if [[ $is_beta -eq 1 ]] && [[ $auto_release -eq 1 ]]; then
-  step "Step 12: Create GitHub pre-release"
+	step "Step 12: Create GitHub pre-release"
 
-  if [[ $skip_notarization -eq 1 ]]; then
-    echo "⚠️  Refusing to publish a release built with --skip-notarization."
-    echo "   Re-run without --skip-notarization to publish ${BETA_TAG}."
-    exit 1
-  fi
+	if [[ $skip_notarization -eq 1 ]]; then
+		echo "⚠️  Refusing to publish a release built with --skip-notarization."
+		echo "   Re-run without --skip-notarization to publish ${BETA_TAG}."
+		exit 1
+	fi
 
-  echo "📡 Publishing ${BETA_TAG} on rokartur/BetterCmdTab..."
+	echo "📡 Publishing ${BETA_TAG} on rokartur/BetterCmdTab..."
 
-  RELEASE_NOTES_FILE="${BUILD_DIR}/release-notes-${BETA_TAG}.md"
+	RELEASE_NOTES_FILE="${BUILD_DIR}/release-notes-${BETA_TAG}.md"
 
-  # Carry-over rule: if the newest GitHub release is a pre-release, treat it
-  # as an in-progress notes draft and prefill from it. If the newest release
-  # is the stable "latest", we're starting a fresh beta cycle → clean slate.
-  # This decouples carry-over from VERSION-prefix matching, so a beta of a
-  # new VERSION inherits notes from the immediately prior pre-release even
-  # if the version string just rolled over.
-  PRIOR_NOTES_FILE=""
-  _newest_release_json=$(gh release list --repo rokartur/BetterCmdTab --limit 1 \
-    --json tagName,isPrerelease 2>/dev/null || echo "[]")
-  _newest_tag=$(echo "$_newest_release_json" | jq -r '.[0].tagName // empty')
-  _newest_pre=$(echo "$_newest_release_json" | jq -r '.[0].isPrerelease // false')
+	# Carry-over rule: if the newest GitHub release is a pre-release, treat it
+	# as an in-progress notes draft and prefill from it. If the newest release
+	# is the stable "latest", we're starting a fresh beta cycle → clean slate.
+	# This decouples carry-over from VERSION-prefix matching, so a beta of a
+	# new VERSION inherits notes from the immediately prior pre-release even
+	# if the version string just rolled over.
+	PRIOR_NOTES_FILE=""
+	_newest_release_json=$(gh release list --repo rokartur/BetterCmdTab --limit 1 \
+		--json tagName,isPrerelease 2>/dev/null || echo "[]")
+	_newest_tag=$(echo "$_newest_release_json" | jq -r '.[0].tagName // empty')
+	_newest_pre=$(echo "$_newest_release_json" | jq -r '.[0].isPrerelease // false')
 
-  if [[ -z "$_newest_tag" ]]; then
-    echo "ℹ️  No prior releases found — starting from clean notes."
-  elif [[ "$_newest_pre" == "true" ]]; then
-    _candidate="${BUILD_DIR}/prior-notes-${_newest_tag}.md"
-    # GitHub returns bodies with CRLF; strip CRs so awk heading-equality works.
-    if gh release view "$_newest_tag" --repo rokartur/BetterCmdTab --json body --jq '.body' 2>/dev/null \
-        | tr -d '\r' > "$_candidate" && [[ -s "$_candidate" ]]; then
-      PRIOR_NOTES_FILE="$_candidate"
-      echo "📥 Loaded notes from prior pre-release: ${_newest_tag}"
-      echo "   (existing bullets per section carry over; legacy section names recognised)"
-    else
-      rm -f "$_candidate"
-    fi
-  else
-    echo "ℹ️  Latest release (${_newest_tag}) is stable — starting from clean notes."
-  fi
+	if [[ -z "$_newest_tag" ]]; then
+		echo "ℹ️  No prior releases found — starting from clean notes."
+	elif [[ "$_newest_pre" == "true" ]]; then
+		_candidate="${BUILD_DIR}/prior-notes-${_newest_tag}.md"
+		# GitHub returns bodies with CRLF; strip CRs so awk heading-equality works.
+		if gh release view "$_newest_tag" --repo rokartur/BetterCmdTab --json body --jq '.body' 2>/dev/null |
+			tr -d '\r' >"$_candidate" && [[ -s "$_candidate" ]]; then
+			PRIOR_NOTES_FILE="$_candidate"
+			echo "📥 Loaded notes from prior pre-release: ${_newest_tag}"
+			echo "   (existing bullets per section carry over; legacy section names recognised)"
+		else
+			rm -f "$_candidate"
+		fi
+	else
+		echo "ℹ️  Latest release (${_newest_tag}) is stable — starting from clean notes."
+	fi
 
-  if [[ -n "$release_notes" ]]; then
-    # Explicit --notes supplied: use verbatim, skip prompts.
-    printf "%s\n" "$release_notes" > "$RELEASE_NOTES_FILE"
-  elif [[ -t 0 ]]; then
-    # Interactive terminal: prompt per category (carry over from prior beta).
-    compose_release_notes_interactively "$RELEASE_NOTES_FILE" "$PRIOR_NOTES_FILE"
-    if [[ ! -s "$RELEASE_NOTES_FILE" ]]; then
-      echo "" >&2
-      echo "⚠️  No sections filled in. Falling back to default notes." >&2
-      printf "Beta %s of BetterCmdTab %s.\n" "$BETA_N" "$VERSION" > "$RELEASE_NOTES_FILE"
-    fi
-    echo ""
-    echo "──── Final release notes ────"
-    cat "$RELEASE_NOTES_FILE"
-    echo "──────────────────────────────"
-    printf "Publish with these notes? [y/N] " >&2
-    read -r _confirm
-    if [[ ! "$_confirm" =~ ^[Yy]$ ]]; then
-      echo "❌ Aborted by user. Notes saved to: ${RELEASE_NOTES_FILE}" >&2
-      echo "   Re-run with --notes \"\$(cat ${RELEASE_NOTES_FILE})\" to publish without prompts." >&2
-      exit 1
-    fi
-  else
-    # Non-interactive (CI / piped): keep prior fallback.
-    printf "Beta %s of BetterCmdTab %s.\n" "$BETA_N" "$VERSION" > "$RELEASE_NOTES_FILE"
-  fi
+	if [[ -n "$release_notes" ]]; then
+		# Explicit --notes supplied: use verbatim, skip prompts.
+		printf "%s\n" "$release_notes" >"$RELEASE_NOTES_FILE"
+	elif [[ -t 0 ]]; then
+		# Interactive terminal: prompt per category (carry over from prior beta).
+		compose_release_notes_interactively "$RELEASE_NOTES_FILE" "$PRIOR_NOTES_FILE"
+		if [[ ! -s "$RELEASE_NOTES_FILE" ]]; then
+			echo "" >&2
+			echo "⚠️  No sections filled in. Falling back to default notes." >&2
+			printf "Beta %s of BetterCmdTab %s.\n" "$BETA_N" "$VERSION" >"$RELEASE_NOTES_FILE"
+		fi
+		echo ""
+		echo "──── Final release notes ────"
+		cat "$RELEASE_NOTES_FILE"
+		echo "──────────────────────────────"
+		printf "Publish with these notes? [y/N] " >&2
+		read -r _confirm
+		if [[ ! "$_confirm" =~ ^[Yy]$ ]]; then
+			echo "❌ Aborted by user. Notes saved to: ${RELEASE_NOTES_FILE}" >&2
+			echo "   Re-run with --notes \"\$(cat ${RELEASE_NOTES_FILE})\" to publish without prompts." >&2
+			exit 1
+		fi
+	else
+		# Non-interactive (CI / piped): keep prior fallback.
+		printf "Beta %s of BetterCmdTab %s.\n" "$BETA_N" "$VERSION" >"$RELEASE_NOTES_FILE"
+	fi
 
-  # GitHub orders the releases page (and the /releases API the updater reads)
-  # by the tag's *commit date*, not the publish date. The public repo's main
-  # rarely moves, so consecutive releases tagged on the same commit share one
-  # created_at and sort unpredictably — the updater then offers a stale beta.
-  # Advance public main with an empty commit and tag that instead.
-  _release_target="main"
-  _pub_head=$(gh api repos/rokartur/BetterCmdTab/git/ref/heads/main --jq '.object.sha' 2>/dev/null) || _pub_head=""
-  _pub_tree=""
-  [[ -n "$_pub_head" ]] && { _pub_tree=$(gh api "repos/rokartur/BetterCmdTab/git/commits/${_pub_head}" --jq '.tree.sha' 2>/dev/null) || _pub_tree=""; }
-  if [[ -n "$_pub_head" && -n "$_pub_tree" ]]; then
-    _pub_new=$(gh api -X POST repos/rokartur/BetterCmdTab/git/commits \
-      -f message="chore: release ${BETA_TAG}" \
-      -f tree="$_pub_tree" \
-      -f "parents[]=${_pub_head}" --jq '.sha' 2>/dev/null) || _pub_new=""
-    if [[ -n "$_pub_new" ]] && gh api -X PATCH repos/rokartur/BetterCmdTab/git/refs/heads/main \
-         -f sha="$_pub_new" --silent 2>/dev/null; then
-      _release_target="$_pub_new"
-      echo "ℹ️  Advanced public main to ${_pub_new:0:7}; tagging it so the release sorts newest."
-    fi
-  fi
-  if [[ "$_release_target" == "main" ]]; then
-    echo "⚠️  Could not advance public main — tagging current HEAD; release may sort below older ones."
-  fi
+	# GitHub orders the releases page (and the /releases API the updater reads)
+	# by the tag's *commit date*, not the publish date. The public repo's main
+	# rarely moves, so consecutive releases tagged on the same commit share one
+	# created_at and sort unpredictably — the updater then offers a stale beta.
+	# Advance public main with an empty commit and tag that instead.
+	_release_target="main"
+	_pub_head=$(gh api repos/rokartur/BetterCmdTab/git/ref/heads/main --jq '.object.sha' 2>/dev/null) || _pub_head=""
+	_pub_tree=""
+	[[ -n "$_pub_head" ]] && { _pub_tree=$(gh api "repos/rokartur/BetterCmdTab/git/commits/${_pub_head}" --jq '.tree.sha' 2>/dev/null) || _pub_tree=""; }
+	if [[ -n "$_pub_head" && -n "$_pub_tree" ]]; then
+		_pub_new=$(gh api -X POST repos/rokartur/BetterCmdTab/git/commits \
+			-f message="chore: release ${BETA_TAG}" \
+			-f tree="$_pub_tree" \
+			-f "parents[]=${_pub_head}" --jq '.sha' 2>/dev/null) || _pub_new=""
+		if [[ -n "$_pub_new" ]] && gh api -X PATCH repos/rokartur/BetterCmdTab/git/refs/heads/main \
+			-f sha="$_pub_new" --silent 2>/dev/null; then
+			_release_target="$_pub_new"
+			echo "ℹ️  Advanced public main to ${_pub_new:0:7}; tagging it so the release sorts newest."
+		fi
+	fi
+	if [[ "$_release_target" == "main" ]]; then
+		echo "⚠️  Could not advance public main — tagging current HEAD; release may sort below older ones."
+	fi
 
-  gh release create "${BETA_TAG}" \
-    --repo rokartur/BetterCmdTab \
-    --target "$_release_target" \
-    --title "BetterCmdTab ${VERSION}-beta.${BETA_N}" \
-    --notes-file "$RELEASE_NOTES_FILE" \
-    --prerelease \
-    --latest=false \
-    "${DMG_PATH}#${DMG_NAME}" \
-    "${ZIP_PATH}#${ZIP_NAME}"
+	gh release create "${BETA_TAG}" \
+		--repo rokartur/BetterCmdTab \
+		--target "$_release_target" \
+		--title "BetterCmdTab ${VERSION}-beta.${BETA_N}" \
+		--notes-file "$RELEASE_NOTES_FILE" \
+		--prerelease \
+		--latest=false \
+		"${DMG_PATH}#${DMG_NAME}" \
+		"${ZIP_PATH}#${ZIP_NAME}"
 
-  echo "✅ Pre-release published: https://github.com/rokartur/BetterCmdTab/releases/tag/${BETA_TAG}"
-  echo "   Notes archived at: ${RELEASE_NOTES_FILE}"
-  echo "   (Homebrew cask workflow skips pre-releases by design.)"
+	echo "✅ Pre-release published: https://github.com/rokartur/BetterCmdTab/releases/tag/${BETA_TAG}"
+	echo "   Notes archived at: ${RELEASE_NOTES_FILE}"
+	echo "   (Homebrew cask workflow skips pre-releases by design.)"
 fi
 
 # Cleanup transient artifacts.
@@ -901,27 +907,27 @@ echo "  ZIP:      ${ZIP_PATH} (${ZIP_SIZE})"
 echo ""
 echo "  Next steps:"
 if [[ $is_beta -eq 1 ]]; then
-  if [[ $auto_release -eq 1 ]]; then
-    echo "  ✅ Pre-release ${BETA_TAG} already published."
-    echo "     https://github.com/rokartur/BetterCmdTab/releases/tag/${BETA_TAG}"
-  else
-    echo "  Run this to publish the pre-release:"
-    echo ""
-    echo "    gh release create ${BETA_TAG} \\"
-    echo "      --repo rokartur/BetterCmdTab \\"
-    echo "      --title \"BetterCmdTab ${VERSION} beta ${BETA_N}\" \\"
-    echo "      --notes \"Beta ${BETA_N} of BetterCmdTab ${VERSION}.\" \\"
-    echo "      --prerelease --latest=false \\"
-    echo "      \"${DMG_PATH}#${DMG_NAME}\" \\"
-    echo "      \"${ZIP_PATH}#${ZIP_NAME}\""
-    echo ""
-    echo "  Or re-run with --auto-release next time."
-  fi
-  echo "  Note: Homebrew cask workflow skips pre-releases by design."
+	if [[ $auto_release -eq 1 ]]; then
+		echo "  ✅ Pre-release ${BETA_TAG} already published."
+		echo "     https://github.com/rokartur/BetterCmdTab/releases/tag/${BETA_TAG}"
+	else
+		echo "  Run this to publish the pre-release:"
+		echo ""
+		echo "    gh release create ${BETA_TAG} \\"
+		echo "      --repo rokartur/BetterCmdTab \\"
+		echo "      --title \"BetterCmdTab ${VERSION} beta ${BETA_N}\" \\"
+		echo "      --notes \"Beta ${BETA_N} of BetterCmdTab ${VERSION}.\" \\"
+		echo "      --prerelease --latest=false \\"
+		echo "      \"${DMG_PATH}#${DMG_NAME}\" \\"
+		echo "      \"${ZIP_PATH}#${ZIP_NAME}\""
+		echo ""
+		echo "  Or re-run with --auto-release next time."
+	fi
+	echo "  Note: Homebrew cask workflow skips pre-releases by design."
 else
-  echo "  1. Create a release on GitHub with tag ${VERSION}"
-  echo "  2. Upload ${DMG_NAME} and ${ZIP_NAME}"
-  echo "  3. Make sure it's the 'Latest release' (not pre-release)"
-  echo "  Homebrew cask auto-updates via .github/workflows/update-homebrew-cask.yml"
+	echo "  1. Create a release on GitHub with tag ${VERSION}"
+	echo "  2. Upload ${DMG_NAME} and ${ZIP_NAME}"
+	echo "  3. Make sure it's the 'Latest release' (not pre-release)"
+	echo "  Homebrew cask auto-updates via .github/workflows/update-homebrew-cask.yml"
 fi
 echo ""
