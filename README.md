@@ -3,6 +3,7 @@
 <img src="web/public/screenshots/hero.png"  alt="BetterCmdTab promotion image" />
 
 <br>
+<br>
 
 [![image](https://img.shields.io/badge/Download_Latest_Release-F5F5F4?style=for-the-badge&logo=apple&logoColor=black)](https://github.com/rokartur/BetterCmdTab/releases/latest)
 
