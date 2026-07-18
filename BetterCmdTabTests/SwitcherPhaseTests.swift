@@ -477,3 +477,47 @@ struct PrimedStartAnchorTests {
         #expect(!SwitcherSortOrder.mruWindows.anchorsPrimedOnFrontmost)
     }
 }
+
+@Suite("Quick-tap Space-scope remap (#126)")
+struct EligiblePrimedIndexTests {
+    @Test func narrowedList_stepsOverEligibleOnly() {
+        // Primed [1,2,3,4], only {1,3,4} kept a scoped row → the eligible list
+        // is [1,3,4]; one tap from the head lands on pid 3 (primed index 2),
+        // never on the other-Space pid 2.
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: [1, 2, 3, 4], eligiblePids: [1, 3, 4], step: 1, anchorPid: nil) == 2)
+    }
+
+    @Test func nothingEligible_returnsNil() {
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: [1, 2], eligiblePids: [], step: 1, anchorPid: nil) == nil)
+    }
+
+    @Test func anchorEligible_stepsFromFrontmost() {
+        // Alphabetical-style anchor: frontmost pid 6 sits mid-list; one tap
+        // selects its eligible neighbor.
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: [5, 6, 7], eligiblePids: [5, 6, 7], step: 1, anchorPid: 6) == 2)
+    }
+
+    @Test func anchorFilteredOut_fallsBackToHead() {
+        // Frontmost pid 9 lost its rows to the scope filter → legacy
+        // head-anchored start over the eligible list [2,3].
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: [9, 2, 3], eligiblePids: [2, 3], step: 1, anchorPid: 9) == 2)
+    }
+
+    @Test func step_wrapsOverEligibleCount() {
+        // Three taps over two eligible apps wrap: (0+3) % 2 == 1 → pid 3.
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: [1, 2, 3], eligiblePids: [1, 3], step: 3, anchorPid: nil) == 2)
+        // Shift-reverse wraps to the tail.
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: [1, 2, 3], eligiblePids: [1, 3], step: -1, anchorPid: nil) == 2)
+    }
+
+    @Test func zeroStep_keepsFrontEligible() {
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: [1, 2, 3], eligiblePids: [2, 3], step: 0, anchorPid: nil) == 1)
+    }
+}
