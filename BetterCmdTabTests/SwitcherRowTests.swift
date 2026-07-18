@@ -110,6 +110,31 @@ struct SwitcherRowTests {
         #expect(blank.titleSlot(showAppNames: true) == "Notes")
     }
 
+    @Test("previews title prefixes the app name when names are shown (#125)")
+    func previewTitleSlotPrefixesAppName() {
+        let row = SwitcherRow(app: hostApp, window: axElement(), windowTitle: "Inbox",
+                              isMinimized: false, cgWindowID: 7)
+        #expect(row.previewTitleSlot(showAppNames: true) == "\(row.appName) — Inbox")
+        #expect(row.previewTitleSlot(showAppNames: false) == "Inbox")
+
+        // Windowless / blank-titled rows show just the app name — never "Name — Name".
+        let windowless = SwitcherRow(app: hostApp, window: nil, windowTitle: "", isMinimized: false)
+        #expect(windowless.previewTitleSlot(showAppNames: true) == windowless.appName)
+        let blank = SwitcherRow(app: hostApp, window: axElement(), windowTitle: "",
+                                isMinimized: false, cgWindowID: 8)
+        #expect(blank.previewTitleSlot(showAppNames: true) == blank.appName)
+
+        // Recently-closed rows prefix too.
+        let closed = SwitcherRow(recentlyClosed: RecentEntry(
+            bundleID: "com.example.notes", appName: "Notes", title: "Groceries",
+            documentPath: nil, closedAt: Date()))
+        #expect(closed.previewTitleSlot(showAppNames: true) == "Notes — Groceries")
+
+        // Browser tabs keep the bare tab title (app repeats on every sibling tab).
+        let tab = browserWindowRow(title: "Browser Window").browserTabRows(tabTitles: ["Docs"]).first!
+        #expect(tab.previewTitleSlot(showAppNames: true) == "Docs")
+    }
+
     @Test("empty window title falls back to app name")
     func emptyTitleFallback() {
         // window must be non-nil to enter the title branch — but we can't

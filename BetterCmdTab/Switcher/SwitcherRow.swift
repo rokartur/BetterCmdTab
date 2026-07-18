@@ -352,6 +352,20 @@ struct SwitcherRow {
     func titleSlot(showAppNames: Bool) -> String {
         showAppNames ? displayTitle : windowTitleText
     }
+
+    /// Title line for the Previews tile, which has no dedicated app-name slot
+    /// (List/Grid do): prefixes the app name when names are shown so tiles of
+    /// different apps are tellable apart (#125). Browser tabs keep the bare tab
+    /// title (the app would repeat on every sibling tab) and system dialogs keep
+    /// the window title (their process name is cryptic).
+    func previewTitleSlot(showAppNames: Bool) -> String {
+        guard showAppNames, browserTab == nil, !isSystemDialog else {
+            return titleSlot(showAppNames: showAppNames)
+        }
+        let title = windowTitleText
+        guard !title.isEmpty, title != appName else { return displayTitle }
+        return appName + " — " + title
+    }
 }
 
 /// Cached System Settings app icon, used for system permission/dialog rows.
