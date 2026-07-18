@@ -456,12 +456,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// from an earlier chord can't land on a newer one.
     private var focusedWindowCaptureGen: UInt64 = 0
     /// Whether the current open session was started by a held trigger chord
-    /// (⌘Tab/⌘`), i.e. relies on release-to-commit. Gesture and scoped opens
-    /// set this false: no modifier is held during a trackpad swipe (and a
-    /// scoped chord may omit the trigger modifier), so the missed-release
-    /// backstop in `reveal()` must not fire for them — it would commit
-    /// instantly instead of presenting the panel.
+    /// and therefore relies on release-to-commit. Gesture opens set this false.
     private var primedByHeldChord = false
+    /// The recorded hold modifier for the active scoped shortcut. Core shortcuts
+    /// use `HotkeyTap.Config`; scoped shortcuts arrive through Carbon instead.
+    private var scopedHoldModifierMask: CGEventFlags?
 
     init() {
         view = SwitcherView(frame: .zero)
@@ -728,7 +727,9 @@ final class SwitcherController: SwitcherViewDelegate {
             self.handle(event)
         }
         // Scoped-shortcut triggers open the switcher pre-filtered (#3).
-        ScopedSwitch.onTrigger = { [weak self] id, scope in self?.openScoped(id: id, scope: scope) }
+        ScopedSwitch.onTrigger = { [weak self] id, scope, name in
+            self?.openScoped(id: id, scope: scope, shortcutName: name)
+        }
         // User-invoked recovery from the Privacy pane: re-enable every native
         // symbolic hotkey we may have disabled, in case a prior unclean exit
         // left the system ⌘Tab stuck. Re-syncs the live override afterwards so
@@ -749,7 +750,7 @@ final class SwitcherController: SwitcherViewDelegate {
         holdMonitor.onRelease = { [weak self] in self?.handle(.releaseCmd) }
         // Re-sync the registered chords whenever the hold modifier goes up or down
         // so the in-panel parity set precisely tracks it — in particular, a panel
-        // opened without the modifier (gesture/scoped, seeded `assumeHeld`) drops
+        // opened without the modifier (gesture, seeded `assumeHeld`) drops
         // its parity chords on the first poll instead of leaving ⌘-qualified keys
         // registered while the modifier is up. The redundant re-register on a
         // commit (the release also closes the panel) is a cheap rare-path cost.
@@ -1218,15 +1219,15 @@ final class SwitcherController: SwitcherViewDelegate {
             windowIsCommandOnly: window?.isCommandOnly ?? false
         )
         let panelOpen = phase != .idle
-        // The hold-modifier poller detects ⌘-release (no event is delivered for
-        // it under secure input) and supplies the live hold state that gates the
-        // in-panel chords. Needed only while the panel is open under secure input
-        // with at least one live trigger — both cleared reserves no chord, so
-        // there is nothing to poll for. Poll whichever trigger is live (app wins).
-        if secureInputActive && panelOpen && (app != nil || window != nil) {
+        // Under Secure Event Input no modifier-release event reaches the tap, so
+        // poll the modifier that opened this panel. Scoped shortcuts carry their
+        // own mask; core shortcuts keep the existing app-first fallback.
+        let monitoredHoldMask = scopedHoldModifierMask
+            ?? app.map { Self.holdMask(for: $0.carbonModifiers) }
+            ?? window.map { Self.holdMask(for: $0.carbonModifiers) }
+        if secureInputActive && panelOpen, let monitoredHoldMask {
             if !holdMonitorRunning {
-                let holdMods = app?.carbonModifiers ?? window?.carbonModifiers ?? UInt32(cmdKey)
-                holdMonitor.start(mask: Self.holdMask(for: holdMods), assumeHeld: true)
+                holdMonitor.start(mask: monitoredHoldMask, assumeHeld: true)
                 holdMonitorRunning = true
             }
         } else if holdMonitorRunning {
@@ -1274,6 +1275,13 @@ final class SwitcherController: SwitcherViewDelegate {
         return .maskCommand
     }
 
+    nonisolated static func activeModifierReleased(
+        flags: CGEventFlags,
+        mask: CGEventFlags
+    ) -> Bool {
+        !HoldModifierMonitor.holdState(flags: flags, mask: mask)
+    }
+
     /// Pure: by the time the main thread reached `.primed` (where `switchingFlag`
     /// is set), was the hold-modifier release already missed? True when neither
     /// trigger's hold modifier is down in `flags`. On a very fast ⌘⇥ tap the ⌘-up
@@ -1295,7 +1303,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Pure: should the `.visible` release-to-commit liveness backstop
     /// (`visibleReleaseBackstop`) be armed? Only when a panel is actually on
     /// screen (`.visible`) for a held-chord keyboard open (`primedByHeldChord` —
-    /// false for gesture/scoped opens, which don't commit on release) under NORMAL
+    /// false for gesture opens, which don't commit on release) under NORMAL
     /// input, AND releasing the hold modifier would still commit something: i.e.
     /// not parked sticky/stay-open (`stickyOpen`) UNLESS drilled into a tab strip
     /// (the drill commits the highlighted tab on release even though it forces
@@ -1366,6 +1374,10 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Live check of `releaseAlreadyMissed` against the current physical modifier
     /// state (`CGEventSource.flagsState` keeps reporting under Secure Event Input).
     private func holdReleaseAlreadyMissed() -> Bool {
+        let flags = CGEventSource.flagsState(.combinedSessionState)
+        if let scopedHoldModifierMask {
+            return Self.activeModifierReleased(flags: flags, mask: scopedHoldModifierMask)
+        }
         // A disabled trigger (nil) contributes no mask, so it never counts as held.
         let appTrigger = Self.carbonTrigger(for: .switchApps)
         let windowTrigger = Self.carbonTrigger(for: .switchWindows)
@@ -1379,7 +1391,7 @@ final class SwitcherController: SwitcherViewDelegate {
             return true
         }
         return Self.releaseAlreadyMissed(
-            flags: CGEventSource.flagsState(.combinedSessionState),
+            flags: flags,
             appMask: appTrigger.map { Self.holdMask(for: $0.carbonModifiers) },
             windowMask: windowTrigger.map { Self.holdMask(for: $0.carbonModifiers) }
         )
@@ -1906,6 +1918,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 switchSessionKind = .none
                 activeScope = nil
                 scopeFrontPid = nil
+                scopedHoldModifierMask = nil
                 // Drop the per-shortcut override (#74) so the next plain ⌘Tab
                 // resolves the global config/appearance, not the last shortcut's.
                 activeFilterConfig = nil
@@ -1947,12 +1960,12 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Open the switcher already filtered to `scope` (#3). Driven by a user
-    /// scoped-shortcut via `ScopedSwitch.onTrigger`. Opens sticky (like a
-    /// gesture/stay-open open) so releasing the shortcut's own modifier doesn't
-    /// commit — the user steps with Tab/arrows/scroll and commits with Return or
-    /// a click, or dismisses with Esc. Ignored if the switcher is already open.
-    func openScoped(id: Int, scope: SwitchScope) {
-        guard phase == .idle else { return }
+    /// scoped shortcut via `ScopedSwitch.onTrigger` and committed when that
+    /// shortcut's recorded hold modifier is released.
+    func openScoped(id: Int, scope: SwitchScope, shortcutName: String) {
+        guard phase == .idle,
+              let trigger = Self.hotkeyTrigger(for: BetterShortcuts.Name(shortcutName)) else { return }
+        scopedHoldModifierMask = trigger.modifier
         resolveActiveOptions(for: .scoped(id))
         mru.syncFrontmost()
         let selfPid = getpid()
@@ -1968,15 +1981,9 @@ final class SwitcherController: SwitcherViewDelegate {
         primedIndex = 0
         primedStepDelta = 0
         switchSessionKind = .none
-        // Scoped opens are sticky and never release-to-commit; the bound chord
-        // may not include the trigger's hold modifier, so the missed-release
-        // backstop must not run.
-        primedByHeldChord = false
+        primedByHeldChord = true
         phase = .primed
         reveal()
-        // reveal() may cancel back to idle (nothing matched the scope); only
-        // stick if it actually presented.
-        if phase == .visible { stickyOpen = true }
     }
 
     /// Filter `rows` to the active scope. Operates on already content-filtered
@@ -2593,7 +2600,9 @@ final class SwitcherController: SwitcherViewDelegate {
         // divergence from the heal predicate (`|| tabDrillActive`) is unobservable
         // at the gate — drill keyDowns are fully handled and return earlier in the
         // tap, before the swallow gate is reached.
-        hotkey.setModifierHeldPanel(want)
+        // HotkeyTap only knows the two core trigger masks. Scoped sessions use
+        // the timer below, so they must not enter its core-only weld detector.
+        hotkey.setModifierHeldPanel(want && scopedHoldModifierMask == nil)
         if want {
             guard visibleReleaseBackstop == nil else { return }
             let timer = Timer(timeInterval: Self.visibleReleaseBackstopInterval, repeats: true) { [weak self] _ in
@@ -2830,9 +2839,9 @@ final class SwitcherController: SwitcherViewDelegate {
         // hold modifier came up during the primed delay and the tap missed it,
         // commit the primed pick instead of presenting a panel nothing would
         // dismiss. Cheap — one flags read on the cold reveal path. Chord opens
-        // only: gesture/scoped sessions hold no modifier, so the live flags
-        // read would always look like a missed release and commit instantly
-        // instead of presenting (they open sticky and never release-commit).
+        // only: gesture sessions hold no modifier, so the live flags read would
+        // always look like a missed release and commit instantly instead of
+        // presenting their sticky panel.
         // With quick-tap stay-open (#91) a release landing during reveal()'s
         // own run falls through to present; the post-present rescue parks it.
         if primedByHeldChord, holdReleaseAlreadyMissed(), !quickReleaseParksSticky {
@@ -3103,8 +3112,8 @@ final class SwitcherController: SwitcherViewDelegate {
         // armed the tap's `.releaseCmd` delivery, so the tap dropped the release and
         // nothing dismisses the panel until the 0.2s visibleReleaseBackstop tick.
         // Honour it now so a quick tap commits instantly instead of leaving the
-        // switcher on screen (#39). Held-chord only — gestures/scoped opens set
-        // primedByHeldChord=false and never release-commit; a still-held ⌘ is a no-op
+        // switcher on screen (#39). Held-chord only — gesture opens set
+        // primedByHeldChord=false and never release-commit; a still-held modifier is a no-op
         // so a user mid-browse is never committed out from under. commit() bumps
         // revealGeneration, so the refresh scheduled just above drops on its guard.
         if primedByHeldChord, holdReleaseAlreadyMissed() { handleModifierRelease() }
@@ -5647,6 +5656,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Return / letter-jump / mouse selection; once detached, further modifier
     /// releases are ignored.
     private func handleModifierRelease() {
+        if let scopedHoldModifierMask,
+           !Self.activeModifierReleased(
+               flags: CGEventSource.flagsState(.combinedSessionState),
+               mask: scopedHoldModifierMask
+           ) { return }
         // Drill-in commits on release: the user picks the highlighted tab the
         // same way releasing ⌘ commits the highlighted app. Bypass the
         // stickyOpen guard that enterTabDrill set for safety against stray

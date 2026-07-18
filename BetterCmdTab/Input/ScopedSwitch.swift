@@ -9,7 +9,7 @@ import os
 /// Like `DirectActivation`, these are ordinary Carbon hotkeys handled by
 /// BetterShortcuts (not the CGEvent tap): a registered `onKeyDown` handler fires
 /// on the user's combo and forwards the slot's scope to `onTrigger`, which
-/// `SwitcherController` sets to open a sticky, pre-filtered panel. Handlers are
+/// `SwitcherController` sets to open a pre-filtered panel. Handlers are
 /// installed once at launch and read the slot's scope live, so changing a slot's
 /// scope takes effect without re-registering.
 @MainActor
@@ -17,7 +17,7 @@ enum ScopedSwitch {
     /// Set by `SwitcherController` at startup. Invoked with the entry's stable id
     /// and its scope when its shortcut fires. The id lets the controller look up
     /// that entry's per-shortcut override (#74).
-    static var onTrigger: ((Int, SwitchScope) -> Void)?
+    static var onTrigger: ((Int, SwitchScope, String) -> Void)?
 
     /// Names that already have a Carbon `onKeyDown` handler installed. Stable ids
     /// are never reused, so a name is only ever registered once per launch.
@@ -66,6 +66,6 @@ enum ScopedSwitch {
         // Re-read live: the entry may have been removed (then its recorded trigger
         // was cleared, so this normally can't fire) or its scope changed.
         guard let entry = Preferences.shared.scopedShortcuts.first(where: { $0.id == id }) else { return }
-        onTrigger?(id, entry.scope)
+        onTrigger?(id, entry.scope, entry.shortcutName)
     }
 }

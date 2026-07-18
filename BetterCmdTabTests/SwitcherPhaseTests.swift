@@ -98,6 +98,24 @@ struct SwitcherReleaseMissedTests {
     }
 }
 
+@Suite("Scoped modifier release gate")
+struct SwitcherScopedModifierReleaseTests {
+    @Test func releasesOnlyAfterTheActiveModifierIsUp() {
+        #expect(!SwitcherController.activeModifierReleased(
+            flags: [.maskAlternate, .maskShift], mask: .maskAlternate))
+        #expect(SwitcherController.activeModifierReleased(
+            flags: .maskShift, mask: .maskAlternate))
+        #expect(SwitcherController.activeModifierReleased(
+            flags: .maskCommand, mask: .maskAlternate))
+    }
+
+    @Test func requiresEveryModifierInACombinedTrigger() {
+        let mask: CGEventFlags = [.maskCommand, .maskAlternate]
+        #expect(!SwitcherController.activeModifierReleased(flags: mask, mask: mask))
+        #expect(SwitcherController.activeModifierReleased(flags: .maskCommand, mask: mask))
+    }
+}
+
 /// Pure-logic coverage for the `.visible` release-to-commit liveness backstop —
 /// the recovery the prior #16 fixes lacked. A keyboard ⌘Tab panel closes on the
 /// tap's single ⌘-release `flagsChanged`; if that event is dropped the panel
@@ -138,9 +156,9 @@ struct SwitcherVisibleReleaseBackstopTests {
         #expect(!arm(phase: .primed))
     }
 
-    @Test func off_forGestureOrScopedOpens() {
-        // Gesture / scoped opens carry `primedByHeldChord == false`: they are
-        // sticky and never commit on release, so the backstop must stay off.
+    @Test func off_forGestureOpens() {
+        // Gesture opens carry `primedByHeldChord == false`: they are sticky and
+        // never commit on release, so the backstop must stay off.
         #expect(!arm(primedByHeldChord: false))
     }
 
@@ -175,10 +193,11 @@ struct SwitcherVisibleReleaseBackstopTests {
         // held-chord (flag true) AND the event's flags show the hold modifier up,
         // tearing the welded panel down instead. So the flag must be true exactly
         // for a held-chord panel (heal-eligible) and false for a deliberate stay-open
-        // / gesture / scoped park, where bare keys must keep routing to the panel.
+        // / gesture park, where bare keys must keep routing to the panel. Scoped
+        // chords use this backstop but bypass the tap's core-only weld detector.
         #expect(arm())                          // held-chord ⌘Tab → heal-eligible
         #expect(!arm(stickyOpen: true))         // parked stay-open → bare keys route
-        #expect(!arm(primedByHeldChord: false)) // gesture / scoped → bare keys route
+        #expect(!arm(primedByHeldChord: false)) // gesture → bare keys route
     }
 }
 
@@ -418,26 +437,26 @@ struct SwitcherWindowSelectionTests {
 /// (frontmost filtered out, or an MRU sort) reproduces the legacy start.
 @Suite("Browser window bounds matching (#119)")
 struct BoundsMatchTests {
-    private let a = CGRect(x: 0, y: 25, width: 800, height: 600)
-    private let b = CGRect(x: 900, y: 25, width: 800, height: 600)
+    private let firstFrame = CGRect(x: 0, y: 25, width: 800, height: 600)
+    private let secondFrame = CGRect(x: 900, y: 25, width: 800, height: 600)
 
     @Test("resolves the unique window whose bounds match within tolerance")
     func uniqueHit() {
         let frame = CGRect(x: 1, y: 26, width: 799, height: 601)
-        #expect(SwitcherController.uniqueBoundsMatch(frame: frame, in: [a, b]) == 0)
-        #expect(SwitcherController.uniqueBoundsMatch(frame: b, in: [a, b]) == 1)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: frame, in: [firstFrame, secondFrame]) == 0)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: secondFrame, in: [firstFrame, secondFrame]) == 1)
     }
 
     @Test("two candidates inside tolerance are ambiguous — no match")
     func ambiguousIsNil() {
-        #expect(SwitcherController.uniqueBoundsMatch(frame: a, in: [a, a]) == nil)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: firstFrame, in: [firstFrame, firstFrame]) == nil)
     }
 
     @Test("nil candidates and out-of-tolerance frames never match")
     func misses() {
         let far = CGRect(x: 50, y: 25, width: 800, height: 600)
-        #expect(SwitcherController.uniqueBoundsMatch(frame: far, in: [a, nil]) == nil)
-        #expect(SwitcherController.uniqueBoundsMatch(frame: a, in: [nil, nil]) == nil)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: far, in: [firstFrame, nil]) == nil)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: firstFrame, in: [nil, nil]) == nil)
     }
 }
 
