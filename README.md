@@ -1,18 +1,13 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/3e4bbb67-ef7d-4619-8068-1458d8460331" width="128" height="128" alt="BetterCmdTab" />
+<img src="web/public/screenshots/hero.png"  alt="BetterCmdTab promotion image" />
 
-# BetterCmdTab
-
-**The ⌘+Tab macOS deserves.**
-
-Fast · Native · Zero telemetry · Free forever
+<br>
 
 [![image](https://img.shields.io/badge/Download_Latest_Release-F5F5F4?style=for-the-badge&logo=apple&logoColor=black)](https://github.com/rokartur/BetterCmdTab/releases/latest)
 
 <p>
   <a href="https://github.com/rokartur/BetterCmdTab/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/rokartur/BetterCmdTab?include_prereleases&style=for-the-badge&label=release&color=white"></a>
-  <img alt="macOS" src="https://img.shields.io/badge/macOS-13.0+-000?style=for-the-badge&color=white">
   <a href="https://github.com/rokartur/BetterCmdTab/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/rokartur/BetterCmdTab/total?style=for-the-badge&color=white"></a>
 </p>
 
@@ -22,13 +17,6 @@ Fast · Native · Zero telemetry · Free forever
   <a href="#build-from-source">Build</a> ·
   <a href="#contributing">Contribute</a>
 </sub>
-
-<br />
-<br />
-
-<img src="web/public/screenshots/preview.jpg" width="49%" alt="BetterCmdTab grid of app icons layout" />
-<img src="web/public/screenshots/grid.jpg" width="49%" alt="BetterCmdTab grid of app icons layout" />
-<img src="web/public/screenshots/list.jpg" width="49%" alt="BetterCmdTab classic vertical list layout" />
 
 </div>
 
