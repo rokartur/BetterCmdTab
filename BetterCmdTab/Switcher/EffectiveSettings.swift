@@ -18,6 +18,7 @@ struct EffectiveSettings {
     let fontScale: SwitcherFontScale
     let fontFace: SwitcherFontFace
     let gridMaxColumns: Int
+    let listWidthPercent: Int
     let panelOpacity: Int
     let panelCornerRadius: Int
     let backdropMaterial: BackdropMaterial
@@ -54,6 +55,7 @@ extension Preferences {
             fontScale: override.fontScale ?? fontScale,
             fontFace: override.fontFace ?? fontFace,
             gridMaxColumns: override.gridMaxColumns ?? gridMaxColumns,
+            listWidthPercent: override.listWidthPercent ?? listWidthPercent,
             panelOpacity: override.panelOpacity ?? panelOpacity,
             panelCornerRadius: override.panelCornerRadius ?? panelCornerRadius,
             backdropMaterial: override.backdropMaterial ?? backdropMaterial,

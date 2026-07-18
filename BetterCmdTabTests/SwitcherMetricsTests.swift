@@ -195,6 +195,34 @@ struct SwitcherMetricsTests {
         #expect(grid.resolvedCornerRadius(pref: -1) == 0)
     }
 
+    @Test("list width percent: 100 = automatic width, lower narrows proportionally, never widens")
+    func resolvedRowWidth() {
+        // Ultrawide-style metrics: scale 1.8 gives a 1296 pt automatic row (#124).
+        let m = SwitcherMetrics.forScale(1.8)
+        #expect(m.resolvedRowWidth(percent: 100) == m.rowWidth)
+        #expect(m.resolvedRowWidth(percent: 50) == round(m.rowWidth / 2))
+        // Values past 100 never widen the row.
+        #expect(m.resolvedRowWidth(percent: 250) == m.rowWidth)
+        // Clamp keeps the pref inside the slider range.
+        #expect(Preferences.clampListWidthPercent(0) == Preferences.listWidthPercentRange.lowerBound)
+        #expect(Preferences.clampListWidthPercent(9999) == Preferences.listWidthPercentRange.upperBound)
+        #expect(Preferences.clampListWidthPercent(70) == 70)
+    }
+
+    @Test("app-name column shares a row's narrowing so the title column keeps space")
+    func fittedAppNameWidth() {
+        let m = SwitcherMetrics.forScale(1.8)
+        // Full-width row: the metric column as-is.
+        #expect(m.fittedAppNameWidth(actualRowWidth: m.rowWidth) == m.appNameWidth)
+        // Wider than natural never grows the column.
+        #expect(m.fittedAppNameWidth(actualRowWidth: m.rowWidth * 2) == m.appNameWidth)
+        // Half-width row halves the column instead of starving the title.
+        #expect(m.fittedAppNameWidth(actualRowWidth: m.rowWidth / 2) == round(m.appNameWidth / 2))
+        // Hidden names stay collapsed regardless of row width.
+        let hidden = SwitcherMetrics.forScale(1.8, showAppNames: false)
+        #expect(hidden.fittedAppNameWidth(actualRowWidth: 300) == 0)
+    }
+
     @Test("fontScale defaults to 1.0 (no behavior change)")
     func fontScaleDefaultIdentity() {
         #expect(SwitcherMetrics.forScale(1.2) == SwitcherMetrics.forScale(1.2, fontScale: 1.0))

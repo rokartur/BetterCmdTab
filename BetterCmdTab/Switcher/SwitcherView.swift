@@ -878,7 +878,7 @@ final class SwitcherView: NSView, TabStripDelegate {
 
     private func computeListLayout() -> ListLayout {
         let rowH = metrics.rowHeight
-        let baseRowW = metrics.rowWidth
+        let baseRowW = metrics.resolvedRowWidth(percent: effective.listWidthPercent)
         let outerPadding = metrics.outerPadding
         let count = max(rows.count, 1)
         let screen = layoutScreenFrame()
@@ -891,8 +891,9 @@ final class SwitcherView: NSView, TabStripDelegate {
         let maxRowsByHeight = max(1, Int(floor(maxListHeight / rowH)))
 
         // Minimum column width: still enough for letter + app name + icon + a
-        // bit of title before truncation. Scale with display.
-        let minColWidth: CGFloat = round(380 * metrics.scale)
+        // bit of title before truncation. Scale with display, but never past a
+        // user width cap (#124) — the cap wins over the readability floor.
+        let minColWidth: CGFloat = min(round(380 * metrics.scale), baseRowW)
         let maxColsByWidth = max(1, Int(floor(maxListWidth / minColWidth)))
 
         // Determine how many columns we need to fit `count` without exceeding
