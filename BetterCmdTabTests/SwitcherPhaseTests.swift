@@ -114,6 +114,17 @@ struct SwitcherScopedModifierReleaseTests {
         #expect(!SwitcherController.activeModifierReleased(flags: mask, mask: mask))
         #expect(SwitcherController.activeModifierReleased(flags: .maskCommand, mask: mask))
     }
+
+    @Test func scopedOpensSkipTheLeadingCurrentWindow() {
+        // Frontmost's window leads the scoped rows → start one past it so a
+        // tap-release switches instead of re-activating the current window.
+        #expect(SwitcherController.scopedInitialIndex(firstRowPid: 7, frontPid: 7, count: 3) == 1)
+        // Scope excludes the frontmost app → its top row is already the target.
+        #expect(SwitcherController.scopedInitialIndex(firstRowPid: 9, frontPid: 7, count: 3) == 0)
+        // A single row can't be skipped past; unknown pids anchor at the top.
+        #expect(SwitcherController.scopedInitialIndex(firstRowPid: 7, frontPid: 7, count: 1) == 0)
+        #expect(SwitcherController.scopedInitialIndex(firstRowPid: nil, frontPid: nil, count: 3) == 0)
+    }
 }
 
 /// Pure-logic coverage for the `.visible` release-to-commit liveness backstop —
@@ -437,26 +448,26 @@ struct SwitcherWindowSelectionTests {
 /// (frontmost filtered out, or an MRU sort) reproduces the legacy start.
 @Suite("Browser window bounds matching (#119)")
 struct BoundsMatchTests {
-    private let firstFrame = CGRect(x: 0, y: 25, width: 800, height: 600)
-    private let secondFrame = CGRect(x: 900, y: 25, width: 800, height: 600)
+    private let a = CGRect(x: 0, y: 25, width: 800, height: 600)
+    private let b = CGRect(x: 900, y: 25, width: 800, height: 600)
 
     @Test("resolves the unique window whose bounds match within tolerance")
     func uniqueHit() {
         let frame = CGRect(x: 1, y: 26, width: 799, height: 601)
-        #expect(SwitcherController.uniqueBoundsMatch(frame: frame, in: [firstFrame, secondFrame]) == 0)
-        #expect(SwitcherController.uniqueBoundsMatch(frame: secondFrame, in: [firstFrame, secondFrame]) == 1)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: frame, in: [a, b]) == 0)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: b, in: [a, b]) == 1)
     }
 
     @Test("two candidates inside tolerance are ambiguous — no match")
     func ambiguousIsNil() {
-        #expect(SwitcherController.uniqueBoundsMatch(frame: firstFrame, in: [firstFrame, firstFrame]) == nil)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: a, in: [a, a]) == nil)
     }
 
     @Test("nil candidates and out-of-tolerance frames never match")
     func misses() {
         let far = CGRect(x: 50, y: 25, width: 800, height: 600)
-        #expect(SwitcherController.uniqueBoundsMatch(frame: far, in: [firstFrame, nil]) == nil)
-        #expect(SwitcherController.uniqueBoundsMatch(frame: firstFrame, in: [nil, nil]) == nil)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: far, in: [a, nil]) == nil)
+        #expect(SwitcherController.uniqueBoundsMatch(frame: a, in: [nil, nil]) == nil)
     }
 }
 

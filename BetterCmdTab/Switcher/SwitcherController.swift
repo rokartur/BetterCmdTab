@@ -1961,10 +1961,24 @@ final class SwitcherController: SwitcherViewDelegate {
 
     /// Open the switcher already filtered to `scope` (#3). Driven by a user
     /// scoped shortcut via `ScopedSwitch.onTrigger` and committed when that
-    /// shortcut's recorded hold modifier is released.
+    /// shortcut's recorded hold modifier is released. A repeat press of the
+    /// same chord while its panel is up steps the selection — the chord is a
+    /// Carbon hotkey, so the panel never sees it as a keyDown and the tap's
+    /// core-mask step path can't match it (#130).
     func openScoped(id: Int, scope: SwitchScope, shortcutName: String) {
-        guard phase == .idle,
-              let trigger = Self.hotkeyTrigger(for: BetterShortcuts.Name(shortcutName)) else { return }
+        guard phase == .idle else {
+            if case .scoped(let activeId) = activeTarget, activeId == id,
+               phase == .visible, !tabDrillActive {
+                advanceLinearVisible(by: 1, wrap: true)
+            }
+            return
+        }
+        guard let trigger = Self.hotkeyTrigger(for: BetterShortcuts.Name(shortcutName)) else {
+            // Can only happen on a clear-shortcut race against the in-flight
+            // Carbon event; log so a dead profile is diagnosable.
+            Log.switcher.error("scoped shortcut \(id) fired without a recorded trigger")
+            return
+        }
         scopedHoldModifierMask = trigger.modifier
         resolveActiveOptions(for: .scoped(id))
         mru.syncFrontmost()
@@ -2431,6 +2445,16 @@ final class SwitcherController: SwitcherViewDelegate {
         guard !eligible.isEmpty else { return nil }
         let anchor = anchorPid.flatMap { pid in eligible.firstIndex { $0.element == pid } }
         return eligible[primedStartIndex(count: eligible.count, step: step, anchor: anchor)].offset
+    }
+
+    /// Pure: initial selection for a scoped open. Row 0 unless the frontmost
+    /// app's window leads the scoped rows — then row 1, so releasing the
+    /// modifier lands on the previous in-scope window instead of re-activating
+    /// the current one (#130).
+    nonisolated static func scopedInitialIndex(
+        firstRowPid: pid_t?, frontPid: pid_t?, count: Int
+    ) -> Int {
+        (count > 1 && firstRowPid != nil && firstRowPid == frontPid) ? 1 : 0
     }
 
     /// Position of the frontmost app in `primedApps` for sorts that anchor on
@@ -2971,9 +2995,13 @@ final class SwitcherController: SwitcherViewDelegate {
             rows = baseRows
             labels = baseLabels
             if activeScope != nil {
-                // Scoped opens start at the top: the MRU/pid anchors below were
-                // computed pre-scope and don't map onto the narrowed set.
-                index = 0
+                // Scoped opens anchor at the top of the narrowed set (the MRU/pid
+                // anchors below were computed pre-scope). When the current window
+                // leads it, start one past — releasing the modifier then lands on
+                // the previous in-scope window instead of re-activating the
+                // current one, like ⌘Tab (#130).
+                index = Self.scopedInitialIndex(
+                    firstRowPid: rows.first?.pid, frontPid: scopeFrontPid, count: rows.count)
             } else if effective.sortOrder == .mruWindows {
                 // Window-level list: step over rows by window recency, not apps.
                 // `primedStepDelta` taps from row 0 (the current window), so a
