@@ -969,12 +969,34 @@ final class SwitcherController: SwitcherViewDelegate {
         mru.syncFrontmost()
         // order[0] is the current frontmost; order[1] is the previous app.
         guard mru.order.count >= 2 else { return }
-        let targetPid = mru.order[1]
-        // A stale pid (app quit before its terminate notification landed) just
-        // no-ops this swipe; the next MRU sync drops it.
-        guard let app = NSRunningApplication(processIdentifier: targetPid) else { return }
-        Activator.activateApp(app)
-        mru.bump(targetPid)
+        // Warm cache ONLY — a swipe must never trigger a synchronous
+        // cross-process AppCatalog.snapshot(). Activating through the app's
+        // front catalogued row (not a bare activateApp) makes the swipe jump
+        // Spaces / exit full screen exactly like a quick ⌘⇥ tap, and lets a
+        // narrowed Space scope skip apps whose windows all live on another
+        // Space (#126). This path never resolves per-shortcut options, so it
+        // filters by the global config, not `activeFilterConfig`.
+        let rows = applyPerAppWindowMRU(cache.rows(orderedBy: mru.order))
+        let targetPid: pid_t?
+        if CatalogFilter.config().spaceScope == .allSpaces || !cache.hasCompletedFullScan {
+            // All Spaces — plus the pre-first-scan window (boot/AX-regrant),
+            // where "no rows" means "unknown", not "nothing on this Space".
+            targetPid = mru.order[1]
+        } else {
+            let eligible = Set(rows.compactMap(\.pid))
+            targetPid = mru.order.dropFirst().first { eligible.contains($0) }
+        }
+        guard let targetPid else { return }
+        if let row = rows.first(where: { $0.pid == targetPid }) {
+            mru.bump(targetPid)
+            bumpWindowMRUIfPossible(for: row)
+            Activator.activate(row) {}
+        } else if let app = NSRunningApplication(processIdentifier: targetPid) {
+            // A stale pid (app quit before its terminate notification landed)
+            // just no-ops this swipe; the next MRU sync drops it.
+            Activator.activateApp(app)
+            mru.bump(targetPid)
+        }
     }
 
     /// Derive the in-panel action-key map (#5) from the BetterShortcuts
