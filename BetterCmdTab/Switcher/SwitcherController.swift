@@ -1843,7 +1843,13 @@ final class SwitcherController: SwitcherViewDelegate {
                 } else {
                     Activator.invalidatePendingActivation()
                     secureInputMonitor.start()
-                    cache.refreshObserverGaps()
+                    // Deferred off the keydown critical path: the sweep walks
+                    // the running-app list, and its heal lands via async
+                    // bumps anyway, so running it one runloop turn after
+                    // reveal() changes nothing observable.
+                    DispatchQueue.main.async { [weak self] in
+                        self?.cache.refreshObserverGaps()
+                    }
                 }
             }
             hotkey.setSwitching(newValue.isSwitching)

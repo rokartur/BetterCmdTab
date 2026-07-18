@@ -572,9 +572,18 @@ final class AppCatalogCache {
         // Clamp per-call blocking when the target app is slow. Without this
         // `AXObserverAddNotification` can stall its thread indefinitely.
         AXUIElementSetMessagingTimeout(axApp, 0.2)
+        var subscribed = 0
         for name in axNotifications {
-            _ = AXObserverAddNotification(observer, axApp, name as CFString, refcon)
+            if AXObserverAddNotification(observer, axApp, name as CFString, refcon) == .success {
+                subscribed += 1
+            }
         }
+        // Every subscription timed out against a wedged app: the observer would
+        // sit in `axObservers` deaf forever, invisible to the
+        // `refreshObserverGaps` missing-observer sweep. Report it as a failed
+        // install instead so the failure-retry path rebuilds it once the app
+        // answers AX again.
+        guard subscribed > 0 else { return nil }
         return observer
     }
 

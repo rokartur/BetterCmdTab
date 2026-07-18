@@ -248,9 +248,12 @@ final class WindowThumbnailCache {
         didRequestPermission = true
         DispatchQueue.global(qos: .utility).async {
             guard !CGPreflightScreenCaptureAccess() else { return }
-            // Granting flips a prior "denied" enumeration into a stale 5 s
-            // backoff; drop it so the next reveal captures immediately instead of
-            // showing app icons until the backoff elapses.
+            // Narrow first-request race: preflight can report a stale "denied"
+            // right after the user granted, while the request call sees the
+            // fresh TCC state — drop the 5 s denied-backoff so this reveal
+            // captures immediately. (Grants that land later are healed by
+            // `performRefresh` reclassifying failures as transient once
+            // preflight reads granted — ~0.5 s, no relaunch.)
             if CGRequestScreenCaptureAccess(), #available(macOS 14.0, *) {
                 Task { await SCWindowProvider.shared.clearFailureBackoff() }
             }
