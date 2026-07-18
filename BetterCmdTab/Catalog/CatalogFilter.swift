@@ -214,6 +214,16 @@ enum CatalogFilter {
     private static let spaceMemo = OSAllocatedUnfairLock<SpaceMemo?>(initialState: nil)
     static let spaceMemoTTL: TimeInterval = 0.1
 
+    /// Drop the memoized Space resolution so the next `resolveSpacesMemoized`
+    /// recomputes against live WindowServer state. Called when the active Space
+    /// flips: the memo's `allowedSpaces` was resolved for the *previous* active
+    /// Space, so a reveal within the 100 ms TTL right after a Space switch could
+    /// otherwise filter a `.currentSpace`/`.visibleSpaces` scope against the old
+    /// Space and hide every window (empty panel). One unfair-lock write — cheap.
+    static func invalidateSpaceMemo() {
+        spaceMemo.withLock { $0 = nil }
+    }
+
     /// Pure reuse decision for the Space-resolution memo, split out so it can
     /// be unit-tested without WindowServer.
     static func spaceMemoValid(

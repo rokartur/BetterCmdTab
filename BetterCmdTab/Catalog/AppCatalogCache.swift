@@ -162,14 +162,65 @@ final class AppCatalogCache {
         axCatalogPanelVisible.withLock { $0 = visible }
     }
 
-    /// Retry only apps whose AX observer failed to install. The common path is
-    /// one empty-set check; a gap gets a targeted pid refresh, never a full sweep.
+    /// Re-establish AX-observer coverage for two kinds of gap:
+    ///
+    ///  1. Apps whose observer *failed to install* (`AXObserverCreate` returned
+    ///     nil because the app wasn't AX-ready at `didLaunch`) — tracked in
+    ///     `axObserverFailures`.
+    ///  2. Apps whose observer *died silently*: the create succeeded, then the AX
+    ///     server stopped delivering (app wedged, subscription lost). These never
+    ///     enter `axObserverFailures`, so without this sweep their window set goes
+    ///     stale forever and the switcher can open with a missing/empty list.
+    ///
+    /// Invoked on every idle→active transition (see `SwitcherController`), so it
+    /// self-heals the cache the next time the user reaches for the switcher — no
+    /// polling timer. Iterating the running-app list is a handful of entries and
+    /// `installAXObserver` is idempotent, so a no-gap call stays cheap.
     func refreshObserverGaps() {
-        guard !axObserverFailures.isEmpty else { return }
-        let live = Set(axObserverFailures.filter { NSRunningApplication(processIdentifier: $0) != nil })
-        axObserverFailures = live
-        for pid in live { installAXObserver(forPid: pid) }
-        bumpApps(pids: live)
+        let failed = Set(axObserverFailures.filter { NSRunningApplication(processIdentifier: $0) != nil })
+        axObserverFailures = failed
+        var missing = Set<pid_t>()
+        for app in NSWorkspace.shared.runningApplications
+        where app.activationPolicy == .regular || app.activationPolicy == .accessory {
+            let pid = app.processIdentifier
+            if axObservers[pid] == nil, axObserversInstalling[pid] == nil {
+                missing.insert(pid)
+            }
+        }
+        let gaps = failed.union(missing)
+        guard !gaps.isEmpty else { return }
+        for pid in gaps { installAXObserver(forPid: pid) }
+        bumpApps(pids: gaps)
+    }
+
+    /// True when a completed scan's cache holds no apps yet regular apps are
+    /// running — a pathological "observers stopped feeding the cache" state, not
+    /// a legitimate "filters hid everything" (every `.regular` app gets an entry
+    /// in `computeEntries`, even windowless, so an empty post-scan cache can only
+    /// mean the incremental feed broke). The reveal path uses this to fire a
+    /// recovery full-refresh instead of presenting a stuck-empty panel. Pure
+    /// in-memory read plus one short running-app scan — no AX calls.
+    var looksEmptyButAppsRunning: Bool {
+        Self.cacheLooksBroken(
+            hasCompletedFullScan: hasCompletedFullScan,
+            isEmpty: entries.isEmpty,
+            hasRunningRegularApp: NSWorkspace.shared.runningApplications.contains {
+                $0.activationPolicy == .regular
+            }
+        )
+    }
+
+    /// Pure decision behind `looksEmptyButAppsRunning`, split out so the
+    /// "broken cache" rule can be unit-tested without a live WindowServer. The
+    /// cache is broken only when a full scan has completed (so emptiness isn't
+    /// just "not warmed up yet") AND it holds nothing AND at least one regular
+    /// app is running (which `computeEntries` would always have catalogued).
+    nonisolated static func cacheLooksBroken(
+        hasCompletedFullScan: Bool,
+        isEmpty: Bool,
+        hasRunningRegularApp: Bool
+    ) -> Bool {
+        hasCompletedFullScan && isEmpty && hasRunningRegularApp
     }
 
     /// Pids that currently have at least one catalogued window, for the
@@ -521,9 +572,18 @@ final class AppCatalogCache {
         // Clamp per-call blocking when the target app is slow. Without this
         // `AXObserverAddNotification` can stall its thread indefinitely.
         AXUIElementSetMessagingTimeout(axApp, 0.2)
+        var subscribed = 0
         for name in axNotifications {
-            _ = AXObserverAddNotification(observer, axApp, name as CFString, refcon)
+            if AXObserverAddNotification(observer, axApp, name as CFString, refcon) == .success {
+                subscribed += 1
+            }
         }
+        // Every subscription timed out against a wedged app: the observer would
+        // sit in `axObservers` deaf forever, invisible to the
+        // `refreshObserverGaps` missing-observer sweep. Report it as a failed
+        // install instead so the failure-retry path rebuilds it once the app
+        // answers AX again.
+        guard subscribed > 0 else { return nil }
         return observer
     }
 

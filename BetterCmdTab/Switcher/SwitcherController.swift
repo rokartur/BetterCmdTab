@@ -568,6 +568,12 @@ final class SwitcherController: SwitcherViewDelegate {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.updateTriggerSuppression()
+                // The memoized Space resolution (100 ms TTL) was computed for the
+                // Space we just left; drop it so a reveal right after the flip
+                // resolves against the new active Space instead of filtering a
+                // scoped list to empty. No-op cost when the scope is `.allSpaces`
+                // (that path never memoizes an allow-set that hides anything).
+                CatalogFilter.invalidateSpaceMemo()
             }
         }
         workspaceObservers.append(activeSpaceObserver)
@@ -1837,7 +1843,13 @@ final class SwitcherController: SwitcherViewDelegate {
                 } else {
                     Activator.invalidatePendingActivation()
                     secureInputMonitor.start()
-                    cache.refreshObserverGaps()
+                    // Deferred off the keydown critical path: the sweep walks
+                    // the running-app list, and its heal lands via async
+                    // bumps anyway, so running it one runloop turn after
+                    // reveal() changes nothing observable.
+                    DispatchQueue.main.async { [weak self] in
+                        self?.cache.refreshObserverGaps()
+                    }
                 }
             }
             hotkey.setSwitching(newValue.isSwitching)
@@ -2926,7 +2938,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 index = 0
             }
         } else if hadCachedRows || cache.hasCompletedFullScan {
-            // Zero rows out of an already-scanned cache means the filters
+            // Zero rows out of an already-scanned cache normally means the filters
             // legitimately hide everything — e.g. only a windowless Finder is
             // running and its default when-no-windows exception drops it, or
             // an active scope matched nothing windowed in a warm cache.
@@ -2939,6 +2951,22 @@ final class SwitcherController: SwitcherViewDelegate {
             rows = []
             labels = []
             index = 0
+            // …but an empty cache while regular apps are running is NOT a
+            // legitimate filter result — it means the incremental AX/workspace
+            // feed silently broke and the cache lost its contents (the frequent
+            // "⌘Tab opens with nothing"). Fire a one-shot recovery full-refresh
+            // so the panel repopulates a few frames later instead of staying
+            // stuck empty until some future AX event happens to land. Gated on
+            // the pathological signal so the #31 legitimate-empty path never
+            // pays for (or flashes from) a rescan.
+            if cache.looksEmptyButAppsRunning {
+                Log.switcher.error("Catalog empty while apps running — scheduling recovery refresh")
+                cache.scheduleFullRefresh { [weak self] in
+                    guard let self, gen == self.revealGeneration else { return }
+                    let fresh = self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig)
+                    self.applyFullSnapshot(fresh, anchorPid: targetPid)
+                }
+            }
         } else {
             baseRows = snapshotApps.map { app in
                 SwitcherRow(
