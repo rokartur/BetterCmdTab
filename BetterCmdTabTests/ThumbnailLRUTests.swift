@@ -159,6 +159,18 @@ struct ThumbnailLRUTests {
         #expect(acceptedNew)
     }
 
+    @Test("static capture retries once only after a transient permitted failure")
+    func staticCaptureRetryPolicy() {
+        #expect(WindowThumbnailCache.shouldRetryStaticCapture(
+            isLive: false, hasScreenRecordingAccess: true, isRetry: false))
+        #expect(!WindowThumbnailCache.shouldRetryStaticCapture(
+            isLive: false, hasScreenRecordingAccess: false, isRetry: false))
+        #expect(!WindowThumbnailCache.shouldRetryStaticCapture(
+            isLive: false, hasScreenRecordingAccess: true, isRetry: true))
+        #expect(!WindowThumbnailCache.shouldRetryStaticCapture(
+            isLive: true, hasScreenRecordingAccess: true, isRetry: false))
+    }
+
     @Test("a browser-tab request cannot approve its own stale key")
     @MainActor func browserCaptureRequiresCurrentTarget() {
         let current = BrowserTabPreviewKey(pid: 1, windowID: 2, index: 0, pageIdentity: "current")

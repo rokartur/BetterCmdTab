@@ -162,46 +162,18 @@ final class AppCatalogCache {
         axCatalogPanelVisible.withLock { $0 = visible }
     }
 
-    /// Re-establish AX-observer coverage for two kinds of gap:
-    ///
-    ///  1. Apps whose observer *failed to install* (`AXObserverCreate` returned
-    ///     nil because the app wasn't AX-ready at `didLaunch`) — tracked in
-    ///     `axObserverFailures`.
-    ///  2. Apps whose observer *died silently*: the create succeeded, then the AX
-    ///     server stopped delivering (app wedged, subscription lost). These never
-    ///     enter `axObserverFailures`, so without this sweep their window set goes
-    ///     stale forever and the switcher can open with a missing/empty list.
-    ///
-    /// Invoked on every idle→active transition (see `SwitcherController`), so it
-    /// self-heals the cache the next time the user reaches for the switcher — no
-    /// polling timer. Iterating the running-app list is a handful of entries and
-    /// `installAXObserver` is idempotent, so a no-gap call stays cheap.
-    func refreshObserverGaps() {
+    func retryFailedAXObservers() {
+        guard !axObserverFailures.isEmpty else { return }
         let failed = Set(axObserverFailures.filter { NSRunningApplication(processIdentifier: $0) != nil })
         axObserverFailures = failed
-        var missing = Set<pid_t>()
-        for app in NSWorkspace.shared.runningApplications
-        where app.activationPolicy == .regular || app.activationPolicy == .accessory {
-            let pid = app.processIdentifier
-            if axObservers[pid] == nil, axObserversInstalling[pid] == nil {
-                missing.insert(pid)
-            }
-        }
-        let gaps = failed.union(missing)
-        guard !gaps.isEmpty else { return }
-        for pid in gaps { installAXObserver(forPid: pid) }
-        bumpApps(pids: gaps)
+        for pid in failed { installAXObserver(forPid: pid) }
+        bumpApps(pids: failed)
     }
 
-    /// True when a completed scan's cache holds no apps yet regular apps are
-    /// running — a pathological "observers stopped feeding the cache" state, not
-    /// a legitimate "filters hid everything" (every `.regular` app gets an entry
-    /// in `computeEntries`, even windowless, so an empty post-scan cache can only
-    /// mean the incremental feed broke). The reveal path uses this to fire a
-    /// recovery full-refresh instead of presenting a stuck-empty panel. Pure
-    /// in-memory read plus one short running-app scan — no AX calls.
+    /// A completed cache cannot be empty while a regular app is running.
     var looksEmptyButAppsRunning: Bool {
-        Self.cacheLooksBroken(
+        guard hasCompletedFullScan, entries.isEmpty else { return false }
+        return Self.cacheLooksBroken(
             hasCompletedFullScan: hasCompletedFullScan,
             isEmpty: entries.isEmpty,
             hasRunningRegularApp: NSWorkspace.shared.runningApplications.contains {
@@ -210,11 +182,7 @@ final class AppCatalogCache {
         )
     }
 
-    /// Pure decision behind `looksEmptyButAppsRunning`, split out so the
-    /// "broken cache" rule can be unit-tested without a live WindowServer. The
-    /// cache is broken only when a full scan has completed (so emptiness isn't
-    /// just "not warmed up yet") AND it holds nothing AND at least one regular
-    /// app is running (which `computeEntries` would always have catalogued).
+    /// Pure seam for the cache invariant, without live WindowServer state.
     nonisolated static func cacheLooksBroken(
         hasCompletedFullScan: Bool,
         isEmpty: Bool,
@@ -321,6 +289,15 @@ final class AppCatalogCache {
         return 0
     }
 
+    func recoverEmptyCatalog(completion: (() -> Void)? = nil) {
+        guard isRunning else { return }
+        if !pendingRefresh {
+            for pid in Array(axObservers.keys) { uninstallAXObserver(forPid: pid) }
+            installAXObserversForAllApps()
+        }
+        scheduleFullRefresh(completion: completion)
+    }
+
     func scheduleFullRefresh(completion: (() -> Void)? = nil) {
         guard isRunning else { return }
         if let completion { pendingOneShotCompletions.append(completion) }
@@ -396,8 +373,8 @@ final class AppCatalogCache {
         var windowsBuffer: [[WindowInfo]] = Array(repeating: [], count: count)
         windowsBuffer.withUnsafeMutableBufferPointer { buffer in
             let output = DisjointWriteBuffer(buffer)
-            DispatchQueue.concurrentPerform(iterations: count) { i in
-                let app = candidates[i]
+            DispatchQueue.concurrentPerform(iterations: count) { index in
+                let app = candidates[index]
                 let pid = app.processIdentifier
                 output.set(WindowEnumerator.windows(
                     forPid: pid,
@@ -406,15 +383,15 @@ final class AppCatalogCache {
                     cgZOrder: cgSnapshot.zOrder(for: pid),
                     nonNormalLayerWids: cgSnapshot.nonNormalLayer(for: pid),
                     onscreenWids: cgSnapshot.onscreen(for: pid)
-                ), at: i)
+                ), at: index)
             }
         }
 
         var dict: [pid_t: AppCacheEntry] = [:]
         dict.reserveCapacity(count)
-        for i in 0..<count {
-            let app = candidates[i]
-            let windows = windowsBuffer[i]
+        for index in 0..<count {
+            let app = candidates[index]
+            let windows = windowsBuffer[index]
             if app.activationPolicy == .regular {
                 dict[app.processIdentifier] = AppCacheEntry(app: app, windows: windows)
             } else if app.activationPolicy == .accessory, !windows.isEmpty {
@@ -578,11 +555,7 @@ final class AppCatalogCache {
                 subscribed += 1
             }
         }
-        // Every subscription timed out against a wedged app: the observer would
-        // sit in `axObservers` deaf forever, invisible to the
-        // `refreshObserverGaps` missing-observer sweep. Report it as a failed
-        // install instead so the failure-retry path rebuilds it once the app
-        // answers AX again.
+        // Retry later rather than retaining an observer with no subscriptions.
         guard subscribed > 0 else { return nil }
         return observer
     }
@@ -741,8 +714,8 @@ final class AppCatalogCache {
                 // while still sharing the single CG snapshot above.
                 scanBuffer.withUnsafeMutableBufferPointer { buffer in
                     let output = DisjointWriteBuffer(buffer)
-                    DispatchQueue.concurrentPerform(iterations: count) { i in
-                        output.set(scan(planSnapshot[i]), at: i)
+                    DispatchQueue.concurrentPerform(iterations: count) { index in
+                        output.set(scan(planSnapshot[index]), at: index)
                     }
                 }
             }
@@ -750,13 +723,13 @@ final class AppCatalogCache {
                 guard let self, self.isRunning,
                       lifecycle == self.lifecycleGeneration else { return }
                 var rebump = Set<pid_t>()
-                for i in 0..<count {
-                    let pid = planSnapshot[i].pid
-                    let scan = scanBuffer[i]
+                for index in 0..<count {
+                    let pid = planSnapshot[index].pid
+                    let scan = scanBuffer[index]
                     self.pidBumpInFlight.remove(pid)
                     if let app = appsSnapshot[pid], (self.pidWriteGeneration[pid] ?? 0) <= gen {
                         self.pidWriteGeneration[pid] = gen
-                        if planSnapshot[i].isRegular {
+                        if planSnapshot[index].isRegular {
                             self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows)
                             self.pidCoverage[pid] = (scan.expected, scan.uncoverable)
                         } else if accessorySnapshot.contains(pid), !scan.windows.isEmpty {

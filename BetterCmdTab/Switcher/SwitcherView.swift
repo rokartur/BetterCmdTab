@@ -208,6 +208,7 @@ final class SwitcherView: NSView, TabStripDelegate {
             for v in itemViews { v.removeFromSuperview() }
             itemViews.removeAll()
         }
+        updatePreviewWiring()
         rebuildItemPool()
         if geometryChanged {
             cachedLayout = nil
@@ -215,7 +216,6 @@ final class SwitcherView: NSView, TabStripDelegate {
             needsLayout = true
         }
         applySelection()
-        updatePreviewWiring()
         CATransaction.commit()
     }
 

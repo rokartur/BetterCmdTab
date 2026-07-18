@@ -85,6 +85,9 @@ final class WindowThumbnailCache {
     /// invalidating its result token. The token prevents an old completion from
     /// removing a newer task for a reused window id.
     private var captureTasks: [ThumbnailKey: (token: UInt64, task: Task<Void, Never>)] = [:]
+    private var staticRetryKeys: Set<ThumbnailKey> = []
+    private var permissionRetryRequests: [ThumbnailKey: CGFloat] = [:]
+    private var staticRetryGeneration: UInt64 = 0
     /// Pace windows that cannot currently be captured (closed/minimized or a
     /// denied permission) instead of retrying them ten times per second.
     private var liveFailureAt: [ThumbnailKey: Date] = [:]
@@ -160,19 +163,21 @@ final class WindowThumbnailCache {
         beginRequest(key: .window(wid), pixelHeight: pixelHeight, maxAge: 0, isLive: true)
     }
 
+    @discardableResult
     private func beginRequest(
         key: ThumbnailKey,
         pixelHeight: CGFloat,
         maxAge: TimeInterval,
-        isLive: Bool
-    ) {
+        isLive: Bool,
+        isRetry: Bool = false
+    ) -> Bool {
         let wid = key.windowID
-        guard wid != 0, !requests.contains(key) else { return }
+        guard wid != 0, !requests.contains(key) else { return false }
         if isLive, let failed = liveFailureAt[key],
-           Date().timeIntervalSince(failed) < liveFailureBackoff { return }
+           Date().timeIntervalSince(failed) < liveFailureBackoff { return false }
         if maxAge > 0, let ts = cache.capturedAt(for: key),
-           Date().timeIntervalSince(ts) < maxAge { return }
-        guard let token = requests.begin(key) else { return }
+           Date().timeIntervalSince(ts) < maxAge { return false }
+        guard let token = requests.begin(key) else { return false }
         let task = Task { [weak self] in
             let image = await Self.capture(
                 wid: wid,
@@ -180,16 +185,21 @@ final class WindowThumbnailCache {
                 allowCGFallback: !isLive
             )
             guard !Task.isCancelled else { return }
-            self?.store(image, for: key, token: token, isLive: isLive)
+            self?.store(
+                image, for: key, token: token, pixelHeight: pixelHeight,
+                isLive: isLive, isRetry: isRetry)
         }
         captureTasks[key] = (token, task)
+        return true
     }
 
     private func store(
         _ image: NSImage?,
         for key: ThumbnailKey,
         token: UInt64,
-        isLive: Bool
+        pixelHeight: CGFloat,
+        isLive: Bool,
+        isRetry: Bool
     ) {
         if captureTasks[key]?.token == token {
             captureTasks.removeValue(forKey: key)
@@ -198,8 +208,12 @@ final class WindowThumbnailCache {
         // old completion stale. Do not repopulate the cache and, critically, do
         // not clear the newer request's in-flight slot.
         guard requests.finish(key, token: token) else { return }
+        if isRetry { staticRetryKeys.remove(key) }
         if case .browserTab(let tabKey) = key,
-           activeBrowserTabByWindow[tabKey.windowID] != tabKey { return }
+           activeBrowserTabByWindow[tabKey.windowID] != tabKey {
+            permissionRetryRequests.removeValue(forKey: key)
+            return
+        }
         guard let image else {
             if isLive {
                 liveFailureAt[key] = Date()
@@ -209,9 +223,38 @@ final class WindowThumbnailCache {
                         now.timeIntervalSince($0.value) < liveFailureBackoff
                     }
                 }
+                return
+            }
+            guard onReady != nil else { return }
+            let hasAccess = CGPreflightScreenCaptureAccess()
+            if !hasAccess {
+                permissionRetryRequests[key] = pixelHeight
+                return
+            }
+            permissionRetryRequests.removeValue(forKey: key)
+            guard Self.shouldRetryStaticCapture(
+                isLive: false, hasScreenRecordingAccess: hasAccess, isRetry: isRetry
+            ), staticRetryKeys.insert(key).inserted else { return }
+            let generation = staticRetryGeneration
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 550_000_000)
+                guard let self, self.staticRetryGeneration == generation,
+                      self.staticRetryKeys.contains(key) else { return }
+                guard self.onReady != nil else {
+                    self.staticRetryKeys.remove(key)
+                    return
+                }
+                if !self.beginRequest(
+                    key: key, pixelHeight: pixelHeight, maxAge: 0,
+                    isLive: false, isRetry: true
+                ) {
+                    self.staticRetryKeys.remove(key)
+                }
             }
             return
         }
+        staticRetryKeys.remove(key)
+        permissionRetryRequests.removeValue(forKey: key)
         liveFailureAt.removeValue(forKey: key)
         let cost = Int(image.size.width * image.size.height * 4)
         cache.set(image, cost: cost, capturedAt: Date(), for: key)
@@ -226,6 +269,8 @@ final class WindowThumbnailCache {
         captureTasks.removeAll()
         cache.removeAll()
         requests.reset()
+        staticRetryKeys.removeAll()
+        permissionRetryRequests.removeAll()
         liveFailureAt.removeAll()
         activeBrowserTabByWindow.removeAll()
         releaseCaptureMetadata()
@@ -235,6 +280,9 @@ final class WindowThumbnailCache {
     /// session. Thumbnails stay cached, but the broader shareable-content map is
     /// useful only while captures are actively being requested.
     func releaseCaptureMetadata() {
+        staticRetryGeneration &+= 1
+        staticRetryKeys.removeAll()
+        permissionRetryRequests.removeAll()
         if #available(macOS 14.0, *) {
             Task { await SCWindowProvider.shared.clear() }
         }
@@ -247,17 +295,39 @@ final class WindowThumbnailCache {
         guard !didRequestPermission else { return }
         didRequestPermission = true
         DispatchQueue.global(qos: .utility).async {
-            guard !CGPreflightScreenCaptureAccess() else { return }
-            // Narrow first-request race: preflight can report a stale "denied"
-            // right after the user granted, while the request call sees the
-            // fresh TCC state — drop the 5 s denied-backoff so this reveal
-            // captures immediately. (Grants that land later are healed by
-            // `performRefresh` reclassifying failures as transient once
-            // preflight reads granted — ~0.5 s, no relaunch.)
-            if CGRequestScreenCaptureAccess(), #available(macOS 14.0, *) {
-                Task { await SCWindowProvider.shared.clearFailureBackoff() }
+            guard CGPreflightScreenCaptureAccess() || CGRequestScreenCaptureAccess() else { return }
+            Task { @MainActor in
+                if #available(macOS 14.0, *) {
+                    await SCWindowProvider.shared.clearFailureBackoff()
+                }
+                WindowThumbnailCache.shared.retryPermissionFailures()
             }
         }
+    }
+
+    private func retryPermissionFailures() {
+        guard onReady != nil else {
+            permissionRetryRequests.removeAll()
+            return
+        }
+        let pending = permissionRetryRequests
+        permissionRetryRequests.removeAll()
+        for (key, pixelHeight) in pending {
+            switch key {
+            case .window(let wid):
+                request(wid: wid, pixelHeight: pixelHeight)
+            case .browserTab(let tab):
+                requestBrowserTab(tab, pixelHeight: pixelHeight)
+            }
+        }
+    }
+
+    nonisolated static func shouldRetryStaticCapture(
+        isLive: Bool,
+        hasScreenRecordingAccess: Bool,
+        isRetry: Bool
+    ) -> Bool {
+        !isLive && hasScreenRecordingAccess && !isRetry
     }
 
     // MARK: - Capture
@@ -530,6 +600,10 @@ private actor SCWindowProvider {
     }
 
     private func performRefresh(generation: UInt64) async {
+        if lastFailureAt != .distantPast, !lastFailureWasTransient,
+           CGPreflightScreenCaptureAccess() {
+            clearFailureBackoff()
+        }
         let backoff = lastFailureWasTransient ? transientFailureBackoff : failureBackoff
         guard Date().timeIntervalSince(lastFailureAt) >= backoff else { return }
         do {
@@ -546,6 +620,8 @@ private actor SCWindowProvider {
             // coalesced onto it. A later lookup that misses the cached map still
             // gets the one explicit second-chance refresh in `window(for:)`.
             fetchedAt = Date()
+            lastFailureAt = .distantPast
+            lastFailureWasTransient = false
         } catch {
             guard !Task.isCancelled, generation == refreshGeneration else { return }
             // Leave the previous map (possibly empty); the CG fallback path still
@@ -568,5 +644,6 @@ private actor SCWindowProvider {
         windowsByID.removeAll()
         fetchedAt = .distantPast
         lastFailureAt = .distantPast
+        lastFailureWasTransient = false
     }
 }

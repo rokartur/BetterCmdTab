@@ -1877,13 +1877,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 } else {
                     Activator.invalidatePendingActivation()
                     secureInputMonitor.start()
-                    // Deferred off the keydown critical path: the sweep walks
-                    // the running-app list, and its heal lands via async
-                    // bumps anyway, so running it one runloop turn after
-                    // reveal() changes nothing observable.
-                    DispatchQueue.main.async { [weak self] in
-                        self?.cache.refreshObserverGaps()
-                    }
+                    cache.retryFailedAXObservers()
                 }
             }
             hotkey.setSwitching(newValue.isSwitching)
@@ -3026,17 +3020,10 @@ final class SwitcherController: SwitcherViewDelegate {
             rows = []
             labels = []
             index = 0
-            // …but an empty cache while regular apps are running is NOT a
-            // legitimate filter result — it means the incremental AX/workspace
-            // feed silently broke and the cache lost its contents (the frequent
-            // "⌘Tab opens with nothing"). Fire a one-shot recovery full-refresh
-            // so the panel repopulates a few frames later instead of staying
-            // stuck empty until some future AX event happens to land. Gated on
-            // the pathological signal so the #31 legitimate-empty path never
-            // pays for (or flashes from) a rescan.
+            // Rebuild event coverage only when the raw cache violates its invariant.
             if cache.looksEmptyButAppsRunning {
-                Log.switcher.error("Catalog empty while apps running — scheduling recovery refresh")
-                cache.scheduleFullRefresh { [weak self] in
+                Log.switcher.error("Catalog empty while apps running — rebuilding observers and refreshing")
+                cache.recoverEmptyCatalog { [weak self] in
                     guard let self, gen == self.revealGeneration else { return }
                     let fresh = self.cache.rows(orderedBy: self.mru.order, filter: self.activeFilterConfig)
                     self.applyFullSnapshot(fresh, anchorPid: targetPid)
