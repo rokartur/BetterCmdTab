@@ -317,6 +317,16 @@ final class HotkeyTap: @unchecked Sendable {
         return held == wanted || held == wanted.union(.maskShift)
     }
 
+    /// Trigger keycode match tolerating the ISO ⌘` quirk: ISO keyboards report
+    /// the key above Tab as kVK_ISO_Section (10) where the binding (and ANSI
+    /// hardware) says kVK_ANSI_Grave (50), and macOS swaps the two on some ISO
+    /// boards. Both sides normalize 10→50 so the chord fires either way. Only
+    /// for chord matching — character translation keeps the raw keycode so
+    /// typing § into search stays §.
+    static func chordKeyMatches(_ eventKeyCode: Int64, _ boundKeyCode: Int64) -> Bool {
+        normalizedChordKeyCode(eventKeyCode) == normalizedChordKeyCode(boundKeyCode)
+    }
+
     /// Vim-nav modifier gate: true when the only device-independent modifiers
     /// down are the held trigger's own hold modifier(s). The panel is held
     /// open by whatever modifier the user recorded — ⌘ for the default ⌘Tab,
@@ -1136,7 +1146,7 @@ final class HotkeyTap: @unchecked Sendable {
             // through the tab strip instead of the app list. Esc exits the
             // drill (one level up — the panel stays open).
             if tabDrillNow && isSwitchingNow() {
-                if anyModHeld, let appKey = cfg.appKey, keyCode == appKey {
+                if anyModHeld, let appKey = cfg.appKey, Self.chordKeyMatches(keyCode, appKey) {
                     deliver(shiftHeld ? .tabPrev : .tabNext); return nil
                 }
                 if keyCode == Self.escKey {
@@ -1174,14 +1184,14 @@ final class HotkeyTap: @unchecked Sendable {
             // other apps instead of opening the switcher (issue #79). Once the
             // switcher is open the superset `appModHeld`/`windowModHeld` keeps
             // cycling alive with ⌥/⌃/⇧ window-management chord keys held.
-            if appModHeld, let appKey = cfg.appKey, keyCode == appKey,
+            if appModHeld, let appKey = cfg.appKey, Self.chordKeyMatches(keyCode, appKey),
                switchingNow || Self.triggerChordMatches(flags, configured: cfg.appModifier) {
                 if suppressTrigger { return Unmanaged.passUnretained(event) }
                 let dir: Event = shiftHeld ? .prevApp : .nextApp
                 deliver(dir)
                 return nil
             }
-            if windowModHeld, let windowKey = cfg.windowKey, keyCode == windowKey,
+            if windowModHeld, let windowKey = cfg.windowKey, Self.chordKeyMatches(keyCode, windowKey),
                switchingNow || Self.triggerChordMatches(flags, configured: cfg.windowModifier) {
                 if suppressTrigger { return Unmanaged.passUnretained(event) }
                 let dir: Event = shiftHeld ? .prevWindow : .nextWindow

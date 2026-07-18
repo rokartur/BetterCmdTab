@@ -43,4 +43,21 @@ struct HotkeyTapTriggerMatchTests {
         #expect(!HotkeyTap.triggerChordMatches(.maskCommand, configured: .maskAlternate))
         #expect(HotkeyTap.triggerChordMatches(.maskAlternate, configured: .maskAlternate))
     }
+
+    // MARK: ISO ⌘` alias — kVK_ISO_Section (10) ↔ kVK_ANSI_Grave (50)
+
+    @Test func isoSectionAliasesGrave() {
+        // ISO hardware emitting 10 must match the default ⌘` binding stored as
+        // 50, and vice versa (the macOS 10↔50 swap quirk).
+        #expect(HotkeyTap.chordKeyMatches(10, 50))
+        #expect(HotkeyTap.chordKeyMatches(50, 10))
+        #expect(HotkeyTap.chordKeyMatches(10, 10))
+        #expect(HotkeyTap.chordKeyMatches(50, 50))
+    }
+
+    @Test func nonAliasKeycodesMatchExactly() {
+        #expect(HotkeyTap.chordKeyMatches(48, 48))
+        #expect(!HotkeyTap.chordKeyMatches(10, 48))
+        #expect(!HotkeyTap.chordKeyMatches(49, 50))
+    }
 }

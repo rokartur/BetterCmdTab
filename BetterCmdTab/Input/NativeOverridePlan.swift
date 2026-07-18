@@ -102,6 +102,14 @@ private let searchPunctuationKeyCodes: [UInt32] = [
     24, 27, 30, 33, 39, 41, 43, 47, 42, // = - ] [ ' ; , . \
 ]
 
+/// kVK_ISO_Section (10) and kVK_ANSI_Grave (50) are both "the key above Tab":
+/// ISO keyboards report 10 where ANSI hardware reports 50, and macOS swaps the
+/// two on some ISO boards. Treated as one key wherever a *chord* is matched or
+/// registered — never in character translation (typing § must stay §).
+func normalizedChordKeyCode<T: BinaryInteger>(_ keyCode: T) -> T {
+    keyCode == 10 ? 50 : keyCode
+}
+
 // Fixed control keycodes (kVK_*) used for in-panel chords.
 private let kcReturn: UInt32 = 36
 private let kcKeypadEnter: UInt32 = 76
@@ -173,9 +181,12 @@ func computeNativeOverridePlan(
     // symbolic hotkey enabled while we still RegisterEventHotKey that exact chord,
     // so macOS rejects it with eventHotKeyExistsErr (-9878) on every retry forever
     // (issue #16). The `||` dedupes when both roles sit on the same keycode.
+    // Keycodes normalized so a binding recorded as ISO Section (10) still frees
+    // the native ⌘` symbolic hotkey — otherwise macOS keeps it armed while we
+    // register the same physical chord, the -9878 pattern from issue #16.
     func reservesCommandOnly(_ keyCode: UInt32) -> Bool {
-        (trigger.appEnabled && trigger.appIsCommandOnly && trigger.appKeyCode == keyCode)
-            || (trigger.windowEnabled && trigger.windowIsCommandOnly && trigger.windowKeyCode == keyCode)
+        (trigger.appEnabled && trigger.appIsCommandOnly && normalizedChordKeyCode(trigger.appKeyCode) == keyCode)
+            || (trigger.windowEnabled && trigger.windowIsCommandOnly && normalizedChordKeyCode(trigger.windowKeyCode) == keyCode)
     }
     if reservesCommandOnly(48) {
         symbolic.append(PrivateAPI.SymbolicHotKey.commandTab.rawValue)      // 1
@@ -266,6 +277,17 @@ func computeNativeOverridePlan(
             }
         }
     }
+
+    // ISO alias: register every 10/50 chord under both keycodes, so the default
+    // ⌘` (stored 50) fires on ISO hardware emitting kVK_ISO_Section (10) and a
+    // binding recorded as 10 survives the macOS 10↔50 swap quirk. RegisterEvent-
+    // HotKey matches raw hardware keycodes, so normalization alone can't cover
+    // the Carbon path. Appending keeps first-wins dedupe semantics intact, and
+    // an unused keycode 10 registration on ANSI hardware is inert.
+    let isoTwins = chords.filter { $0.keyCode == 10 || $0.keyCode == 50 }.map {
+        ChordSpec(keyCode: $0.keyCode == 10 ? 50 : 10, modifiers: $0.modifiers, kind: $0.kind)
+    }
+    chords += isoTwins
 
     // Dedupe by (keyCode, modifiers), first-wins — RegisterEventHotKey rejects a
     // duplicate registration, and first-wins lets the specific control/action

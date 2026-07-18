@@ -46,14 +46,15 @@ struct NativeOverridePlanTests {
 
     @Test func secureInputOff_native_stillArmsSwitcher() {
         // The switcher is always armed so it wins the instant the tap goes deaf:
-        // native ⌘Tab disabled + the 4 switching chords registered even off SEI.
-        // No in-panel parity chords off SEI (the tap handles those).
+        // native ⌘Tab disabled + the 4 switching chords (plus the 2 ISO twins of
+        // ⌘`) registered even off SEI. No in-panel parity chords off SEI (the
+        // tap handles those).
         for open in [false, true] {
             let plan = computeNativeOverridePlan(trigger: Self.native(), secureInputActive: false,
                                                  panelOpen: open, holdModifierDown: open,
                                                  panelActions: Self.panelActions)
             #expect(plan.symbolicKeysToDisable == [1, 2, 6])
-            #expect(plan.carbonChords.count == 4)
+            #expect(plan.carbonChords.count == 6)
             #expect(!Self.hasNav(plan))
         }
     }
@@ -64,7 +65,7 @@ struct NativeOverridePlanTests {
         let plan = computeNativeOverridePlan(trigger: Self.remapped(), secureInputActive: false,
                                              panelOpen: false, holdModifierDown: false)
         #expect(plan.symbolicKeysToDisable.isEmpty)
-        #expect(plan.carbonChords.count == 4)
+        #expect(plan.carbonChords.count == 6)    // 4 switching + 2 ISO twins of ⌥`
         #expect(plan.carbonChords.contains(ChordSpec(keyCode: 48, modifiers: Self.opt, kind: .nextApp)))
     }
 
@@ -74,8 +75,9 @@ struct NativeOverridePlanTests {
         let plan = computeNativeOverridePlan(trigger: Self.native(), secureInputActive: true,
                                              panelOpen: false, holdModifierDown: false)
         #expect(plan.symbolicKeysToDisable == [1, 2, 6])
-        // 4 switching chords (app ⌘Tab + window ⌘` differ), no in-panel chords.
-        #expect(plan.carbonChords.count == 4)
+        // 4 switching chords (app ⌘Tab + window ⌘` differ) + 2 ISO twins of ⌘`,
+        // no in-panel chords.
+        #expect(plan.carbonChords.count == 6)
         #expect(!Self.hasNav(plan))
         #expect(plan.carbonChords.contains(ChordSpec(keyCode: 48, modifiers: Self.cmd, kind: .nextApp)))
         #expect(plan.carbonChords.contains(ChordSpec(keyCode: 48, modifiers: Self.cmd | Self.shift, kind: .prevApp)))
@@ -98,7 +100,7 @@ struct NativeOverridePlanTests {
         let plan = computeNativeOverridePlan(trigger: Self.remapped(), secureInputActive: true,
                                              panelOpen: false, holdModifierDown: false)
         #expect(plan.symbolicKeysToDisable.isEmpty)
-        #expect(plan.carbonChords.count == 4)
+        #expect(plan.carbonChords.count == 6)    // 4 switching + 2 ISO twins of ⌥`
         #expect(plan.carbonChords.contains(ChordSpec(keyCode: 48, modifiers: Self.opt, kind: .nextApp)))
         #expect(plan.carbonChords.contains(ChordSpec(keyCode: 50, modifiers: Self.opt | Self.shift, kind: .prevWindow)))
     }
@@ -109,19 +111,20 @@ struct NativeOverridePlanTests {
         let plan = computeNativeOverridePlan(trigger: spec, secureInputActive: true,
                                              panelOpen: false, holdModifierDown: false)
         #expect(plan.symbolicKeysToDisable == [1, 2])
-        #expect(plan.carbonChords.count == 4)            // app ≠ window ⇒ window chords too
+        #expect(plan.carbonChords.count == 6)   // app ≠ window ⇒ window chords + ISO twins too
     }
 
     // MARK: In-panel — gated on panel open AND hold modifier down
 
     @Test func panelOpen_holdReleased_noInPanelChords() {
         // Panel open but the hold modifier is up (gesture / stay-open / scoped):
-        // only the switching chords, so a plain ⌘C is never intercepted.
+        // only the switching chords (+ ISO twins), so a plain ⌘C is never
+        // intercepted.
         let plan = computeNativeOverridePlan(trigger: Self.native(), secureInputActive: true,
                                              panelOpen: true, holdModifierDown: false,
                                              panelActions: Self.panelActions)
         #expect(!Self.hasNav(plan))
-        #expect(plan.carbonChords.count == 4)
+        #expect(plan.carbonChords.count == 6)
     }
 
     @Test func inPanelChords_requireSecureInput_panelOpen_andHold() {
@@ -374,6 +377,33 @@ struct NativeOverridePlanTests {
         let plan = computeNativeOverridePlan(trigger: trigger, secureInputActive: false,
                                              panelOpen: false, holdModifierDown: false)
         #expect(plan.symbolicKeysToDisable == [1, 2])
+    }
+
+    // MARK: ISO ⌘` alias (kVK_ISO_Section 10 ↔ kVK_ANSI_Grave 50) — ISO boards
+    // report the key above Tab as 10 where the default binding says 50, and
+    // macOS swaps the two on some ISO keyboards.
+
+    @Test func nativeWindowChord_registersISOSectionTwins() {
+        // The default ⌘` (kc 50) must also be registered on kc 10 so the Carbon
+        // survivor fires from ISO hardware; ⌘Tab (48) gets no twin.
+        let plan = computeNativeOverridePlan(trigger: Self.native(), secureInputActive: false,
+                                             panelOpen: false, holdModifierDown: false)
+        #expect(plan.carbonChords.contains(ChordSpec(keyCode: 10, modifiers: Self.cmd, kind: .nextWindow)))
+        #expect(plan.carbonChords.contains(ChordSpec(keyCode: 10, modifiers: Self.cmd | Self.shift, kind: .prevWindow)))
+        #expect(!plan.carbonChords.contains { $0.keyCode == 10 && ($0.kind == .nextApp || $0.kind == .prevApp) })
+    }
+
+    @Test func windowBoundToISOSection_freesBacktickSymbolic_andRegistersBothKeycodes() {
+        // A binding recorded on quirky ISO hardware stores kc 10 — the native ⌘`
+        // symbolic (id 6) must still be freed, and both keycodes registered so
+        // the chord survives the hardware flipping back to 50.
+        let trigger = TriggerSpec(appKeyCode: 48, appCarbonModifiers: Self.cmd, appIsCommandOnly: true,
+                                  windowKeyCode: 10, windowCarbonModifiers: Self.cmd, windowIsCommandOnly: true)
+        let plan = computeNativeOverridePlan(trigger: trigger, secureInputActive: false,
+                                             panelOpen: false, holdModifierDown: false)
+        #expect(plan.symbolicKeysToDisable == [1, 2, 6])
+        #expect(plan.carbonChords.contains(ChordSpec(keyCode: 10, modifiers: Self.cmd, kind: .nextWindow)))
+        #expect(plan.carbonChords.contains(ChordSpec(keyCode: 50, modifiers: Self.cmd, kind: .nextWindow)))
     }
 
     @Test func remappedToOption_onReservedKeycode_freesNothing() {
