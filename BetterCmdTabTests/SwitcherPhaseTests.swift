@@ -98,6 +98,35 @@ struct SwitcherReleaseMissedTests {
     }
 }
 
+@Suite("Scoped modifier release gate")
+struct SwitcherScopedModifierReleaseTests {
+    @Test func releasesOnlyAfterTheActiveModifierIsUp() {
+        #expect(!SwitcherController.activeModifierReleased(
+            flags: [.maskAlternate, .maskShift], mask: .maskAlternate))
+        #expect(SwitcherController.activeModifierReleased(
+            flags: .maskShift, mask: .maskAlternate))
+        #expect(SwitcherController.activeModifierReleased(
+            flags: .maskCommand, mask: .maskAlternate))
+    }
+
+    @Test func requiresEveryModifierInACombinedTrigger() {
+        let mask: CGEventFlags = [.maskCommand, .maskAlternate]
+        #expect(!SwitcherController.activeModifierReleased(flags: mask, mask: mask))
+        #expect(SwitcherController.activeModifierReleased(flags: .maskCommand, mask: mask))
+    }
+
+    @Test func scopedOpensSkipTheLeadingCurrentWindow() {
+        // Frontmost's window leads the scoped rows → start one past it so a
+        // tap-release switches instead of re-activating the current window.
+        #expect(SwitcherController.scopedInitialIndex(firstRowPid: 7, frontPid: 7, count: 3) == 1)
+        // Scope excludes the frontmost app → its top row is already the target.
+        #expect(SwitcherController.scopedInitialIndex(firstRowPid: 9, frontPid: 7, count: 3) == 0)
+        // A single row can't be skipped past; unknown pids anchor at the top.
+        #expect(SwitcherController.scopedInitialIndex(firstRowPid: 7, frontPid: 7, count: 1) == 0)
+        #expect(SwitcherController.scopedInitialIndex(firstRowPid: nil, frontPid: nil, count: 3) == 0)
+    }
+}
+
 /// Pure-logic coverage for the `.visible` release-to-commit liveness backstop —
 /// the recovery the prior #16 fixes lacked. A keyboard ⌘Tab panel closes on the
 /// tap's single ⌘-release `flagsChanged`; if that event is dropped the panel
@@ -138,9 +167,9 @@ struct SwitcherVisibleReleaseBackstopTests {
         #expect(!arm(phase: .primed))
     }
 
-    @Test func off_forGestureOrScopedOpens() {
-        // Gesture / scoped opens carry `primedByHeldChord == false`: they are
-        // sticky and never commit on release, so the backstop must stay off.
+    @Test func off_forGestureOpens() {
+        // Gesture opens carry `primedByHeldChord == false`: they are sticky and
+        // never commit on release, so the backstop must stay off.
         #expect(!arm(primedByHeldChord: false))
     }
 
@@ -175,10 +204,11 @@ struct SwitcherVisibleReleaseBackstopTests {
         // held-chord (flag true) AND the event's flags show the hold modifier up,
         // tearing the welded panel down instead. So the flag must be true exactly
         // for a held-chord panel (heal-eligible) and false for a deliberate stay-open
-        // / gesture / scoped park, where bare keys must keep routing to the panel.
+        // / gesture park, where bare keys must keep routing to the panel. Scoped
+        // chords use this backstop but bypass the tap's core-only weld detector.
         #expect(arm())                          // held-chord ⌘Tab → heal-eligible
         #expect(!arm(stickyOpen: true))         // parked stay-open → bare keys route
-        #expect(!arm(primedByHeldChord: false)) // gesture / scoped → bare keys route
+        #expect(!arm(primedByHeldChord: false)) // gesture → bare keys route
     }
 }
 
