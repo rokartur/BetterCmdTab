@@ -108,6 +108,24 @@ struct SwitcherMetrics: Equatable {
         pref == 0 ? cornerRadius : CGFloat(max(0, pref))
     }
 
+    /// Resolve the list width-percent preference against this metrics set:
+    /// `100` keeps the screen-scaled row width, lower values narrow the list
+    /// proportionally without touching text or icon sizes (#124). Values at or
+    /// above 100 are the identity, so rows never grow past the automatic width.
+    func resolvedRowWidth(percent: Int) -> CGFloat {
+        percent >= 100 ? rowWidth : round(rowWidth * CGFloat(max(0, percent)) / 100)
+    }
+
+    /// App-name column width for a list row that is actually `actualRowWidth`
+    /// wide. The column is metric-fixed, so on a row narrowed below the natural
+    /// `rowWidth` (#124 width slider, multi-column shrink) it must share the
+    /// shortfall proportionally — otherwise it starves the window-title column
+    /// into a bare ellipsis while itself keeping a mostly-empty gap.
+    func fittedAppNameWidth(actualRowWidth: CGFloat) -> CGFloat {
+        guard appNameWidth > 0, rowWidth > 0, actualRowWidth < rowWidth else { return appNameWidth }
+        return round(appNameWidth * max(0, actualRowWidth) / rowWidth)
+    }
+
     /// Whether the Window Preview label band must be reserved (the
     /// `browserTabsExpanded` input to `forScreen`/`forScale`): always when tabs
     /// are expanded as windows, and transiently while searching with the

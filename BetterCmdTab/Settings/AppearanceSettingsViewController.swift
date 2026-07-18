@@ -10,6 +10,8 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private var titleAlignmentRadio: SettingsRadioGroupView!
     private var truncationRadio: SettingsRadioGroupView!
     private let gridPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let listWidthSlider = NSSlider()
+    private let listWidthValueField = NSTextField()
     private let scaleSlider = NSSlider()
     private let scaleValueField = NSTextField()
     private let fontSizePopup = NSPopUpButton(frame: .zero, pullsDown: false)
@@ -66,6 +68,29 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             scaleSlider.widthAnchor.constraint(equalToConstant: 140),
         ])
         addRow(to: layout, title: sizeTitle, accessory: scaleStack, searchItemID: SearchID.size)
+
+        let listWidthTitle = String(localized: "Maximum list width")
+        listWidthSlider.minValue = Double(Preferences.listWidthPercentRange.lowerBound)
+        listWidthSlider.maxValue = Double(Preferences.listWidthPercentRange.upperBound)
+        listWidthSlider.isContinuous = true
+        listWidthSlider.controlSize = .small
+        listWidthSlider.target = self
+        listWidthSlider.action = #selector(listWidthChanged(_:))
+        listWidthSlider.translatesAutoresizingMaskIntoConstraints = false
+        listWidthSlider.setAccessibilityLabel(listWidthTitle)
+        configureIntegerField(listWidthValueField,
+                              action: #selector(listWidthValueCommitted(_:)),
+                              accessibilityLabel: listWidthTitle)
+        let listWidthStack = NSStackView(views: [listWidthSlider, unitInput(for: listWidthValueField, unit: "%")])
+        listWidthStack.orientation = .horizontal
+        listWidthStack.spacing = 8
+        listWidthStack.alignment = .centerY
+        NSLayoutConstraint.activate([
+            listWidthSlider.widthAnchor.constraint(equalToConstant: 140),
+        ])
+        addRow(to: layout, title: listWidthTitle,
+               subtitle: String(localized: "Width of the List layout relative to automatic — lower it to narrow the panel on large displays."),
+               accessory: listWidthStack, searchItemID: SearchID.listMaxWidth)
 
         configurePopup(gridPopup, titles: gridValues.map { $0 == 0 ? String(localized: "Automatic") : "\($0)" }, action: #selector(gridChanged))
         addRow(to: layout, title: String(localized: "Grid columns"),
@@ -275,6 +300,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.selectGrid($0) }
             .store(in: &cancellables)
+        prefs.$listWidthPercent
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.applyListWidth($0) }
+            .store(in: &cancellables)
         prefs.$showWindowTitleLabel
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.windowTitleSwitch.state = $0 ? .on : .off }
@@ -328,6 +357,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         applyScale(prefs.panelScalePercent)
         selectAppearance(prefs.panelAppearance)
         selectGrid(prefs.gridMaxColumns)
+        applyListWidth(prefs.listWidthPercent)
         windowTitleSwitch.state = prefs.showWindowTitleLabel ? .on : .off
         selectTitleAlignment(prefs.previewTitleAlignment)
         selectTruncationMode(prefs.titleTruncationMode)
@@ -370,6 +400,27 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         let i = gridPopup.indexOfSelectedItem
         guard gridValues.indices.contains(i) else { return }
         Preferences.shared.gridMaxColumns = gridValues[i]
+    }
+
+    @objc private func listWidthChanged(_ sender: NSSlider) {
+        Preferences.shared.listWidthPercent = sender.integerValue
+        applyListWidth(sender.integerValue)
+    }
+
+    @objc private func listWidthValueCommitted(_ sender: NSTextField) {
+        guard let value = committedInteger(from: sender) else {
+            applyListWidth(Preferences.shared.listWidthPercent)
+            return
+        }
+        let clamped = Preferences.clampListWidthPercent(value)
+        Preferences.shared.listWidthPercent = clamped
+        applyListWidth(clamped)
+    }
+
+    private func applyListWidth(_ value: Int) {
+        if listWidthSlider.integerValue != value { listWidthSlider.integerValue = value }
+        let text = String(value)
+        if listWidthValueField.stringValue != text { listWidthValueField.stringValue = text }
     }
 
     @objc private func scaleChanged(_ sender: NSSlider) {

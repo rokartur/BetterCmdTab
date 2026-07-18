@@ -5444,6 +5444,40 @@
         }
       }
     },
+    "Maximum list width" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximale Listenbreite"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancho máximo de la lista"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largeur maximale de la liste"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maksymalna szerokość listy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列表最大宽度"
+          }
+        }
+      }
+    },
     "Medium" : {
       "localizations" : {
         "de" : {
@@ -6291,6 +6325,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开切换器：滑动浏览应用（按 Return/点击确认，Esc 取消）。切换空间：跳到该方向的空间，每次一步。快速切换：切到上一个应用，类似快速点按 ⌘Tab — 再次滑动可切回。"
+          }
+        }
+      }
+    },
+    "Width of the List layout relative to automatic — lower it to narrow the panel on large displays." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Breite des Listen-Layouts relativ zur automatischen Breite — verringern, um das Panel auf großen Displays schmaler zu machen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancho de la disposición Lista respecto al automático: redúcelo para estrechar el panel en pantallas grandes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largeur de la disposition Liste par rapport à l'automatique — réduisez-la pour rétrécir le panneau sur les grands écrans."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szerokość układu listy względem automatycznej — zmniejsz, aby zwęzić panel na dużych ekranach."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列表布局相对于自动宽度的比例——调低可在大屏幕上收窄面板。"
           }
         }
       }

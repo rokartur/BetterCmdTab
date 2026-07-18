@@ -394,12 +394,13 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         letterLabel.isHidden = !actionBar.isHidden
 
         let appX = letterX + m.letterColumnWidth + m.interGap
-        appNameLabel.frame = NSRect(x: appX, y: labelY, width: m.appNameWidth, height: labelH)
+        let appNameW = m.fittedAppNameWidth(actualRowWidth: bounds.width)
+        appNameLabel.frame = NSRect(x: appX, y: labelY, width: appNameW, height: labelH)
 
         // When the app-name column is collapsed (names hidden) there is no label
         // between the letter column and the icon — drop its trailing gap so the
         // icon doesn't float on a double gap. Matches the rowWidth reduction.
-        let iconX = appX + m.appNameWidth + (m.appNameWidth > 0 ? m.interGap : 0)
+        let iconX = appX + appNameW + (appNameW > 0 ? m.interGap : 0)
         imageView.frame = NSRect(
             x: iconX + (m.iconSize - displayedIconSize) / 2,
             y: iconY,

@@ -341,6 +341,7 @@ struct ShortcutOverride: Equatable, Sendable {
     var fontScale: SwitcherFontScale?
     var fontFace: SwitcherFontFace?
     var gridMaxColumns: Int?
+    var listWidthPercent: Int?
     var panelOpacity: Int?
     var panelCornerRadius: Int?
     var backdropMaterial: BackdropMaterial?
@@ -368,7 +369,7 @@ struct ShortcutOverride: Equatable, Sendable {
             && stayOpenOnQuickTap == nil
             && layoutMode == nil && panelScalePercent == nil && panelAppearance == nil
             && fontScale == nil && fontFace == nil
-            && gridMaxColumns == nil
+            && gridMaxColumns == nil && listWidthPercent == nil
             && panelOpacity == nil && panelCornerRadius == nil && backdropMaterial == nil
             && showWindowTitleLabel == nil && previewTitleAlignment == nil
             && titleTruncationMode == nil
@@ -399,6 +400,7 @@ struct ShortcutOverride: Equatable, Sendable {
         if let fontScale { d["fontScale"] = fontScale.rawValue }
         if let fontFace { d["fontFace"] = fontFace.rawValue }
         put("gridMaxColumns", gridMaxColumns)
+        put("listWidthPercent", listWidthPercent.map(Preferences.clampListWidthPercent))
         put("panelOpacity", panelOpacity)
         put("panelCornerRadius", panelCornerRadius)
         if let backdropMaterial { d["backdropMaterial"] = backdropMaterial.rawValue }
@@ -421,7 +423,7 @@ struct ShortcutOverride: Equatable, Sendable {
         "applicationsOnly", "expandBrowserTabsAsWindows", "stayOpenOnRelease",
         "stayOpenOnQuickTap", "layoutMode", "panelSize", "panelScalePercent",
         "panelAppearance", "fontScale", "fontFace",
-        "gridMaxColumns", "panelOpacity", "panelCornerRadius", "backdropMaterial",
+        "gridMaxColumns", "listWidthPercent", "panelOpacity", "panelCornerRadius", "backdropMaterial",
         "showWindowTitleLabel", "previewTitleAlignment", "titleTruncationMode",
         "boldSelectedLabel", "showApplicationNames", "showUnreadBadges",
         "letterHintsEnabled",
@@ -450,6 +452,8 @@ struct ShortcutOverride: Equatable, Sendable {
         fontScale = dictionary["fontScale"].flatMap(SwitcherFontScale.init(rawValue:))
         fontFace = dictionary["fontFace"].flatMap(SwitcherFontFace.init(rawValue:))
         gridMaxColumns = dictionary["gridMaxColumns"].flatMap(Int.init)
+        listWidthPercent = dictionary["listWidthPercent"].flatMap(Int.init)
+            .map(Preferences.clampListWidthPercent)
         panelOpacity = dictionary["panelOpacity"].flatMap(Int.init)
         panelCornerRadius = dictionary["panelCornerRadius"].flatMap(Int.init)
         backdropMaterial = dictionary["backdropMaterial"].flatMap(BackdropMaterial.init(rawValue:))
@@ -676,6 +680,11 @@ final class Preferences: ObservableObject {
     /// user pins an explicit count. Bounded so a hand-edited/corrupted import
     /// can't land a negative or absurd value in the live pref.
     static let gridMaxColumnsRange: ClosedRange<Int> = 0...12
+    /// List layout row width as a percentage of the automatic (screen-scaled)
+    /// width (#124). `100` keeps the automatic width; lower values narrow the
+    /// list without shrinking text or icons. Floored so a hand-edited/corrupted
+    /// import can't shrink rows to slivers.
+    nonisolated static let listWidthPercentRange: ClosedRange<Int> = 30...100
     /// Upper bound on recently-closed entries surfaced in search. `0` disables.
     static let recentlyClosedLimitRange: ClosedRange<Int> = 0...50
 
@@ -775,6 +784,7 @@ final class Preferences: ObservableObject {
         static let showApplicationNames = "Switcher.showApplicationNames"
         static let panelOpacity = "Switcher.panelOpacity"
         static let panelCornerRadius = "Switcher.panelCornerRadius"
+        static let listWidthPercent = "Switcher.listWidthPercent"
         static let backdropMaterial = "Switcher.backdropMaterial"
         /// Legacy pre-#57 bool ("only current Space"). Still written (in sync
         /// with `spaceScope`) so older builds and old exports stay coherent;
@@ -1487,6 +1497,18 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// List-layout row width as a percentage of the automatic (screen-scaled)
+    /// width; `100` = full automatic width. Narrows the List layout on large
+    /// displays without shrinking text or icons (#124).
+    @Published var listWidthPercent: Int {
+        didSet {
+            let clamped = Self.clampListWidthPercent(listWidthPercent)
+            if clamped != listWidthPercent { listWidthPercent = clamped; return }
+            guard oldValue != listWidthPercent else { return }
+            UserDefaults.standard.set(listWidthPercent, forKey: Keys.listWidthPercent)
+        }
+    }
+
     /// Background blur material for the panel (NSVisualEffectView fallback path).
     @Published var backdropMaterial: BackdropMaterial {
         didSet {
@@ -1816,6 +1838,10 @@ final class Preferences: ObservableObject {
         min(gridMaxColumnsRange.upperBound, max(gridMaxColumnsRange.lowerBound, value))
     }
 
+    nonisolated static func clampListWidthPercent(_ value: Int) -> Int {
+        min(listWidthPercentRange.upperBound, max(listWidthPercentRange.lowerBound, value))
+    }
+
     static func clampRecentlyClosedLimit(_ value: Int) -> Int {
         min(recentlyClosedLimitRange.upperBound, max(recentlyClosedLimitRange.lowerBound, value))
     }
@@ -1964,6 +1990,8 @@ final class Preferences: ObservableObject {
         self.panelOpacity = Self.clampOpacity(opacity)
         let radius = defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0
         self.panelCornerRadius = Self.clampCornerRadius(radius)
+        let listWidth = defaults.object(forKey: Keys.listWidthPercent) as? Int ?? 100
+        self.listWidthPercent = Self.clampListWidthPercent(listWidth)
         let materialRaw = defaults.string(forKey: Keys.backdropMaterial)
         self.backdropMaterial = materialRaw.flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
         self.spaceScope = Self.storedSpaceScope(defaults)
@@ -2096,6 +2124,7 @@ final class Preferences: ObservableObject {
         boldSelectedLabel = defaults.object(forKey: Keys.boldSelectedLabel) as? Bool ?? true
         panelOpacity = Self.clampOpacity(defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100)
         panelCornerRadius = Self.clampCornerRadius(defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0)
+        listWidthPercent = Self.clampListWidthPercent(defaults.object(forKey: Keys.listWidthPercent) as? Int ?? 100)
         backdropMaterial = defaults.string(forKey: Keys.backdropMaterial).flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
         spaceScope = Self.storedSpaceScope(defaults)
         directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])

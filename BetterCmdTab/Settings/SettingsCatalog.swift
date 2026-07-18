@@ -125,6 +125,7 @@ enum SearchID {
     static let layout = "appearance.layout"
     static let size = "appearance.size"
     static let gridColumns = "appearance.gridColumns"
+    static let listMaxWidth = "appearance.listMaxWidth"
     static let quickSwitchDelay = "appearance.quickSwitchDelay"
     static let windowTitle = "appearance.windowTitle"
     static let titleAlignment = "appearance.titleAlignment"
@@ -356,6 +357,8 @@ enum SettingsCatalog {
              String(localized: "Layout"), ["layout", "grid", "list", "preview"]),
         item(SearchID.size, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Size"), ["size", "panel size", "scale", "percent", "compact", "small", "large"]),
+        item(SearchID.listMaxWidth, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
+             String(localized: "Maximum list width"), ["list", "width", "max width", "narrow", "wide", "ultrawide", "percent", "cap"]),
         item(SearchID.gridColumns, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Grid columns"), ["grid", "columns"]),
         // Appearance · Labels
