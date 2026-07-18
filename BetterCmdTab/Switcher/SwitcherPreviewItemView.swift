@@ -236,13 +236,12 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         usesCompactTabIcon = row.browserTab != nil
         // "Window title under icon" preference: when off, keep the app icon but
         // drop the title text so the tile is just the thumbnail + icon. Browser
-        // tabs always show their title — it's the only thing distinguishing one
-        // tab tile from another (they share the parent window).
-        // Browser tabs always show their tab title (the only thing distinguishing
+        // tabs always show their tab title (the only thing distinguishing
         // sibling tabs). Otherwise the title is gated by "Show window title". When
-        // app names are hidden, use windowTitleText so a windowless/launch row
-        // never re-surfaces the app name as its title.
-        let previewTitle = row.titleSlot(showAppNames: effective.showApplicationNames)
+        // app names are shown they prefix the title ("App — Title", #125); when
+        // hidden, windowTitleText keeps a windowless/launch row from re-surfacing
+        // the app name as its title.
+        let previewTitle = row.previewTitleSlot(showAppNames: effective.showApplicationNames)
         nameLabel.stringValue = (effective.showWindowTitleLabel || row.browserTab != nil) ? previewTitle : ""
 
         // Dock/notification count badge — shown beside the title, never over the
