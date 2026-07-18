@@ -4058,13 +4058,14 @@ final class SwitcherController: SwitcherViewDelegate {
                     if let pid = row.pid { mru.bump(pid) }
                     bumpWindowMRUIfPossible(for: row)
                     pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
-                } else if scope == .allSpaces || rows.isEmpty,
+                } else if scope == .allSpaces || !cache.hasCompletedFullScan,
                           primedApps.indices.contains(primedIndex) {
                     // Raw-MRU fallback: a windowless app under All Spaces, or a
-                    // cold cache (boot/AX-regrant). Empty rows mean "unknown",
-                    // not "nothing on this Space" — a dead ⌘⇥ is worse than a
-                    // possible Space jump in those first seconds. A narrowed
-                    // scope with warm rows and no eligible app stays a no-op.
+                    // cold cache (no full scan yet at boot/AX-regrant — "cache
+                    // empty" means "unknown", not "nothing on this Space", and
+                    // a dead ⌘⇥ is worse than a possible Space jump in those
+                    // first seconds). A narrowed scope with a scanned cache and
+                    // no eligible app stays a no-op.
                     let app = primedApps[primedIndex]
                     mru.bump(app.processIdentifier)
                     pendingActivation = { Activator.activateApp(app, completion: finishDismiss) }
