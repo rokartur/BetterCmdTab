@@ -2388,6 +2388,22 @@ final class SwitcherController: SwitcherViewDelegate {
         return ((((anchor ?? 0) + step) % count) + count) % count
     }
 
+    /// Pure core of `eligiblePrimedApp`, split out so the Space-scope remap
+    /// (#126) can be unit-tested without constructing `NSRunningApplication`s.
+    /// Filters the primed pid list down to `eligiblePids` (apps that kept a row
+    /// after the Space-scope filter), then steps by the accumulated tap delta
+    /// exactly like `primedStartIndex` walks the full list. `anchorPid` is the
+    /// frontmost app under sorts that anchor on it (#88), nil under MRU sorts.
+    /// Returns an index into `primedPids`; nil when nothing is eligible.
+    nonisolated static func eligiblePrimedIndex(
+        primedPids: [pid_t], eligiblePids: Set<pid_t>, step: Int, anchorPid: pid_t?
+    ) -> Int? {
+        let eligible = primedPids.enumerated().filter { eligiblePids.contains($0.element) }
+        guard !eligible.isEmpty else { return nil }
+        let anchor = anchorPid.flatMap { pid in eligible.firstIndex { $0.element == pid } }
+        return eligible[primedStartIndex(count: eligible.count, step: step, anchor: anchor)].offset
+    }
+
     /// Position of the frontmost app in `primedApps` for sorts that anchor on
     /// it; nil under MRU sorts (frontmost already leads the list) or when the
     /// frontmost app was filtered out of the primed list.
@@ -3897,19 +3913,33 @@ final class SwitcherController: SwitcherViewDelegate {
         return candidates[target]
     }
 
-    /// The row the visible switcher would activate for `app`: its most recently
-    /// used catalogued window. Runs the same `applyPerAppWindowMRU` pass as
-    /// reveal(), so the first windowed row for the pid is the app's window-MRU
-    /// front (#83) — a fast ⌘⇥ tap and a held-open panel agree on the target.
-    /// Reads the warm cache ONLY: this runs inside commit() on the main
-    /// actor (the hottest path), so it must never trigger a synchronous
-    /// cross-process AppCatalog.snapshot(). nil — a windowless app, or the brief
-    /// cold-cache window at boot/AX-regrant — makes the caller fall back to the
-    /// cheap, main-safe `activateApp`.
-    private func primedAppTargetRow(for app: NSRunningApplication) -> SwitcherRow? {
-        let pid = app.processIdentifier
-        return applyPerAppWindowMRU(cache.rows(orderedBy: mru.order, filter: activeFilterConfig))
-            .first(where: { $0.pid == pid && $0.window != nil })
+    /// The row a quick ⌘⇥ tap would activate: the eligible app's most recently
+    /// used catalogued window, or its scoped windowless row under a narrowed
+    /// scope. `rows` is the `applyPerAppWindowMRU`-sorted scoped list built by
+    /// commit(), so the first windowed row for a pid is the app's window-MRU
+    /// front (#83) — a fast tap and a held-open panel agree on the target.
+    /// nil — a windowless app under All Spaces, a cold cache, or a narrowed
+    /// scope with no eligible app — makes commit() fall back or no-op.
+    private func primedAppTargetRow(in rows: [SwitcherRow], scope: SpaceScope) -> SwitcherRow? {
+        guard let app = eligiblePrimedApp(in: rows, scope: scope) else { return nil }
+        return rows.first {
+            $0.pid == app.processIdentifier && (scope != .allSpaces || $0.window != nil)
+        }
+    }
+
+    /// App priming is Space-agnostic; remap it to scoped rows at commit time.
+    private func eligiblePrimedApp(in rows: [SwitcherRow], scope: SpaceScope) -> NSRunningApplication? {
+        guard scope != .allSpaces else {
+            guard primedApps.indices.contains(primedIndex) else { return nil }
+            return primedApps[primedIndex]
+        }
+        let anchorPid = effective.sortOrder.anchorsPrimedOnFrontmost ? mru.order.first : nil
+        return Self.eligiblePrimedIndex(
+            primedPids: primedApps.map(\.processIdentifier),
+            eligiblePids: Set(rows.compactMap(\.pid)),
+            step: primedStepDelta,
+            anchorPid: anchorPid
+        ).map { primedApps[$0] }
     }
 
     /// The window row a `.mruWindows` fast tap-release should activate: the
@@ -4042,20 +4072,32 @@ final class SwitcherController: SwitcherViewDelegate {
                 if let p = row.pid { mru.bump(p) }
                 bumpWindowMRUIfPossible(for: row)
                 pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
-            } else if primedApps.indices.contains(primedIndex) {
-                let app = primedApps[primedIndex]
-                mru.bump(app.processIdentifier)
-                // Activate through the app's frontmost catalogued window — the
-                // same row the visible switcher would have committed — so a
-                // fast ⌘⇥ tap jumps Spaces / exits full screen exactly like
-                // releasing ⌘ over the panel. `activateApp` carries no window
-                // and no `instantSpace`, so it can't switch Spaces; that's why
-                // rapid ⌘⇥ between Spaces (or Space↔window) used to land on the
-                // wrong Space. Fall back to it only for windowless apps.
-                if let row = primedAppTargetRow(for: app) {
+            } else {
+                let scope = (activeFilterConfig ?? CatalogFilter.config()).spaceScope
+                // Warm cache ONLY — commit() is the hottest path, so this must
+                // never trigger a synchronous cross-process AppCatalog.snapshot().
+                // Under All Spaces the target app is primed directly, so skip
+                // the rows build when nothing is primed (#112 no-op tap).
+                let rows = scope == .allSpaces && !primedApps.indices.contains(primedIndex)
+                    ? []
+                    : applyPerAppWindowMRU(cache.rows(orderedBy: mru.order, filter: activeFilterConfig))
+                if let row = primedAppTargetRow(in: rows, scope: scope) {
+                    // Under a narrowed Space scope the app-level MRU step is
+                    // remapped onto apps still represented by scoped rows, so a
+                    // tap can't fall back to an app on another Space.
+                    if let pid = row.pid { mru.bump(pid) }
                     bumpWindowMRUIfPossible(for: row)
                     pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
-                } else {
+                } else if scope == .allSpaces || !cache.hasCompletedFullScan,
+                          primedApps.indices.contains(primedIndex) {
+                    // Raw-MRU fallback: a windowless app under All Spaces, or a
+                    // cold cache (no full scan yet at boot/AX-regrant — "cache
+                    // empty" means "unknown", not "nothing on this Space", and
+                    // a dead ⌘⇥ is worse than a possible Space jump in those
+                    // first seconds). A narrowed scope with a scanned cache and
+                    // no eligible app stays a no-op.
+                    let app = primedApps[primedIndex]
+                    mru.bump(app.processIdentifier)
                     pendingActivation = { Activator.activateApp(app, completion: finishDismiss) }
                 }
             }
