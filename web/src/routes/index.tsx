@@ -216,9 +216,18 @@ const dmgOf = (r: GhRelease | undefined): Channel => ({
 
 function useReleases(): Releases {
   const [rel, setRel] = useState<Releases>({
-    stable: { version: null, dmgUrl: `${REPO}/releases/latest` },
-    beta: null,
-    totalDownloads: null,
+    // Keep the last known channels visible when GitHub's anonymous API limit is exhausted.
+    stable: {
+      version: "v26.6.1",
+      dmgUrl:
+        "https://github.com/rokartur/BetterCmdTab/releases/download/v26.6.1/BetterCmdTab-26.6.1-20260703123053.dmg",
+    },
+    beta: {
+      version: "26.7-beta.2",
+      dmgUrl:
+        "https://github.com/rokartur/BetterCmdTab/releases/download/26.7-beta.2/BetterCmdTab-26.7-beta.2-20260718190227.dmg",
+    },
+    totalDownloads: 12_165,
     ready: false,
   });
 
@@ -259,6 +268,8 @@ function useReleases(): Releases {
 
   return rel;
 }
+
+const ExternalLink = "a";
 
 function Shots() {
   const [open, setOpen] = useState<number | null>(null);
@@ -838,11 +849,11 @@ export function Home() {
             Connect
           </motion.h2>
           <motion.p className="m-0 flex items-center gap-3" variants={reveal}>
-            <a href={REPO}>GitHub</a>
+            <ExternalLink href={REPO}>GitHub</ExternalLink>
             <span className="text-line">·</span>
-            <a href={`${REPO}/releases`}>Releases</a>
+            <ExternalLink href={`${REPO}/releases`}>Releases</ExternalLink>
             <span className="text-line">·</span>
-            <a href={`${REPO}/blob/main/LICENSE`}>License</a>
+            <ExternalLink href={`${REPO}/blob/main/LICENSE`}>License</ExternalLink>
           </motion.p>
         </motion.section>
 
@@ -853,7 +864,8 @@ export function Home() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          Built by <a href="https://github.com/rokartur">@rokartur</a> · GPL v3
+          Built by <ExternalLink href="https://github.com/rokartur">@rokartur</ExternalLink> · GPL
+          v3
         </motion.footer>
       </main>
     </MotionConfig>
