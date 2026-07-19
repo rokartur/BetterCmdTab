@@ -443,36 +443,36 @@
         }
       }
     },
-    "Show a letter on each window and jump to it by typing that letter. Turn it off to start typing and filter the list instead, without pressing / — action keys like W or Q then type into the search rather than acting on a window." : {
+    "Show a letter on each window and jump to it by typing that letter. Turn it off to start typing and filter the list instead, without pressing / — bound action keys like ⌘W or ⌘Q still act on the highlighted window; press / first to type those letters." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeigt auf jedem Fenster einen Buchstaben an und springt durch Tippen dieses Buchstabens dorthin. Ausgeschaltet filtert Tippen stattdessen die Liste, ohne / zu drücken — Aktionstasten wie W oder Q schreiben dann in die Suche, statt auf ein Fenster zu wirken."
+            "value" : "Zeigt auf jedem Fenster einen Buchstaben an und springt durch Tippen dieses Buchstabens dorthin. Ausgeschaltet filtert Tippen stattdessen die Liste, ohne / zu drücken — belegte Aktionstasten wie ⌘W oder ⌘Q wirken weiterhin auf das markierte Fenster; drücke zuerst /, um diese Buchstaben zu tippen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Muestra una letra en cada ventana y salta a ella escribiendo esa letra. Desactívalo para filtrar la lista simplemente escribiendo, sin pulsar / — las teclas de acción como W o Q escriben entonces en la búsqueda en lugar de actuar sobre una ventana."
+            "value" : "Muestra una letra en cada ventana y salta a ella escribiendo esa letra. Desactívalo para filtrar la lista simplemente escribiendo, sin pulsar / — las teclas de acción asignadas como ⌘W o ⌘Q siguen actuando sobre la ventana resaltada; pulsa / primero para escribir esas letras."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Affiche une lettre sur chaque fenêtre et y accède lorsque vous tapez cette lettre. Désactivez-le pour filtrer la liste en tapant directement, sans appuyer sur / — les touches d’action comme W ou Q s’écrivent alors dans la recherche au lieu d’agir sur une fenêtre."
+            "value" : "Affiche une lettre sur chaque fenêtre et y accède lorsque vous tapez cette lettre. Désactivez-le pour filtrer la liste en tapant directement, sans appuyer sur / — les touches d’action assignées comme ⌘W ou ⌘Q agissent toujours sur la fenêtre en surbrillance ; appuyez d’abord sur / pour taper ces lettres."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pokazuj literę na każdym oknie i przeskocz do niego, wpisując tę literę. Wyłącz, aby pisząc od razu filtrować listę, bez naciskania / — klawisze akcji, jak W czy Q, trafiają wtedy do wyszukiwania zamiast działać na oknie."
+            "value" : "Pokazuj literę na każdym oknie i przeskocz do niego, wpisując tę literę. Wyłącz, aby pisząc od razu filtrować listę, bez naciskania / — przypisane klawisze akcji, jak ⌘W czy ⌘Q, nadal działają na podświetlonym oknie; naciśnij najpierw /, aby wpisać te litery."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在每个窗口上显示字母，输入该字母即可跳转。关闭后直接输入即可筛选列表，无需按 / —— W、Q 等操作键会输入到搜索中，而不是对窗口执行操作。"
+            "value" : "在每个窗口上显示字母，输入该字母即可跳转。关闭后直接输入即可筛选列表，无需按 / —— 已绑定的 ⌘W、⌘Q 等操作键仍会对高亮窗口执行操作；先按 / 即可输入这些字母。"
           }
         }
       }

@@ -56,13 +56,13 @@ struct HotkeyTapVimNavigationTests {
         }
     }
 
-    /// Type-to-search routing (letter hints off + fuzzy on): every a–z letter,
-    /// including the reserved action keys w/m/h/q/f, must feed the query so a
-    /// search like "whatsapp"/"figma" works instead of firing close/minimize/etc.
-    /// This is the pure decision behind the tap's opener branch.
+    /// Type-to-search routing (letter hints off + fuzzy on): every a–z letter
+    /// must feed the query so a search like "whatsapp"/"figma" works. The action
+    /// letters w/m/h/q/f route here too — the tap consults `panelKeyMap` FIRST,
+    /// so while a key is bound the action wins (⌘ is held, so W means ⌘W) and
+    /// this helper is never asked; clearing the binding frees the letter for
+    /// the opener, which is why the helper must not exclude it.
     @Test func typeToSearchRoutesEveryLetterIncludingReserved() {
-        // Reserved action letters must NOT be excluded (the bug: w/m/h/q/f hit
-        // panelKeyMap and closed/quit instead of opening search).
         for c: Character in ["w", "m", "h", "q", "f"] {
             #expect(HotkeyTap.typeToSearchLetter(for: c) == c)
         }
