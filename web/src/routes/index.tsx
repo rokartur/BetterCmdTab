@@ -214,8 +214,30 @@ const dmgOf = (r: GhRelease | undefined): Channel => ({
     `${REPO}/releases/latest`,
 });
 
+const DOWNLOADS_KEY = "BetterCmdTab.totalDownloads";
+
+function storedDownloads(): number | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(DOWNLOADS_KEY);
+    if (stored === null) return null;
+    const count = Number(stored);
+    return Number.isSafeInteger(count) && count >= 0 ? count : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeDownloads(count: number) {
+  try {
+    localStorage.setItem(DOWNLOADS_KEY, String(count));
+  } catch {
+    return;
+  }
+}
+
 function useReleases(): Releases {
-  const [rel, setRel] = useState<Releases>({
+  const [rel, setRel] = useState<Releases>(() => ({
     // Keep the last known channels visible when GitHub's anonymous API limit is exhausted.
     stable: {
       version: "v26.6.1",
@@ -227,9 +249,9 @@ function useReleases(): Releases {
       dmgUrl:
         "https://github.com/rokartur/BetterCmdTab/releases/download/26.7-beta.2/BetterCmdTab-26.7-beta.2-20260718190227.dmg",
     },
-    totalDownloads: 12_165,
+    totalDownloads: storedDownloads(),
     ready: false,
-  });
+  }));
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -253,6 +275,7 @@ function useReleases(): Releases {
           (sum, r) => sum + r.assets.reduce((s, a) => s + a.download_count, 0),
           0,
         );
+        storeDownloads(total);
         setRel({
           stable: dmgOf(releases.find((r) => !r.prerelease) ?? releases[0]),
           beta: releases[0].prerelease ? dmgOf(releases[0]) : null,
