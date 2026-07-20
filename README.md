@@ -81,7 +81,8 @@
 ### Privacy & Backup
 
 - **Hide from screen sharing** — keep the switcher out of screen recordings and shared screens. Needs macOS 14.6+.
-- **Export & import** — back up and move your whole setup as a versioned `.cmdtab` file.
+- **Export & import** — back up and move your whole setup as a plain JSON file (legacy `.cmdtab` files still import).
+- **Config file** — optionally keep settings in `~/.config/bettercmdtab/config.json`: edits apply live, and changes made in the app are written back.
 
 ## Install
 

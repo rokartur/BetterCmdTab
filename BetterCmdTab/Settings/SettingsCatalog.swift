@@ -86,6 +86,7 @@ enum SearchID {
     static let windowMgmt = "shortcuts.windowMgmt"
     static let exportSettings = "general.exportSettings"
     static let importSettings = "general.importSettings"
+    static let configFile = "general.configFile"
     // Switcher
     static let showMinimized = "switcher.showMinimized"
     static let showHidden = "switcher.showHidden"
@@ -268,6 +269,8 @@ enum SettingsCatalog {
              String(localized: "Export settings"), ["export", "backup", "save settings", "share settings"]),
         item(SearchID.importSettings, .general, SettingsAnchor.backup, String(localized: "General"), String(localized: "Backup"),
              String(localized: "Import settings"), ["import", "restore", "load settings"]),
+        item(SearchID.configFile, .general, SettingsAnchor.backup, String(localized: "General"), String(localized: "Backup"),
+             String(localized: "Configuration file"), ["config", "config file", "dotfiles", "json", "xdg", "sync", "config.json"]),
         // General · Recovery
         item(SearchID.restoreShortcuts, .general, SettingsAnchor.recovery, String(localized: "General"), String(localized: "Recovery"),
              String(localized: "Restore macOS keyboard shortcuts"), ["restore", "recover", "command tab", "cmd tab", "native", "symbolic hotkey", "stuck", "reset shortcuts"]),

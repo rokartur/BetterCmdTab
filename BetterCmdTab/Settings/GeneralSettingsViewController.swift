@@ -15,6 +15,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
     private let intervalPopUp = NSPopUpButton(frame: .zero, pullsDown: false)
     private let exportButton = NSButton(title: String(localized: "Export…"), target: nil, action: nil)
     private let importButton = NSButton(title: String(localized: "Import…"), target: nil, action: nil)
+    private let configFileButton = NSButton(title: "", target: nil, action: nil)
     private let restoreShortcutsButton = NSButton(title: "", target: nil, action: nil)
 
     private var cancellables = Set<AnyCancellable>()
@@ -128,6 +129,16 @@ final class GeneralSettingsViewController: SettingsTabViewController {
             accessory: importButton,
             searchItemID: SearchID.importSettings
         )
+        configureBackupButton(configFileButton, action: #selector(configFileAction))
+        refreshConfigFileButton()
+        let configPath = (ConfigFile.url.path as NSString).abbreviatingWithTildeInPath
+        addRow(
+            to: backup,
+            title: String(localized: "Configuration file"),
+            subtitle: String(localized: "Keep settings in \(configPath). Edits to the file apply live, and changes made here are written back."),
+            accessory: configFileButton,
+            searchItemID: SearchID.configFile
+        )
 
         // Recovery section — manual escape hatch if the native ⌘Tab is stuck
         // (moved here from Privacy: it's troubleshooting, not privacy).
@@ -167,6 +178,7 @@ final class GeneralSettingsViewController: SettingsTabViewController {
     override func viewWillAppear() {
         super.viewWillAppear()
 
+        refreshConfigFileButton()
         LaunchAtLogin.shared.refresh()
         applyLaunchState(LaunchAtLogin.shared.isEnabled)
 
@@ -362,22 +374,16 @@ final class GeneralSettingsViewController: SettingsTabViewController {
         let panel = NSSavePanel()
         panel.title = String(localized: "Export Settings")
         panel.prompt = String(localized: "Export")
-        // Name carries NO extension — the panel appends `.cmdtab` from the
-        // content type. Baking it into the name (and using an unregistered
-        // dynamic type) is what produced the ".bettercmdtab.bettercmdtab"
-        // doubling. Prefer the registered exported UTI; fall back to the
-        // extension-derived type, then JSON, if LaunchServices hasn't indexed
-        // the app yet (e.g. first run from a fresh build).
+        // Name carries NO extension — the panel appends `.json` from the
+        // content type (#117 replaced the .cmdtab envelope with flat JSON;
+        // old .cmdtab files still import).
         panel.nameFieldStringValue = Preferences.exportDefaultBaseName
-        let exportType = UTType(Preferences.exportUTIIdentifier)
-            ?? UTType(filenameExtension: Preferences.exportFileExtension)
-            ?? .json
-        panel.allowedContentTypes = [exportType]
+        panel.allowedContentTypes = [.json]
         panel.isExtensionHidden = false
         let completion: (NSApplication.ModalResponse) -> Void = { response in
             guard response == .OK, let url = panel.url else { return }
             do {
-                let data = try Preferences.shared.exportedJSONData()
+                let data = try Preferences.exportedJSONData()
                 try data.write(to: url, options: .atomic)
             } catch {
                 self.presentError(String(localized: "Couldn't export settings"), error)
@@ -416,6 +422,25 @@ final class GeneralSettingsViewController: SettingsTabViewController {
         } else {
             completion(panel.runModal())
         }
+    }
+
+    private func refreshConfigFileButton() {
+        configFileButton.title = ConfigFile.fileExists
+            ? String(localized: "Show in Finder")
+            : String(localized: "Create…")
+    }
+
+    @objc private func configFileAction() {
+        if ConfigFile.fileExists {
+            NSWorkspace.shared.activateFileViewerSelecting([ConfigFile.url])
+        } else {
+            do {
+                try ConfigFile.shared.createFileAndActivate()
+            } catch {
+                presentError(String(localized: "Couldn't create the configuration file"), error)
+            }
+        }
+        refreshConfigFileButton()
     }
 
     private func presentError(_ title: String, _ error: Error) {

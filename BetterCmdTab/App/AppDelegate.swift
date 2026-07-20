@@ -48,6 +48,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DirectActivation.installHandlers()
         ScopedSwitch.installHandlers()
         WindowManagement.installHandlers()
+        // Apply + watch ~/.config/bettercmdtab/config.json if the user opted
+        // in (#117). After ScopedSwitch.installHandlers(): a config-file load
+        // re-runs it idempotently for any imported scoped shortcuts.
+        ConfigFile.shared.start()
         #if DEBUG
         // In Debug builds always show the menu bar icon, regardless of the
         // saved preference — otherwise a hidden icon leaves no way to reach
@@ -238,6 +242,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// (so the switcher works under Secure Event Input) persists after the app
     /// exits, so it must be re-enabled here or macOS's own ⌘Tab stays dead.
     func applicationWillTerminate(_ notification: Notification) {
+        ConfigFile.shared.flush()
         axWaiter?.stop()
         controller?.shutdown()
         if let antiNapActivity {
