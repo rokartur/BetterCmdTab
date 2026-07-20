@@ -17,7 +17,10 @@ import os
 /// diverge"; preserving user formatting would mean tracking which keys the
 /// file contained.
 ///
-/// All mutable state is confined to `queue` (hence `@unchecked Sendable`).
+/// Watcher/sync state (`source`, `watchingFile`, `lastSyncedData`,
+/// `pendingReload`) is confined to `queue`; the `writeBack` subscription is
+/// touched only from `@MainActor start()`. That confinement is what justifies
+/// `@unchecked Sendable`.
 final class ConfigFile: @unchecked Sendable {
     static let shared = ConfigFile()
 

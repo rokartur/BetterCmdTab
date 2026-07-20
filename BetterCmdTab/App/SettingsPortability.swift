@@ -53,7 +53,7 @@ extension Preferences {
     /// icon and stay openable in the import panel.
     nonisolated static let exportUTIIdentifier = "pro.bettercmdtab.settings"
 
-    /// Default file name (no extension — the save panel appends `.cmdtab` from
+    /// Default file name (no extension — the save panel appends `.json` from
     /// the content type) like `bettercmdtab-settings-2026-05-29`.
     static var exportDefaultBaseName: String {
         let formatter = DateFormatter()
