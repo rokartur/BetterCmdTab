@@ -12,6 +12,7 @@ enum Log {
     static let activator = Logger(subsystem: subsystem, category: "activator")
     static let priv = Logger(subsystem: subsystem, category: "private-api")
     static let launch = Logger(subsystem: subsystem, category: "launch-at-login")
+    static let config = Logger(subsystem: subsystem, category: "config")
 
     /// Points-of-Interest signposter for the ⌘Tab reveal hot path. Use to capture
     /// where the panel-appearance latency goes in Instruments (Points of Interest

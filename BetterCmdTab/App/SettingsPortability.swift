@@ -1,7 +1,8 @@
 import Foundation
 
 /// Export/import of all user settings to a portable JSON file (no iCloud, no
-/// network — a plain file the user saves and restores or shares between Macs).
+/// network — a plain file the user saves and restores or shares between Macs),
+/// and the on-disk shape of the live config file (#117).
 ///
 /// The payload is the whole `Switcher.*` `UserDefaults` namespace, read
 /// generically rather than key-by-key, so every preference is covered —
@@ -9,14 +10,23 @@ import Foundation
 /// without this code having to enumerate them. The switcher *trigger* hotkeys
 /// (⌘Tab / ⌘`) live under the BetterShortcuts package's own keys and are not
 /// part of this namespace, so they are intentionally not carried over.
+///
+/// Two formats are read; one is written. Writing produces a **flat** JSON
+/// object of `key → value` pairs with the `Switcher.` prefix stripped —
+/// human-editable, the same shape for the export panel and
+/// `~/.config/bettercmdtab/config.json`. Reading also accepts the legacy
+/// `.cmdtab` envelope (`{app, schemaVersion, values}`) that pre-#117 exports
+/// used, so old backups keep importing.
 extension Preferences {
-    /// Bumped only on a breaking change to the envelope shape. Importing a file
-    /// with a higher version than we understand is refused (forward-incompat);
-    /// a lower or equal version is read.
-    static let exportSchemaVersion = 1
+    /// Legacy-envelope schema gate. Importing an envelope with a higher
+    /// version than we understand is refused (forward-incompat); a lower or
+    /// equal version is read. The flat format is deliberately unversioned:
+    /// unknown keys are tolerated and absent keys keep their current value,
+    /// so it can grow in both directions without a version gate.
+    nonisolated static let exportSchemaVersion = 1
 
     /// Every persisted setting lives under this `UserDefaults` key prefix.
-    static let exportKeyPrefix = "Switcher."
+    nonisolated static let exportKeyPrefix = "Switcher."
 
     /// `Switcher.*` keys excluded from both export and import.
     /// `disabledSymbolicHotKeys` is the crash-heal record of which native
@@ -26,7 +36,7 @@ extension Preferences {
     /// Support directory. The accent keys were retired in 26.7 (the switcher
     /// always follows the macOS accent) — skipping them on import keeps old
     /// exports from re-planting dead keys.
-    static let exportExcludedKeys: Set<String> = [
+    nonisolated static let exportExcludedKeys: Set<String> = [
         "Switcher.disabledSymbolicHotKeys",
         "Switcher.recentlyClosed",
         "Switcher.accentChoice",
@@ -34,15 +44,16 @@ extension Preferences {
         "Switcher.customCommitSoundFilename",
     ]
 
-    /// File extension for exported settings documents.
-    static let exportFileExtension = "cmdtab"
+    /// File extension of legacy exported settings documents. Still accepted by
+    /// the import panel; no longer written.
+    nonisolated static let exportFileExtension = "cmdtab"
 
     /// Identifier of the exported UTI declared in Info.plist
-    /// (`UTExportedTypeDeclarations`). Used to drive the save/open panels so the
-    /// system appends the right extension exactly once and shows the doc icon.
-    static let exportUTIIdentifier = "pro.bettercmdtab.settings"
+    /// (`UTExportedTypeDeclarations`). Kept so old `.cmdtab` files retain their
+    /// icon and stay openable in the import panel.
+    nonisolated static let exportUTIIdentifier = "pro.bettercmdtab.settings"
 
-    /// Default file name (no extension — the save panel appends `.cmdtab` from
+    /// Default file name (no extension — the save panel appends `.json` from
     /// the content type) like `bettercmdtab-settings-2026-05-29`.
     static var exportDefaultBaseName: String {
         let formatter = DateFormatter()
@@ -68,29 +79,29 @@ extension Preferences {
         }
     }
 
-    /// A versioned, JSON-serializable snapshot of every stored setting.
-    func exportedSettings() -> [String: Any] {
+    /// Every stored setting as a flat `key → value` map with the `Switcher.`
+    /// prefix stripped. `nonisolated` because the config-file sync serializes
+    /// on a background queue; this touches only `UserDefaults` (thread-safe).
+    nonisolated static func flatSettingsSnapshot() -> [String: Any] {
         let defaults = UserDefaults.standard
         var values: [String: Any] = [:]
         for (key, value) in defaults.dictionaryRepresentation()
-        where key.hasPrefix(Self.exportKeyPrefix) && !Self.exportExcludedKeys.contains(key) {
+        where key.hasPrefix(exportKeyPrefix) && !exportExcludedKeys.contains(key) {
             // Guard against any non-JSON value sneaking in (shouldn't happen for
             // our plist-typed keys, but keep the export robust).
             if JSONSerialization.isValidJSONObject([value]) {
-                values[key] = value
+                values[String(key.dropFirst(exportKeyPrefix.count))] = value
             }
         }
-        return [
-            "app": "BetterCmdTab",
-            "schemaVersion": Self.exportSchemaVersion,
-            "values": values,
-        ]
+        return values
     }
 
-    /// Pretty-printed, key-sorted JSON for writing to a file.
-    func exportedJSONData() throws -> Data {
+    /// Pretty-printed, key-sorted flat JSON for the export panel and the
+    /// config file. `.sortedKeys` keeps the bytes deterministic — the config
+    /// sync's echo guard compares raw data.
+    nonisolated static func exportedJSONData() throws -> Data {
         try JSONSerialization.data(
-            withJSONObject: exportedSettings(),
+            withJSONObject: flatSettingsSnapshot(),
             options: [.prettyPrinted, .sortedKeys]
         )
     }
@@ -104,13 +115,29 @@ extension Preferences {
         guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
             throw SettingsImportError.malformed
         }
-        let version = (root["schemaVersion"] as? Int) ?? 0
-        guard version >= 1 else { throw SettingsImportError.malformed }
-        guard version <= Self.exportSchemaVersion else {
-            throw SettingsImportError.unsupportedVersion(version)
-        }
-        guard let values = root["values"] as? [String: Any] else {
-            throw SettingsImportError.malformed
+        let values: [String: Any]
+        if root["values"] != nil || root["schemaVersion"] != nil || root["app"] != nil {
+            // Legacy .cmdtab envelope: {app, schemaVersion, values}. No
+            // preference is named after any of those three keys, so their
+            // presence is the discriminator.
+            let version = (root["schemaVersion"] as? Int) ?? 0
+            guard version >= 1 else { throw SettingsImportError.malformed }
+            guard version <= Self.exportSchemaVersion else {
+                throw SettingsImportError.unsupportedVersion(version)
+            }
+            guard let envelopeValues = root["values"] as? [String: Any] else {
+                throw SettingsImportError.malformed
+            }
+            values = envelopeValues
+        } else {
+            // Flat format: bare keys get the prefix; already-prefixed keys
+            // pass through, so either spelling works in a hand-written file.
+            values = Dictionary(
+                root.map { key, value in
+                    (key.hasPrefix(Self.exportKeyPrefix) ? key : Self.exportKeyPrefix + key, value)
+                },
+                uniquingKeysWith: { _, new in new }
+            )
         }
 
         let defaults = UserDefaults.standard

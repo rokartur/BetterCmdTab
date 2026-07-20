@@ -130,9 +130,12 @@ Data + control flow on the ⌘Tab hot path:
   expand-tabs) **directly off the main actor** from `UserDefaults`, so the key strings are
   the contract — don't rename one without updating both sides.
 - **Portability** — `App/SettingsPortability.swift` exports/imports the whole `Switcher.*`
-  namespace as a versioned `.cmdtab` JSON file (`schemaVersion`, UTI
-  `pro.bettercmdtab.settings`). Import is partial (absent keys keep their current value) and
-  calls `reloadFromDefaults()` to refresh live subscribers.
+  namespace as flat prefix-free JSON (`.json`); import also accepts the legacy versioned
+  `.cmdtab` envelope (`schemaVersion`, UTI `pro.bettercmdtab.settings`). Import is partial
+  (absent keys keep their current value) and calls `reloadFromDefaults()` to refresh live
+  subscribers. `App/ConfigFile.swift` two-way-syncs the same flat format with
+  `~/.config/bettercmdtab/config.json` (`$XDG_CONFIG_HOME` honored) when that file exists —
+  event-driven watcher + debounced write-back, dormant when absent (#117).
 - **Localization** — user-facing strings use `String(localized: "…")` and live in the
   version-controlled `BetterCmdTab/Localizable.xcstrings` (native Xcode string catalog,
   macOS 13+). Enum display names (layout mode, accent, etc.) are localized too.
