@@ -22,6 +22,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     // these decide *which* windows show, which is behavior, not look).
     private let minimizedSwitch = NSSwitch()
     private let hiddenSwitch = NSSwitch()
+    private let sinkHiddenSwitch = NSSwitch()
+    /// Kept so the row can visibly lock (dim + tooltip) while its prerequisite
+    /// "Show hidden apps" is off — mirrors `stayOpenQuickTapRow`.
+    private var sinkHiddenRow: SettingsRowView?
     private let windowlessSwitch = NSSwitch()
     private let applicationsOnlySwitch = NSSwitch()
     private let badgesSwitch = NSSwitch()
@@ -150,6 +154,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         configureSwitch(hiddenSwitch, action: #selector(toggleHidden(_:)))
         addRow(to: contents, title: String(localized: "Show hidden apps"), accessory: hiddenSwitch,
                searchItemID: SearchID.showHidden)
+        configureSwitch(sinkHiddenSwitch, action: #selector(toggleSinkHidden(_:)))
+        sinkHiddenRow = addRow(to: contents, title: String(localized: "Move hidden apps to the bottom"),
+               subtitle: String(localized: "Groups hidden apps at the end of the list. Turn off to leave them in their normal position instead."),
+               accessory: sinkHiddenSwitch, searchItemID: SearchID.sinkHiddenApps)
         configureSwitch(windowlessSwitch, action: #selector(toggleWindowless(_:)))
         addRow(to: contents, title: String(localized: "Show apps without windows"),
                subtitle: String(localized: "Running apps with no open windows."),
@@ -360,6 +368,8 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         applyTitleRefresh(prefs.titleRefreshIntervalMs)
         minimizedSwitch.state = prefs.showMinimizedWindows ? .on : .off
         hiddenSwitch.state = prefs.showHiddenApps ? .on : .off
+        sinkHiddenSwitch.state = prefs.sinkHiddenApps ? .on : .off
+        syncSinkHiddenRow()
         windowlessSwitch.state = prefs.showWindowlessApps ? .on : .off
         applicationsOnlySwitch.state = prefs.applicationsOnly ? .on : .off
         badgesSwitch.state = prefs.showUnreadBadges ? .on : .off
@@ -658,6 +668,22 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
 
     @objc private func toggleHidden(_ sender: NSSwitch) {
         Preferences.shared.showHiddenApps = (sender.state == .on)
+        syncSinkHiddenRow()
+    }
+
+    /// Moving hidden apps to the bottom only matters while they're shown at
+    /// all. Dim the whole row and name the missing prerequisite in a tooltip,
+    /// mirroring `syncStayOpenQuickTapRow`.
+    private func syncSinkHiddenRow() {
+        let on = Preferences.shared.showHiddenApps
+        sinkHiddenSwitch.isEnabled = on
+        sinkHiddenRow?.alphaValue = on ? 1 : 0.45
+        sinkHiddenRow?.toolTip = on ? nil
+            : String(localized: "Turn on \u{201C}Show hidden apps\u{201D} above first.")
+    }
+
+    @objc private func toggleSinkHidden(_ sender: NSSwitch) {
+        Preferences.shared.sinkHiddenApps = (sender.state == .on)
     }
 
     @objc private func toggleWindowless(_ sender: NSSwitch) {

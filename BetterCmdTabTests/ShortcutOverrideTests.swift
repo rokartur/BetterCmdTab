@@ -162,7 +162,8 @@ struct ShortcutOverrideTests {
     private func baseConfig(
         showMinimized: Bool = true,
         spaceScope: SpaceScope = .allSpaces,
-        sortOrder: SwitcherSortOrder = .mru
+        sortOrder: SwitcherSortOrder = .mru,
+        sinkHiddenApps: Bool = true
     ) -> CatalogFilter.Config {
         CatalogFilter.Config(
             hideModes: ["com.example.app": .always],
@@ -171,8 +172,15 @@ struct ShortcutOverrideTests {
             showHidden: true,
             showWindowless: true,
             spaceScope: spaceScope,
-            sortOrder: sortOrder
+            sortOrder: sortOrder,
+            sinkHiddenApps: sinkHiddenApps
         )
+    }
+
+    @Test("sinkHiddenApps isn't per-shortcut overridable — it always passes through from the base config")
+    func overlayPassesThroughSinkHiddenApps() {
+        let result = CatalogFilter.overlay(baseConfig(sinkHiddenApps: false), ShortcutOverride())
+        #expect(result.sinkHiddenApps == false)
     }
 
     @Test("empty overlay leaves the config untouched")

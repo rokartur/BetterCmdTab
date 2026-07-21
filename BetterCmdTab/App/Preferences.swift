@@ -722,6 +722,7 @@ final class Preferences: ObservableObject {
         static let hideAllExcludedBundleIDs = "Switcher.hideAllExcludedBundleIDs"
         static let showMinimizedWindows = "Switcher.showMinimizedWindows"
         static let showHiddenApps = "Switcher.showHiddenApps"
+        static let sinkHiddenApps = "Switcher.sinkHiddenApps"
         static let showWindowlessApps = "Switcher.showWindowlessApps"
         static let applicationsOnly = "Switcher.applicationsOnly"
         static let fuzzySearchEnabled = "Switcher.fuzzySearchEnabled"
@@ -991,6 +992,16 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != showHiddenApps else { return }
             UserDefaults.standard.set(showHiddenApps, forKey: Keys.showHiddenApps)
+        }
+    }
+
+    /// Sink hidden apps to the end of the list (the long-standing behavior)
+    /// rather than leaving them in their normal MRU/scan position. Only
+    /// meaningful while `showHiddenApps` is on. Default `true`.
+    @Published var sinkHiddenApps: Bool {
+        didSet {
+            guard oldValue != sinkHiddenApps else { return }
+            UserDefaults.standard.set(sinkHiddenApps, forKey: Keys.sinkHiddenApps)
         }
     }
 
@@ -1922,6 +1933,7 @@ final class Preferences: ObservableObject {
         self.hideAllExcludedBundleIDs = defaults.stringArray(forKey: Keys.hideAllExcludedBundleIDs) ?? []
         self.showMinimizedWindows = defaults.object(forKey: Keys.showMinimizedWindows) as? Bool ?? true
         self.showHiddenApps = defaults.object(forKey: Keys.showHiddenApps) as? Bool ?? true
+        self.sinkHiddenApps = defaults.object(forKey: Keys.sinkHiddenApps) as? Bool ?? true
         self.showWindowlessApps = defaults.object(forKey: Keys.showWindowlessApps) as? Bool ?? true
         self.applicationsOnly = defaults.object(forKey: Keys.applicationsOnly) as? Bool ?? false
         self.fuzzySearchEnabled = defaults.object(forKey: Keys.fuzzySearchEnabled) as? Bool ?? true
@@ -2073,6 +2085,7 @@ final class Preferences: ObservableObject {
 
         showMinimizedWindows = defaults.object(forKey: Keys.showMinimizedWindows) as? Bool ?? true
         showHiddenApps = defaults.object(forKey: Keys.showHiddenApps) as? Bool ?? true
+        sinkHiddenApps = defaults.object(forKey: Keys.sinkHiddenApps) as? Bool ?? true
         showWindowlessApps = defaults.object(forKey: Keys.showWindowlessApps) as? Bool ?? true
         applicationsOnly = defaults.object(forKey: Keys.applicationsOnly) as? Bool ?? false
         fuzzySearchEnabled = defaults.object(forKey: Keys.fuzzySearchEnabled) as? Bool ?? true

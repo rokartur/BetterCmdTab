@@ -13098,6 +13098,108 @@
           }
         }
       }
+    },
+    "Move hidden apps to the bottom" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeblendete Apps ans Ende verschieben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mover apps ocultas al final"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer les apps masquées en bas"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś ukryte aplikacje na dół"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将隐藏的应用移到底部"
+          }
+        }
+      }
+    },
+    "Groups hidden apps at the end of the list. Turn off to leave them in their normal position instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gruppiert ausgeblendete Apps am Ende der Liste. Schalte diese Option aus, um sie stattdessen an ihrer gewohnten Position zu belassen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrupa las apps ocultas al final de la lista. Desactívalo para dejarlas en su posición habitual."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regroupe les apps masquées à la fin de la liste. Désactivez cette option pour les laisser à leur position habituelle."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grupuje ukryte aplikacje na końcu listy. Wyłącz tę opcję, aby zamiast tego pozostawić je na zwykłej pozycji."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将隐藏的应用归组到列表末尾。关闭后会保留它们原来的位置。"
+          }
+        }
+      }
+    },
+    "Turn on “Show hidden apps” above first." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuerst oben „Ausgeblendete Apps anzeigen“ einschalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa primero «Mostrar apps ocultas», justo arriba."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez d’abord « Afficher les apps masquées » juste au-dessus."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw włącz powyżej „Pokazuj ukryte aplikacje”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先开启上方的“显示隐藏的应用”。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
