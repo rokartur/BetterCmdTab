@@ -132,6 +132,12 @@ enum PrivateAPI {
     // unlike CGSGetActiveSpace. Backs opening the switcher on the active monitor.
     private static let copyActiveMenuBarDisplayFn: (@convention(c) (Int32) -> Unmanaged<CFString>?)? =
         sym("SLSCopyActiveMenuBarDisplayIdentifier", in: skyLight)
+    // (cid, CFArray<window ids>, CFArray<space ids>) -> Void. Adds the windows
+    // to the given Spaces WITHOUT dropping existing memberships. Re-sticks the
+    // switcher panel onto every visible Space after WindowServer collapses its
+    // canJoinAllSpaces membership (#46).
+    private static let addWindowsToSpacesFn: (@convention(c) (Int32, CFArray, CFArray) -> Void)? =
+        sym("CGSAddWindowsToSpaces", in: skyLight)
 
     // MARK: - SkyLight: current-Space queries (read-only)
 
@@ -243,6 +249,26 @@ enum PrivateAPI {
         return (resolved, spaceless)
     }
 
+    /// Re-assert that `wid` lives on every currently-visible Space (each
+    /// display's current Space). WindowServer collapses a `.canJoinAllSpaces`
+    /// panel's sticky membership down to a single Space when the Space topology
+    /// changes — e.g. quitting a full-screen app destroys its Space (#46) — so
+    /// the panel then draws nothing on any other Space though switching keeps
+    /// working. Re-writing `collectionBehavior` from AppKit does not undo the
+    /// collapse (four prior attempts); adding the window straight back via CGS
+    /// at present() time does. Idempotent, no-op when CGS is missing or no
+    /// visible Space resolves.
+    static func pinWindowToVisibleSpaces(_ wid: CGWindowID) {
+        guard wid != 0,
+              let mainConnection = mainConnectionFn,
+              let addToSpaces = addWindowsToSpacesFn else { return }
+        let spaces = visibleSpaces()
+        guard !spaces.isEmpty else { return }
+        let windows = [NSNumber(value: wid)] as CFArray
+        let spaceList = spaces.map { NSNumber(value: $0) } as CFArray
+        addToSpaces(mainConnection(), windows, spaceList)
+    }
+
     /// One-shot startup diagnostic. Returns the list of dlsym symbols that
     /// failed to resolve, so AppDelegate can surface a single warning instead
     /// of every call site silently no-opping.
@@ -258,6 +284,7 @@ enum PrivateAPI {
         if copyManagedDisplaySpacesFn == nil { missing.append("CGSCopyManagedDisplaySpaces") }
         if getActiveSpaceFn == nil { missing.append("CGSGetActiveSpace") }
         if copyActiveMenuBarDisplayFn == nil { missing.append("SLSCopyActiveMenuBarDisplayIdentifier") }
+        if addWindowsToSpacesFn == nil { missing.append("CGSAddWindowsToSpaces") }
         if setSymbolicHotKeyEnabledFn == nil { missing.append("CGSSetSymbolicHotKeyEnabled") }
         return missing
     }
