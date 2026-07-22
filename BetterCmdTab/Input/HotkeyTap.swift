@@ -894,7 +894,16 @@ final class HotkeyTap: @unchecked Sendable {
         recomputeReservedLetters()
     }
 
-    private func translate(keyCode: UInt16) -> Character? {
+    /// The Carbon modifier-key state `UCKeyTranslate` expects: the high byte of
+    /// the Carbon `EventModifiers` bits. Pure so tests can pin the bit layout.
+    static func carbonModifierKeyState(shift: Bool, option: Bool) -> UInt32 {
+        (UInt32(shift ? shiftKey : 0) | UInt32(option ? optionKey : 0)) >> 8
+    }
+
+    /// `shift`/`option` mirror the physically held modifiers, so a chord
+    /// resolves to the character it actually types — required for layouts where
+    /// `/` or `\` need a modifier (French AZERTY `/` is ⇧:, issue #141).
+    private func translate(keyCode: UInt16, shift: Bool = false, option: Bool = false) -> Character? {
         let snapshot = layoutData.withLock { $0 }
         guard let data = snapshot else { return nil }
         return data.withUnsafeBytes { raw -> Character? in
@@ -907,7 +916,7 @@ final class HotkeyTap: @unchecked Sendable {
                 base,
                 keyCode,
                 UInt16(kUCKeyActionDown),
-                0,
+                Self.carbonModifierKeyState(shift: shift, option: option),
                 UInt32(LMGetKbdType()),
                 UInt32(kUCKeyTranslateNoDeadKeysMask),
                 &deadKeyState,
@@ -1166,7 +1175,7 @@ final class HotkeyTap: @unchecked Sendable {
                 if keyCode == Self.backslashKey {
                     deliver(.exitTabDrill); return nil
                 }
-                if let ch = translate(keyCode: UInt16(keyCode)), ch == "\\" {
+                if let ch = translate(keyCode: UInt16(keyCode), shift: shiftHeld, option: optionHeld), ch == "\\" {
                     deliver(.exitTabDrill); return nil
                 }
                 // Any other key while drilled is swallowed so it doesn't
@@ -1254,9 +1263,16 @@ final class HotkeyTap: @unchecked Sendable {
                     case Self.slashKey:
                         deliver(.toggleSearch); return nil
                     default:
-                        if let ch = translate(keyCode: UInt16(keyCode)),
+                        // Modifier-aware translation, so a character that needs
+                        // ⇧/⌥ on the active layout (digits on French AZERTY, a
+                        // shifted `/`) types what the user actually pressed —
+                        // and `/`/`\` keep their panel meaning wherever they
+                        // live (issue #141).
+                        if let ch = translate(keyCode: UInt16(keyCode), shift: shiftHeld, option: optionHeld),
                            let scalar = ch.unicodeScalars.first,
                            scalar.value >= 0x20, scalar.value != 0x7F {
+                            if ch == "/" { deliver(.toggleSearch); return nil }
+                            if ch == "\\" { deliver(.enterTabDrill); return nil }
                             deliver(.searchInput(ch))
                             return nil
                         }
@@ -1389,6 +1405,17 @@ final class HotkeyTap: @unchecked Sendable {
                                 }
                                 return nil
                             }
+                            // Layout-aware `/` and `\` chords: on layouts where
+                            // these characters need a modifier (French AZERTY:
+                            // `/` is ⇧:, `\` is ⌥⇧), match the character the
+                            // held chord actually types (issue #141). Bare-key
+                            // layouts are covered by the keycode cases above
+                            // and the bare-translate check below.
+                            if shiftHeld || optionHeld,
+                               let ch = translate(keyCode: UInt16(keyCode), shift: shiftHeld, option: optionHeld) {
+                                if ch == "/" { deliver(.toggleSearch); return nil }
+                                if ch == "\\" { deliver(.enterTabDrill); return nil }
+                            }
                             // Type-to-search opener: route every unbound letter and
                             // digit into the query instead of letter-jump, so a
                             // search like "figma" or "1password" works — in any
@@ -1406,12 +1433,16 @@ final class HotkeyTap: @unchecked Sendable {
                                 }
                             }
                             if let letter = typed ?? translate(keyCode: UInt16(keyCode)) {
-                                // Layout-agnostic drill-in trigger: regardless of
-                                // where `\` lives on the physical keyboard (US,
-                                // Polish, ISO/JIS), any key that types `\` enters
-                                // tab drill-in.
+                                // Layout-agnostic drill-in / search triggers:
+                                // regardless of where `\` and `/` live on the
+                                // physical keyboard (US, Polish, ISO/JIS), any
+                                // key that types them fires the panel action.
                                 if letter == "\\" {
                                     deliver(.enterTabDrill)
+                                    return nil
+                                }
+                                if letter == "/" {
+                                    deliver(.toggleSearch)
                                     return nil
                                 }
                                 let lower = Character(letter.lowercased())

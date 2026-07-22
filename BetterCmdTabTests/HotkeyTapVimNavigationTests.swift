@@ -155,4 +155,14 @@ struct HotkeyTapVimNavigationTests {
         #expect(HotkeyTap.onlyTriggerModifiersHeld(
             [.maskAlternate, .maskSecondaryFn], heldTriggerModifiers: .maskAlternate))
     }
+
+    /// `UCKeyTranslate` takes the Carbon `EventModifiers` high byte: ⇧ is bit 1,
+    /// ⌥ is bit 3. Pins the shift math so a layout-aware chord (French `/` on
+    /// ⇧:, issue #141) keeps translating to the character it actually types.
+    @Test func carbonModifierKeyStateBits() {
+        #expect(HotkeyTap.carbonModifierKeyState(shift: false, option: false) == 0)
+        #expect(HotkeyTap.carbonModifierKeyState(shift: true, option: false) == 2)
+        #expect(HotkeyTap.carbonModifierKeyState(shift: false, option: true) == 8)
+        #expect(HotkeyTap.carbonModifierKeyState(shift: true, option: true) == 10)
+    }
 }
