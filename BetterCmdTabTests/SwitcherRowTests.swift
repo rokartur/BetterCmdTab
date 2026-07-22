@@ -302,4 +302,40 @@ struct SwitcherRowTests {
         #expect(collapsed.browserTab == nil)
         #expect(collapsed.windowTitle == parent.windowTitle)
     }
+
+    @Test("visibleTabRange keeps every tab when unlimited or within the limit")
+    func visibleTabRangeUnlimited() {
+        #expect(SwitcherRow.visibleTabRange(count: 50, activeIndex: 3, limit: 0) == 0..<50)
+        #expect(SwitcherRow.visibleTabRange(count: 4, activeIndex: 2, limit: 4) == 0..<4)
+        #expect(SwitcherRow.visibleTabRange(count: 3, activeIndex: 0, limit: 16) == 0..<3)
+    }
+
+    @Test("visibleTabRange caps to the prefix when the active tab is inside it")
+    func visibleTabRangePrefix() {
+        #expect(SwitcherRow.visibleTabRange(count: 50, activeIndex: 0, limit: 4) == 0..<4)
+        #expect(SwitcherRow.visibleTabRange(count: 50, activeIndex: 3, limit: 4) == 0..<4)
+    }
+
+    @Test("visibleTabRange slides right to keep the active tab visible")
+    func visibleTabRangeSlides() {
+        // Active beyond the prefix → it becomes the last visible tab.
+        #expect(SwitcherRow.visibleTabRange(count: 50, activeIndex: 10, limit: 4) == 7..<11)
+        #expect(SwitcherRow.visibleTabRange(count: 50, activeIndex: 49, limit: 2) == 48..<50)
+        // Out-of-range active indices clamp instead of overflowing the tabs.
+        #expect(SwitcherRow.visibleTabRange(count: 50, activeIndex: 99, limit: 4) == 46..<50)
+        #expect(SwitcherRow.visibleTabRange(count: 50, activeIndex: -1, limit: 4) == 0..<4)
+    }
+
+    @Test("browserTabRows visible slice keeps original tab indices")
+    func browserTabRowsVisibleSlice() {
+        let parent = browserWindowRow(title: "Parent")
+        let tabs = (0..<6).map { BrowserTabInfo(title: "Tab \($0)", url: "") }
+        let range = SwitcherRow.visibleTabRange(count: 6, activeIndex: 4, limit: 3)
+        let rows = parent.browserTabRows(tabs: tabs, activeIndex: 4, visible: range)
+        #expect(rows.count == 3)
+        #expect(rows.map { $0.browserTab?.index } == [2, 3, 4])
+        #expect(rows.map { $0.windowTitle } == ["Tab 2", "Tab 3", "Tab 4"])
+        // The active tab survived the cap and is still marked active.
+        #expect(rows.last?.browserTab?.isActive == true)
+    }
 }

@@ -687,6 +687,9 @@ final class Preferences: ObservableObject {
     nonisolated static let listWidthPercentRange: ClosedRange<Int> = 30...100
     /// Upper bound on recently-closed entries surfaced in search. `0` disables.
     static let recentlyClosedLimitRange: ClosedRange<Int> = 0...50
+    /// Valid per-window browser-tab row caps when a limit is set (#144).
+    /// `0` (outside this range) means unlimited.
+    static let browserTabRowLimitRange: ClosedRange<Int> = 2...16
 
     /// Number of direct-activation hotkey slots. Each slot binds a recorded
     /// shortcut (stored by BetterShortcuts) to a target app bundle ID.
@@ -773,6 +776,9 @@ final class Preferences: ObservableObject {
         /// collapsed row + `\` peek is the default. Browser tabs aren't separate
         /// NSWindows, so the rows are built from an async Apple Events tab scan.
         static let expandBrowserTabsAsWindows = "Switcher.expandBrowserTabsAsWindows"
+        /// Cap on how many tab rows one browser window expands to (#144).
+        /// `0` = unlimited; otherwise 2…16.
+        static let browserTabRowLimit = "Switcher.browserTabRowLimit"
         /// Badge each expanded browser-tab row's favicon with the source
         /// browser's app icon (#131). Default off — favicon-only stays the look.
         static let showBrowserIconOnTabs = "Switcher.showBrowserIconOnTabs"
@@ -1407,6 +1413,21 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// At most this many tab rows per expanded browser window — the first N
+    /// tabs, slid right just enough to keep the active tab visible (#144).
+    /// `0` (default) shows every tab; otherwise clamped to 2…16.
+    @Published var browserTabRowLimit: Int {
+        didSet {
+            let clamped = Self.clampBrowserTabRowLimit(browserTabRowLimit)
+            if clamped != browserTabRowLimit {
+                browserTabRowLimit = clamped
+                return
+            }
+            guard oldValue != browserTabRowLimit else { return }
+            UserDefaults.standard.set(browserTabRowLimit, forKey: Keys.browserTabRowLimit)
+        }
+    }
+
     /// Badge each browser-tab row's favicon with the source browser's app
     /// icon, so the same site open in two browsers is tellable apart (#131).
     /// Applies to tab rows from `expandBrowserTabsAsWindows` (global or
@@ -1846,6 +1867,11 @@ final class Preferences: ObservableObject {
         min(recentlyClosedLimitRange.upperBound, max(recentlyClosedLimitRange.lowerBound, value))
     }
 
+    /// `<= 0` normalizes to `0` (unlimited); anything else snaps into 2…16.
+    static func clampBrowserTabRowLimit(_ value: Int) -> Int {
+        value <= 0 ? 0 : min(browserTabRowLimitRange.upperBound, max(browserTabRowLimitRange.lowerBound, value))
+    }
+
     /// Pads/truncates to exactly `directActivationSlotCount` entries.
     static func normalizeBindings(_ value: [String]) -> [String] {
         var out = Array(value.prefix(directActivationSlotCount))
@@ -1964,6 +1990,7 @@ final class Preferences: ObservableObject {
         self.windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
+        self.browserTabRowLimit = Self.clampBrowserTabRowLimit(defaults.object(forKey: Keys.browserTabRowLimit) as? Int ?? 0)
         self.showBrowserIconOnTabs = defaults.object(forKey: Keys.showBrowserIconOnTabs) as? Bool ?? false
         self.experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
         self.experimentalBrowserTabPreviews = defaults.object(forKey: Keys.experimentalBrowserTabPreviews) as? Bool ?? false
@@ -2111,6 +2138,7 @@ final class Preferences: ObservableObject {
         windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
+        browserTabRowLimit = defaults.object(forKey: Keys.browserTabRowLimit) as? Int ?? 0
         showBrowserIconOnTabs = defaults.object(forKey: Keys.showBrowserIconOnTabs) as? Bool ?? false
         experimentalBrowserTabMRU = defaults.object(forKey: Keys.experimentalBrowserTabMRU) as? Bool ?? false
         experimentalBrowserTabPreviews = defaults.object(forKey: Keys.experimentalBrowserTabPreviews) as? Bool ?? false

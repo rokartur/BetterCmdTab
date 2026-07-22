@@ -3599,14 +3599,16 @@ final class SwitcherController: SwitcherViewDelegate {
         // browser into per-tab rows would defeat it, so leave the rows untouched.
         guard effective.expandBrowserTabsAsWindows,
               !applicationsCollapseActive else { return source }
-        return expandBrowserTabsCore(source)
+        return expandBrowserTabsCore(source, limit: Preferences.shared.browserTabRowLimit)
     }
 
     /// Pref-free expansion: replace each collapsed browser-window row with one
     /// row per tab from `browserTabsCache`. Shared by the always-on
     /// `expandBrowserTabs` path and the transient search expansion. Pure (no AX);
     /// idempotent (already-expanded tab rows pass through untouched).
-    private func expandBrowserTabsCore(_ source: [SwitcherRow]) -> [SwitcherRow] {
+    /// `limit > 0` caps each window to its `SwitcherRow.visibleTabRange` slice
+    /// (#144); the search path passes 0 so typing still finds every tab.
+    private func expandBrowserTabsCore(_ source: [SwitcherRow], limit: Int = 0) -> [SwitcherRow] {
         var out: [SwitcherRow] = []
         out.reserveCapacity(source.count)
         for row in source {
@@ -3620,26 +3622,38 @@ final class SwitcherController: SwitcherViewDelegate {
                   BrowserTabs.Family.from(bundleID: row.bundleIdentifier) != nil,
                   let cached = browserTabsCache[AXRef(element: window)],
                   !cached.tabs.isEmpty else { out.append(row); continue }
-            out.append(contentsOf: row.browserTabRows(tabs: cached.tabs, activeIndex: cached.activeIndex))
+            out.append(contentsOf: row.browserTabRows(
+                tabs: cached.tabs,
+                activeIndex: cached.activeIndex,
+                visible: SwitcherRow.visibleTabRange(
+                    count: cached.tabs.count,
+                    activeIndex: cached.activeIndex,
+                    limit: limit
+                )
+            ))
         }
         return out
     }
 
     /// Whether the search filter should run over a transiently tab-expanded row
-    /// set. Off when the always-expand pref is on (`baseRows` is already
-    /// expanded) or in applications-only mode (collapsed to one row per app).
+    /// set. Off when the always-expand pref is on with no row limit (`baseRows`
+    /// is already fully expanded) or in applications-only mode (collapsed to one
+    /// row per app). With a row limit (#144) `baseRows` only holds each window's
+    /// capped slice, so search re-expands transiently to reach every tab.
     private var searchUsesExpandedTabs: Bool {
         Preferences.shared.searchExpandsBrowserTabs
-            && !effective.expandBrowserTabsAsWindows
+            && (!effective.expandBrowserTabsAsWindows || Preferences.shared.browserTabRowLimit > 0)
             && !applicationsCollapseActive
     }
 
     /// Rebuild the transient tab-expanded search set (rows + folded strings) from
     /// `baseRows` if it went stale. Mirrors `ensureBaseFolded`: built once per
-    /// `baseRows` change, reused across keystrokes.
+    /// `baseRows` change, reused across keystrokes. Collapsing first is a no-op
+    /// when `baseRows` holds no tab rows; when it holds a capped expansion, it
+    /// restores the parent-window rows so the re-expansion reaches every tab.
     private func ensureSearchExpanded() {
         guard !searchExpandedValid else { return }
-        searchExpandedRows = expandBrowserTabsCore(baseRows)
+        searchExpandedRows = expandBrowserTabsCore(collapsedBrowserSource())
         searchExpandedFolded = searchExpandedRows.map {
             (FuzzyMatch.fold($0.appName), FuzzyMatch.fold($0.windowTitle))
         }

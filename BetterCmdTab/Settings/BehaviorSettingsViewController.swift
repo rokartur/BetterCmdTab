@@ -38,6 +38,7 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     private let tabDrillSwitch = NSSwitch()
     private let expandTabsSwitch = NSSwitch()
     private let expandBrowserTabsSwitch = NSSwitch()
+    private let browserTabLimitField = NSTextField()
     private let browserIconOnTabsSwitch = NSSwitch()
 
     // Search
@@ -202,6 +203,13 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         addRow(to: tabs, title: String(localized: "Show browser tabs as separate entries"),
                subtitle: String(localized: "List each tab of a browser window (Safari, Chrome, Arc, Brave, Edge, …) as its own row alongside the other windows, instead of one collapsed window. Needs Apple Events access (below); off keeps one row per window — peek its tabs with \\."),
                accessory: expandBrowserTabsSwitch, searchItemID: SearchID.expandBrowserTabs)
+        let browserTabLimitTitle = String(localized: "Browser tabs to show")
+        configureIntegerField(browserTabLimitField,
+                              action: #selector(browserTabLimitCommitted(_:)),
+                              accessibilityLabel: browserTabLimitTitle)
+        addRow(to: tabs, title: browserTabLimitTitle,
+               subtitle: String(localized: "At most this many tab entries per browser window (2–16), keeping the active tab visible. Set to 0 to show every tab."),
+               accessory: browserTabLimitField, searchItemID: SearchID.browserTabLimit)
         configureSwitch(browserIconOnTabsSwitch, action: #selector(toggleBrowserIconOnTabs(_:)))
         addRow(to: tabs, title: String(localized: "Show browser icon on tab entries"),
                subtitle: String(localized: "Badge each tab entry's favicon with the source browser's app icon, so you can tell which browser a tab belongs to when the same site is open in more than one."),
@@ -372,6 +380,8 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         windowDrillSwitch.state = prefs.windowDrillEnabled ? .on : .off
         expandTabsSwitch.state = prefs.expandTabsAsWindows ? .on : .off
         expandBrowserTabsSwitch.state = prefs.expandBrowserTabsAsWindows ? .on : .off
+        applyBrowserTabLimit(prefs.browserTabRowLimit)
+        browserTabLimitField.isEnabled = prefs.expandBrowserTabsAsWindows
         browserIconOnTabsSwitch.state = prefs.showBrowserIconOnTabs ? .on : .off
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off
         applyLetterTimeout(prefs.letterChainTimeoutMs)
@@ -422,6 +432,10 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
         prefs.$recentlyClosedLimit
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.applyRecentlyClosedLimit($0) }
+            .store(in: &cancellables)
+        prefs.$browserTabRowLimit
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.applyBrowserTabLimit($0) }
             .store(in: &cancellables)
     }
 
@@ -495,9 +509,27 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     @objc private func toggleExpandBrowserTabs(_ sender: NSSwitch) {
         let on = (sender.state == .on)
         Preferences.shared.expandBrowserTabsAsWindows = on
+        browserTabLimitField.isEnabled = on
         // Listing browser tabs needs Apple Events consent; opting in while
         // Settings is foreground is the moment TCC can surface the prompt.
         if on { BrowserTabs.requestPermissionForRunningBrowsers() }
+    }
+
+    @objc private func browserTabLimitCommitted(_ sender: NSTextField) {
+        guard let value = committedInteger(from: sender) else {
+            applyBrowserTabLimit(Preferences.shared.browserTabRowLimit)
+            return
+        }
+        let limit = Preferences.clampBrowserTabRowLimit(value)
+        Preferences.shared.browserTabRowLimit = limit
+        applyBrowserTabLimit(limit)
+    }
+
+    private func applyBrowserTabLimit(_ value: Int) {
+        let text = String(value)
+        if browserTabLimitField.stringValue != text {
+            browserTabLimitField.stringValue = text
+        }
     }
 
     @objc private func toggleBrowserIconOnTabs(_ sender: NSSwitch) {
