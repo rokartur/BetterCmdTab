@@ -334,27 +334,45 @@ enum BrowserTabs {
     /// serially round-trips every running browser).
     @MainActor private static var permissionRequestInFlight = false
 
+    typealias PermissionOutcomeHandler = @MainActor @Sendable (_ granted: [String], _ denied: [String]) -> Void
+
+    /// Completions waiting on the in-flight probe run. A click that lands
+    /// while a run is active (e.g. a toggle just fired a silent one) joins it
+    /// and gets that run's results — never dropped, the button always answers.
+    @MainActor private static var pendingCompletions: [PermissionOutcomeHandler] = []
+
+    /// `completion` (main actor) receives the display names of browsers whose
+    /// probe script succeeded (`granted`) and failed (`denied`). Both empty
+    /// means no supported browser was running. The TCC consent prompt appears
+    /// only the very first time — every later click resolves silently, so the
+    /// Settings button uses this to show the outcome instead of nothing.
     @MainActor
-    static func requestPermissionForRunningBrowsers() {
+    static func requestPermissionForRunningBrowsers(completion: PermissionOutcomeHandler? = nil) {
+        if let completion { pendingCompletions.append(completion) }
         guard !permissionRequestInFlight else { return }
         // Force ourselves to the foreground so TCC has a window context.
         NSApp.activate(ignoringOtherApps: true)
         var prompted: Set<String> = []
-        var bundleIDs: [String] = []
+        var browsers: [(bid: String, name: String)] = []
         for app in NSWorkspace.shared.runningApplications {
             guard let bid = app.bundleIdentifier?.lowercased(),
                   Family.from(bundleID: bid) != nil,
                   prompted.insert(bid).inserted else { continue }
-            bundleIDs.append(bid)
+            browsers.append((bid, app.localizedName ?? bid))
         }
-        guard !bundleIDs.isEmpty else { return }
+        guard !browsers.isEmpty else {
+            deliverPermissionOutcome(granted: [], denied: [])
+            return
+        }
         permissionRequestInFlight = true
-        let bundleIDSnapshot = bundleIDs
+        let snapshot = browsers
         // Each runScript is a blocking waitpid; doing this on the main thread
         // froze the UI for the full per-browser round-trip (multi-second on
         // installs with several browsers running).
         DispatchQueue.global(qos: .userInitiated).async {
-            for bid in bundleIDSnapshot {
+            var granted: [String] = []
+            var denied: [String] = []
+            for (bid, name) in snapshot {
                 let escaped = bid.replacingOccurrences(of: "\\", with: "\\\\")
                                  .replacingOccurrences(of: "\"", with: "\\\"")
                 let source = """
@@ -365,10 +383,25 @@ enum BrowserTabs {
                 end tell
                 """
                 Log.activator.debug("BrowserTabs: requesting permission for \(bid)")
-                _ = runScript(source)
+                // nil covers more than a TCC denial (spawn failure, watchdog
+                // kill of a wedged browser) — callers must phrase it as
+                // "failed", not assert "declined".
+                if runScript(source) != nil { granted.append(name) } else { denied.append(name) }
             }
-            Task { @MainActor in permissionRequestInFlight = false }
+            let grantedNames = granted
+            let deniedNames = denied
+            Task { @MainActor in
+                permissionRequestInFlight = false
+                deliverPermissionOutcome(granted: grantedNames, denied: deniedNames)
+            }
         }
+    }
+
+    @MainActor
+    private static func deliverPermissionOutcome(granted: [String], denied: [String]) {
+        let waiting = pendingCompletions
+        pendingCompletions = []
+        for callback in waiting { callback(granted, denied) }
     }
 
     @discardableResult

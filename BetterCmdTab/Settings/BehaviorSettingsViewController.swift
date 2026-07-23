@@ -215,11 +215,11 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Badge each tab entry's favicon with the source browser's app icon, so you can tell which browser a tab belongs to when the same site is open in more than one."),
                accessory: browserIconOnTabsSwitch, searchItemID: SearchID.browserIconOnTabs)
 
-        let grantButton = NSButton(title: String(localized: "Grant permissions…"), target: self, action: #selector(grantBrowserPermissions))
+        let grantButton = NSButton(title: String(localized: "Check access…"), target: self, action: #selector(grantBrowserPermissions))
         grantButton.bezelStyle = .rounded
         grantButton.controlSize = .small
         addRow(to: tabs, title: String(localized: "Browser tab access"),
-               subtitle: String(localized: "Browsers need Apple Events consent to list their tabs. Click to prompt for each running browser (Safari, Chrome, Arc, Brave, Edge…). Must be done with this window open."),
+               subtitle: String(localized: "Browsers need Apple Events consent to list their tabs. Click to check each running browser (Safari, Chrome, Arc, Brave, Edge…) — macOS prompts for consent where it's still missing. Must be done with this window open."),
                accessory: grantButton, searchItemID: SearchID.tabPermissions)
 
         // Search section — type-to-filter behavior.
@@ -537,7 +537,44 @@ final class BehaviorSettingsViewController: SettingsTabViewController {
     }
 
     @objc private func grantBrowserPermissions() {
-        BrowserTabs.requestPermissionForRunningBrowsers()
+        BrowserTabs.requestPermissionForRunningBrowsers { [weak self] granted, denied in
+            self?.showBrowserPermissionOutcome(granted: granted, denied: denied)
+        }
+    }
+
+    /// macOS shows the Apple Events consent prompt only once per browser, so
+    /// on every later click the button would do nothing visible (#147). Spell
+    /// out what happened instead — and when consent was declined earlier, the
+    /// only remedy is the Automation pane (the entry is listed under
+    /// "osascript", which sends our tab scripts).
+    private func showBrowserPermissionOutcome(granted: [String], denied: [String]) {
+        let alert = NSAlert()
+        if granted.isEmpty && denied.isEmpty {
+            alert.alertStyle = .informational
+            alert.messageText = String(localized: "No supported browser is running")
+            alert.informativeText = String(localized: "Open a supported browser (Safari, Chrome, Arc, Brave, Edge, Vivaldi, Opera, Dia…) and click the button again.")
+            alert.addButton(withTitle: String(localized: "OK"))
+        } else if denied.isEmpty {
+            alert.alertStyle = .informational
+            alert.messageText = String(localized: "Browser tab access is working")
+            alert.informativeText = String(localized: "Tabs can be listed for: \(granted.joined(separator: ", ")).")
+            alert.addButton(withTitle: String(localized: "OK"))
+        } else {
+            alert.alertStyle = .warning
+            alert.messageText = String(localized: "Automation permission needed")
+            alert.informativeText = String(localized: "Tab access failed for: \(denied.joined(separator: ", ")). This usually means Automation consent was declined earlier — macOS asks only once and never prompts again. Check the browsers under \"osascript\" in System Settings → Privacy & Security → Automation.")
+            alert.addButton(withTitle: String(localized: "Open System Settings"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
+        }
+        let openSettings = { (response: NSApplication.ModalResponse) in
+            guard !denied.isEmpty, response == .alertFirstButtonReturn else { return }
+            AccessibilityCheck.openSystemSettings(anchor: "Privacy_Automation")
+        }
+        if let window = view.window {
+            alert.beginSheetModal(for: window, completionHandler: openSettings)
+        } else {
+            openSettings(alert.runModal())
+        }
     }
 
     @objc private func toggleLetterHints(_ sender: NSSwitch) {

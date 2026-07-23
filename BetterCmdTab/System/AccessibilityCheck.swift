@@ -11,10 +11,10 @@ enum AccessibilityCheck {
 
     static var isTrusted: Bool { AXIsProcessTrusted() }
 
-    static func openSystemSettings() {
+    static func openSystemSettings(anchor: String = "Privacy_Accessibility") {
         let urls = [
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
-            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility"
+            "x-apple.systempreferences:com.apple.preference.security?\(anchor)",
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?\(anchor)"
         ]
         for raw in urls {
             if let url = URL(string: raw), NSWorkspace.shared.open(url) {
