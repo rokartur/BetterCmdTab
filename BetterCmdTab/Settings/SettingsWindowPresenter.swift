@@ -18,6 +18,15 @@ final class SettingsWindowPresenter {
     /// fresh window each time.
     private var closeObserver: NSObjectProtocol?
 
+    /// Redraws the window when it comes back from full occlusion. While the
+    /// window sits fully covered by other apps, WindowServer may purge its
+    /// content surfaces; when the user switches back, the window shape and
+    /// glass chrome reappear instantly but the content region composites as a
+    /// see-through "stale frame" for up to a second until Core Animation
+    /// notices the loss (#146). Forcing a synchronous full redraw at the
+    /// earliest visibility transition collapses that gap.
+    private var occlusionObserver: NSObjectProtocol?
+
     /// Window the close observer is attached to, so a `show()` while the window
     /// is already open doesn't re-register (weak — the window is freed on close).
     private weak var observedWindow: NSWindow?
@@ -67,8 +76,23 @@ final class SettingsWindowPresenter {
             NotificationCenter.default.removeObserver(closeObserver)
             self.closeObserver = nil
         }
+        if let occlusionObserver {
+            NotificationCenter.default.removeObserver(occlusionObserver)
+            self.occlusionObserver = nil
+        }
         observedWindow = window
         guard let window else { return }
+        occlusionObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didChangeOcclusionStateNotification,
+            object: window,
+            queue: .main
+        ) { note in
+            MainActor.assumeIsolated {
+                guard let window = note.object as? NSWindow,
+                      window.occlusionState.contains(.visible) else { return }
+                window.display()
+            }
+        }
         closeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
@@ -79,6 +103,10 @@ final class SettingsWindowPresenter {
                 if let token = self?.closeObserver {
                     NotificationCenter.default.removeObserver(token)
                     self?.closeObserver = nil
+                }
+                if let token = self?.occlusionObserver {
+                    NotificationCenter.default.removeObserver(token)
+                    self?.occlusionObserver = nil
                 }
                 self?.observedWindow = nil
             }

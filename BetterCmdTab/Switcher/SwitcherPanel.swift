@@ -37,6 +37,20 @@ final class SwitcherPanel: NSPanel {
     /// click can be hit-tested off the main thread.
     var onFrameDidChange: ((CGRect?) -> Void)?
 
+    /// Wall clock (not uptime — time asleep counts toward staleness) of the
+    /// last moment the panel was on screen with known-fresh content. After a
+    /// long hidden stretch WindowServer may have purged the cached layer
+    /// surfaces, so trusting them on the next `present()` composites empty
+    /// glass / stale rows for a beat (#146). Updated by `present()` and
+    /// `dismiss()`.
+    private var lastOnScreenAt = Date.timeIntervalSinceReferenceDate
+
+    /// Hidden-for-longer-than-this triggers a full unconditional redraw in
+    /// `present()`. Deliberately generous so the extra full paint never lands
+    /// on rapid ⌘Tab cycles — surface purge needs sustained idleness, not
+    /// seconds.
+    private static let staleSurfaceThreshold: TimeInterval = 300
+
     /// Replace the inherited `-[NSWindow appearsActive]` getter for
     /// `SwitcherPanel` instances with a constant `true`. Dynamic NSColors used
     /// by row views (`.labelColor`, `.controlAccentColor`,
@@ -185,6 +199,16 @@ final class SwitcherPanel: NSPanel {
         alphaValue = CGFloat(opacity) / 100
         // `vanish()` turned mouse events off for its invisible linger window.
         ignoresMouseEvents = false
+        // After a long hidden stretch, don't trust cached layer contents —
+        // WindowServer may have purged them, which would show as see-through
+        // glass with missing rows for the first frames (#146). Redraw the whole
+        // tree in this same transaction; must come after the un-hide above
+        // (hidden views don't draw). Gated so rapid ⌘Tab opens never pay it.
+        let now = Date.timeIntervalSinceReferenceDate
+        if now - lastOnScreenAt > Self.staleSurfaceThreshold {
+            content.display()
+        }
+        lastOnScreenAt = now
         // The WindowServer order-front + app activation; split out so Instruments
         // shows it apart from the autolayout pass above when chasing reveal spikes.
         Log.reveal.withIntervalSignpost("present.orderFront") {
@@ -243,6 +267,7 @@ final class SwitcherPanel: NSPanel {
         orderOut(nil)
         targetScreen = nil
         CATransaction.commit()
+        lastOnScreenAt = Date.timeIntervalSinceReferenceDate
         onFrameDidChange?(nil)
     }
 
