@@ -1,6 +1,74 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Browser tabs to show" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzahl der angezeigten Browser-Tabs"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pestañas del navegador que se muestran"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onglets de navigateur à afficher"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ile kart przeglądarki pokazywać"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示的浏览器标签页数量"
+          }
+        }
+      }
+    },
+    "At most this many tab entries per browser window (2–16), keeping the active tab visible. Set to 0 to show every tab." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Höchstens so viele Tab-Einträge pro Browserfenster (2–16); der aktive Tab bleibt sichtbar. Mit 0 werden alle Tabs angezeigt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como máximo este número de pestañas por ventana del navegador (2–16), manteniendo visible la pestaña activa. Con 0 se muestran todas las pestañas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre maximal d’entrées d’onglet par fenêtre de navigateur (2–16), l’onglet actif restant visible. Réglez sur 0 pour afficher tous les onglets."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najwyżej tyle wpisów kart na okno przeglądarki (2–16), z zachowaniem widocznej aktywnej karty. Ustaw 0, aby pokazywać wszystkie karty."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个浏览器窗口最多显示这么多标签页条目（2–16），并保持活动标签页可见。设为 0 显示全部标签页。"
+          }
+        }
+      }
+    },
     "Default" : {
       "localizations" : {
         "de" : {

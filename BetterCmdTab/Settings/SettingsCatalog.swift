@@ -102,6 +102,7 @@ enum SearchID {
     static let windowDrill = "switcher.windowDrill"
     static let expandTabs = "switcher.expandTabs"
     static let expandBrowserTabs = "switcher.expandBrowserTabs"
+    static let browserTabLimit = "switcher.browserTabLimit"
     static let browserIconOnTabs = "switcher.browserIconOnTabs"
     static let tabPermissions = "switcher.tabPermissions"
     static let letterHints = "switcher.letterHints"
@@ -314,6 +315,8 @@ enum SettingsCatalog {
              String(localized: "Show tabs as separate entries"), ["tabs", "tab", "expand", "separate", "rows", "per tab", "finder", "terminal", "native tabs"]),
         item(SearchID.expandBrowserTabs, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Show browser tabs as separate entries"), ["tabs", "tab", "browser", "expand", "separate", "rows", "per tab", "safari", "chrome", "arc", "brave", "edge"]),
+        item(SearchID.browserTabLimit, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
+             String(localized: "Browser tabs to show"), ["tabs", "tab", "browser", "limit", "cap", "max", "count", "recent", "clutter"]),
         item(SearchID.browserIconOnTabs, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),
              String(localized: "Show browser icon on tab entries"), ["tabs", "tab", "browser", "icon", "badge", "favicon", "source", "safari", "chrome", "arc", "brave", "edge"]),
         item(SearchID.tabPermissions, .switcher, SettingsAnchor.tabs, String(localized: "Behavior"), String(localized: "Tabs"),

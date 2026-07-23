@@ -188,6 +188,13 @@ final class SwitcherPanel: NSPanel {
         // The WindowServer order-front + app activation; split out so Instruments
         // shows it apart from the autolayout pass above when chasing reveal spikes.
         Log.reveal.withIntervalSignpost("present.orderFront") {
+            // #46: WindowServer collapses the panel's `.canJoinAllSpaces`
+            // membership to a single Space when a full-screen Space is destroyed,
+            // leaving the panel invisible on every other Space (switching still
+            // works). Re-stick it onto the visible Space(s) via CGS before
+            // ordering front so it composites on the Space we're about to show it
+            // on. Re-writing `collectionBehavior` didn't undo the collapse.
+            PrivateAPI.pinWindowToVisibleSpaces(CGWindowID(windowNumber))
             makeKeyAndOrderFront(nil)
             // Activate the app while the switcher is shown. `NSGlassEffectView`'s
             // active/inactive look is decided window-server-side from the owning

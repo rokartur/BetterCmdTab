@@ -184,11 +184,12 @@ struct SwitcherRow {
     /// A single tab still expands — the tab row carries its URL, which is what
     /// gives the row a favicon (+ the #131 browser badge) instead of the bare
     /// app icon. Pure — no AX messaging.
-    func browserTabRows(tabs: [BrowserTabInfo], activeIndex: Int) -> [SwitcherRow] {
+    func browserTabRows(tabs: [BrowserTabInfo], activeIndex: Int, visible: Range<Int>? = nil) -> [SwitcherRow] {
         guard case .running(let app) = subject, window != nil, !tabs.isEmpty else { return [self] }
         let parentTitle = windowTitle
-        return tabs.enumerated().map { i, tab in
-            SwitcherRow(
+        return (visible ?? tabs.indices).map { i in
+            let tab = tabs[i]
+            return SwitcherRow(
                 app: app,
                 window: window,
                 windowTitle: tab.title,
@@ -203,6 +204,18 @@ struct SwitcherRow {
                 )
             )
         }
+    }
+
+    /// Which tab indices to expand when a per-window row limit is set (#144):
+    /// the first `limit` tabs, slid right just enough to keep the active tab
+    /// visible (it becomes the last visible row when it sits beyond the
+    /// prefix). `limit <= 0`, or a window already within the limit, keeps
+    /// every tab. Pure; indices stay the tabs' original 0-based positions.
+    static func visibleTabRange(count: Int, activeIndex: Int, limit: Int) -> Range<Int> {
+        guard limit > 0, count > limit else { return 0..<max(count, 0) }
+        let active = min(max(activeIndex, 0), count - 1)
+        let start = max(0, active - limit + 1)
+        return start..<(start + limit)
     }
 
     func browserTabRows(tabTitles: [String]) -> [SwitcherRow] {
