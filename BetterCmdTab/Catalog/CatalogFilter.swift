@@ -22,6 +22,12 @@ enum CatalogFilter {
         let showWindowless: Bool
         let spaceScope: SpaceScope
         let sortOrder: SwitcherSortOrder
+        /// Sink hidden apps to the end via `statusPriority` bucketing (not
+        /// `filteredRows`; `showHidden` still governs whether they appear).
+        /// Not per-shortcut overridable, so `overlay` passes it through.
+        /// `var` + default keeps it a defaulted memberwise-init param (a `let`
+        /// default would drop it from the init).
+        var sinkHiddenApps: Bool = true
 
         /// No filtering and no reordering — lets callers skip work entirely.
         var isIdentity: Bool {
@@ -47,7 +53,8 @@ enum CatalogFilter {
             showHidden: defaults.object(forKey: Preferences.Keys.showHiddenApps) as? Bool ?? true,
             showWindowless: defaults.object(forKey: Preferences.Keys.showWindowlessApps) as? Bool ?? true,
             spaceScope: Preferences.storedSpaceScope(defaults),
-            sortOrder: sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
+            sortOrder: sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru,
+            sinkHiddenApps: defaults.object(forKey: Preferences.Keys.sinkHiddenApps) as? Bool ?? true
         )
     }
 
@@ -64,7 +71,8 @@ enum CatalogFilter {
             showHidden: ov.showHidden ?? base.showHidden,
             showWindowless: ov.showWindowless ?? base.showWindowless,
             spaceScope: ov.spaceScope.resolvedScope ?? base.spaceScope,
-            sortOrder: ov.sortOrder ?? base.sortOrder
+            sortOrder: ov.sortOrder ?? base.sortOrder,
+            sinkHiddenApps: base.sinkHiddenApps
         )
     }
 

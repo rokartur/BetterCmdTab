@@ -208,6 +208,7 @@ final class AppCatalogCache {
     /// this reveal; `nil` (the default) reads the global config, so every existing
     /// caller and every no-override reveal stays byte-identical.
     func rows(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil) -> [SwitcherRow] {
+        let resolvedCfg = cfg ?? CatalogFilter.config()
         // Sweep terminated apps that the didTerminate workspace observer
         // hasn't reached yet (race: user hits Cmd+Q on a switcher row → row
         // stays visible with empty icon until the observer fires). Filtering
@@ -262,30 +263,42 @@ final class AppCatalogCache {
         // queries); decorating up front makes it O(n). Tie-break on the
         // original offset keeps the order byte-identical to before.
         let sorted = result.enumerated()
-            .map { (priority: Self.statusPriority($0.element), offset: $0.offset, row: $0.element) }
+            .map { (priority: Self.statusPriority($0.element, sinkHiddenApps: resolvedCfg.sinkHiddenApps), offset: $0.offset, row: $0.element) }
             .sorted { lhs, rhs in
                 if lhs.priority != rhs.priority { return lhs.priority < rhs.priority }
                 return lhs.offset < rhs.offset
             }
             .map { $0.row }
-        return CatalogFilter.filteredRows(sorted, cfg ?? CatalogFilter.config())
+        return CatalogFilter.filteredRows(sorted, resolvedCfg)
     }
 
-    /// Internal (not private) so the `.mruWindows` window-recency sort can
-    /// re-apply the same bucketing after its global shuffle (hidden/windowless
-    /// apps must still sink to the end).
-    static func statusPriority(_ row: SwitcherRow) -> Int {
-        // Windowless and hidden regular apps share one "inactive" bucket after
-        // everything else — they're least immediately actionable. They're
-        // pooled together because an app closing its last window can flip
-        // between "no window" and "hidden window" across consecutive AX
-        // refreshes (Electron apps hide rather than truly go windowless); one
-        // bucket keeps that flip from reordering the app. Placeholders keep
-        // priority 0 so they don't get demoted while the cache warms up.
-        // (Mirror AppCatalog.statusPriority.)
-        if row.window == nil, !row.isPlaceholder { return 2 }
-        if row.isHidden { return 2 }
-        if row.isMinimized { return 1 }
+    /// Internal (not private) so the `.mruWindows` re-sort can re-apply the same
+    /// bucketing after its global shuffle. `sinkHiddenApps` defaults `true` for
+    /// callers without a live preference value.
+    static func statusPriority(_ row: SwitcherRow, sinkHiddenApps: Bool = true) -> Int {
+        statusPriority(
+            hasWindow: row.window != nil,
+            isPlaceholder: row.isPlaceholder,
+            isHidden: row.isHidden,
+            isMinimized: row.isMinimized,
+            sinkHiddenApps: sinkHiddenApps
+        )
+    }
+
+    /// Pure core, split out (like `CatalogFilter.includes`) so bucketing is
+    /// testable without a live `NSRunningApplication` (`isHidden` can't be faked
+    /// for the test host).
+    ///
+    /// Windowless and hidden regular apps pool into one trailing "inactive"
+    /// bucket: an app closing its last window can flip between "no window" and
+    /// "hidden window" across AX refreshes (Electron apps hide rather than go
+    /// windowless), and one bucket stops that flip from reordering it.
+    /// Placeholders stay at 0 so they aren't demoted while warming.
+    /// `sinkHiddenApps` gates only the hidden branch — windowless always sinks.
+    static func statusPriority(hasWindow: Bool, isPlaceholder: Bool, isHidden: Bool, isMinimized: Bool, sinkHiddenApps: Bool) -> Int {
+        if !hasWindow, !isPlaceholder { return 2 }
+        if sinkHiddenApps, isHidden { return 2 }
+        if isMinimized { return 1 }
         return 0
     }
 

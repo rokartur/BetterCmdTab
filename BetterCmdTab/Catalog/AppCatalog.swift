@@ -47,6 +47,7 @@ enum AppCatalog {
     }
 
     static func snapshot(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil) -> [SwitcherRow] {
+        let resolvedCfg = cfg ?? CatalogFilter.config()
         // Self is intentionally included: BetterCmdTab should appear in the
         // switcher when — and only when — it has a real standard window open
         // (the Settings window). The switcher panel is a borderless
@@ -130,27 +131,20 @@ enum AppCatalog {
         // queries); decorating up front makes it O(n). Tie-break on the
         // original offset keeps the order byte-identical to before.
         let sorted = rows.enumerated()
-            .map { (priority: Self.statusPriority($0.element), offset: $0.offset, row: $0.element) }
+            .map { (priority: Self.statusPriority($0.element, sinkHiddenApps: resolvedCfg.sinkHiddenApps), offset: $0.offset, row: $0.element) }
             .sorted { lhs, rhs in
                 if lhs.priority != rhs.priority { return lhs.priority < rhs.priority }
                 return lhs.offset < rhs.offset
             }
             .map { $0.row }
-        return CatalogFilter.filteredRows(sorted, cfg ?? CatalogFilter.config())
+        return CatalogFilter.filteredRows(sorted, resolvedCfg)
     }
 
-    private static func statusPriority(_ row: SwitcherRow) -> Int {
-        // Mirror AppCatalogCache.statusPriority so cold-path snapshots and
-        // cached snapshots agree on row ordering. Windowless and hidden regular
-        // apps share one "inactive" bucket: an app that closes its last window
-        // can flip between the two across consecutive AX refreshes (Electron
-        // apps in particular hide themselves rather than truly going windowless,
-        // so the switcher sees zero windows one moment and a hidden window the
-        // next) — keeping them in the same bucket stops that flip from
-        // reordering the app. Placeholders stay normal so they don't get
-        // demoted pre-warm.
+    private static func statusPriority(_ row: SwitcherRow, sinkHiddenApps: Bool) -> Int {
+        // Mirror AppCatalogCache.statusPriority so cold and cached snapshots
+        // agree on ordering; see there for the bucketing rationale.
         if row.window == nil, !row.isPlaceholder { return 2 }
-        if row.isHidden { return 2 }
+        if sinkHiddenApps, row.isHidden { return 2 }
         if row.isMinimized { return 1 }
         return 0
     }
