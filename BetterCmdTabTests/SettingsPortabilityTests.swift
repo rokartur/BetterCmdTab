@@ -387,14 +387,99 @@ struct SettingsPortabilityTests {
         // Open-ended by design: a file from another version must still validate.
         #expect(schema["additionalProperties"] as? Bool == true)
         #expect(schema["required"] == nil)
-        let properties = try #require(schema["properties"] as? [String: [String: String]])
-        #expect(properties["aBool"]?["type"] == "boolean")
-        #expect(properties["anInt"]?["type"] == "integer")
-        #expect(properties["aDouble"]?["type"] == "number")
-        #expect(properties["aString"]?["type"] == "string")
-        #expect(properties["anArray"]?["type"] == "array")
-        #expect(properties["anObject"]?["type"] == "object")
-        #expect(properties["$schema"]?["type"] == "string")
+        let properties = try #require(schema["properties"] as? [String: [String: Any]])
+        #expect(properties["aBool"]?["type"] as? String == "boolean")
+        #expect(properties["anInt"]?["type"] as? String == "integer")
+        #expect(properties["aDouble"]?["type"] as? String == "number")
+        #expect(properties["aString"]?["type"] as? String == "string")
+        #expect(properties["anArray"]?["type"] as? String == "array")
+        #expect(properties["anObject"]?["type"] as? String == "object")
+        #expect(properties["$schema"]?["type"] as? String == "string")
+    }
+
+    @Test("documented keys carry a description, their enum cases and their clamp range")
+    func schemaDocuments() throws {
+        // Documented independently of the snapshot: a key this Mac has never
+        // stored still has to complete and hover in an editor.
+        let schema = Preferences.settingsSchema(for: [:], version: "26.7")
+        let properties = try #require(schema["properties"] as? [String: [String: Any]])
+
+        for (key, doc) in ConfigSchemaDocs.byKey {
+            let property = try #require(properties[key], "schema is missing documented \(key)")
+            #expect(property["type"] as? String == doc.type)
+            #expect((property["description"] as? String)?.isEmpty == false, "\(key) has no description")
+        }
+        // Enum cases come from the live type, so a renamed case can't drift.
+        #expect(properties["layoutMode"]?["enum"] as? [String] == SwitcherLayoutMode.allCases.map(\.rawValue))
+        #expect(properties["spaceScope"]?["enum"] as? [String] == SpaceScope.allCases.map(\.rawValue))
+        // …and ranges from the clamp the app applies anyway.
+        #expect(properties["panelOpacity"]?["minimum"] as? Int == Preferences.panelOpacityRange.lowerBound)
+        #expect(properties["panelOpacity"]?["maximum"] as? Int == Preferences.panelOpacityRange.upperBound)
+        // 0 means unlimited, so the floor is 0 rather than the clamp's own 2.
+        #expect(properties["browserTabRowLimit"]?["minimum"] as? Int == 0)
+        #expect(properties["browserTabRowLimit"]?["maximum"] as? Int == Preferences.browserTabRowLimitRange.upperBound)
+        // Every enum case an editor offers is labelled with what Settings calls
+        // it — one label per value, none blank.
+        #expect(
+            properties["layoutMode"]?["enumDescriptions"] as? [String]
+                == SwitcherLayoutMode.allCases.map(\.displayName)
+        )
+        for (key, doc) in ConfigSchemaDocs.byKey {
+            guard let labels = doc.values?.labels else { continue }
+            #expect(labels.count == doc.values?.raw.count, "\(key) labels don't line up with its values")
+            #expect(labels.allSatisfy { !$0.isEmpty }, "\(key) has a blank value label")
+        }
+    }
+
+    @Test("array settings type their elements, down to the stored dictionaries")
+    func schemaTypesArrayElements() throws {
+        let schema = Preferences.settingsSchema(for: [:], version: "26.7")
+        let properties = try #require(schema["properties"] as? [String: [String: Any]])
+
+        // Fixed-length slot arrays declare their length.
+        #expect(properties["directActivationBindings"]?["maxItems"] as? Int == Preferences.directActivationSlotCount)
+
+        // No array may leave its elements as a bare "type": every one is
+        // constrained to a value set, a pattern, or typed object properties.
+        for (key, property) in properties where property["type"] as? String == "array" {
+            let items = try #require(property["items"] as? [String: Any], "\(key) has untyped elements")
+            #expect(
+                items["enum"] != nil || items["pattern"] != nil || items["properties"] != nil,
+                "\(key) elements are only \(items["type"] ?? "?") — constrain them"
+            )
+        }
+
+        // Per-app rules: a typed object, closed to unknown keys.
+        let rule = try #require(properties["appExceptions"]?["items"] as? [String: Any])
+        let ruleProperties = try #require(rule["properties"] as? [String: [String: Any]])
+        #expect(rule["required"] as? [String] == ["bundleID"])
+        #expect(rule["additionalProperties"] as? Bool == false)
+        #expect(ruleProperties["hide"]?["enum"] as? [String] == HideWindowsMode.allCases.map(\.rawValue))
+        #expect(ruleProperties["ignore"]?["enum"] as? [String] == IgnoreShortcutsMode.allCases.map(\.rawValue))
+
+        // Overrides are a plist [String: String]: every value is the *string*
+        // form of the global setting, and unknown keys are carried through.
+        let override = try #require(properties["shortcutOverrides"]?["items"] as? [String: Any])
+        let overrideProperties = try #require(override["properties"] as? [String: [String: Any]])
+        #expect(override["additionalProperties"] as? Bool == true)
+        #expect(override["required"] as? [String] == ["target"])
+        #expect(overrideProperties["showMinimized"]?["type"] as? String == "string")
+        #expect(overrideProperties["showMinimized"]?["enum"] as? [String] == ["true", "false"])
+        #expect(overrideProperties["panelOpacity"]?["type"] as? String == "string")
+        #expect(overrideProperties["panelOpacity"]?["pattern"] as? String == "^-?[0-9]+$")
+        #expect(overrideProperties["layoutMode"]?["enum"] as? [String] == SwitcherLayoutMode.allCases.map(\.rawValue))
+        #expect(overrideProperties["spaceScope"]?["enum"] as? [String] == SpaceScopeOverride.allCases.map(\.rawValue))
+        // Every field the app can write has to be described — a new one added
+        // to ShortcutOverride fails here until it is.
+        for child in Mirror(reflecting: ShortcutOverride()).children {
+            guard let field = child.label, field != "passthrough" else { continue }
+            #expect(overrideProperties[field] != nil, "override field \(field) is undocumented")
+        }
+        // Excluded-from-export keys must not be advertised as settings
+        // (`$schema` is the pointer itself, documented as "not a setting").
+        for key in Preferences.exportExcludedKeys where key != "Switcher.$schema" {
+            #expect(properties[String(key.dropFirst(Preferences.exportKeyPrefix.count))] == nil)
+        }
     }
 
     @Test("live snapshot keys all appear in the generated schema")

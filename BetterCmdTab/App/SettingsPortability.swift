@@ -116,9 +116,10 @@ extension Preferences {
     /// `required`, so a file written by any other version still validates —
     /// import tolerates unknown keys and keeps current values for absent ones.
     ///
-    /// Types only. Enum cases and numeric ranges would need the per-key table
-    /// this deliberately avoids; the app clamps/ignores out-of-range values
-    /// anyway.
+    /// Descriptions, allowed values and clamp ranges come from
+    /// `ConfigSchemaDocs`, so a documented key is completable and hoverable
+    /// even when this Mac has never stored it. Anything not in that table falls
+    /// back to its snapshot type — undocumented, still valid.
     nonisolated static func settingsSchema(for values: [String: Any], version: String) -> [String: Any] {
         var properties: [String: Any] = [
             "$schema": [
@@ -126,7 +127,10 @@ extension Preferences {
                 "description": "Location of this schema. Ignored as a setting.",
             ],
         ]
-        for (key, value) in values {
+        for (key, doc) in ConfigSchemaDocs.byKey {
+            properties[key] = doc.fragment
+        }
+        for (key, value) in values where properties[key] == nil {
             properties[key] = ["type": jsonSchemaType(of: value)]
         }
         return [

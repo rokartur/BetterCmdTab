@@ -649,51 +649,51 @@ final class Preferences: ObservableObject {
     static let finderBundleID = "com.apple.finder"
 
     static let defaultRevealDelayMs = 100
-    static let revealDelayRange: ClosedRange<Int> = 40...500
+    nonisolated static let revealDelayRange: ClosedRange<Int> = 40...500
 
     /// How long a partial letter-jump prefix survives before it expires and the
     /// switcher returns to its pre-typing order. Default 1000ms.
     static let defaultLetterChainTimeoutMs = 1000
-    static let letterChainTimeoutRange: ClosedRange<Int> = 200...3000
+    nonisolated static let letterChainTimeoutRange: ClosedRange<Int> = 200...3000
 
     /// Debounce between a window's AX title-change notification and the refresh
     /// of the titles shown in the open switcher. Lower = titles update sooner
     /// but a churning app (a loading page, a scrolling terminal) costs more
     /// re-reads; higher coalesces bursts into fewer passes. Default 200ms.
     static let defaultTitleRefreshIntervalMs = 200
-    static let titleRefreshIntervalRange: ClosedRange<Int> = 50...2000
+    nonisolated static let titleRefreshIntervalRange: ClosedRange<Int> = 50...2000
 
-    static let defaultCommitSoundName = "Tink"
+    nonisolated static let defaultCommitSoundName = "Tink"
 
     static let defaultSwipeSensitivity = 5
-    static let swipeSensitivityRange: ClosedRange<Int> = 1...10
+    nonisolated static let swipeSensitivityRange: ClosedRange<Int> = 1...10
 
     nonisolated static let defaultPanelScalePercent = 120
     nonisolated static let panelScalePercentRange: ClosedRange<Int> = 50...150
-    static let panelOpacityRange: ClosedRange<Int> = 30...100
+    nonisolated static let panelOpacityRange: ClosedRange<Int> = 30...100
     /// `0` means "automatic" (track the size-derived metric), `-1` pins fully
     /// square corners (#129); above `0` the user pins an explicit radius in
     /// points.
-    static let panelCornerRadiusRange: ClosedRange<Int> = -1...40
+    nonisolated static let panelCornerRadiusRange: ClosedRange<Int> = -1...40
 
     /// Grid layout column cap. `0` = automatic (width-driven); above that the
     /// user pins an explicit count. Bounded so a hand-edited/corrupted import
     /// can't land a negative or absurd value in the live pref.
-    static let gridMaxColumnsRange: ClosedRange<Int> = 0...12
+    nonisolated static let gridMaxColumnsRange: ClosedRange<Int> = 0...12
     /// List layout row width as a percentage of the automatic (screen-scaled)
     /// width (#124). `100` keeps the automatic width; lower values narrow the
     /// list without shrinking text or icons. Floored so a hand-edited/corrupted
     /// import can't shrink rows to slivers.
     nonisolated static let listWidthPercentRange: ClosedRange<Int> = 30...100
     /// Upper bound on recently-closed entries surfaced in search. `0` disables.
-    static let recentlyClosedLimitRange: ClosedRange<Int> = 0...50
+    nonisolated static let recentlyClosedLimitRange: ClosedRange<Int> = 0...50
     /// Valid per-window browser-tab row caps when a limit is set (#144).
     /// `0` (outside this range) means unlimited.
-    static let browserTabRowLimitRange: ClosedRange<Int> = 2...16
+    nonisolated static let browserTabRowLimitRange: ClosedRange<Int> = 2...16
 
     /// Number of direct-activation hotkey slots. Each slot binds a recorded
     /// shortcut (stored by BetterShortcuts) to a target app bundle ID.
-    static let directActivationSlotCount = 9
+    nonisolated static let directActivationSlotCount = 9
 
     /// Number of scoped-switch shortcut slots. Each slot binds a recorded
     /// shortcut to a `SwitchScope` — triggering it opens the switcher already

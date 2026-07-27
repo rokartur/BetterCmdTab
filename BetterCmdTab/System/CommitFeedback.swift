@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 /// so toggling them takes effect on the next commit without a restart.
 @MainActor
 enum CommitFeedback {
-    private static let fallbackSoundName = Preferences.defaultCommitSoundName
+    nonisolated private static let fallbackSoundName = Preferences.defaultCommitSoundName
     private static var cachedSoundName = ""
     private static var cachedCustomFilename: String?
     private static var cachedSound: NSSound?
@@ -21,9 +21,9 @@ enum CommitFeedback {
         }
     }
 
-    /// Read only when the General pane is built, never while opening or
-    /// committing the switcher.
-    static func systemSoundNames() -> [String] {
+    /// Read when the General pane is built and once when the config schema is
+    /// generated — never while opening or committing the switcher.
+    nonisolated static func systemSoundNames() -> [String] {
         let directory = URL(fileURLWithPath: "/System/Library/Sounds", isDirectory: true)
         var names = (try? FileManager.default.contentsOfDirectory(
             at: directory,
