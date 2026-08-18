@@ -204,6 +204,19 @@ private enum CloseKeycode {
 enum Activator {
     private static let finderBundleID = "com.apple.finder"
 
+    enum ActivationRequestMode: Equatable {
+        /// BetterCmdTab currently owns app activation (the visible panel path),
+        /// so hand it to the selected app using macOS's coordinated protocol.
+        case coordinated
+        /// A quick commit can happen before BetterCmdTab becomes active. It
+        /// cannot yield activation it does not own, so use a standalone request.
+        case standalone
+    }
+
+    static func activationRequestMode(currentApplicationIsActive: Bool) -> ActivationRequestMode {
+        currentApplicationIsActive ? .coordinated : .standalone
+    }
+
     /// The app that was frontmost when `hideAllApps()` last ran, so `showAllApps()`
     /// can raise it back on top (the window the user hid everything from). Pid for
     /// the same-session fast path, bundleID as a fallback if the app was relaunched.
@@ -580,7 +593,26 @@ enum Activator {
     @MainActor
     private static func activateProcess(_ app: NSRunningApplication) {
         if #available(macOS 14.0, *) {
-            _ = app.activate(from: NSRunningApplication.current, options: [])
+            switch activationRequestMode(currentApplicationIsActive: NSApp.isActive) {
+            case .coordinated:
+                // `activate(from:)` is cooperative: AppKit's contract requires
+                // the active source app to yield first. Without this handoff the
+                // request may be denied, while the later AX/WindowServer raise
+                // still makes the target look frontmost — leaving it unable to
+                // receive keyboard input until clicked (#180).
+                NSApp.yieldActivation(to: app)
+                if !app.activate(from: NSRunningApplication.current, options: []) {
+                    // The source may have deactivated between the check and the
+                    // request. Fall back to the source-independent API instead
+                    // of proceeding with only a visual window raise.
+                    _ = app.activate(options: [])
+                }
+            case .standalone:
+                // Fast tap-release commits can remain in `.primed`, before our
+                // nonactivating panel calls `NSApp.activate()`. Passing `.current`
+                // as the source in that state cannot form a valid handoff.
+                _ = app.activate(options: [])
+            }
         } else {
             app.activate(options: [.activateIgnoringOtherApps])
         }
