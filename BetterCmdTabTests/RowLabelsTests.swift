@@ -4,8 +4,12 @@ import Testing
 @Suite("RowLabels")
 struct RowLabelsTests {
 
-    private func input(_ appName: String, _ windowTitle: String = "") -> RowLabels.Input {
-        RowLabels.Input(appName: appName, windowTitle: windowTitle)
+    private func input(
+        _ appName: String,
+        _ windowTitle: String = "",
+        bundleID: String? = nil
+    ) -> RowLabels.Input {
+        RowLabels.Input(appName: appName, windowTitle: windowTitle, bundleID: bundleID)
     }
 
     @Test("unique first letters produce single-letter labels")
@@ -99,5 +103,41 @@ struct RowLabelsTests {
     func empty() {
         let labels = RowLabels.labels(forInputs: [])
         #expect(labels.isEmpty)
+    }
+
+    @Test("custom mapping stays exact when another app would choose the same letter")
+    func customMappingReservesItsLetter() {
+        let labels = RowLabels.labels(
+            forInputs: [
+                input("Safari", bundleID: "com.apple.Safari"),
+                input("Slack", bundleID: "com.tinyspeck.slackmacgap"),
+            ],
+            customMappings: ["com.apple.Safari": "s"]
+        )
+        #expect(labels[0] == "s")
+        #expect(labels[1] == "l")
+    }
+
+    @Test("only the first window of a mapped app receives the stable letter")
+    func customMappingTargetsFirstAppRow() {
+        let labels = RowLabels.labels(
+            forInputs: [
+                input("Safari", "First", bundleID: "com.apple.Safari"),
+                input("Safari", "Second", bundleID: "com.apple.Safari"),
+            ],
+            customMappings: ["com.apple.Safari": "s"]
+        )
+        #expect(labels[0] == "s")
+        #expect(labels[1] != "s")
+        #expect(!labels[1].hasPrefix("s"))
+    }
+
+    @Test("custom mapping may deliberately use an action-reserved letter")
+    func customMappingCanUseReservedLetter() {
+        let labels = RowLabels.labels(
+            forInputs: [input("WhatsApp", bundleID: "net.whatsapp.WhatsApp")],
+            customMappings: ["net.whatsapp.WhatsApp": "w"]
+        )
+        #expect(labels == ["w"])
     }
 }

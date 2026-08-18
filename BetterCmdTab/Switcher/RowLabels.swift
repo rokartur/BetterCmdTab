@@ -19,6 +19,14 @@ enum RowLabels {
         reservedStore.withLock { $0 = letters }
     }
 
+    /// User-chosen app mappings, mirrored from Preferences once on launch and
+    /// whenever they change. Keeping a lock-backed snapshot here avoids a
+    /// UserDefaults/main-actor read in the repeated row-label generation path.
+    private static let customStore = OSAllocatedUnfairLock<[String: Character]>(initialState: [:])
+    static func setCustomMappings(_ mappings: [String: Character]) {
+        customStore.withLock { $0 = mappings }
+    }
+
     /// Full a–z pool for disambiguation suffixes; reserved letters are filtered
     /// out at the point of use so the pool tracks the dynamic reservation.
     static let suffixAlphabet: [Character] = Array("abcdefghijklmnopqrstuvwxyz")
@@ -26,29 +34,62 @@ enum RowLabels {
     struct Input {
         let appName: String
         let windowTitle: String
+        let bundleID: String?
+
+        init(appName: String, windowTitle: String, bundleID: String? = nil) {
+            self.appName = appName
+            self.windowTitle = windowTitle
+            self.bundleID = bundleID
+        }
     }
 
     static func labels(for rows: [SwitcherRow]) -> [String] {
-        labels(forInputs: rows.map { Input(appName: $0.appName, windowTitle: $0.windowTitle) })
+        let mappings = customStore.withLock { $0 }
+        return labels(
+            forInputs: rows.map {
+                Input(appName: $0.appName, windowTitle: $0.windowTitle, bundleID: $0.bundleIdentifier)
+            },
+            customMappings: mappings
+        )
     }
 
-    static func labels(forInputs rows: [Input]) -> [String] {
+    static func labels(
+        forInputs rows: [Input],
+        customMappings: [String: Character] = [:]
+    ) -> [String] {
         var labels = [String](repeating: "", count: rows.count)
         guard !rows.isEmpty else { return labels }
 
         // Snapshot the reserved set once per call (one lock acquisition) and thread
-        // it through the per-character loops below.
-        let reserved = Self.reserved
+        // it through the per-character loops below. Custom letters also stay out
+        // of dynamically-generated labels, so opening another app can never steal
+        // a persistent mapping.
+        let reserved = Self.reserved.union(customMappings.values)
+
+        // A mapping targets the first (most-recent) row for its app. Other
+        // windows of the same app keep ordinary dynamic labels, avoiding a
+        // prefix chain that would delay the one-letter app jump.
+        var customIndexByBundleID: [String: Int] = [:]
+        for (index, row) in rows.enumerated() {
+            guard let bundleID = row.bundleID,
+                  customMappings[bundleID] != nil,
+                  customIndexByBundleID[bundleID] == nil else { continue }
+            customIndexByBundleID[bundleID] = index
+        }
+        let customIndices = Set(customIndexByBundleID.values)
+        for (bundleID, index) in customIndexByBundleID {
+            if let letter = customMappings[bundleID] { labels[index] = String(letter) }
+        }
 
         var firstLetterCount: [Character: Int] = [:]
         var firstLetters = [Character?](repeating: nil, count: rows.count)
-        for i in 0..<rows.count {
+        for i in rows.indices where !customIndices.contains(i) {
             let c = firstAvailableLetter(rows[i].appName, reserved: reserved)
             firstLetters[i] = c
             if let c { firstLetterCount[c, default: 0] += 1 }
         }
 
-        for i in 0..<rows.count {
+        for i in rows.indices where !customIndices.contains(i) {
             guard let first = firstLetters[i] else {
                 labels[i] = ""
                 continue

@@ -78,6 +78,8 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let letterHintsSwitch = NSSwitch()
     /// Kept so `viewWillAppear` can re-render the subtitle after a rebind.
     private var letterHintsRow: SettingsRowView?
+    private var quickJumpMappingsRow: SettingsRowView?
+    private var quickJumpMappingsSheet: QuickJumpMappingsSheetWindowController?
     private let letterTimeoutSlider = NSSlider()
     private let letterTimeoutValueField = NSTextField()
     private let fuzzySwitch = NSSwitch()
@@ -265,6 +267,21 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         letterHintsRow = addRow(to: jump, title: String(localized: "Letter hints"),
                subtitle: Self.letterHintsSubtitle(),
                accessory: letterHintsSwitch, searchItemID: SearchID.letterHints)
+
+        let mappingsButton = NSButton(
+            title: String(localized: "Manage…"),
+            target: self,
+            action: #selector(manageQuickJumpMappings)
+        )
+        mappingsButton.bezelStyle = .rounded
+        mappingsButton.controlSize = .small
+        quickJumpMappingsRow = addRow(
+            to: jump,
+            title: String(localized: "Custom app mappings"),
+            subtitle: Self.quickJumpMappingsSubtitle(Preferences.shared.quickJumpMappings.count),
+            accessory: mappingsButton,
+            searchItemID: SearchID.quickJumpMappings
+        )
 
         let letterTimeoutTitle = String(localized: "Letter chain timeout")
         let letterTimeoutStack = makeValueSlider(letterTimeoutSlider, field: letterTimeoutValueField,
@@ -476,6 +493,14 @@ final class SwitcherPanesViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.applyLetterTimeout($0) }
             .store(in: &cancellables)
+        prefs.$quickJumpMappings
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] mappings in
+                self?.quickJumpMappingsRow?.update(
+                    subtitle: Self.quickJumpMappingsSubtitle(mappings.count)
+                )
+            }
+            .store(in: &cancellables)
     }
 
     /// Native tabs and Browser tabs.
@@ -582,6 +607,13 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         return String(localized: "Show a letter on each window and jump to it by typing that letter. Turn it off to start typing and filter the list instead, without pressing \(chord) — bound action keys like ⌘W or ⌘Q still act on the highlighted window; press \(chord) first to type those letters.")
     }
 
+    private static func quickJumpMappingsSubtitle(_ count: Int) -> String {
+        if count == 0 {
+            return String(localized: "Assign stable in-switcher letters to apps. This is separate from global Direct Activation shortcuts.")
+        }
+        return String(localized: "Mappings configured: \(count). A mapped letter wins over a same-key panel action while that app is visible.")
+    }
+
     private static func tabDrillSubtitle() -> String {
         let chord = BetterShortcuts.getShortcut(for: .panelTabDrill(for: SwitchTarget.switchApps.storageKey))?.description
             ?? String(localized: "the Peek tabs key")
@@ -629,6 +661,15 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         // is a no-op otherwise), so gray it out to match.
         letterTimeoutSlider.isEnabled = on
         letterTimeoutValueField.isEnabled = on
+    }
+
+    @objc private func manageQuickJumpMappings() {
+        guard let window = view.window, quickJumpMappingsSheet == nil else { return }
+        let controller = QuickJumpMappingsSheetWindowController()
+        controller.onDidDismiss = { [weak self] in self?.quickJumpMappingsSheet = nil }
+        quickJumpMappingsSheet = controller
+        trackForRelease(controller)
+        controller.present(asSheetFor: window)
     }
 
     @objc private func letterTimeoutChanged(_ sender: NSSlider) {

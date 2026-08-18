@@ -344,6 +344,19 @@ enum ConfigSchemaDocs {
                         values: ConfigValues(IgnoreShortcutsMode.self, \.displayName)),
                 ],
                 required: ["bundleID"])),
+        "quickJumpMappings": ConfigSettingDoc(
+            "array", "Persistent app-to-letter mappings used only while the switcher panel is open.",
+            item: ConfigItemSchema(
+                "object",
+                properties: [
+                    "bundleID": ConfigSettingDoc(
+                        "string", "Bundle identifier of the mapped app.",
+                        pattern: bundleIDPattern),
+                    "letter": ConfigSettingDoc(
+                        "string", "One ASCII letter used as this app's quick-jump hint.",
+                        pattern: "^[a-z]$"),
+                ],
+                required: ["bundleID", "letter"])),
         "excludedBundleIDs": ConfigSettingDoc(
             "array", "Legacy always-hidden bundle IDs, folded into appExceptions at launch. Edit appExceptions instead.",
             item: ConfigItemSchema("string", pattern: bundleIDPattern)),

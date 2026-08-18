@@ -35,6 +35,15 @@
         }
       }
     },
+    "Mappings configured: %lld. A mapped letter wins over a same-key panel action while that app is visible." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Konfigurierte Zuordnungen: %lld. Ein zugeordneter Buchstabe hat Vorrang vor einer Panel-Aktion mit derselben Taste, solange diese App sichtbar ist." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Asignaciones configuradas: %lld. Una letra asignada tiene prioridad sobre una acción del panel con la misma tecla mientras esa app esté visible." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Associations configurées : %lld. Une lettre associée est prioritaire sur une action du panneau utilisant la même touche tant que cette app est visible." } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Skonfigurowane mapowania: %lld. Przypisana litera ma pierwszeństwo przed akcją panelu używającą tego samego klawisza, gdy ta aplikacja jest widoczna." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已配置映射：%lld。当该应用可见时，映射的字母优先于使用同一按键的面板操作。" } }
+      }
+    },
     "100% matches the size of the macOS switcher, on every display." : {
       "localizations" : {
         "de" : {
@@ -374,6 +383,15 @@
             "value" : "添加应用"
           }
         }
+      }
+    },
+    "Add App…" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "App hinzufügen…" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir app…" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter une app…" } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Dodaj aplikację…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加应用…" } }
       }
     },
     "Add shortcut" : {
@@ -986,6 +1004,15 @@
             "value" : "排列窗口"
           }
         }
+      }
+    },
+    "Assign stable in-switcher letters to apps. This is separate from global Direct Activation shortcuts." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Weisen Sie Apps feste Buchstaben im Umschalter zu. Dies ist getrennt von globalen Direktaktivierungs-Kurzbefehlen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Asigna letras estables dentro del conmutador a las apps. Es independiente de los atajos globales de activación directa." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Attribuez des lettres fixes aux apps dans le sélecteur. Cette fonction est distincte des raccourcis globaux d’activation directe." } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Przypisz aplikacjom stałe litery w przełączniku. To funkcja niezależna od globalnych skrótów aktywacji bezpośredniej." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为应用分配固定的切换器内字母。此功能与全局“直接激活”快捷键相互独立。" } }
       }
     },
     "At most this many tab entries per browser window (2–16), keeping the active tab visible. Set to 0 to show every tab." : {
@@ -1977,6 +2004,15 @@
         }
       }
     },
+    "Choose an App" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "App auswählen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir una app" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Choisir une app" } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Wybierz aplikację" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择应用" } }
+      }
+    },
     "Choose an app to set switcher rules for." : {
       "localizations" : {
         "de" : {
@@ -2009,6 +2045,24 @@
             "value" : "选择要设置切换器规则的应用。"
           }
         }
+      }
+    },
+    "Choose one letter per app. The first listed window for that app gets the stable letter; its other windows keep automatic labels. A custom letter takes priority over a same-key panel action only while that mapped app is visible." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wählen Sie einen Buchstaben pro App. Das erste aufgeführte Fenster dieser App erhält den festen Buchstaben; die übrigen Fenster behalten automatische Beschriftungen. Ein benutzerdefinierter Buchstabe hat nur dann Vorrang vor einer Panel-Aktion mit derselben Taste, wenn die zugeordnete App sichtbar ist." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elige una letra por app. La primera ventana de esa app en la lista recibe la letra fija; sus demás ventanas conservan etiquetas automáticas. Una letra personalizada tiene prioridad sobre una acción del panel con la misma tecla solo mientras la app asignada esté visible." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Choisissez une lettre par app. La première fenêtre répertoriée de cette app reçoit la lettre fixe ; ses autres fenêtres conservent des libellés automatiques. Une lettre personnalisée est prioritaire sur une action du panneau utilisant la même touche uniquement lorsque l’app associée est visible." } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Wybierz jedną literę dla każdej aplikacji. Pierwsze okno tej aplikacji na liście otrzyma stałą literę, a pozostałe zachowają automatyczne etykiety. Niestandardowa litera ma pierwszeństwo przed akcją panelu używającą tego samego klawisza tylko wtedy, gdy przypisana aplikacja jest widoczna." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为每个应用选择一个字母。该应用在列表中的第一个窗口使用固定字母，其他窗口仍使用自动标签。仅当映射的应用可见时，自定义字母才优先于使用同一按键的面板操作。" } }
+      }
+    },
+    "Choose the app that should receive a stable quick-jump letter." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wählen Sie die App aus, die einen festen Schnellwahlbuchstaben erhalten soll." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elige la app que debe recibir una letra de salto rápido estable." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Choisissez l’app qui doit recevoir une lettre de saut rapide fixe." } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Wybierz aplikację, która ma otrzymać stałą literę szybkiego przejścia." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择要使用固定快速跳转字母的应用。" } }
       }
     },
     "Choose the app this shortcut focuses." : {
@@ -2794,6 +2848,24 @@
         }
       }
     },
+    "Custom Quick-Jump Mappings" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Benutzerdefinierte Schnellwahl-Zuordnungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Asignaciones de salto rápido personalizadas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Associations de saut rapide personnalisées" } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Niestandardowe mapowania szybkiego przejścia" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自定义快速跳转映射" } }
+      }
+    },
+    "Custom app mappings" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Benutzerdefinierte App-Zuordnungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Asignaciones de apps personalizadas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Associations d’app personnalisées" } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Niestandardowe mapowania aplikacji" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自定义应用映射" } }
+      }
+    },
     "Custom: %@" : {
       "localizations" : {
         "de" : {
@@ -3269,6 +3341,15 @@
             "value" : "末尾"
           }
         }
+      }
+    },
+    "Enter one unused letter from A to Z." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Geben Sie einen unbenutzten Buchstaben von A bis Z ein." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Introduce una letra sin usar de la A a la Z." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Saisissez une lettre inutilisée de A à Z." } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Wpisz nieużywaną literę od A do Z." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "输入一个尚未使用的 A 到 Z 字母。" } }
       }
     },
     "Expand browser tabs as windows" : {
@@ -6335,6 +6416,15 @@
         }
       }
     },
+    "Manage…" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verwalten…" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Gestionar…" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Gérer…" } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Zarządzaj…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "管理…" } }
+      }
+    },
     "Many of these can be overridden per shortcut under Profiles." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7186,6 +7276,15 @@
             "value" : "尚未添加应用。"
           }
         }
+      }
+    },
+    "No custom mappings yet." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch keine benutzerdefinierten Zuordnungen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Aún no hay asignaciones personalizadas." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune association personnalisée pour le moment." } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Brak niestandardowych mapowań." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "尚无自定义映射。" } }
       }
     },
     "No matches" : {
@@ -9025,6 +9124,15 @@
             "value" : "发布版本"
           }
         }
+      }
+    },
+    "Remove" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Entfernen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer" } },
+        "pl" : { "stringUnit" : { "state" : "translated", "value" : "Usuń" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "移除" } }
       }
     },
     "Remove from pinned" : {

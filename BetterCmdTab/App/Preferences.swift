@@ -648,6 +648,36 @@ struct AppException: Equatable, Sendable {
     }
 }
 
+/// A user-chosen, persistent quick-jump letter for one application. This is
+/// intentionally separate from Direct Activation: it is consulted only while
+/// the switcher panel is open and never registers a global shortcut.
+struct QuickJumpMapping: Equatable, Sendable {
+    let bundleID: String
+    let letter: Character
+
+    init?(bundleID: String, letter rawLetter: String) {
+        let trimmed = rawLetter.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard trimmed.count == 1,
+              let letter = trimmed.first,
+              letter.isASCII,
+              letter.isLetter else { return nil }
+        let bundleID = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !bundleID.isEmpty else { return nil }
+        self.bundleID = bundleID
+        self.letter = letter
+    }
+
+    var dictionary: [String: String] {
+        ["bundleID": bundleID, "letter": String(letter)]
+    }
+
+    init?(dictionary: [String: String]) {
+        guard let bundleID = dictionary["bundleID"],
+              let letter = dictionary["letter"] else { return nil }
+        self.init(bundleID: bundleID, letter: letter)
+    }
+}
+
 @MainActor
 final class Preferences: ObservableObject {
     static let shared = Preferences()
@@ -741,6 +771,7 @@ final class Preferences: ObservableObject {
         static let gridMaxColumns = "Switcher.gridMaxColumns"
         static let gridSingleRow = "Switcher.gridSingleRow"
         static let appExceptions = "Switcher.appExceptions"
+        static let quickJumpMappings = "Switcher.quickJumpMappings"
         /// Pre-Exceptions key: a plain bundle-ID array of always-hidden apps.
         /// Read once at launch and folded into `appExceptions` (hide = .always).
         static let legacyExcludedBundleIDs = "Switcher.excludedBundleIDs"
@@ -1015,6 +1046,25 @@ final class Preferences: ObservableObject {
             guard oldValue != appExceptions else { return }
             UserDefaults.standard.set(appExceptions.map(\.dictionary), forKey: Keys.appExceptions)
         }
+    }
+
+    /// Stable app → letter assignments used by the open switcher. Invalid,
+    /// duplicate-app and duplicate-letter entries are removed at the storage
+    /// boundary so config-file edits cannot create unreachable hints.
+    @Published var quickJumpMappings: [QuickJumpMapping] {
+        didSet {
+            let normalized = Self.normalizeQuickJumpMappings(quickJumpMappings)
+            if normalized != quickJumpMappings {
+                quickJumpMappings = normalized
+                return
+            }
+            guard oldValue != quickJumpMappings else { return }
+            UserDefaults.standard.set(quickJumpMappings.map(\.dictionary), forKey: Keys.quickJumpMappings)
+        }
+    }
+
+    var quickJumpLettersByBundleID: [String: Character] {
+        Dictionary(uniqueKeysWithValues: quickJumpMappings.map { ($0.bundleID, $0.letter) })
     }
 
     /// The ignore-shortcuts mode for `bundleID`, or `.never` when the app has no
@@ -1938,6 +1988,19 @@ final class Preferences: ObservableObject {
         min(letterChainTimeoutRange.upperBound, max(letterChainTimeoutRange.lowerBound, value))
     }
 
+    /// Preserve the user's order while enforcing the one-app/one-letter
+    /// contract. First wins, which makes recovery from a hand-edited config
+    /// deterministic and keeps every surviving mapping reachable.
+    nonisolated static func normalizeQuickJumpMappings(
+        _ mappings: [QuickJumpMapping]
+    ) -> [QuickJumpMapping] {
+        var bundleIDs = Set<String>()
+        var letters = Set<Character>()
+        return mappings.filter { mapping in
+            bundleIDs.insert(mapping.bundleID).inserted && letters.insert(mapping.letter).inserted
+        }
+    }
+
     static func clampTitleRefreshInterval(_ value: Int) -> Int {
         min(titleRefreshIntervalRange.upperBound, max(titleRefreshIntervalRange.lowerBound, value))
     }
@@ -2218,6 +2281,13 @@ final class Preferences: ObservableObject {
             self.appExceptions = initial
             defaults.set(initial.map(\.dictionary), forKey: Keys.appExceptions)
         }
+        let rawQuickJumps = defaults.array(forKey: Keys.quickJumpMappings) as? [[String: String]] ?? []
+        let storedQuickJumps = rawQuickJumps.compactMap(QuickJumpMapping.init(dictionary:))
+        let normalizedQuickJumps = Self.normalizeQuickJumpMappings(storedQuickJumps)
+        self.quickJumpMappings = normalizedQuickJumps
+        if rawQuickJumps != normalizedQuickJumps.map(\.dictionary) {
+            defaults.set(normalizedQuickJumps.map(\.dictionary), forKey: Keys.quickJumpMappings)
+        }
         self.pinnedBundleIDs = defaults.stringArray(forKey: Keys.pinnedBundleIDs) ?? []
         self.hideAllExcludedBundleIDs = defaults.stringArray(forKey: Keys.hideAllExcludedBundleIDs) ?? []
         self.showMinimizedWindows = defaults.object(forKey: Keys.showMinimizedWindows) as? Bool ?? true
@@ -2365,6 +2435,13 @@ final class Preferences: ObservableObject {
         } else {
             appExceptions = []
         }
+        let rawQuickJumps = defaults.array(forKey: Keys.quickJumpMappings) as? [[String: String]] ?? []
+        let storedQuickJumps = rawQuickJumps.compactMap(QuickJumpMapping.init(dictionary:))
+        let normalizedQuickJumps = Self.normalizeQuickJumpMappings(storedQuickJumps)
+        if rawQuickJumps != normalizedQuickJumps.map(\.dictionary) {
+            defaults.set(normalizedQuickJumps.map(\.dictionary), forKey: Keys.quickJumpMappings)
+        }
+        quickJumpMappings = normalizedQuickJumps
         pinnedBundleIDs = defaults.stringArray(forKey: Keys.pinnedBundleIDs) ?? []
         hideAllExcludedBundleIDs = defaults.stringArray(forKey: Keys.hideAllExcludedBundleIDs) ?? []
 

@@ -412,6 +412,30 @@
       ],
       "type" : "string"
     },
+    "quickJumpMappings" : {
+      "description" : "Persistent app-to-letter mappings used only while the switcher panel is open.",
+      "items" : {
+        "additionalProperties" : false,
+        "properties" : {
+          "bundleID" : {
+            "description" : "Bundle identifier of the mapped app.",
+            "pattern" : "^[A-Za-z0-9.\\-_]+$",
+            "type" : "string"
+          },
+          "letter" : {
+            "description" : "One ASCII letter used as this app's quick-jump hint.",
+            "pattern" : "^[a-z]$",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "bundleID",
+          "letter"
+        ],
+        "type" : "object"
+      },
+      "type" : "array"
+    },
     "recentlyClosedLimit" : {
       "description" : "How many recently closed apps to offer. 0 disables them.",
       "maximum" : 50,
