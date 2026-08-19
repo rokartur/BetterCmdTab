@@ -7,11 +7,14 @@ import AppKit
 /// place of `Preferences.shared.*` — so a shortcut with an override shows its own
 /// look without mutating any global state.
 ///
-/// Only ever built and read on the main actor (the catalog hot path uses
+/// Holds an `NSColor`, so it is intentionally **not** `Sendable`: it is only ever
+/// built and read on the main actor (the catalog hot path uses
 /// `CatalogFilter.Config`, which is `Sendable`, instead).
 struct EffectiveSettings {
-    // Appearance. The selection accent isn't here: it always follows the
-    // user's macOS accent (`NSColor.controlAccentColor`), read at draw time.
+    // Appearance.
+    /// Selection highlight / jump-letter color, already resolved to a concrete
+    /// color (#185). Not per-shortcut overridable — one switcher-wide answer.
+    let selectionColor: NSColor
     let layoutMode: SwitcherLayoutMode
     let panelScalePercent: Int
     let panelAppearance: PanelAppearance
@@ -51,6 +54,7 @@ extension Preferences {
     /// preference.
     func effectiveSettings(for override: ShortcutOverride) -> EffectiveSettings {
         EffectiveSettings(
+            selectionColor: resolvedSelectionColor,
             layoutMode: override.layoutMode ?? switcherLayoutMode,
             panelScalePercent: override.panelScalePercent.map(Self.clampPanelScalePercent) ?? panelScalePercent,
             panelAppearance: override.panelAppearance ?? panelAppearance,

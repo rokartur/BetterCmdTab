@@ -21,6 +21,16 @@ protocol SwitcherItemViewProtocol: NSView {
     func prepareForIdle()
 }
 
+extension SwitcherItemViewProtocol {
+    /// Plate fill for the selection color (#185): translucent enough that the panel
+    /// backdrop still shows through, opaque enough to name the color at a glance.
+    /// One alpha for both appearances — the hue carries the signal here, unlike the
+    /// neutral white/black plate this replaced, which had to lean on luminance.
+    static func selectionFill(_ color: NSColor) -> NSColor {
+        color.withAlphaComponent(0.45)
+    }
+}
+
 @MainActor
 final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     private let selectionBackdrop = NSView()
@@ -66,6 +76,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
 
         selectionBackdrop.wantsLayer = true
         selectionBackdrop.layer?.cornerCurve = .continuous
+        selectionBackdrop.layer?.borderWidth = 1.5
         selectionBackdrop.isHidden = true
         addSubview(selectionBackdrop)
 
@@ -170,29 +181,16 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     }
 
     private func updateSelectionAppearance() {
-        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        // Fill-only, like the native switcher — no border. The two alphas are not
-        // symmetric because the panel is not: clear glass over the light haze lands
-        // near black in dark mode but only mid-grey in light mode, so white at 0.14
-        // lifts the plate far more than the same alpha of black would sink it.
-        // Measured on the rendered panel: dark 0.077 → 0.251, light 0.396 → 0.277.
-        let fill = isDark
-            ? NSColor.white.withAlphaComponent(0.14)
-            : NSColor.black.withAlphaComponent(0.30)
-        selectionBackdrop.layer?.backgroundColor = fill.cgColor
-        // The fill only reads as selection where it shows *around* the artwork. The
-        // icon canvas overhangs the plate by 4 pt a side and is drawn on top, so the
-        // plate shows through the transparent margin every real app icon carries —
-        // worst case measured across 81 installed apps was 0.875 of the canvas, which
-        // still leaves 4 pt of plate. The hairline is kept before macOS 26 because the
-        // fill alone is weak against the frosted `NSVisualEffectView` backdrop there,
-        // not because a border would survive an icon that really was full-bleed.
-        if #unavailable(macOS 26.0) {
-            selectionBackdrop.layer?.borderWidth = 1.5
-            selectionBackdrop.layer?.borderColor = (isDark
-                ? NSColor.white.withAlphaComponent(0.50)
-                : NSColor.black.withAlphaComponent(0.55)).cgColor
-        }
+        // Tinted with the selection color (#185). The plate only reads as selection
+        // where it shows *around* the artwork: the icon canvas overhangs the plate by
+        // 4 pt a side and is drawn on top, so what the eye gets is the transparent
+        // margin every real app icon carries (worst case measured across 81 installed
+        // apps was 0.875 of the canvas, still leaving 4 pt of plate) plus the rim. A
+        // colored rim is what the neutral hairline never was — legible on every
+        // system, not just the pre-macOS 26 frosted backdrop, which is exactly the
+        // "hard to see which one is selected" complaint.
+        selectionBackdrop.layer?.backgroundColor = Self.selectionFill(accent).cgColor
+        selectionBackdrop.layer?.borderColor = accent.cgColor
     }
 
     private var currentLabel: String = ""
@@ -233,6 +231,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         if self.accent != accent {
             self.accent = accent
             accentKey = accent.description
+            updateSelectionAppearance()
         }
         currentLabel = label
         currentPrefixLength = prefixLength

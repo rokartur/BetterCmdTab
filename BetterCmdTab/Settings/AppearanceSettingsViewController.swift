@@ -9,11 +9,13 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private let displayMonitorPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let displayModes: [SwitcherDisplayMode] = SwitcherDisplayMode.allCases
+    private let selectionColors: [SwitcherSelectionColor] = SwitcherSelectionColor.allCases
     private var layoutRadio: SettingsRadioGroupView!
     private var appearanceRadio: SettingsRadioGroupView!
     private var titleAlignmentRadio: SettingsRadioGroupView!
     private var truncationRadio: SettingsRadioGroupView!
     private let gridPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let selectionColorPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let listWidthSlider = NSSlider()
     private let listWidthValueField = NSTextField()
     private let scaleSlider = NSSlider()
@@ -159,13 +161,21 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Mark hidden, minimized, full-screen and windowless entries with a small glyph. The audio, Launch and Reopen cues always show."),
                accessory: statusIconsSwitch, searchItemID: SearchID.windowStatusIcons)
 
-        // Panel section — the chrome: translucency, rounding. The selection
-        // accent always follows the user's macOS accent color.
+        // Panel section — the chrome: selection color, translucency, rounding.
         let panel = addSection(title: String(localized: "Panel"), anchor: SettingsAnchor.appearancePanel)
 
         appearanceRadio = makeAppearanceRadio()
         addRow(to: panel, title: String(localized: "Appearance"),
                accessory: appearanceRadio, searchItemID: SearchID.theme)
+
+        configurePopup(selectionColorPopup, titles: selectionColors.map(\.displayName),
+                       action: #selector(selectionColorChanged))
+        for (i, color) in selectionColors.enumerated() {
+            selectionColorPopup.item(at: i)?.image = Self.swatch(for: color)
+        }
+        addRow(to: panel, title: String(localized: "Selection color"),
+               subtitle: String(localized: "Color of the highlight around the selected window and of the quick-jump letters. Follows your macOS accent by default."),
+               accessory: selectionColorPopup, searchItemID: SearchID.selectionColor)
 
         let opacityTitle = String(localized: "Panel opacity")
         opacitySlider.minValue = Double(Preferences.panelOpacityRange.lowerBound)
@@ -378,6 +388,14 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.animationsSwitch.sync() }
             .store(in: &cancellables)
+        prefs.$selectionColor
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.selectSelectionColor($0) }
+            .store(in: &cancellables)
+        prefs.$selectionColorHex
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refreshCustomSwatch() }
+            .store(in: &cancellables)
         prefs.objectWillChange
             .sink { [weak self] in self?.schedulePreviewRefresh() }
             .store(in: &cancellables)
@@ -387,6 +405,16 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         super.viewWillDisappear()
         hidePreview()
         cancellables.removeAll()
+        // The shared color panel keeps a non-zeroing target/action. The settings
+        // window is `.releaseOnClose`, so leaving this wired would let a later
+        // color change message a deallocated controller (EXC_BAD_ACCESS). Detach
+        // ourselves whenever we own the panel (NSColorPanel exposes no target
+        // getter, so we track ownership explicitly).
+        if ownsColorPanel {
+            NSColorPanel.shared.setTarget(nil)
+            NSColorPanel.shared.setAction(nil)
+            ownsColorPanel = false
+        }
     }
 
     private func syncFromPreferences() {
@@ -412,6 +440,75 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         animationsSwitch.sync()
         applyOpacity(prefs.panelOpacity)
         applyRadius(prefs.panelCornerRadius)
+        selectSelectionColor(prefs.selectionColor)
+        refreshCustomSwatch()
+    }
+
+    private func selectSelectionColor(_ color: SwitcherSelectionColor) {
+        if let i = selectionColors.firstIndex(of: color) { selectionColorPopup.selectItem(at: i) }
+    }
+
+    @objc private func selectionColorChanged() {
+        let i = selectionColorPopup.indexOfSelectedItem
+        guard selectionColors.indices.contains(i) else { return }
+        let choice = selectionColors[i]
+        Preferences.shared.selectionColor = choice
+        if choice == .custom { presentColorPanel() }
+    }
+
+    /// Small filled-circle swatch shown beside each selection-color menu item.
+    /// `.system` is drawn with the live accent color so it always previews the
+    /// user's macOS setting, and `.custom` with the stored hex so it tracks
+    /// their pick rather than the accent fallback in `resolved`.
+    private static func swatch(for color: SwitcherSelectionColor) -> NSImage {
+        let size = NSSize(width: 12, height: 12)
+        let image = NSImage(size: size)
+        image.isTemplate = false
+        image.lockFocus()
+        let rect = NSRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5)
+        let path = NSBezierPath(ovalIn: rect)
+        let fill: NSColor
+        if color == .custom {
+            fill = Preferences.shared.selectionColorHex.flatMap(NSColor.init(hexString:)) ?? .controlAccentColor
+        } else {
+            fill = color.resolved
+        }
+        fill.setFill()
+        path.fill()
+        NSColor.black.withAlphaComponent(0.15).setStroke()
+        path.lineWidth = 1
+        path.stroke()
+        image.unlockFocus()
+        return image
+    }
+
+    /// Repaints the custom menu item's swatch from the stored hex.
+    private func refreshCustomSwatch() {
+        guard let i = selectionColors.firstIndex(of: .custom) else { return }
+        selectionColorPopup.item(at: i)?.image = Self.swatch(for: .custom)
+    }
+
+    // MARK: - Custom selection color
+
+    /// Tracks whether we currently own the shared color panel's target/action,
+    /// so `viewWillDisappear` can detach before this controller is released.
+    private var ownsColorPanel = false
+
+    private func presentColorPanel() {
+        let panel = NSColorPanel.shared
+        panel.showsAlpha = false
+        if let hex = Preferences.shared.selectionColorHex, let color = NSColor(hexString: hex) {
+            panel.color = color
+        }
+        panel.setTarget(self)
+        panel.setAction(#selector(customColorChanged(_:)))
+        ownsColorPanel = true
+        panel.orderFront(nil)
+    }
+
+    @objc private func customColorChanged(_ sender: NSColorPanel) {
+        Preferences.shared.selectionColorHex = sender.color.hexString
+        refreshCustomSwatch()
     }
 
     private func selectLayout(_ mode: SwitcherLayoutMode) {

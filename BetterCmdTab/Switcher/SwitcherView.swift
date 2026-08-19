@@ -222,9 +222,10 @@ final class SwitcherView: NSView {
         self.labels = labels
         self.highlightPrefix = highlightPrefix
         self.searchActive = searchActive
-        // The selection highlight / jump-letter color always follows the
-        // user's macOS accent (re-read per reveal so it stays reactive).
-        self.accent = .controlAccentColor
+        // Selection highlight / jump-letter color (#185) — the macOS accent by
+        // default, re-read per reveal so both a settings change and a system
+        // accent change land on the next open without any observer.
+        self.accent = effective.selectionColor
         self.selectedIndex = selectedIndex
         // Only when it's on screen: this runs on every reveal, and the common
         // ⌘Tab has no search bar to configure.

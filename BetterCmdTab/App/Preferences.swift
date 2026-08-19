@@ -111,6 +111,98 @@ enum SearchDismissMode: String, CaseIterable {
     }
 }
 
+/// Color of the switcher's selection highlight — the filled row in List, the
+/// tinted plate and its border in Grid and Window previews — and the
+/// type-to-jump letter prefix (#185). `.system` follows the user's macOS accent
+/// (`controlAccentColor`) so the switcher matches the rest of the OS; the fixed
+/// cases exist for the accents that disappear against a busy wallpaper or a
+/// screen full of same-colored windows, which is the whole complaint in #185.
+enum SwitcherSelectionColor: String, CaseIterable {
+    /// Follows the macOS accent color. Default.
+    case system
+    case blue
+    case purple
+    case pink
+    case red
+    case orange
+    case yellow
+    case green
+    case graphite
+    /// User-supplied color; the value lives in `Preferences.selectionColorHex`.
+    /// Resolve via `Preferences.shared.resolvedSelectionColor`, not `resolved`,
+    /// so the hex is read on the main actor.
+    case custom
+
+    var displayName: String {
+        switch self {
+        case .system: return String(localized: "macOS accent")
+        case .blue: return String(localized: "Blue")
+        case .purple: return String(localized: "Purple")
+        case .pink: return String(localized: "Pink")
+        case .red: return String(localized: "Red")
+        case .orange: return String(localized: "Orange")
+        case .yellow: return String(localized: "Yellow")
+        case .green: return String(localized: "Green")
+        case .graphite: return String(localized: "Graphite")
+        case .custom: return String(localized: "Custom…")
+        }
+    }
+
+    /// Fixed color, or `nil` when the choice tracks the system accent or is custom.
+    var color: NSColor? {
+        switch self {
+        case .system, .custom: return nil
+        case .blue: return .systemBlue
+        case .purple: return .systemPurple
+        case .pink: return .systemPink
+        case .red: return .systemRed
+        case .orange: return .systemOrange
+        case .yellow: return .systemYellow
+        case .green: return .systemGreen
+        case .graphite: return .systemGray
+        }
+    }
+
+    /// The concrete color to draw with right now. Resolving `.system` lazily
+    /// keeps it appearance-reactive (light/dark) like the rest of AppKit. For
+    /// `.custom` this falls back to the system accent — use
+    /// `Preferences.shared.resolvedSelectionColor` to honor the stored hex.
+    var resolved: NSColor { color ?? .controlAccentColor }
+}
+
+extension NSColor {
+    /// Parses `#RRGGBB` / `RRGGBB` (and the 8-digit `#RRGGBBAA` form). Returns
+    /// `nil` for malformed input so callers can fall back to a default.
+    convenience init?(hexString: String) {
+        var hex = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hex.hasPrefix("#") { hex.removeFirst() }
+        guard hex.count == 6 || hex.count == 8,
+              let value = UInt64(hex, radix: 16) else { return nil }
+        let r, g, b, a: CGFloat
+        if hex.count == 8 {
+            r = CGFloat((value >> 24) & 0xFF) / 255
+            g = CGFloat((value >> 16) & 0xFF) / 255
+            b = CGFloat((value >> 8) & 0xFF) / 255
+            a = CGFloat(value & 0xFF) / 255
+        } else {
+            r = CGFloat((value >> 16) & 0xFF) / 255
+            g = CGFloat((value >> 8) & 0xFF) / 255
+            b = CGFloat(value & 0xFF) / 255
+            a = 1
+        }
+        self.init(srgbRed: r, green: g, blue: b, alpha: a)
+    }
+
+    /// `#RRGGBB` string in the sRGB space; nil if the color can't be converted.
+    var hexString: String? {
+        guard let rgb = usingColorSpace(.sRGB) else { return nil }
+        let r = Int(round(rgb.redComponent * 255))
+        let g = Int(round(rgb.greenComponent * 255))
+        let b = Int(round(rgb.blueComponent * 255))
+        return String(format: "#%02X%02X%02X", r, g, b)
+    }
+}
+
 /// Background material for the switcher panel (the blur behind the rows). Maps to
 /// an `NSVisualEffectView.Material`; the macOS 26 glass backdrop ignores it.
 enum BackdropMaterial: String, CaseIterable {
@@ -841,6 +933,12 @@ final class Preferences: ObservableObject {
         static let panelCornerRadius = "Switcher.panelCornerRadius"
         static let listWidthPercent = "Switcher.listWidthPercent"
         static let backdropMaterial = "Switcher.backdropMaterial"
+        /// `SwitcherSelectionColor` raw value — the selection highlight color (#185).
+        /// Deliberately not the retired `Switcher.accentChoice`: that key is
+        /// scrubbed at launch, so reusing it would delete the setting.
+        static let selectionColor = "Switcher.selectionColor"
+        /// `#RRGGBB` behind `SwitcherSelectionColor.custom`.
+        static let selectionColorHex = "Switcher.selectionColorHex"
         /// Legacy pre-#57 bool ("only current Space"). Still written (in sync
         /// with `spaceScope`) so older builds and old exports stay coherent;
         /// read only as the fallback when `spaceScope` is absent.
@@ -1658,6 +1756,39 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Color of the selection highlight and the jump-letter prefix (#185).
+    /// Defaults to `.system`, which is the macOS accent — the same color the
+    /// switcher used before this setting existed.
+    @Published var selectionColor: SwitcherSelectionColor {
+        didSet {
+            guard oldValue != selectionColor else { return }
+            UserDefaults.standard.set(selectionColor.rawValue, forKey: Keys.selectionColor)
+        }
+    }
+
+    /// `#RRGGBB` for `SwitcherSelectionColor.custom`; nil until the user picks
+    /// one, in which case `.custom` falls back to the macOS accent.
+    @Published var selectionColorHex: String? {
+        didSet {
+            guard oldValue != selectionColorHex else { return }
+            if let selectionColorHex {
+                UserDefaults.standard.set(selectionColorHex, forKey: Keys.selectionColorHex)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Keys.selectionColorHex)
+            }
+        }
+    }
+
+    /// The concrete selection color to draw with right now — the stored hex for
+    /// `.custom`, otherwise the choice's own color (`.system` resolving lazily
+    /// to `controlAccentColor` so it stays light/dark reactive).
+    var resolvedSelectionColor: NSColor {
+        if selectionColor == .custom, let hex = selectionColorHex, let color = NSColor(hexString: hex) {
+            return color
+        }
+        return selectionColor.resolved
+    }
+
     /// Which Spaces the switcher shows windows from (#57). Default all Spaces.
     /// Reads window Space membership via the same private APIs as instant Space
     /// switching; degrades to showing everything when those are unavailable.
@@ -2289,6 +2420,9 @@ final class Preferences: ObservableObject {
         self.listWidthPercent = Self.clampListWidthPercent(listWidth)
         let materialRaw = defaults.string(forKey: Keys.backdropMaterial)
         self.backdropMaterial = materialRaw.flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
+        let selectionColorRaw = defaults.string(forKey: Keys.selectionColor)
+        self.selectionColor = selectionColorRaw.flatMap(SwitcherSelectionColor.init(rawValue:)) ?? .system
+        self.selectionColorHex = defaults.string(forKey: Keys.selectionColorHex)
         self.spaceScope = Self.storedSpaceScope(defaults)
         self.directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
         let legacyScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
@@ -2427,6 +2561,8 @@ final class Preferences: ObservableObject {
         panelCornerRadius = Self.clampCornerRadius(defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0)
         listWidthPercent = Self.clampListWidthPercent(defaults.object(forKey: Keys.listWidthPercent) as? Int ?? 100)
         backdropMaterial = defaults.string(forKey: Keys.backdropMaterial).flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
+        selectionColor = defaults.string(forKey: Keys.selectionColor).flatMap(SwitcherSelectionColor.init(rawValue:)) ?? .system
+        selectionColorHex = defaults.string(forKey: Keys.selectionColorHex)
         spaceScope = Self.storedSpaceScope(defaults)
         directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
         let reloadedScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))

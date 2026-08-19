@@ -149,6 +149,7 @@ enum SearchID {
     static let layout = "appearance.layout"
     static let size = "appearance.size"
     static let gridColumns = "appearance.gridColumns"
+    static let selectionColor = "appearance.selectionColor"
     static let gridSingleRow = "appearance.gridSingleRow"
     static let listMaxWidth = "appearance.listMaxWidth"
     static let windowTitle = "appearance.windowTitle"
@@ -487,6 +488,8 @@ enum SettingsCatalog {
         // Appearance · Panel
         item(SearchID.theme, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
              String(localized: "Appearance"), ["theme", "appearance", "light", "dark", "system", "color scheme"]),
+        item(SearchID.selectionColor, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
+             String(localized: "Selection color"), ["selection", "color", "colour", "accent", "highlight", "border", "tint", "selected"]),
         item(SearchID.opacity, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
              String(localized: "Panel opacity"), ["opacity", "transparency", "alpha", "translucent"]),
         item(SearchID.cornerRadius, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),

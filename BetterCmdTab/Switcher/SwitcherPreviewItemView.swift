@@ -154,18 +154,10 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     }
 
     private func updateSelectionAppearance() {
-        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let fill: NSColor
-        let border: NSColor
-        if isDark {
-            fill = NSColor.white.withAlphaComponent(0.14)
-            border = NSColor.white.withAlphaComponent(0.50)
-        } else {
-            fill = NSColor.black.withAlphaComponent(0.10)
-            border = NSColor.black.withAlphaComponent(0.55)
-        }
-        selectionBackdrop.layer?.backgroundColor = fill.cgColor
-        selectionBackdrop.layer?.borderColor = border.cgColor
+        // Tinted with the selection color (#185); the rim carries most of the signal
+        // here because the thumbnail covers the plate except for its inset margin.
+        selectionBackdrop.layer?.backgroundColor = Self.selectionFill(accent).cgColor
+        selectionBackdrop.layer?.borderColor = accent.cgColor
     }
 
     private func updateThumbBackground() {
@@ -222,6 +214,7 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         if self.accent != accent {
             self.accent = accent
             accentKey = accent.description
+            updateSelectionAppearance()
         }
         currentLabel = label
         currentPrefixLength = prefixLength
