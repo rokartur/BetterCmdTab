@@ -719,12 +719,24 @@ final class SwitcherController: SwitcherViewDelegate {
         // Persistent mappings affect only the open panel. Mirror them into the
         // label generator and rebuild live if config-file sync changes them.
         RowLabels.setCustomMappings(Preferences.shared.quickJumpLettersByBundleID)
+        RowLabels.setExcludedBundleIDs(Set(Preferences.shared.letterHintExcludedBundleIDs))
         Preferences.shared.$quickJumpMappings
             .receive(on: DispatchQueue.main)
             .sink { [weak self] mappings in
                 RowLabels.setCustomMappings(
                     Dictionary(uniqueKeysWithValues: mappings.map { ($0.bundleID, $0.letter) })
                 )
+                guard let self, self.phase == .visible else { return }
+                self.baseLabels = RowLabels.labels(for: self.baseRows)
+                self.refreshDisplay()
+            }
+            .store(in: &cancellables)
+        // Same live-mirror path for the letter-hint exclusion list: apply on
+        // change and rebuild the open panel so a settings edit lands at once.
+        Preferences.shared.$letterHintExcludedBundleIDs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] ids in
+                RowLabels.setExcludedBundleIDs(Set(ids))
                 guard let self, self.phase == .visible else { return }
                 self.baseLabels = RowLabels.labels(for: self.baseRows)
                 self.refreshDisplay()

@@ -402,7 +402,7 @@ enum SettingsCatalog {
         item(SearchID.letterHints, .controls, SettingsAnchor.letterJump, String(localized: "Controls"), String(localized: "Letter jump"),
              String(localized: "Letter hints"), ["letter hints", "jump", "vim", "quick jump"]),
         item(SearchID.quickJumpMappings, .controls, SettingsAnchor.letterJump, String(localized: "Controls"), String(localized: "Letter jump"),
-             String(localized: "Custom app mappings"), ["letter", "mapping", "custom", "quick jump", "app"]),
+             String(localized: "Custom app mappings"), ["letter", "mapping", "custom", "quick jump", "app", "skip", "exclude", "no letter", "hint"]),
         item(SearchID.letterChainTimeout, .controls, SettingsAnchor.letterJump, String(localized: "Controls"), String(localized: "Letter jump"),
              String(localized: "Letter chain timeout"), ["letter", "chain", "timeout", "reset", "jump", "delay", "prefix", "sequence", "expire"]),
         // Controls · Search

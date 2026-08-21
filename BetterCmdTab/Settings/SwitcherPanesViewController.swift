@@ -278,7 +278,10 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         quickJumpMappingsRow = addRow(
             to: jump,
             title: String(localized: "Custom app mappings"),
-            subtitle: Self.quickJumpMappingsSubtitle(Preferences.shared.quickJumpMappings.count),
+            subtitle: Self.quickJumpMappingsSubtitle(
+                mapped: Preferences.shared.quickJumpMappings.count,
+                excluded: Preferences.shared.letterHintExcludedBundleIDs.count
+            ),
             accessory: mappingsButton,
             searchItemID: SearchID.quickJumpMappings
         )
@@ -497,7 +500,21 @@ final class SwitcherPanesViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] mappings in
                 self?.quickJumpMappingsRow?.update(
-                    subtitle: Self.quickJumpMappingsSubtitle(mappings.count)
+                    subtitle: Self.quickJumpMappingsSubtitle(
+                        mapped: mappings.count,
+                        excluded: Preferences.shared.letterHintExcludedBundleIDs.count
+                    )
+                )
+            }
+            .store(in: &cancellables)
+        prefs.$letterHintExcludedBundleIDs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] ids in
+                self?.quickJumpMappingsRow?.update(
+                    subtitle: Self.quickJumpMappingsSubtitle(
+                        mapped: Preferences.shared.quickJumpMappings.count,
+                        excluded: ids.count
+                    )
                 )
             }
             .store(in: &cancellables)
@@ -607,11 +624,17 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         return String(localized: "Show a letter on each window and jump to it by typing that letter. Turn it off to start typing and filter the list instead, without pressing \(chord) — bound action keys like ⌘W or ⌘Q still act on the highlighted window; press \(chord) first to type those letters.")
     }
 
-    private static func quickJumpMappingsSubtitle(_ count: Int) -> String {
-        if count == 0 {
-            return String(localized: "Assign stable in-switcher letters to apps. This is separate from global Direct Activation shortcuts.")
+    private static func quickJumpMappingsSubtitle(mapped: Int, excluded: Int) -> String {
+        if mapped == 0 && excluded == 0 {
+            return String(localized: "Give an app a fixed letter, or skip it so its letter frees up for another app. Separate from global Direct Activation shortcuts.")
         }
-        return String(localized: "Mappings configured: \(count). A mapped letter wins over a same-key panel action while that app is visible.")
+        if excluded == 0 {
+            return String(localized: "Mappings configured: \(mapped). A mapped letter wins over a same-key panel action while that app is visible.")
+        }
+        if mapped == 0 {
+            return String(localized: "Skipped apps: \(excluded). These show no jump letter and reserve none, freeing that letter for others.")
+        }
+        return String(localized: "Mapped: \(mapped), skipped: \(excluded). Skipped apps get no letter; a mapped letter wins over a same-key panel action.")
     }
 
     private static func tabDrillSubtitle() -> String {

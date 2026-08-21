@@ -27,6 +27,14 @@ enum RowLabels {
         customStore.withLock { $0 = mappings }
     }
 
+    /// Bundle IDs the user removed from letter hints, mirrored from Preferences
+    /// the same way as `customStore`. A row for one of these apps gets an empty
+    /// label — no hint, no reserved letter — so its letter stays free for others.
+    private static let excludedStore = OSAllocatedUnfairLock<Set<String>>(initialState: [])
+    static func setExcludedBundleIDs(_ ids: Set<String>) {
+        excludedStore.withLock { $0 = ids }
+    }
+
     /// Full a–z pool for disambiguation suffixes; reserved letters are filtered
     /// out at the point of use so the pool tracks the dynamic reservation.
     static let suffixAlphabet: [Character] = Array("abcdefghijklmnopqrstuvwxyz")
@@ -45,17 +53,20 @@ enum RowLabels {
 
     static func labels(for rows: [SwitcherRow]) -> [String] {
         let mappings = customStore.withLock { $0 }
+        let excluded = excludedStore.withLock { $0 }
         return labels(
             forInputs: rows.map {
                 Input(appName: $0.appName, windowTitle: $0.windowTitle, bundleID: $0.bundleIdentifier)
             },
-            customMappings: mappings
+            customMappings: mappings,
+            excludedBundleIDs: excluded
         )
     }
 
     static func labels(
         forInputs rows: [Input],
-        customMappings: [String: Character] = [:]
+        customMappings: [String: Character] = [:],
+        excludedBundleIDs: Set<String> = []
     ) -> [String] {
         var labels = [String](repeating: "", count: rows.count)
         guard !rows.isEmpty else { return labels }
@@ -81,15 +92,30 @@ enum RowLabels {
             if let letter = customMappings[bundleID] { labels[index] = String(letter) }
         }
 
+        // Excluded apps drop out of hint generation: their label stays empty and
+        // they never enter the dynamic passes, so no letter is reserved on their
+        // behalf and their first letter stays available to another app. A row the
+        // user also gave a custom letter keeps that letter — an explicit mapping
+        // wins over exclusion.
+        var excludedIndices = Set<Int>()
+        if !excludedBundleIDs.isEmpty {
+            for (index, row) in rows.enumerated() where !customIndices.contains(index) {
+                if let bundleID = row.bundleID, excludedBundleIDs.contains(bundleID) {
+                    excludedIndices.insert(index)
+                }
+            }
+        }
+        let skipIndices = customIndices.union(excludedIndices)
+
         var firstLetterCount: [Character: Int] = [:]
         var firstLetters = [Character?](repeating: nil, count: rows.count)
-        for i in rows.indices where !customIndices.contains(i) {
+        for i in rows.indices where !skipIndices.contains(i) {
             let c = firstAvailableLetter(rows[i].appName, reserved: reserved)
             firstLetters[i] = c
             if let c { firstLetterCount[c, default: 0] += 1 }
         }
 
-        for i in rows.indices where !customIndices.contains(i) {
+        for i in rows.indices where !skipIndices.contains(i) {
             guard let first = firstLetters[i] else {
                 labels[i] = ""
                 continue

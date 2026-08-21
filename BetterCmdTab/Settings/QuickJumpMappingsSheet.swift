@@ -1,7 +1,10 @@
 import AppKit
 
-/// Editor for persistent in-switcher app → letter mappings. These are panel
-/// hints, not Direct Activation shortcuts: no global hotkey is registered.
+/// Editor for per-app switcher letters: give an app a fixed jump letter, or skip
+/// it so it gets no letter and reserves none (#183). These are panel hints, not
+/// Direct Activation shortcuts — no global hotkey is registered. A fixed letter
+/// and a skip are the two answers to the same per-app question, so they live in
+/// one list; an app is in one state or the other, never both.
 @MainActor
 final class QuickJumpMappingsSheetWindowController: NSWindowController {
     private let content = QuickJumpMappingsSheetViewController()
@@ -11,10 +14,10 @@ final class QuickJumpMappingsSheetWindowController: NSWindowController {
     init() {
         let window = NSWindow(contentViewController: content)
         window.styleMask = [.titled, .closable]
-        window.title = String(localized: "Custom Quick-Jump Mappings")
+        window.title = String(localized: "Custom App Letters")
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
-        window.setContentSize(NSSize(width: 500, height: 460))
+        window.setContentSize(NSSize(width: 520, height: 460))
         super.init(window: window)
         content.onClose = { [weak self] in self?.dismissSheet() }
     }
@@ -42,16 +45,36 @@ final class QuickJumpMappingsSheetWindowController: NSWindowController {
 private final class QuickJumpMappingsSheetViewController: NSViewController {
     var onClose: (() -> Void)?
 
+    /// One row per app with an override, ordered mapped-first then skipped. Both
+    /// stores stay separate in Preferences; this list is just their union for
+    /// display.
+    private enum RowModel {
+        case mapped(QuickJumpMapping)
+        case skipped(String) // bundleID
+
+        var bundleID: String {
+            switch self {
+            case .mapped(let m): return m.bundleID
+            case .skipped(let id): return id
+            }
+        }
+    }
+
     private var mappings = Preferences.shared.quickJumpMappings
+    private var excluded = Preferences.shared.letterHintExcludedBundleIDs
     private var appPicker: AppsPickerSheetWindowController?
     private let rowsStack = NSStackView()
     private let emptyLabel = NSTextField(labelWithString: "")
 
+    private var rowModels: [RowModel] {
+        mappings.map(RowModel.mapped) + excluded.map(RowModel.skipped)
+    }
+
     override func loadView() {
-        let root = NSView(frame: NSRect(x: 0, y: 0, width: 500, height: 460))
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 460))
 
         let prompt = NSTextField(wrappingLabelWithString: String(localized:
-            "Choose one letter per app. The first listed window for that app gets the stable letter; its other windows keep automatic labels. A custom letter takes priority over a same-key panel action only while that mapped app is visible."))
+            "Give an app a fixed letter, or tick Skip so it gets no letter and its letter frees up for another app. A fixed letter beats a same-key panel action while that app is visible."))
         prompt.font = .systemFont(ofSize: 12)
         prompt.textColor = .secondaryLabelColor
         prompt.maximumNumberOfLines = 0
@@ -80,7 +103,7 @@ private final class QuickJumpMappingsSheetViewController: NSViewController {
         scroll.translatesAutoresizingMaskIntoConstraints = false
         document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor).isActive = true
 
-        emptyLabel.stringValue = String(localized: "No custom mappings yet.")
+        emptyLabel.stringValue = String(localized: "No apps added yet.")
         emptyLabel.font = .systemFont(ofSize: 12)
         emptyLabel.textColor = .tertiaryLabelColor
         emptyLabel.alignment = .center
@@ -132,16 +155,24 @@ private final class QuickJumpMappingsSheetViewController: NSViewController {
             rowsStack.removeArrangedSubview(subview)
             subview.removeFromSuperview()
         }
-        emptyLabel.isHidden = !mappings.isEmpty
-        for (index, mapping) in mappings.enumerated() {
-            let row = QuickJumpMappingRowView(mapping: mapping)
-            row.onChange = { [weak self] rawLetter in
-                self?.changeLetter(for: mapping.bundleID, to: rawLetter) ?? false
+        let models = rowModels
+        emptyLabel.isHidden = !models.isEmpty
+        for (index, model) in models.enumerated() {
+            let letter: Character?
+            switch model {
+            case .mapped(let m): letter = m.letter
+            case .skipped: letter = nil
             }
-            row.onRemove = { [weak self] in self?.remove(bundleID: mapping.bundleID) }
+            let row = QuickJumpMappingRowView(bundleID: model.bundleID, letter: letter)
+            let bundleID = model.bundleID
+            row.onChange = { [weak self] rawLetter in
+                self?.changeLetter(for: bundleID, to: rawLetter) ?? false
+            }
+            row.onToggleSkip = { [weak self] skip in self?.setSkip(bundleID, skip) }
+            row.onRemove = { [weak self] in self?.remove(bundleID: bundleID) }
             rowsStack.addArrangedSubview(row)
             row.widthAnchor.constraint(equalTo: rowsStack.widthAnchor).isActive = true
-            if index != mappings.indices.last {
+            if index != models.indices.last {
                 let divider = NSBox()
                 divider.boxType = .separator
                 rowsStack.addArrangedSubview(divider)
@@ -152,7 +183,9 @@ private final class QuickJumpMappingsSheetViewController: NSViewController {
 
     private func persist() {
         Preferences.shared.quickJumpMappings = mappings
+        Preferences.shared.letterHintExcludedBundleIDs = excluded
         mappings = Preferences.shared.quickJumpMappings
+        excluded = Preferences.shared.letterHintExcludedBundleIDs
     }
 
     private func changeLetter(for bundleID: String, to rawLetter: String) -> Bool {
@@ -167,33 +200,58 @@ private final class QuickJumpMappingsSheetViewController: NSViewController {
         return true
     }
 
-    private func remove(bundleID: String) {
-        mappings.removeAll { $0.bundleID == bundleID }
+    /// Move an app between the "fixed letter" and "skipped" states. Skipping drops
+    /// its mapping; un-skipping gives it a freshly picked unused letter, the same
+    /// way a newly added app is seeded.
+    private func setSkip(_ bundleID: String, _ skip: Bool) {
+        if skip {
+            mappings.removeAll { $0.bundleID == bundleID }
+            if !excluded.contains(bundleID) { excluded.append(bundleID) }
+        } else {
+            excluded.removeAll { $0 == bundleID }
+            if !mappings.contains(where: { $0.bundleID == bundleID }),
+               let mapping = QuickJumpMapping(bundleID: bundleID, letter: String(freeLetter(for: bundleID))) {
+                mappings.append(mapping)
+            }
+        }
         persist()
         rebuildRows()
+    }
+
+    private func remove(bundleID: String) {
+        mappings.removeAll { $0.bundleID == bundleID }
+        excluded.removeAll { $0 == bundleID }
+        persist()
+        rebuildRows()
+    }
+
+    /// An unused letter for `bundleID`: first an unused letter from its name, then
+    /// any unused a–z. Falls back to "a" only if every letter is already taken.
+    private func freeLetter(for bundleID: String) -> Character {
+        let used = Set(mappings.map(\.letter))
+        let name = AppsSettingsViewController.appInfo(for: bundleID).name
+        let fromName = name.folding(options: .diacriticInsensitive, locale: nil).lowercased()
+            .filter { $0.isASCII && $0.isLetter }
+        return fromName.first(where: { !used.contains($0) })
+            ?? "abcdefghijklmnopqrstuvwxyz".first(where: { !used.contains($0) })
+            ?? "a"
     }
 
     @objc private func addApp() {
         guard let window = view.window, appPicker == nil else { return }
         let picker = AppsPickerSheetWindowController(
             title: String(localized: "Choose an App"),
-            prompt: String(localized: "Choose the app that should receive a stable quick-jump letter."),
+            prompt: String(localized: "Choose an app to give a fixed letter or skip from letter hints."),
             selectedBundleIDs: [],
             singleSelection: true,
             confirmTitle: String(localized: "Add")
         ) { [weak self] selection in
             guard let self, let bundleID = selection.first else { return }
-            if self.mappings.contains(where: { $0.bundleID == bundleID }) {
+            if self.mappings.contains(where: { $0.bundleID == bundleID }) || self.excluded.contains(bundleID) {
                 NSSound.beep()
                 return
             }
-            let used = Set(self.mappings.map(\.letter))
-            let name = AppsSettingsViewController.appInfo(for: bundleID).name
-            let candidates = name.folding(options: .diacriticInsensitive, locale: nil).lowercased()
-                .filter { $0.isASCII && $0.isLetter }
-            guard let letter = candidates.first(where: { !used.contains($0) })
-                    ?? "abcdefghijklmnopqrstuvwxyz".first(where: { !used.contains($0) }),
-                  let mapping = QuickJumpMapping(bundleID: bundleID, letter: String(letter)) else { return }
+            guard let mapping = QuickJumpMapping(bundleID: bundleID, letter: String(self.freeLetter(for: bundleID))) else { return }
             self.mappings.append(mapping)
             self.persist()
             self.rebuildRows()
@@ -209,18 +267,22 @@ private final class QuickJumpMappingsSheetViewController: NSViewController {
 @MainActor
 private final class QuickJumpMappingRowView: NSView, NSTextFieldDelegate {
     var onChange: ((String) -> Bool)?
+    var onToggleSkip: ((Bool) -> Void)?
     var onRemove: (() -> Void)?
 
     private let icon = NSImageView()
     private let name = NSTextField(labelWithString: "")
     private let letter = NSTextField()
+    private let skipCheckbox = NSButton()
     private let removeButton = NSButton()
     private var acceptedLetter: String
     private let bundleID: String
+    private let isSkipped: Bool
 
-    init(mapping: QuickJumpMapping) {
-        bundleID = mapping.bundleID
-        acceptedLetter = String(mapping.letter).uppercased()
+    init(bundleID: String, letter: Character?) {
+        self.bundleID = bundleID
+        self.isSkipped = (letter == nil)
+        self.acceptedLetter = letter.map { String($0).uppercased() } ?? ""
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
 
@@ -228,18 +290,27 @@ private final class QuickJumpMappingRowView: NSView, NSTextFieldDelegate {
         icon.imageScaling = .scaleProportionallyUpOrDown
         icon.translatesAutoresizingMaskIntoConstraints = false
 
-        name.stringValue = mapping.bundleID
+        name.stringValue = bundleID
         name.lineBreakMode = .byTruncatingMiddle
 
-        letter.stringValue = acceptedLetter
-        letter.alignment = .center
-        letter.font = .monospacedSystemFont(ofSize: 13, weight: .semibold)
-        letter.placeholderString = "A"
-        letter.delegate = self
-        letter.target = self
-        letter.action = #selector(commitLetter)
-        letter.toolTip = String(localized: "Enter one unused letter from A to Z.")
-        letter.translatesAutoresizingMaskIntoConstraints = false
+        self.letter.stringValue = acceptedLetter
+        self.letter.alignment = .center
+        self.letter.font = .monospacedSystemFont(ofSize: 13, weight: .semibold)
+        self.letter.placeholderString = isSkipped ? "—" : "A"
+        self.letter.delegate = self
+        self.letter.target = self
+        self.letter.action = #selector(commitLetter)
+        self.letter.isEnabled = !isSkipped
+        self.letter.toolTip = String(localized: "Enter one unused letter from A to Z.")
+        self.letter.translatesAutoresizingMaskIntoConstraints = false
+
+        skipCheckbox.setButtonType(.switch)
+        skipCheckbox.title = String(localized: "Skip")
+        skipCheckbox.state = isSkipped ? .on : .off
+        skipCheckbox.target = self
+        skipCheckbox.action = #selector(toggleSkip)
+        skipCheckbox.toolTip = String(localized: "Skip letter hints for this app so its letter frees up for another app.")
+        skipCheckbox.translatesAutoresizingMaskIntoConstraints = false
 
         removeButton.isBordered = false
         removeButton.image = NSImage(systemSymbolName: "minus.circle.fill", accessibilityDescription: String(localized: "Remove"))
@@ -256,7 +327,8 @@ private final class QuickJumpMappingRowView: NSView, NSTextFieldDelegate {
 
         addSubview(icon)
         addSubview(labels)
-        addSubview(letter)
+        addSubview(self.letter)
+        addSubview(skipCheckbox)
         addSubview(removeButton)
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 44),
@@ -266,19 +338,21 @@ private final class QuickJumpMappingRowView: NSView, NSTextFieldDelegate {
             icon.heightAnchor.constraint(equalToConstant: 24),
             labels.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 10),
             labels.centerYAnchor.constraint(equalTo: centerYAnchor),
-            letter.leadingAnchor.constraint(greaterThanOrEqualTo: labels.trailingAnchor, constant: 10),
-            letter.centerYAnchor.constraint(equalTo: centerYAnchor),
-            letter.widthAnchor.constraint(equalToConstant: 38),
-            removeButton.leadingAnchor.constraint(equalTo: letter.trailingAnchor, constant: 10),
+            self.letter.leadingAnchor.constraint(greaterThanOrEqualTo: labels.trailingAnchor, constant: 10),
+            self.letter.centerYAnchor.constraint(equalTo: centerYAnchor),
+            self.letter.widthAnchor.constraint(equalToConstant: 38),
+            skipCheckbox.leadingAnchor.constraint(equalTo: self.letter.trailingAnchor, constant: 10),
+            skipCheckbox.centerYAnchor.constraint(equalTo: centerYAnchor),
+            removeButton.leadingAnchor.constraint(equalTo: skipCheckbox.trailingAnchor, constant: 10),
             removeButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             removeButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             removeButton.widthAnchor.constraint(equalToConstant: 22),
         ])
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let info = AppsSettingsViewController.appInfo(for: mapping.bundleID)
+            let info = AppsSettingsViewController.appInfo(for: bundleID)
             DispatchQueue.main.async {
-                guard let self, self.bundleID == mapping.bundleID else { return }
+                guard let self, self.bundleID == bundleID else { return }
                 self.name.stringValue = info.name
                 self.icon.image = info.icon
             }
@@ -290,6 +364,7 @@ private final class QuickJumpMappingRowView: NSView, NSTextFieldDelegate {
     func controlTextDidEndEditing(_ obj: Notification) { commitLetter() }
 
     @objc private func commitLetter() {
+        guard !isSkipped else { return }
         let raw = letter.stringValue
         if onChange?(raw) == true {
             acceptedLetter = raw.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
@@ -297,6 +372,10 @@ private final class QuickJumpMappingRowView: NSView, NSTextFieldDelegate {
         } else {
             letter.stringValue = acceptedLetter
         }
+    }
+
+    @objc private func toggleSkip() {
+        onToggleSkip?(skipCheckbox.state == .on)
     }
 
     @objc private func remove() { onRemove?() }

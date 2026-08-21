@@ -366,6 +366,9 @@ enum ConfigSchemaDocs {
         "hideAllExcludedBundleIDs": ConfigSettingDoc(
             "array", "Bundle IDs the \"hide all windows\" shortcut leaves visible.",
             item: ConfigItemSchema("string", pattern: bundleIDPattern)),
+        "letterHintExcludedBundleIDs": ConfigSettingDoc(
+            "array", "Bundle IDs left out of letter hints: no hint is shown and no letter is reserved, freeing that letter for other apps.",
+            item: ConfigItemSchema("string", pattern: bundleIDPattern)),
 
         // Tabs
         "tabDrillEnabled": ConfigSettingDoc("boolean", "Peek the highlighted window's tabs with the Peek tabs key."),

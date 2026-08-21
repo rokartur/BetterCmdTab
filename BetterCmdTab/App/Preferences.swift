@@ -772,6 +772,7 @@ final class Preferences: ObservableObject {
         static let gridSingleRow = "Switcher.gridSingleRow"
         static let appExceptions = "Switcher.appExceptions"
         static let quickJumpMappings = "Switcher.quickJumpMappings"
+        static let letterHintExcludedBundleIDs = "Switcher.letterHintExcludedBundleIDs"
         /// Pre-Exceptions key: a plain bundle-ID array of always-hidden apps.
         /// Read once at launch and folded into `appExceptions` (hide = .always).
         static let legacyExcludedBundleIDs = "Switcher.excludedBundleIDs"
@@ -1065,6 +1066,24 @@ final class Preferences: ObservableObject {
 
     var quickJumpLettersByBundleID: [String: Character] {
         Dictionary(uniqueKeysWithValues: quickJumpMappings.map { ($0.bundleID, $0.letter) })
+    }
+
+    /// Bundle identifiers left out of letter-hint generation entirely: no hint is
+    /// drawn on them and no letter is reserved for them, so their would-be letter
+    /// stays free for another app. Meant for apps already reachable by a global
+    /// shortcut (Karabiner, Direct Activation), where a second in-panel letter is
+    /// wasted (#183 follow-up). Blank and duplicate entries are dropped at the
+    /// storage boundary so a hand-edited config can't smuggle in dead values.
+    @Published var letterHintExcludedBundleIDs: [String] {
+        didSet {
+            let normalized = Self.normalizeBundleIDList(letterHintExcludedBundleIDs)
+            if normalized != letterHintExcludedBundleIDs {
+                letterHintExcludedBundleIDs = normalized
+                return
+            }
+            guard oldValue != letterHintExcludedBundleIDs else { return }
+            UserDefaults.standard.set(letterHintExcludedBundleIDs, forKey: Keys.letterHintExcludedBundleIDs)
+        }
     }
 
     /// The ignore-shortcuts mode for `bundleID`, or `.never` when the app has no
@@ -2001,6 +2020,15 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Trim each bundle ID, drop blanks, and keep the first of any duplicates so
+    /// the order the user set survives. Used for the letter-hint exclusion list.
+    nonisolated static func normalizeBundleIDList(_ ids: [String]) -> [String] {
+        var seen = Set<String>()
+        return ids
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+    }
+
     static func clampTitleRefreshInterval(_ value: Int) -> Int {
         min(titleRefreshIntervalRange.upperBound, max(titleRefreshIntervalRange.lowerBound, value))
     }
@@ -2288,6 +2316,8 @@ final class Preferences: ObservableObject {
         if rawQuickJumps != normalizedQuickJumps.map(\.dictionary) {
             defaults.set(normalizedQuickJumps.map(\.dictionary), forKey: Keys.quickJumpMappings)
         }
+        self.letterHintExcludedBundleIDs = Self.normalizeBundleIDList(
+            defaults.stringArray(forKey: Keys.letterHintExcludedBundleIDs) ?? [])
         self.pinnedBundleIDs = defaults.stringArray(forKey: Keys.pinnedBundleIDs) ?? []
         self.hideAllExcludedBundleIDs = defaults.stringArray(forKey: Keys.hideAllExcludedBundleIDs) ?? []
         self.showMinimizedWindows = defaults.object(forKey: Keys.showMinimizedWindows) as? Bool ?? true
@@ -2442,6 +2472,8 @@ final class Preferences: ObservableObject {
             defaults.set(normalizedQuickJumps.map(\.dictionary), forKey: Keys.quickJumpMappings)
         }
         quickJumpMappings = normalizedQuickJumps
+        letterHintExcludedBundleIDs = Self.normalizeBundleIDList(
+            defaults.stringArray(forKey: Keys.letterHintExcludedBundleIDs) ?? [])
         pinnedBundleIDs = defaults.stringArray(forKey: Keys.pinnedBundleIDs) ?? []
         hideAllExcludedBundleIDs = defaults.stringArray(forKey: Keys.hideAllExcludedBundleIDs) ?? []
 
