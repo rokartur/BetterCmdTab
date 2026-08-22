@@ -278,7 +278,7 @@ enum ConfigSchemaDocs {
             "string", "Blur material behind the rows. Ignored by the macOS 26 glass backdrop.",
             values: ConfigValues(BackdropMaterial.self, \.displayName)),
         "selectionColor": ConfigSettingDoc(
-            "string", "Color of the selection highlight and the quick-jump letters. \"system\" follows the macOS accent; \"custom\" uses selectionColorHex.",
+            "string", "Color of the selection highlight and the quick-jump letters. \"transparent\" (the default) leaves the highlight colorless and tints only the quick-jump letters; \"system\" follows the macOS accent; \"custom\" uses selectionColorHex.",
             values: ConfigValues(SwitcherSelectionColor.self, \.displayName)),
         "selectionColorHex": ConfigSettingDoc(
             "string", "Selection color used when selectionColor is \"custom\", as #RRGGBB. Falls back to the macOS accent when absent or malformed.",

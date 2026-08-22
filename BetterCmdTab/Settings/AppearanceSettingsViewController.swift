@@ -413,6 +413,9 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         if ownsColorPanel {
             NSColorPanel.shared.setTarget(nil)
             NSColorPanel.shared.setAction(nil)
+            // `showsAlpha` is state on the process-wide shared panel; leave it
+            // as found rather than pinned to this pane's preference.
+            NSColorPanel.shared.showsAlpha = restoreShowsAlpha
             ownsColorPanel = false
         }
     }
@@ -459,7 +462,9 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     /// Small filled-circle swatch shown beside each selection-color menu item.
     /// `.system` is drawn with the live accent color so it always previews the
     /// user's macOS setting, and `.custom` with the stored hex so it tracks
-    /// their pick rather than the accent fallback in `resolved`.
+    /// their pick rather than the accent fallback. `.transparent` is left
+    /// unfilled — it resolves to the accent for letter hints, so filling it would
+    /// show a color the selection plate never paints.
     private static func swatch(for color: SwitcherSelectionColor) -> NSImage {
         let size = NSSize(width: 12, height: 12)
         let image = NSImage(size: size)
@@ -467,14 +472,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         image.lockFocus()
         let rect = NSRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5)
         let path = NSBezierPath(ovalIn: rect)
-        let fill: NSColor
-        if color == .custom {
-            fill = Preferences.shared.selectionColorHex.flatMap(NSColor.init(hexString:)) ?? .controlAccentColor
-        } else {
-            fill = color.resolved
+        if color != .transparent {
+            color.nsColor(customHex: Preferences.shared.selectionColorHex).setFill()
+            path.fill()
         }
-        fill.setFill()
-        path.fill()
         NSColor.black.withAlphaComponent(0.15).setStroke()
         path.lineWidth = 1
         path.stroke()
@@ -493,9 +494,16 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     /// Tracks whether we currently own the shared color panel's target/action,
     /// so `viewWillDisappear` can detach before this controller is released.
     private var ownsColorPanel = false
+    /// `showsAlpha` as the shared panel had it before this pane forced it off.
+    private var restoreShowsAlpha = false
 
     private func presentColorPanel() {
         let panel = NSColorPanel.shared
+        // Left continuous (the default) so the live switcher preview tracks the
+        // drag. `schedulePreviewRefresh` already coalesces to one render per
+        // runloop turn, and the only other per-frame work is a UserDefaults set
+        // and a 12×12 swatch.
+        restoreShowsAlpha = panel.showsAlpha
         panel.showsAlpha = false
         if let hex = Preferences.shared.selectionColorHex, let color = NSColor(hexString: hex) {
             panel.color = color

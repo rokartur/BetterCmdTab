@@ -118,7 +118,13 @@ enum SearchDismissMode: String, CaseIterable {
 /// cases exist for the accents that disappear against a busy wallpaper or a
 /// screen full of same-colored windows, which is the whole complaint in #185.
 enum SwitcherSelectionColor: String, CaseIterable {
-    /// Follows the macOS accent color. Default.
+    /// No hue on the selection plate — the neutral luminance highlight the
+    /// switcher shipped with through 26.7, and still the default: a tint is a
+    /// deliberate choice, not something an update should impose. Letter hints and
+    /// the launch/reopen glyphs keep the macOS accent; only the plate goes
+    /// colorless.
+    case transparent
+    /// Follows the macOS accent color.
     case system
     case blue
     case purple
@@ -129,12 +135,13 @@ enum SwitcherSelectionColor: String, CaseIterable {
     case green
     case graphite
     /// User-supplied color; the value lives in `Preferences.selectionColorHex`.
-    /// Resolve via `Preferences.shared.resolvedSelectionColor`, not `resolved`,
-    /// so the hex is read on the main actor.
+    /// Resolve via `Preferences.shared.resolvedSelectionColor` so the hex is
+    /// read on the main actor.
     case custom
 
     var displayName: String {
         switch self {
+        case .transparent: return String(localized: "Transparent")
         case .system: return String(localized: "macOS accent")
         case .blue: return String(localized: "Blue")
         case .purple: return String(localized: "Purple")
@@ -151,7 +158,7 @@ enum SwitcherSelectionColor: String, CaseIterable {
     /// Fixed color, or `nil` when the choice tracks the system accent or is custom.
     var color: NSColor? {
         switch self {
-        case .system, .custom: return nil
+        case .transparent, .system, .custom: return nil
         case .blue: return .systemBlue
         case .purple: return .systemPurple
         case .pink: return .systemPink
@@ -164,10 +171,16 @@ enum SwitcherSelectionColor: String, CaseIterable {
     }
 
     /// The concrete color to draw with right now. Resolving `.system` lazily
-    /// keeps it appearance-reactive (light/dark) like the rest of AppKit. For
-    /// `.custom` this falls back to the system accent — use
-    /// `Preferences.shared.resolvedSelectionColor` to honor the stored hex.
-    var resolved: NSColor { color ?? .controlAccentColor }
+    /// keeps it appearance-reactive (light/dark) like the rest of AppKit.
+    /// `.custom` needs `customHex`; a missing or malformed hex falls back to
+    /// the system accent. Opaque by design — the item views own the fill's
+    /// alpha, so a translucent hex must not leak into the rim.
+    func nsColor(customHex: String?) -> NSColor {
+        if self == .custom, let customHex, let color = NSColor(hexString: customHex) {
+            return color.withAlphaComponent(1)
+        }
+        return color ?? .controlAccentColor
+    }
 }
 
 extension NSColor {
@@ -176,7 +189,10 @@ extension NSColor {
     convenience init?(hexString: String) {
         var hex = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
         if hex.hasPrefix("#") { hex.removeFirst() }
+        // `UInt64(_:radix:)` accepts a leading sign, so "+F8000" would parse as
+        // 0x0F8000 and silently paint the wrong color. Digits only.
         guard hex.count == 6 || hex.count == 8,
+              hex.allSatisfy(\.isHexDigit),
               let value = UInt64(hex, radix: 16) else { return nil }
         let r, g, b, a: CGFloat
         if hex.count == 8 {
@@ -200,6 +216,22 @@ extension NSColor {
         let g = Int(round(rgb.greenComponent * 255))
         let b = Int(round(rgb.blueComponent * 255))
         return String(format: "#%02X%02X%02X", r, g, b)
+    }
+
+    /// Black or white, whichever stays legible on top of this color used as a
+    /// fill. The list layout paints the selection at full opacity, so a light
+    /// selection color (yellow, mint) made the hardcoded white label unreadable
+    /// — the exact "can't see which one is selected" complaint in #185.
+    var contrastingLabelColor: NSColor {
+        guard let rgb = usingColorSpace(.sRGB) else { return .white }
+        // Rec. 709 luma. Measured across the eight presets in both appearances,
+        // the ones that read better on white land at or below 0.479 (blue, purple,
+        // pink, red) and the ones that need black start at 0.558 (graphite, orange,
+        // green, yellow). 0.52 splits that gap with ~0.04 of margin either side;
+        // 0.6 would put graphite-on-dark (0.597) on white at 2.9:1 where black
+        // gives 7.3:1.
+        let luma = 0.2126 * rgb.redComponent + 0.7152 * rgb.greenComponent + 0.0722 * rgb.blueComponent
+        return luma > 0.52 ? .black : .white
     }
 }
 
@@ -1783,10 +1815,7 @@ final class Preferences: ObservableObject {
     /// `.custom`, otherwise the choice's own color (`.system` resolving lazily
     /// to `controlAccentColor` so it stays light/dark reactive).
     var resolvedSelectionColor: NSColor {
-        if selectionColor == .custom, let hex = selectionColorHex, let color = NSColor(hexString: hex) {
-            return color
-        }
-        return selectionColor.resolved
+        selectionColor.nsColor(customHex: selectionColorHex)
     }
 
     /// Which Spaces the switcher shows windows from (#57). Default all Spaces.
@@ -2421,7 +2450,7 @@ final class Preferences: ObservableObject {
         let materialRaw = defaults.string(forKey: Keys.backdropMaterial)
         self.backdropMaterial = materialRaw.flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
         let selectionColorRaw = defaults.string(forKey: Keys.selectionColor)
-        self.selectionColor = selectionColorRaw.flatMap(SwitcherSelectionColor.init(rawValue:)) ?? .system
+        self.selectionColor = selectionColorRaw.flatMap(SwitcherSelectionColor.init(rawValue:)) ?? .transparent
         self.selectionColorHex = defaults.string(forKey: Keys.selectionColorHex)
         self.spaceScope = Self.storedSpaceScope(defaults)
         self.directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
@@ -2561,7 +2590,7 @@ final class Preferences: ObservableObject {
         panelCornerRadius = Self.clampCornerRadius(defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0)
         listWidthPercent = Self.clampListWidthPercent(defaults.object(forKey: Keys.listWidthPercent) as? Int ?? 100)
         backdropMaterial = defaults.string(forKey: Keys.backdropMaterial).flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
-        selectionColor = defaults.string(forKey: Keys.selectionColor).flatMap(SwitcherSelectionColor.init(rawValue:)) ?? .system
+        selectionColor = defaults.string(forKey: Keys.selectionColor).flatMap(SwitcherSelectionColor.init(rawValue:)) ?? .transparent
         selectionColorHex = defaults.string(forKey: Keys.selectionColorHex)
         spaceScope = Self.storedSpaceScope(defaults)
         directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])

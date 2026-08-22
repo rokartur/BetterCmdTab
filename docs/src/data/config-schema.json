@@ -513,8 +513,9 @@
       "type" : "boolean"
     },
     "selectionColor" : {
-      "description" : "Color of the selection highlight and the quick-jump letters. \"system\" follows the macOS accent; \"custom\" uses selectionColorHex.",
+      "description" : "Color of the selection highlight and the quick-jump letters. \"transparent\" (the default) leaves the highlight colorless and tints only the quick-jump letters; \"system\" follows the macOS accent; \"custom\" uses selectionColorHex.",
       "enum" : [
+        "transparent",
         "system",
         "blue",
         "purple",
@@ -527,6 +528,7 @@
         "custom"
       ],
       "enumDescriptions" : [
+        "Transparent",
         "macOS accent",
         "Blue",
         "Purple",

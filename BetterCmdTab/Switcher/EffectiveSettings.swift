@@ -15,6 +15,16 @@ struct EffectiveSettings {
     /// Selection highlight / jump-letter color, already resolved to a concrete
     /// color (#185). Not per-shortcut overridable — one switcher-wide answer.
     let selectionColor: NSColor
+    /// Change-detection key for `selectionColor`, resolved once per reveal.
+    /// `controlAccentColor` is the same object before and after the user changes
+    /// the macOS accent, so the item views cannot compare colors by identity —
+    /// and deriving a key per row would put a colorspace conversion and a string
+    /// allocation on the ⌘Tab path for every row, every keystroke.
+    let selectionColorKey: String
+    /// `.transparent`: the selection plate drops its hue for the neutral
+    /// luminance highlight instead. `selectionColor` still carries the accent,
+    /// which letter hints and the launch/reopen glyphs keep using.
+    let neutralSelection: Bool
     let layoutMode: SwitcherLayoutMode
     let panelScalePercent: Int
     let panelAppearance: PanelAppearance
@@ -53,8 +63,14 @@ extension Preferences {
     /// preferring the override's field when set and otherwise the global
     /// preference.
     func effectiveSettings(for override: ShortcutOverride) -> EffectiveSettings {
-        EffectiveSettings(
-            selectionColor: resolvedSelectionColor,
+        let selection = resolvedSelectionColor
+        return EffectiveSettings(
+            selectionColor: selection,
+            // The choice is part of the key because two of them resolve to the
+            // same color: `.transparent` and `.system` both hand back the macOS
+            // accent, and only the flag tells the plates apart.
+            selectionColorKey: selectionColor.rawValue + (selection.hexString ?? selection.description),
+            neutralSelection: selectionColor == .transparent,
             layoutMode: override.layoutMode ?? switcherLayoutMode,
             panelScalePercent: override.panelScalePercent.map(Self.clampPanelScalePercent) ?? panelScalePercent,
             panelAppearance: override.panelAppearance ?? panelAppearance,

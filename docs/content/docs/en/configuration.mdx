@@ -136,7 +136,7 @@ Some state is deliberately excluded, and neither exported nor imported:
 | `disabledSymbolicHotKeys` | A record of which native hotkeys *this* Mac has disabled — importing another Mac's copy could leave the native ⌘Tab dead |
 | `recentlyClosed` | Session history, not configuration |
 | `customCommitSoundFilename` | The sound file lives in this Mac's Application Support directory |
-| `accentChoice`, `customAccentHex` | Retired in 26.7 — the switcher always follows the macOS accent colour |
+| `accentChoice`, `customAccentHex` | Retired in 26.7 and replaced by `selectionColor` / `selectionColorHex`, which are exported normally |
 
 Scoped shortcuts are a middle case: `scopedShortcutList` records each entry's id, scope
 and name, but the chord itself is recorded outside this file. Syncing the file to a new
