@@ -2,6 +2,19 @@ import CoreGraphics
 import Testing
 @testable import BetterCmdTab
 
+@Suite("Activation request mode")
+struct ActivationRequestModeTests {
+    @Test("visible panel yields its activation to the selected app")
+    func activeSourceUsesCoordinatedRequest() {
+        #expect(Activator.activationRequestMode(currentApplicationIsActive: true) == .coordinated)
+    }
+
+    @Test("primed quick commit does not claim an inactive source")
+    func inactiveSourceUsesStandaloneRequest() {
+        #expect(Activator.activationRequestMode(currentApplicationIsActive: false) == .standalone)
+    }
+}
+
 /// Covers the pure decision core of the post-activation focus verify
 /// (`Activator.focusSettled`): CGWindowID comparison when both sides resolved
 /// one, AX element identity as the fallback when either id is unavailable.
