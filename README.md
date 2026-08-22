@@ -29,7 +29,7 @@ The Cmd+Tab macOS deserves.
 
 - **Three layouts** — classic list, grid of icons, or live window previews.
 - **Letter-prefix jump** — type a name to jump to it.
-- **Search & launch** — press `/` to fuzzy-find, or launch any installed app.
+- **Search & launch** — press `/` (rebindable) to fuzzy-find, or launch any installed app.
 - **Window switching** — `` ⌘+ ` `` cycles windows of the front app.
 - **Tap or hold** — tap to switch instantly, hold to open the switcher.
 - **Scroll to switch** — spin the mouse wheel to move through apps.
@@ -53,7 +53,7 @@ The Cmd+Tab macOS deserves.
 - **Sort order** — order apps by recents (MRU), alphabetically, or launch order — or by most-recent windows, mixing every app's windows by when you last used them.
 - **Scoped shortcuts** — add as many global hotkeys as you like, each opening the switcher pre-filtered (all windows, the current Space, Visible Spaces, the current app's windows, or minimized only), and each with its own layout, sorting, filters, and colors independent of the global settings.
 - **Show windows from** — All Spaces, the current Space only, or **Visible Spaces** — made for multiple monitors: lists what's on screen across all your displays and hides windows parked on background desktops.
-- **Minimized & hidden** — include minimized windows, hidden and windowless apps.
+- **Minimized & hidden** — include minimized windows, hidden and windowless apps; sink minimized windows to the bottom or leave them in recency order.
 - **Pin & filter** — keep favorites up top, hide the rest.
 - **Per-app rules** — hide an app, or have it ignore ⌘Tab always or only when fullscreen.
 
@@ -72,10 +72,11 @@ The Cmd+Tab macOS deserves.
 
 ### Appearance & Customization
 
-- **Liquid Glass** — system material on macOS 26.
 - **Theming** — panel opacity, corner radius, and background material; the selection highlight follows your macOS accent color.
 - **Preview titles** — choose how window titles align in previews and whether the selected name is bold.
-- **Configurable** — custom hotkey, size, scale, layout, grid columns, and reveal delay.
+- **Status glyphs** — optionally hide the hidden / minimized / no-window / full-screen markers at the end of each row.
+- **Motion** — turn switcher animations off for hard cuts; system Reduce Motion is honored.
+- **Configurable** — custom hotkey, size, scale, layout, grid columns (including a single-row grid that shrinks tiles to fit), and reveal delay.
 
 ### Gestures & Feedback
 
@@ -97,7 +98,7 @@ The Cmd+Tab macOS deserves.
 ### Homebrew
 ```bash
 # stable channel
-brew install --ask bettercmdtab
+brew install --cask bettercmdtab
 
 # beta channel
 brew install --cask bettercmdtab@beta
