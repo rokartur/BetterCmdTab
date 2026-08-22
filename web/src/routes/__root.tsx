@@ -132,7 +132,7 @@ const jsonLd = {
         "Instant Spaces switching and current-Space-only filtering",
         "Cmd+Tab survives Secure Event Input in password fields",
         "Hide the switcher from screen sharing and recordings",
-        "Liquid Glass material on macOS 26, with theming and accent color",
+        "Panel theming with opacity, corner radius, and accent color",
         "Multi-monitor aware — opens under the cursor",
         "Three-finger trackpad gestures with haptics",
         "Export and import your whole setup as a .cmdtab file",
@@ -181,7 +181,7 @@ const jsonLd = {
           name: "Which macOS versions and Macs does it support?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "macOS 13.0 or later, on both Apple Silicon and Intel. The Liquid Glass material lights up on macOS 26.",
+            text: "macOS 13.0 or later, on both Apple Silicon and Intel.",
           },
         },
         {

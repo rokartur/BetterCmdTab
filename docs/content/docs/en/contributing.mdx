@@ -29,8 +29,8 @@ cd BetterCmdTab
 xcodebuild -scheme "BetterCmdTab Debug" -configuration Debug build
 ```
 
-Xcode 16+ and the macOS 26 SDK are required. The Liquid Glass code paths are gated
-to macOS 26 — building against an older SDK still works, the app just falls back to
+Xcode 16+ and the macOS 26 SDK are required. The newer panel material is gated to
+macOS 26 — building against an older SDK still works, the app just falls back to
 `NSVisualEffectView` at runtime.
 
 <Callout type="warn">
@@ -59,7 +59,7 @@ xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
 ```
 
 They cover **pure logic** — switcher metrics, row labels, catalog filtering, fuzzy
-match, updater parsing, Liquid Glass selection, settings portability — plus a small
+match, updater parsing, panel material selection, settings portability — plus a small
 AppKit-hosted set (`TabStripWindowingTests`, `SwitcherReflowTests`) that needs a live
 WindowServer and macOS Reduce Motion off. The rest of the UI is verified by hand: the
 switcher needs Accessibility, so that surface fails headless and is not part of the

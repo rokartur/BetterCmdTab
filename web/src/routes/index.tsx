@@ -97,7 +97,6 @@ const featureGroups: Array<{ label: string; rows: Array<[string, string]> }> = [
         "Preview titles",
         "choose how window titles align in previews and whether the selected name is bold",
       ],
-      ["Liquid Glass", "system material on macOS 26"],
       [
         "Theming",
         "panel opacity, corner radius, and background material — the highlight follows your macOS accent color",
@@ -190,7 +189,7 @@ const faqs: Array<[string, string]> = [
   ],
   [
     "Which macOS versions and Macs does it support?",
-    "macOS 13.0 or later, on both Apple Silicon and Intel. The Liquid Glass material lights up on macOS 26.",
+    "macOS 13.0 or later, on both Apple Silicon and Intel.",
   ],
   [
     "How is it different from AltTab or the built-in Cmd+Tab?",

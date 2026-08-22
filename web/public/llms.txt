@@ -2,7 +2,7 @@
 
 > A fast, native ⌘Tab replacement for macOS: a window switcher and app launcher with list, grid, and live window-preview layouts, fuzzy search that also launches any installed app, window cycling, browser-tab drill-in, and window tiling. Free forever, open-source (GPL v3), zero telemetry.
 
-- **Platform:** macOS 13.0 or later, Apple Silicon and Intel. The Liquid Glass material lights up on macOS 26.
+- **Platform:** macOS 13.0 or later, Apple Silicon and Intel.
 - **Kind of app:** native AppKit menu-bar agent — no Dock icon, no Electron, no SwiftUI, no bundled runtime.
 - **Price:** free, no paid tier, no subscription, no paywalled features.
 - **Privacy:** no telemetry, no analytics, no background network. The only network call is an opt-in update check against GitHub Releases.

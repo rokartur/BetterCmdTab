@@ -29,7 +29,7 @@ cd BetterCmdTab
 xcodebuild -scheme "BetterCmdTab Debug" -configuration Debug build
 ```
 
-Wymagane są Xcode 16+ i SDK macOS 26. Ścieżki kodu Liquid Glass są ograniczone do
+Wymagane są Xcode 16+ i SDK macOS 26. Nowszy materiał panelu jest ograniczony do
 macOS 26 — budowanie ze starszym SDK nadal działa, ale aplikacja korzysta wtedy z
 `NSVisualEffectView` w czasie działania.
 
@@ -60,7 +60,7 @@ xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
 ```
 
 Obejmują **czystą logikę** — metryki przełącznika, etykiety wierszy, filtrowanie
-katalogu, dopasowanie rozmyte, analizę aktualizacji, wybór Liquid Glass i przenośność
+katalogu, dopasowanie rozmyte, analizę aktualizacji, wybór materiału panelu i przenośność
 ustawień — oraz niewielki zestaw osadzony w AppKit (`TabStripWindowingTests`,
 `SwitcherReflowTests`), który wymaga działającego WindowServer i wyłączonej opcji
 Ogranicz ruch w macOS. Reszta UI jest sprawdzana ręcznie: przełącznik potrzebuje
