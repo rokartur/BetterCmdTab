@@ -120,7 +120,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
             iv.imageFrameStyle = .none
             iv.isHidden = true
             iv.image = indicator.makeImage()
-            iv.contentTintColor = indicator.tint(onAccentFill: false, accent: accent)
+            iv.contentTintColor = indicator.tint(onFill: nil, accent: accent)
             addSubview(iv)
         }
 
@@ -158,11 +158,36 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
     private var currentLabel: String = ""
     private var currentPrefixLength: Int = 0
     private var accent: NSColor = .controlAccentColor
-    /// `accent.description` is a freshly-allocated, formatted string; computing
-    /// it on every `renderLetter` (i.e. for every row, every configure) just to
-    /// key the shared letter cache was pure churn. Cache it once per accent
-    /// change — accents change rarely (a settings tweak), letters render constantly.
-    private var accentKey: String = NSColor.controlAccentColor.description
+    /// Mirrors `EffectiveSettings.selectionColorKey` so a pooled row repaints when
+    /// the selection color changes. Also keys the shared letter cache, which is
+    /// why it is stored rather than derived per `renderLetter`.
+    private var accentKey: String = ""
+    /// Black or white, whichever survives on top of the opaque selection plate.
+    /// Resolved in `updateHighlightColor` so it snapshots the panel's appearance,
+    /// not the app's.
+    private var onFillLabel: NSColor = .white
+
+    /// Repaint everything derived from the selection color. Both `.cgColor` and
+    /// the sRGB conversion behind `contrastingLabelColor` snapshot a dynamic color
+    /// against `NSAppearance.current`, and the panel forces its own appearance, so
+    /// they have to resolve inside it.
+    ///
+    /// `.transparent` takes AppKit's own unfocused-selection grey rather than a
+    /// hand-rolled alpha: the list plate is opaque, so unlike the tiles there is
+    /// nothing to see through, and that color is already appearance-reactive with
+    /// a luminance `contrastingLabelColor` reads correctly in both.
+    private func updateHighlightColor() {
+        let plate: NSColor = effective.neutralSelection ? .unemphasizedSelectedContentBackgroundColor : accent
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            highlight.layer?.backgroundColor = plate.cgColor
+            onFillLabel = plate.contrastingLabelColor
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateHighlightColor()
+    }
 
     func prepareForIdle() {
         // Drop only the app icon — the heavy per-app retain held off IconCache and
@@ -198,10 +223,10 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         if faceChanged || metrics != self.metrics {
             applyMetrics(metrics)
         }
-        if self.accent != accent {
+        if accentKey != effective.selectionColorKey {
             self.accent = accent
-            accentKey = accent.description
-            highlight.layer?.backgroundColor = accent.cgColor
+            accentKey = effective.selectionColorKey
+            updateHighlightColor()
         }
         currentLabel = label
         currentPrefixLength = prefixLength
@@ -298,14 +323,14 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
 
     private func applySelection() {
         highlight.isHidden = !isSelected
-        let primary: NSColor = isSelected ? .white : .labelColor
-        let secondary: NSColor = isSelected ? NSColor.white.withAlphaComponent(0.9) : .labelColor
-        appNameLabel.textColor = primary
-        titleLabel.textColor = secondary
-        // The selected row paints an accent-colored background, so every glyph
-        // turns white; otherwise each keeps its semantic color.
+        // The plate is opaque, so a selected row's labels have to contrast with
+        // the selection color — white over systemYellow is unreadable.
+        appNameLabel.textColor = isSelected ? onFillLabel : .labelColor
+        titleLabel.textColor = isSelected ? onFillLabel.withAlphaComponent(0.9) : .labelColor
+        // Same for every glyph over that plate; unselected rows keep their
+        // semantic color.
         for (indicator, iv) in indicatorViews {
-            iv.contentTintColor = indicator.tint(onAccentFill: isSelected, accent: accent)
+            iv.contentTintColor = indicator.tint(onFill: isSelected ? onFillLabel : nil, accent: accent)
         }
         renderLetter()
     }
@@ -315,9 +340,9 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         let prefixLen: Int
         let fontSize: CGFloat
         let selected: Bool
-        // Distinguishes cache entries per accent so switching the accent color
-        // doesn't serve a stale highlight. The color object itself still
-        // resolves light/dark at draw time, so dynamic accents stay reactive.
+        // Distinguishes cache entries per selection color so switching it doesn't
+        // serve a stale highlight. Also covers the baked-in on-plate label color,
+        // which is a pure function of the accent.
         let accentKey: String
     }
 
@@ -325,7 +350,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
     private static var letterCacheOrder: [LetterCacheKey] = []
     private static let letterCacheCap = 256
 
-    private static func memoizedLetter(_ key: LetterCacheKey, accent: NSColor) -> NSAttributedString {
+    private static func memoizedLetter(_ key: LetterCacheKey, accent: NSColor, onFill: NSColor) -> NSAttributedString {
         if let hit = letterCache[key] {
             if let idx = letterCacheOrder.firstIndex(of: key) {
                 letterCacheOrder.remove(at: idx)
@@ -335,8 +360,8 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         }
         let font = NSFont.monospacedSystemFont(ofSize: key.fontSize, weight: .semibold)
         let boldFont = NSFont.monospacedSystemFont(ofSize: key.fontSize, weight: .bold)
-        let highlightColor: NSColor = key.selected ? .white : accent
-        let baseColor: NSColor = key.selected ? .white : .labelColor
+        let highlightColor: NSColor = key.selected ? onFill : accent
+        let baseColor: NSColor = key.selected ? onFill : .labelColor
         let para = NSMutableParagraphStyle()
         para.alignment = .center
 
@@ -368,7 +393,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
             selected: isSelected,
             accentKey: accentKey
         )
-        letterLabel.attributedStringValue = Self.memoizedLetter(key, accent: accent)
+        letterLabel.attributedStringValue = Self.memoizedLetter(key, accent: accent, onFill: onFillLabel)
     }
 
     override func layout() {

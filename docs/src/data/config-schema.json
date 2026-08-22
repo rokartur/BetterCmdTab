@@ -512,6 +512,41 @@
       "description" : "Include installed apps that aren't running, so search can launch them.",
       "type" : "boolean"
     },
+    "selectionColor" : {
+      "description" : "Color of the selection highlight and the quick-jump letters. \"transparent\" (the default) leaves the highlight colorless and tints only the quick-jump letters; \"system\" follows the macOS accent; \"custom\" uses selectionColorHex.",
+      "enum" : [
+        "transparent",
+        "system",
+        "blue",
+        "purple",
+        "pink",
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "graphite",
+        "custom"
+      ],
+      "enumDescriptions" : [
+        "Transparent",
+        "macOS accent",
+        "Blue",
+        "Purple",
+        "Pink",
+        "Red",
+        "Orange",
+        "Yellow",
+        "Green",
+        "Graphite",
+        "Custom…"
+      ],
+      "type" : "string"
+    },
+    "selectionColorHex" : {
+      "description" : "Selection color used when selectionColor is \"custom\", as #RRGGBB. Falls back to the macOS accent when absent or malformed.",
+      "pattern" : "^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$",
+      "type" : "string"
+    },
     "shiftTapStepsBackward" : {
       "description" : "Tap Shift while switching to step backwards.",
       "type" : "boolean"

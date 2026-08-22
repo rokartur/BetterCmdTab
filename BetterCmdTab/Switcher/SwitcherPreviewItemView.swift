@@ -20,7 +20,9 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     /// Resolved appearance for the current reveal (#74); set in `configure`, read
     /// by render helpers (`applySelection`, title layout) that run outside it.
     private var effective: EffectiveSettings = .defaults
-    private var accentKey: String = NSColor.controlAccentColor.description
+    /// Mirrors `EffectiveSettings.selectionColorKey` so a pooled tile repaints
+    /// when the selection color changes. Also keys the letter memo cache.
+    private var accentKey: String = ""
 
     /// Window whose captured frame this tile shows, or nil for tiles that stay
     /// on their app icon (no real window, or a browser tab that isn't the
@@ -154,18 +156,17 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
     }
 
     private func updateSelectionAppearance() {
-        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let fill: NSColor
-        let border: NSColor
-        if isDark {
-            fill = NSColor.white.withAlphaComponent(0.14)
-            border = NSColor.white.withAlphaComponent(0.50)
-        } else {
-            fill = NSColor.black.withAlphaComponent(0.10)
-            border = NSColor.black.withAlphaComponent(0.55)
+        // Tinted with the selection color (#185); the rim carries most of the signal
+        // here because the thumbnail covers the plate except for its inset margin.
+        let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let plate = Self.selectionPlate(accent, neutral: effective.neutralSelection,
+                                        dark: dark, neutralLightFill: 0.10)
+        // `.cgColor` snapshots a dynamic color against `NSAppearance.current`, not
+        // this view's — and the panel forces its own appearance, so resolve inside it.
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            selectionBackdrop.layer?.backgroundColor = plate.fill.cgColor
+            selectionBackdrop.layer?.borderColor = plate.rim.cgColor
         }
-        selectionBackdrop.layer?.backgroundColor = fill.cgColor
-        selectionBackdrop.layer?.borderColor = border.cgColor
     }
 
     private func updateThumbBackground() {
@@ -219,9 +220,10 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         if faceChanged || metrics != self.metrics {
             applyMetrics(metrics)
         }
-        if self.accent != accent {
+        if accentKey != effective.selectionColorKey {
             self.accent = accent
-            accentKey = accent.description
+            accentKey = effective.selectionColorKey
+            updateSelectionAppearance()
         }
         currentLabel = label
         currentPrefixLength = prefixLength

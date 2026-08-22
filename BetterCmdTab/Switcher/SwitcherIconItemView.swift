@@ -21,6 +21,31 @@ protocol SwitcherItemViewProtocol: NSView {
     func prepareForIdle()
 }
 
+extension SwitcherItemViewProtocol {
+    /// Fill and rim for a tile's selection plate.
+    ///
+    /// Tinted (#185): translucent enough that the panel backdrop still shows
+    /// through, opaque enough to name the color at a glance. One alpha for both
+    /// appearances — the hue carries the signal, and the rim is that hue at full
+    /// strength.
+    ///
+    /// Neutral (`.transparent`): no hue to lean on, so it goes back to luminance,
+    /// and there the alphas are not symmetric because the panel is not — clear
+    /// glass over the light haze lands near black in dark mode but only mid-grey
+    /// in light, so white at 0.14 lifts the plate far more than the same alpha of
+    /// black would sink it (measured on the rendered panel: dark 0.077 → 0.251,
+    /// light 0.396 → 0.277). `neutralLightFill` is heavier for the icon grid,
+    /// where the plate shows around every icon's transparent margin, than for
+    /// window previews, where the thumbnail covers it and the rim does the work.
+    static func selectionPlate(_ color: NSColor, neutral: Bool, dark: Bool,
+                               neutralLightFill: CGFloat) -> (fill: NSColor, rim: NSColor) {
+        guard neutral else { return (color.withAlphaComponent(0.45), color) }
+        return dark
+            ? (NSColor.white.withAlphaComponent(0.14), NSColor.white.withAlphaComponent(0.50))
+            : (NSColor.black.withAlphaComponent(neutralLightFill), NSColor.black.withAlphaComponent(0.55))
+    }
+}
+
 @MainActor
 final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     private let selectionBackdrop = NSView()
@@ -37,10 +62,9 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     /// Resolved appearance for the current reveal (#74); set in `configure`, read
     /// by render helpers (`applySelection`) that run outside it.
     private var effective: EffectiveSettings = .defaults
-    /// Cheap stable token for the current accent, recomputed only when the
-    /// accent changes — used as a memo-cache key instead of re-deriving
-    /// `accent.description` on every letter/symbol render.
-    private var accentKey: String = NSColor.controlAccentColor.description
+    /// Mirrors `EffectiveSettings.selectionColorKey` so a pooled tile repaints
+    /// when the selection color changes. Also keys the letter/symbol memo caches.
+    private var accentKey: String = ""
 
     var isSelected: Bool = false {
         didSet {
@@ -66,6 +90,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
 
         selectionBackdrop.wantsLayer = true
         selectionBackdrop.layer?.cornerCurve = .continuous
+        selectionBackdrop.layer?.borderWidth = 1.5
         selectionBackdrop.isHidden = true
         addSubview(selectionBackdrop)
 
@@ -170,28 +195,28 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     }
 
     private func updateSelectionAppearance() {
-        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        // Fill-only, like the native switcher — no border. The two alphas are not
-        // symmetric because the panel is not: clear glass over the light haze lands
-        // near black in dark mode but only mid-grey in light mode, so white at 0.14
-        // lifts the plate far more than the same alpha of black would sink it.
-        // Measured on the rendered panel: dark 0.077 → 0.251, light 0.396 → 0.277.
-        let fill = isDark
-            ? NSColor.white.withAlphaComponent(0.14)
-            : NSColor.black.withAlphaComponent(0.30)
-        selectionBackdrop.layer?.backgroundColor = fill.cgColor
-        // The fill only reads as selection where it shows *around* the artwork. The
-        // icon canvas overhangs the plate by 4 pt a side and is drawn on top, so the
-        // plate shows through the transparent margin every real app icon carries —
-        // worst case measured across 81 installed apps was 0.875 of the canvas, which
-        // still leaves 4 pt of plate. The hairline is kept before macOS 26 because the
-        // fill alone is weak against the frosted `NSVisualEffectView` backdrop there,
-        // not because a border would survive an icon that really was full-bleed.
-        if #unavailable(macOS 26.0) {
-            selectionBackdrop.layer?.borderWidth = 1.5
-            selectionBackdrop.layer?.borderColor = (isDark
-                ? NSColor.white.withAlphaComponent(0.50)
-                : NSColor.black.withAlphaComponent(0.55)).cgColor
+        // Tinted with the selection color (#185). The plate only reads as selection
+        // where it shows *around* the artwork: the icon canvas overhangs the plate by
+        // 4 pt a side and is drawn on top, so what the eye gets is the transparent
+        // margin every real app icon carries (worst case measured across 81 installed
+        // apps was 0.875 of the canvas, still leaving 4 pt of plate) plus the rim. A
+        // colored rim is what the neutral hairline never was — legible on every
+        // system, not just the pre-macOS 26 frosted backdrop, which is exactly the
+        // "hard to see which one is selected" complaint.
+        let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let plate = Self.selectionPlate(accent, neutral: effective.neutralSelection,
+                                        dark: dark, neutralLightFill: 0.30)
+        // `.cgColor` snapshots a dynamic color against `NSAppearance.current`, not
+        // this view's — and the panel forces its own appearance, so resolve inside it.
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            selectionBackdrop.layer?.backgroundColor = plate.fill.cgColor
+            selectionBackdrop.layer?.borderColor = plate.rim.cgColor
+        }
+        // The neutral hairline only existed to fight the frosted `NSVisualEffectView`
+        // backdrop; Liquid Glass separates the plate on its own, so macOS 26 drops it.
+        // A tinted rim stays on every system — it is the whole point of the tint.
+        if #available(macOS 26.0, *) {
+            selectionBackdrop.layer?.borderWidth = effective.neutralSelection ? 0 : 1.5
         }
     }
 
@@ -230,9 +255,10 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         if faceChanged || metrics != self.metrics {
             applyMetrics(metrics)
         }
-        if self.accent != accent {
+        if accentKey != effective.selectionColorKey {
             self.accent = accent
-            accentKey = accent.description
+            accentKey = effective.selectionColorKey
+            updateSelectionAppearance()
         }
         currentLabel = label
         currentPrefixLength = prefixLength
@@ -472,7 +498,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         let key = SymbolKey(indicator: indicator, pointSize: pointSize, accentKey: accentKey)
         let accentColor = accent
         return Self.symbolCache.value(for: key) {
-            let color = indicator.tint(onAccentFill: false, accent: accentColor)
+            let color = indicator.tint(onFill: nil, accent: accentColor)
             let cfg = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .semibold)
                 .applying(.init(paletteColors: [color]))
             return indicator.makeImage()?.withSymbolConfiguration(cfg)

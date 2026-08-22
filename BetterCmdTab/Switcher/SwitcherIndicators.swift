@@ -80,17 +80,17 @@ enum SwitcherIndicator: CaseIterable {
         NSImage(systemSymbolName: symbolName, accessibilityDescription: accessibilityDescription)
     }
 
-    /// Tint for this indicator. `onAccentFill` is true when the row's selection
-    /// paints an accent-colored background *behind* the glyph (list selection),
-    /// in which case every glyph turns white to stay legible. Grid selection
-    /// uses a neutral translucent backdrop, so it passes false and glyphs keep
-    /// their semantic color in every state.
+    /// Tint for this indicator. `onFill` carries the already-resolved on-plate
+    /// label color when the row's selection paints an opaque background *behind*
+    /// the glyph (list selection), in which case every glyph takes it to stay
+    /// legible. Grid selection uses a translucent backdrop, so it passes nil and
+    /// glyphs keep their semantic color in every state.
     ///
     /// Semantic colors: audio is green (a distinct "making sound" cue),
     /// launch/reopen use the accent (they're actionable, not just status), and
     /// the window-state glyphs are neutral secondary.
-    func tint(onAccentFill: Bool, accent: NSColor) -> NSColor {
-        if onAccentFill { return NSColor.white.withAlphaComponent(0.9) }
+    func tint(onFill: NSColor?, accent: NSColor) -> NSColor {
+        if let onFill { return onFill.withAlphaComponent(0.9) }
         switch self {
         case .audio: return .systemGreen
         case .launch, .reopen: return accent
