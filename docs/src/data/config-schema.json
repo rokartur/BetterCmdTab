@@ -48,6 +48,14 @@
               "When fullscreen"
             ],
             "type" : "string"
+          },
+          "windowTitleContains" : {
+            "description" : "Case-insensitive title fragments. Matching windows are hidden while the app's other windows remain available.",
+            "items" : {
+              "pattern" : ".+",
+              "type" : "string"
+            },
+            "type" : "array"
           }
         },
         "required" : [
