@@ -171,12 +171,18 @@ final class AppsSettingsViewController: SettingsTabViewController {
             icon: placeholderIcon,
             hide: exception.hide,
             ignore: exception.ignore,
+            windowTitleContains: exception.windowTitleContains,
             showOptions: showOptions,
             shortcutOptions: shortcutOptions
         )
         let bundleID = exception.bundleID
-        row.onChange = { [weak self] hide, ignore in
-            self?.updateRule(bundleID: bundleID, hide: hide, ignore: ignore)
+        row.onChange = { [weak self] hide, ignore, windowTitleContains in
+            self?.updateRule(
+                bundleID: bundleID,
+                hide: hide,
+                ignore: ignore,
+                windowTitleContains: windowTitleContains
+            )
         }
         row.onRemove = { [weak self] in
             self?.removeRule(bundleID: bundleID)
@@ -190,10 +196,16 @@ final class AppsSettingsViewController: SettingsTabViewController {
         return row
     }
 
-    private func updateRule(bundleID: String, hide: HideWindowsMode, ignore: IgnoreShortcutsMode) {
+    private func updateRule(
+        bundleID: String,
+        hide: HideWindowsMode,
+        ignore: IgnoreShortcutsMode,
+        windowTitleContains: [String]
+    ) {
         guard let idx = exceptions.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         exceptions[idx].hide = hide
         exceptions[idx].ignore = ignore
+        exceptions[idx].windowTitleContains = AppException.cleanedTitleFragments(windowTitleContains)
         persist()
     }
 

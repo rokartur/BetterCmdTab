@@ -42,8 +42,9 @@ struct ConfigValues: Sendable, ExpressibleByArrayLiteral {
 /// Element schema of an array setting — a scalar (optionally constrained to a
 /// set of values) or an object with typed properties. The stored dictionaries
 /// (`appExceptions`, `scopedShortcutList`, `shortcutOverrides`) are plists of
-/// `[String: String]`, so their *values* are the string forms of the types the
-/// app parses back out — that's what these describe.
+/// property-list dictionaries. Most values are string forms of the types the
+/// app parses back out; `appExceptions.windowTitleContains` is a nested string
+/// array.
 struct ConfigItemSchema: Sendable {
     let type: String
     let values: ConfigValues?
@@ -348,6 +349,9 @@ enum ConfigSchemaDocs {
                     "ignore": ConfigSettingDoc(
                         "string", "Whether the switcher shortcut is passed through to this app instead of opening the panel.",
                         values: ConfigValues(IgnoreShortcutsMode.self, \.displayName)),
+                    "windowTitleContains": ConfigSettingDoc(
+                        "array", "Case-insensitive title fragments. Matching windows are hidden while the app's other windows remain available.",
+                        item: ConfigItemSchema("string", pattern: ".+")),
                 ],
                 required: ["bundleID"])),
         "excludedBundleIDs": ConfigSettingDoc(

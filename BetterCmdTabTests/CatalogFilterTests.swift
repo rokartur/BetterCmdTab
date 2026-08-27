@@ -19,7 +19,7 @@ struct CatalogFilterTests {
         sinkMinimizedWindows: Bool = true
     ) -> CatalogFilter.Config {
         CatalogFilter.Config(
-            hideModes: hideModes, pinned: pinned,
+            hideModes: hideModes, excludedTitleFragments: [:], pinned: pinned,
             showMinimized: showMinimized, showHidden: showHidden, showWindowless: showWindowless,
             spaceScope: spaceScope, sortOrder: sortOrder, sinkHiddenApps: sinkHiddenApps,
             sinkMinimizedWindows: sinkMinimizedWindows)
@@ -74,6 +74,34 @@ struct CatalogFilterTests {
         let cfg = config(hideModes: ["com.x": .dontHide], showMinimized: false)
         #expect(!CatalogFilter.includes(bundleID: "com.x", isPlaceholder: false, isMinimized: true, appHidden: false, cfg))
         #expect(CatalogFilter.includes(bundleID: "com.x", isPlaceholder: false, isMinimized: false, appHidden: false, cfg))
+    }
+
+    @Test("window-title exclusions are app-scoped and case/diacritic insensitive")
+    func windowTitleExclusions() {
+        let app = NSRunningApplication.current
+        let ownBundleID = app.bundleIdentifier ?? ""
+        let rows = [
+            SwitcherRow(app: app, window: AXUIElementCreateSystemWide(), windowTitle: "Picture-in-Picture", isMinimized: false),
+            SwitcherRow(app: app, window: AXUIElementCreateSystemWide(), windowTitle: "RéSUMé — Draft", isMinimized: false),
+            SwitcherRow(app: app, window: AXUIElementCreateSystemWide(), windowTitle: "Main document", isMinimized: false),
+        ]
+        let filtered = CatalogFilter.filterExcludedWindowTitles(
+            rows,
+            [ownBundleID: ["picture-in-picture", "resume"]]
+        )
+        #expect(filtered.map(\.windowTitle) == ["Main document"])
+    }
+
+    @Test("title exclusions preserve windowless rows and other apps")
+    func windowTitleExclusionsStayScoped() {
+        let app = NSRunningApplication.current
+        let ownBundleID = app.bundleIdentifier ?? ""
+        let windowless = SwitcherRow(app: app, window: nil, windowTitle: "", isMinimized: false)
+        let titled = SwitcherRow(app: app, window: AXUIElementCreateSystemWide(), windowTitle: "Inspector", isMinimized: false)
+        #expect(CatalogFilter.filterExcludedWindowTitles([windowless, titled], ["com.other": ["inspector"]]).count == 2)
+        let filtered = CatalogFilter.filterExcludedWindowTitles([windowless, titled], [ownBundleID: ["inspector"]])
+        #expect(filtered.count == 1)
+        #expect(filtered[0].window == nil)
     }
 
     @Test("placeholders are always kept, even when hidden")

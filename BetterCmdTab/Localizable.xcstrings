@@ -410,6 +410,40 @@
         }
       }
     },
+    "Add title fragments…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titelfragmente hinzufügen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir fragmentos de título…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter des fragments de titre…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj fragmenty tytułu…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加标题片段…"
+          }
+        }
+      }
+    },
     "All" : {
       "localizations" : {
         "de" : {
@@ -4594,6 +4628,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隐藏所有应用以显示桌面。全系统生效。"
+          }
+        }
+      }
+    },
+    "Hide only windows whose title contains one of these phrases. Matching ignores capitalization and accents; the app's other windows remain available. Press Return or type a comma after each phrase." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blende nur Fenster aus, deren Titel einen dieser Ausdrücke enthält. Groß-/Kleinschreibung und Akzente werden beim Abgleich ignoriert; andere Fenster der App bleiben verfügbar. Drücke nach jedem Ausdruck die Eingabetaste oder gib ein Komma ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oculta solo las ventanas cuyo título contenga una de estas frases. La coincidencia ignora mayúsculas, minúsculas y acentos; las demás ventanas de la app siguen disponibles. Pulsa Retorno o escribe una coma después de cada frase."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquez uniquement les fenêtres dont le titre contient l’une de ces expressions. La correspondance ignore la casse et les accents ; les autres fenêtres de l’app restent disponibles. Appuyez sur Retour ou saisissez une virgule après chaque expression."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukrywaj tylko okna, których tytuł zawiera jeden z tych zwrotów. Dopasowanie ignoruje wielkość liter i znaki diakrytyczne; pozostałe okna aplikacji nadal są dostępne. Po każdym zwrocie naciśnij Return lub wpisz przecinek."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅隐藏标题中包含任一词组的窗口。匹配时忽略大小写和重音符号；该应用的其他窗口仍可使用。每个词组后按 Return 键或输入逗号。"
+          }
+        }
+      }
+    },
+    "Hide titles containing" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel ausblenden mit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar títulos que contengan"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer les titres contenant"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukryj tytuły zawierające"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏标题包含"
           }
         }
       }

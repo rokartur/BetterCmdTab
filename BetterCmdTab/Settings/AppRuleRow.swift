@@ -11,7 +11,7 @@ final class AppRuleRowView: NSView {
     let bundleID: String
 
     /// Fired after either popup changes, with the row's new modes.
-    var onChange: ((HideWindowsMode, IgnoreShortcutsMode) -> Void)?
+    var onChange: ((HideWindowsMode, IgnoreShortcutsMode, [String]) -> Void)?
     /// Fired when the remove button is clicked.
     var onRemove: (() -> Void)?
 
@@ -19,9 +19,11 @@ final class AppRuleRowView: NSView {
     private let shortcutOptions: [(mode: IgnoreShortcutsMode, title: String)]
     private var hide: HideWindowsMode
     private var ignore: IgnoreShortcutsMode
+    private var windowTitleContains: [String]
 
     private let showPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let shortcutPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let titleTokens = NSTokenField()
     private let iconView = NSImageView()
     private let nameLabel = NSTextField(labelWithString: "")
 
@@ -38,12 +40,14 @@ final class AppRuleRowView: NSView {
         icon: NSImage,
         hide: HideWindowsMode,
         ignore: IgnoreShortcutsMode,
+        windowTitleContains: [String],
         showOptions: [(mode: HideWindowsMode, title: String)],
         shortcutOptions: [(mode: IgnoreShortcutsMode, title: String)]
     ) {
         self.bundleID = bundleID
         self.hide = hide
         self.ignore = ignore
+        self.windowTitleContains = windowTitleContains
         self.showOptions = showOptions
         self.shortcutOptions = shortcutOptions
         super.init(frame: .zero)
@@ -72,6 +76,16 @@ final class AppRuleRowView: NSView {
         configure(shortcutPopup, titles: shortcutOptions.map(\.title), selected: shortcutOptions.firstIndex { $0.mode == ignore } ?? 0, action: #selector(shortcutChanged))
         shortcutPopup.toolTip = String(localized: "Pass ⌘Tab through to the app instead of opening the switcher — for apps with their own window switching (virtual machines, remote desktop, some games).")
 
+        titleTokens.controlSize = .small
+        titleTokens.font = .systemFont(ofSize: 11)
+        titleTokens.placeholderString = String(localized: "Add title fragments…")
+        titleTokens.objectValue = windowTitleContains
+        titleTokens.tokenizingCharacterSet = CharacterSet(charactersIn: ",\n")
+        titleTokens.target = self
+        titleTokens.action = #selector(titleTokensChanged)
+        titleTokens.translatesAutoresizingMaskIntoConstraints = false
+        titleTokens.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         let removeButton = NSButton()
         removeButton.isBordered = false
         removeButton.bezelStyle = .accessoryBarAction
@@ -88,17 +102,26 @@ final class AppRuleRowView: NSView {
         let showGroup = captionedControl(String(localized: "Show"), info: Self.showInfo, showPopup)
         let shortcutGroup = captionedControl("⌘Tab", info: Self.shortcutInfo, shortcutPopup)
 
-        let stack = NSStackView(views: [iconView, nameLabel, NSView(), showGroup, shortcutGroup, removeButton])
-        stack.orientation = .horizontal
-        stack.alignment = .centerY
-        stack.spacing = 10
-        stack.setCustomSpacing(14, after: showGroup)
+        let top = NSStackView(views: [iconView, nameLabel, NSView(), showGroup, shortcutGroup, removeButton])
+        top.orientation = .horizontal
+        top.alignment = .centerY
+        top.spacing = 10
+        top.setCustomSpacing(14, after: showGroup)
+
+        let titleGroup = captionedControl(String(localized: "Hide titles containing"), info: Self.titleInfo, titleTokens)
+        let stack = NSStackView(views: [top, titleGroup])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 6
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
         NSLayoutConstraint.activate([
             iconView.widthAnchor.constraint(equalToConstant: 26),
             iconView.heightAnchor.constraint(equalToConstant: 26),
+            top.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            titleGroup.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            titleTokens.widthAnchor.constraint(greaterThanOrEqualToConstant: 180),
             stack.topAnchor.constraint(equalTo: topAnchor, constant: 3),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -3),
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -144,6 +167,8 @@ final class AppRuleRowView: NSView {
         String(localized: "Controls whether this app shows up in the switcher.\n\n• Always — always listed.\n• With open windows — listed only while it has at least one open window.\n• Never — never listed (hidden from the switcher).")
     private static let shortcutInfo =
         String(localized: "Lets the app keep ⌘Tab for itself: the chord is passed through to the app instead of opening the switcher. Useful for apps with their own window switching — virtual machines, remote desktop, some games.\n\n• Never — the switcher always opens.\n• Always — the app keeps ⌘Tab whenever it's focused.\n• In full screen — only while the app is in full screen.")
+    private static let titleInfo =
+        String(localized: "Hide only windows whose title contains one of these phrases. Matching ignores capitalization and accents; the app's other windows remain available. Press Return or type a comma after each phrase.")
 
     // MARK: - Actions
 
@@ -151,14 +176,30 @@ final class AppRuleRowView: NSView {
         let idx = showPopup.indexOfSelectedItem
         guard showOptions.indices.contains(idx) else { return }
         hide = showOptions[idx].mode
-        onChange?(hide, ignore)
+        notifyChange()
     }
 
     @objc private func shortcutChanged() {
         let idx = shortcutPopup.indexOfSelectedItem
         guard shortcutOptions.indices.contains(idx) else { return }
         ignore = shortcutOptions[idx].mode
-        onChange?(hide, ignore)
+        notifyChange()
+    }
+
+    @objc private func titleTokensChanged() {
+        let raw: [String]
+        if let tokens = titleTokens.objectValue as? [String] {
+            raw = tokens
+        } else {
+            raw = titleTokens.stringValue.components(separatedBy: titleTokens.tokenizingCharacterSet)
+        }
+        windowTitleContains = AppException.cleanedTitleFragments(raw)
+        titleTokens.objectValue = windowTitleContains
+        notifyChange()
+    }
+
+    private func notifyChange() {
+        onChange?(hide, ignore, windowTitleContains)
     }
 
     @objc private func removeClicked() {
