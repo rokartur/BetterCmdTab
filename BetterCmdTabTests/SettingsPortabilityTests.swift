@@ -846,6 +846,9 @@ struct SettingsPortabilityTests {
         #expect(rule["additionalProperties"] as? Bool == false)
         #expect(ruleProperties["hide"]?["enum"] as? [String] == HideWindowsMode.allCases.map(\.rawValue))
         #expect(ruleProperties["ignore"]?["enum"] as? [String] == IgnoreShortcutsMode.allCases.map(\.rawValue))
+        let titleFragments = try #require(ruleProperties["windowTitleContains"])
+        #expect(titleFragments["type"] as? String == "array")
+        #expect((titleFragments["items"] as? [String: Any])?["type"] as? String == "string")
 
         // Overrides are a plist [String: String]: every value is the *string*
         // form of the global setting, and unknown keys are carried through.

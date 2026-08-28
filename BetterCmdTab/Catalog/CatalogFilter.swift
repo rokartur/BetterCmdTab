@@ -16,6 +16,9 @@ enum CatalogFilter {
         /// hide something are stored — a `.dontHide` exception is neutral and
         /// omitted, so an absent key means "apply the global toggles".
         let hideModes: [String: HideWindowsMode]
+        /// Pre-folded, non-empty title fragments keyed by bundle ID. Empty for
+        /// the common case, keeping the row-filter hot path allocation-free.
+        let excludedTitleFragments: [String: [String]]
         let pinned: [String]
         let showMinimized: Bool
         let showHidden: Bool
@@ -35,23 +38,28 @@ enum CatalogFilter {
 
         /// No filtering and no reordering — lets callers skip work entirely.
         var isIdentity: Bool {
-            hideModes.isEmpty && pinned.isEmpty && showMinimized && showHidden && showWindowless && spaceScope == .allSpaces && sortOrder == .mru
+            hideModes.isEmpty && excludedTitleFragments.isEmpty && pinned.isEmpty && showMinimized && showHidden && showWindowless && spaceScope == .allSpaces && sortOrder == .mru
         }
     }
 
     nonisolated static func config() -> Config {
         let defaults = UserDefaults.standard
         var hideModes: [String: HideWindowsMode] = [:]
-        if let raw = defaults.array(forKey: Preferences.Keys.appExceptions) as? [[String: String]] {
+        var excludedTitleFragments: [String: [String]] = [:]
+        if let raw = defaults.array(forKey: Preferences.Keys.appExceptions) as? [[String: Any]] {
             for entry in raw {
-                guard let bid = entry["bundleID"], !bid.isEmpty else { continue }
-                let mode = entry["hide"].flatMap(HideWindowsMode.init) ?? .dontHide
+                guard let bid = entry["bundleID"] as? String, !bid.isEmpty else { continue }
+                let mode = (entry["hide"] as? String).flatMap(HideWindowsMode.init) ?? .dontHide
                 if mode != .dontHide { hideModes[bid] = mode }
+                let fragments = AppException.cleanedTitleFragments(entry["windowTitleContains"] as? [String] ?? [])
+                    .map { $0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil) }
+                if !fragments.isEmpty { excludedTitleFragments[bid] = fragments }
             }
         }
         let sortRaw = defaults.string(forKey: Preferences.Keys.sortOrder)
         return Config(
             hideModes: hideModes,
+            excludedTitleFragments: excludedTitleFragments,
             pinned: defaults.stringArray(forKey: Preferences.Keys.pinnedBundleIDs) ?? [],
             showMinimized: defaults.object(forKey: Preferences.Keys.showMinimizedWindows) as? Bool ?? true,
             showHidden: defaults.object(forKey: Preferences.Keys.showHiddenApps) as? Bool ?? true,
@@ -71,6 +79,7 @@ enum CatalogFilter {
     static func overlay(_ base: Config, _ ov: ShortcutOverride) -> Config {
         Config(
             hideModes: base.hideModes,
+            excludedTitleFragments: base.excludedTitleFragments,
             pinned: base.pinned,
             showMinimized: ov.showMinimized ?? base.showMinimized,
             showHidden: ov.showHidden ?? base.showHidden,
@@ -106,11 +115,12 @@ enum CatalogFilter {
         // never-shown helper windows the user can't reach (not a preference), so
         // they're removed even under an identity config that skips the rest.
         let phantomFiltered = filterPhantomWindows(rows, spaces)
-        if cfg.isIdentity { return phantomFiltered }
+        let titleFiltered = filterExcludedWindowTitles(phantomFiltered, cfg.excludedTitleFragments)
+        if cfg.isIdentity { return titleFiltered }
         // Flags rather than a filter: a rescued row has to slot back in at its
         // original index so MRU order survives. Only reached on a non-identity
         // config — the default reveal returned above.
-        var kept = phantomFiltered.map {
+        var kept = titleFiltered.map {
             includes(bundleID: $0.bundleIdentifier, isPlaceholder: $0.isPlaceholder, isMinimized: $0.isMinimized, appHidden: $0.isHidden, hasWindow: $0.window != nil, cfg)
         }
         // An app can lose *every* row to the minimized/hidden window drops while
@@ -121,16 +131,16 @@ enum CatalogFilter {
         // unreachable (#168). Re-admit one row per stranded app.
         if cfg.showWindowless, !cfg.showMinimized || !cfg.showHidden {
             for index in strandedAppIndices(
-                pids: phantomFiltered.map(\.pid),
+                pids: titleFiltered.map(\.pid),
                 kept: kept,
-                rescuable: phantomFiltered.map {
+                rescuable: titleFiltered.map {
                     admittedByAppRules(bundleID: $0.bundleIdentifier, hasWindow: $0.window != nil, cfg)
                 }
             ) {
                 kept[index] = true
             }
         }
-        var filtered = phantomFiltered.indices.compactMap { kept[$0] ? phantomFiltered[$0] : nil }
+        var filtered = titleFiltered.indices.compactMap { kept[$0] ? titleFiltered[$0] : nil }
         if cfg.sortOrder != .mru {
             filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.appName }, pid: { $0.pid })
         }
@@ -139,6 +149,25 @@ enum CatalogFilter {
             filtered = filterToAllowedSpaces(filtered, spaces)
         }
         return filtered
+    }
+
+    /// Apply app-scoped, case/diacritic-insensitive title exclusions. The
+    /// dictionary is empty for users without rules, so the common path returns
+    /// the original array without inspecting or folding any title.
+    static func filterExcludedWindowTitles(
+        _ rows: [SwitcherRow],
+        _ fragmentsByBundleID: [String: [String]]
+    ) -> [SwitcherRow] {
+        guard !fragmentsByBundleID.isEmpty else { return rows }
+        return rows.filter { row in
+            guard row.window != nil,
+                  !row.windowTitle.isEmpty,
+                  let bundleID = row.bundleIdentifier,
+                  let fragments = fragmentsByBundleID[bundleID],
+                  !fragments.isEmpty else { return true }
+            let title = row.windowTitle.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            return !fragments.contains { title.contains($0) }
+        }
     }
 
     /// Whether this reveal needs any WindowServer Space resolution. A narrowing

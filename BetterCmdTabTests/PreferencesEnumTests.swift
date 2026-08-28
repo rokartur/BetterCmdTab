@@ -285,12 +285,24 @@ struct PreferencesEnumTests {
 
     @Test("AppException round-trips through its stored dictionary")
     func appExceptionDictionary() {
-        let original = AppException(bundleID: "com.x", hide: .whenNoWindows, ignore: .whenFullscreen)
+        let original = AppException(
+            bundleID: "com.x",
+            hide: .whenNoWindows,
+            ignore: .whenFullscreen,
+            windowTitleContains: ["Picture-in-Picture", " Inspector ", "picture-in-picture"]
+        )
+        #expect(original.windowTitleContains == ["Picture-in-Picture", "Inspector"])
         #expect(AppException(dictionary: original.dictionary) == original)
 
         // Missing modes fall back to the neutral defaults.
         let partial = AppException(dictionary: ["bundleID": "com.y"])
         #expect(partial == AppException(bundleID: "com.y", hide: .dontHide, ignore: .never))
+
+        let malformedTitles = AppException(dictionary: [
+            "bundleID": "com.z",
+            "windowTitleContains": ["", "   ", "Résumé", "resume"],
+        ])
+        #expect(malformedTitles?.windowTitleContains == ["Résumé"])
 
         // No bundle ID → no exception.
         #expect(AppException(dictionary: ["hide": "always"]) == nil)
