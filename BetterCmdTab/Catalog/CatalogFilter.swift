@@ -357,6 +357,19 @@ enum CatalogFilter {
         guard !spaces.allowedSpaces.isEmpty, !spaces.spaceByWindow.isEmpty else { return rows }
         var dropOffsets = Set<Int>()
         for (offset, row) in rows.enumerated() where row.cgWindowID != 0 {
+            // A confirmed-spaceless NSWindow has no desktop membership at all.
+            // Native AppKit background tabs have exactly this shape while
+            // tabbed away. Under a narrowed Space scope, never let an ordinary
+            // spaceless row leak into the switcher: activating it can cause
+            // macOS to materialize it on the currently visible Space.
+            //
+            // Explicit expanded-tab rows remain eligible because the user asked
+            // to surface native tabs individually.
+            if spaces.confirmedSpaceless.contains(row.cgWindowID), !row.isTabSibling {
+                dropOffsets.insert(offset)
+                continue
+            }
+
             if let space = spaces.spaceByWindow[row.cgWindowID], !spaces.allowedSpaces.contains(space) {
                 dropOffsets.insert(offset)
             }
