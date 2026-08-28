@@ -716,6 +716,32 @@ final class SwitcherController: SwitcherViewDelegate {
         // recomputed on every binding/layout change) into RowLabels so hint
         // generation never assigns a letter that's bound to an action.
         hotkey.onReservedLettersChanged = { letters in RowLabels.setReserved(letters) }
+        // Persistent mappings affect only the open panel. Mirror them into the
+        // label generator and rebuild live if config-file sync changes them.
+        RowLabels.setCustomMappings(Preferences.shared.quickJumpLettersByBundleID)
+        RowLabels.setExcludedBundleIDs(Set(Preferences.shared.letterHintExcludedBundleIDs))
+        Preferences.shared.$quickJumpMappings
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] mappings in
+                RowLabels.setCustomMappings(
+                    Dictionary(uniqueKeysWithValues: mappings.map { ($0.bundleID, $0.letter) })
+                )
+                guard let self, self.phase == .visible else { return }
+                self.baseLabels = RowLabels.labels(for: self.baseRows)
+                self.refreshDisplay()
+            }
+            .store(in: &cancellables)
+        // Same live-mirror path for the letter-hint exclusion list: apply on
+        // change and rebuild the open panel so a settings edit lands at once.
+        Preferences.shared.$letterHintExcludedBundleIDs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] ids in
+                RowLabels.setExcludedBundleIDs(Set(ids))
+                guard let self, self.phase == .visible else { return }
+                self.baseLabels = RowLabels.labels(for: self.baseRows)
+                self.refreshDisplay()
+            }
+            .store(in: &cancellables)
         // The tap reported a re-enable storm (it keeps getting disabled — most
         // often because Accessibility was revoked under an active session tap).
         // Recover on main so the spinning tap thread can't keep freezing the
@@ -2004,6 +2030,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // profile's keys instead of the last shortcut's. Change-guarded.
                 activeTarget = .switchApps
                 pushPanelKeyBindings()
+                hotkey.setActiveQuickJumpLetters([])
                 // Bound the post-SEI force-close window to the panel that was open
                 // across the flap, so a fresh panel opened later isn't force-closed
                 // by a stale stamp (issue #16). A continuing flap re-stamps anyway.
@@ -5728,6 +5755,8 @@ final class SwitcherController: SwitcherViewDelegate {
             }
         }
 
+        syncActiveQuickJumpLetters()
+
         if resetSelectionToTop {
             index = 0
         } else if let selectedRow,
@@ -5754,6 +5783,26 @@ final class SwitcherController: SwitcherViewDelegate {
             tabStripSelectedIndex: tabIndex
         )
         panel.present(opacity: effective.panelOpacity)
+    }
+
+    /// Publish only custom letters that are exact, reachable labels in the
+    /// current panel. This is the narrow condition under which HotkeyTap lets a
+    /// mapping override a same-key in-panel action such as W = Close.
+    private func syncActiveQuickJumpLetters() {
+        guard effective.letterHintsEnabled, !searchActive else {
+            hotkey.setActiveQuickJumpLetters([])
+            return
+        }
+        let mappings = Preferences.shared.quickJumpLettersByBundleID
+        var active = Set<Character>()
+        for (row, label) in zip(rows, labels) {
+            guard label.count == 1,
+                  let bundleID = row.bundleIdentifier,
+                  let mapped = mappings[bundleID],
+                  label.first == mapped else { continue }
+            active.insert(mapped)
+        }
+        hotkey.setActiveQuickJumpLetters(active)
     }
 
     // MARK: - Fuzzy search

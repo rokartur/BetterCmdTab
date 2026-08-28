@@ -847,6 +847,12 @@ struct SettingsPortabilityTests {
         #expect(ruleProperties["hide"]?["enum"] as? [String] == HideWindowsMode.allCases.map(\.rawValue))
         #expect(ruleProperties["ignore"]?["enum"] as? [String] == IgnoreShortcutsMode.allCases.map(\.rawValue))
 
+        let mapping = try #require(properties["quickJumpMappings"]?["items"] as? [String: Any])
+        let mappingProperties = try #require(mapping["properties"] as? [String: [String: Any]])
+        #expect(mapping["required"] as? [String] == ["bundleID", "letter"])
+        #expect(mapping["additionalProperties"] as? Bool == false)
+        #expect(mappingProperties["letter"]?["pattern"] as? String == "^[a-z]$")
+
         // Overrides are a plist [String: String]: every value is the *string*
         // form of the global setting, and unknown keys are carried through.
         let override = try #require(properties["shortcutOverrides"]?["items"] as? [String: Any])

@@ -116,6 +116,7 @@ enum SearchID {
     static let titleRefreshInterval = "switcher.titleRefreshInterval"
     // Controls
     static let letterHints = "switcher.letterHints"
+    static let quickJumpMappings = "switcher.quickJumpMappings"
     static let letterChainTimeout = "switcher.letterChainTimeout"
     static let fuzzy = "switcher.fuzzy"
     static let rankResults = "switcher.rankResults"
@@ -401,6 +402,8 @@ enum SettingsCatalog {
         // Controls · Letter jump
         item(SearchID.letterHints, .controls, SettingsAnchor.letterJump, String(localized: "Controls"), String(localized: "Letter jump"),
              String(localized: "Letter hints"), ["letter hints", "jump", "vim", "quick jump"]),
+        item(SearchID.quickJumpMappings, .controls, SettingsAnchor.letterJump, String(localized: "Controls"), String(localized: "Letter jump"),
+             String(localized: "Custom app mappings"), ["letter", "mapping", "custom", "quick jump", "app", "skip", "exclude", "no letter", "hint"]),
         item(SearchID.letterChainTimeout, .controls, SettingsAnchor.letterJump, String(localized: "Controls"), String(localized: "Letter jump"),
              String(localized: "Letter chain timeout"), ["letter", "chain", "timeout", "reset", "jump", "delay", "prefix", "sequence", "expire"]),
         // Controls · Search

@@ -103,6 +103,18 @@ struct HotkeyTapVimNavigationTests {
         #expect(on.isSuperset(of: HotkeyTap.vimNavigationLetters))
     }
 
+    @Test func visibleCustomQuickJumpWinsOnlyWithoutOptionOrControl() {
+        let active: Set<Character> = ["w"]
+        #expect(HotkeyTap.prioritizedQuickJumpLetter(
+            for: "W", activeLetters: active, optionHeld: false, controlHeld: false) == "w")
+        #expect(HotkeyTap.prioritizedQuickJumpLetter(
+            for: "w", activeLetters: active, optionHeld: true, controlHeld: false) == nil)
+        #expect(HotkeyTap.prioritizedQuickJumpLetter(
+            for: "w", activeLetters: active, optionHeld: false, controlHeld: true) == nil)
+        #expect(HotkeyTap.prioritizedQuickJumpLetter(
+            for: "s", activeLetters: active, optionHeld: false, controlHeld: false) == nil)
+    }
+
     /// Hide rebound off `h` (e.g. to `x`): vim must still reserve every one of
     /// h/j/k/l, so none of them can leak out as a letter-jump hint.
     @Test func reservedSetReservesAllVimLettersEvenWhenHideRebound() {
