@@ -28,10 +28,27 @@
             "value" : "Ustawienia BetterCmdTab"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки BetterCmdTab"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "BetterCmdTab 设置"
+          }
+        }
+      }
+    },
+    "BetterCmdTab enumerates and switches tabs in browsers (Safari, Chrome, Arc, Brave, Edge, Vivaldi) when you drill into a row." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BetterCmdTab получает список вкладок и переключается между ними в браузерах (Safari, Chrome, Arc, Brave, Edge и Vivaldi), когда вы открываете список окон и вкладок."
           }
         }
       }

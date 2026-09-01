@@ -27,6 +27,12 @@
             "value" : " Dodaj aplikację…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " Добавить приложение…"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -59,6 +65,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "100% odpowiada rozmiarowi przełącznika macOS — na każdym ekranie."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На 100% соответствует размеру переключателя macOS на любом дисплее."
           }
         },
         "zh-Hans" : {
@@ -95,6 +107,12 @@
             "value" : "Stuknięcie, gdy wybierasz aplikację. Tylko gładziki Force Touch."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажатие при выборе приложения. Только для трекпадов с поддержкой Force Touch."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -129,6 +147,12 @@
             "value" : "Informacje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "О программе"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -161,6 +185,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dostęp do Dostępności"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешение на универсальный доступ"
           }
         },
         "zh-Hans" : {
@@ -198,6 +228,12 @@
             "value" : "Wyłączono dostęp do funkcji Dostępność"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешение на универсальный доступ отключено"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -230,6 +266,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przyciski akcji po najechaniu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кнопки действий при наведении"
           }
         },
         "zh-Hans" : {
@@ -266,6 +308,12 @@
             "value" : "Klawisze akcji podczas przełączania"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Клавиши действий во время переключения"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -298,6 +346,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aktywuj aplikację"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активировать приложение"
           }
         },
         "zh-Hans" : {
@@ -334,6 +388,12 @@
             "value" : "Dodaj"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -366,6 +426,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dodaj aplikację"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить приложение"
           }
         },
         "zh-Hans" : {
@@ -402,6 +468,12 @@
             "value" : "Dodaj skrót"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить сочетание клавиш"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -434,6 +506,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wszystkie"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все"
           }
         },
         "zh-Hans" : {
@@ -470,6 +548,12 @@
             "value" : "Wszystkie biurka"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все рабочие столы"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -502,6 +586,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "„Wszystkie biurka” pokazuje wszystko; „Bieżące biurko” tylko biurko, które właśnie widzisz; „Widoczne biurka” to, co widać na wszystkich monitorach."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все рабочие столы показывают всё; Текущий рабочий стол — только тот, который вы просматриваете; Видимые рабочие столы — то, что отображается на экране на всех ваших дисплеях."
           }
         },
         "zh-Hans" : {
@@ -538,6 +628,12 @@
             "value" : "Wszystkie okna"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все окна"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -570,6 +666,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alfabetycznie"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По алфавиту"
           }
         },
         "zh-Hans" : {
@@ -606,6 +708,12 @@
             "value" : "Pokazuj też pasujące aplikacje, które nie są jeszcze uruchomione."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать также приложения, которые ещё не запущены."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -638,6 +746,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pozostaw otwarte także po szybkim naciśnięciu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставаться открытым после быстрого нажатия"
           }
         },
         "zh-Hans" : {
@@ -674,6 +788,12 @@
             "value" : "Zawsze"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всегда"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -706,6 +826,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Animacje"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Анимации"
           }
         },
         "zh-Hans" : {
@@ -742,6 +868,12 @@
             "value" : "Reguły aplikacji"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Правила для приложений"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -774,6 +906,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wygląd"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оформление"
           }
         },
         "zh-Hans" : {
@@ -810,6 +948,12 @@
             "value" : "Tylko aplikacje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только приложения"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -842,6 +986,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dotyczy układów Siatka i Podglądy."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применяется к макетам «Сетка» и «Предпросмотр»."
           }
         },
         "zh-Hans" : {
@@ -878,6 +1028,12 @@
             "value" : "Aplikacje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложения"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -910,6 +1066,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Widoczne aplikacje: %lld."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видимые приложения: %lld."
           }
         },
         "zh-Hans" : {
@@ -946,6 +1108,12 @@
             "value" : "Rozmieść aktywne okno"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расположить активное окно"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -978,6 +1146,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rozmieść okno"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расположить окно"
           }
         },
         "zh-Hans" : {
@@ -1014,6 +1188,12 @@
             "value" : "Najwyżej tyle wpisów kart na okno przeglądarki (2–16), z zachowaniem widocznej aktywnej karty. Ustaw 0, aby pokazywać wszystkie karty."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Максимальное количество записей вкладок в окне браузера (2–16), при этом активная вкладка всегда видна. Установите 0, чтобы показывать все вкладки."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1046,6 +1226,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Авто"
           }
         },
         "zh-Hans" : {
@@ -1082,6 +1268,12 @@
             "value" : "Automatycznie"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1114,6 +1306,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wymagany dostęp Automatyzacji"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется разрешение на автоматизацию"
           }
         },
         "zh-Hans" : {
@@ -1150,6 +1348,12 @@
             "value" : "Materiał tła"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Материал фона"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1182,6 +1386,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kopia zapasowa"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Резервная копия"
           }
         },
         "zh-Hans" : {
@@ -1218,6 +1428,12 @@
             "value" : "Dodaje do favikony każdego wpisu karty ikonę aplikacji przeglądarki źródłowej, aby było widać, do której przeglądarki należy karta, gdy ta sama strona jest otwarta w kilku."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавлять значок исходного браузера к значку каждой вкладки, чтобы можно было определить, какому браузеру принадлежит вкладка, если один и тот же сайт открыт в нескольких браузерах."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1252,6 +1468,12 @@
             "value" : "Początek"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Начало"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1284,6 +1506,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zachowanie"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поведение"
           }
         },
         "zh-Hans" : {
@@ -1321,6 +1549,12 @@
             "value" : "BetterCmdTab potrzebuje uprawnienia Dostępności, aby obsługiwać ⌘Tab. Włącz je ponownie w Ustawieniach systemowych, a przełącznik uaktywni się automatycznie."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BetterCmdTab требуется разрешение на Универсальный доступ для обработки ⌘Tab. Снова включите его в Системных настройках, и переключатель активируется автоматически."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1353,6 +1587,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niebieski"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Синий"
           }
         },
         "zh-Hans" : {
@@ -1389,6 +1629,12 @@
             "value" : "Pogrubiaj wybrany tytuł"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Жирный выделенный заголовок"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1421,6 +1667,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przywróć wszystkie ukryte aplikacje."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуть все скрытые приложения."
           }
         },
         "zh-Hans" : {
@@ -1457,6 +1709,12 @@
             "value" : "Dostęp do kart przeglądarki"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к вкладкам браузера"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1491,6 +1749,12 @@
             "value" : "Dostęp do kart przeglądarki działa"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к вкладкам браузера работает"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1523,6 +1787,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Podglądy kart przeglądarki"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предпросмотр вкладок браузера"
           }
         },
         "zh-Hans" : {
@@ -1560,6 +1830,12 @@
             "value" : "Karty przeglądarki"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладки браузеров"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1594,6 +1870,12 @@
             "value" : "Ile kart przeglądarki pokazywać"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладки браузера для отображения"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1626,6 +1908,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przeglądarki potrzebują zgody Apple Events, aby wyświetlić listę swoich kart. Kliknij, aby sprawdzić każdą uruchomioną przeglądarkę (Safari, Chrome, Arc, Brave, Edge…) — macOS poprosi o zgodę tam, gdzie jej jeszcze brakuje. Trzeba to zrobić przy otwartym tym oknie."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для получения списка вкладок браузерам требуется разрешение на Apple Events. Нажмите, чтобы проверить каждый запущенный браузер (Safari, Chrome, Arc, Brave, Edge…) — macOS запросит разрешение там, где оно ещё не предоставлено. Это действие необходимо выполнить при открытом окне настроек."
           }
         },
         "zh-Hans" : {
@@ -1663,6 +1951,12 @@
             "value" : "Przeglądarki potrzebują zgody Apple Events, aby wyświetlić listę swoich kart. Kliknij, aby poprosić o nią każdą uruchomioną przeglądarkę (Safari, Chrome, Arc, Brave, Edge…). Trzeba to zrobić przy otwartym tym oknie."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для получения списка вкладок браузерам требуется разрешение на Apple Events. Нажмите, чтобы запросить разрешение для каждого запущенного браузера (Safari, Chrome, Arc, Brave, Edge…). Это действие необходимо выполнить при открытом окне настроек."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1695,6 +1989,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anuluj"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмена"
           }
         },
         "zh-Hans" : {
@@ -1731,6 +2031,12 @@
             "value" : "Przechwytuje aktywną kartę przeglądarki dla układu Podglądy. Karty w tle używają wcześniejszego obrazu z pamięci podręcznej lub swojej favicony."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Захватить активную вкладку браузера для макета предпросмотра. Фоновые вкладки используют ранее закэшированное изображение или их значок."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1763,6 +2069,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyśrodkuj"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По центру"
           }
         },
         "zh-Hans" : {
@@ -1799,6 +2111,12 @@
             "value" : "Sprawdź dostęp…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить доступ…"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1831,6 +2149,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sprawdź dostępność uaktualnień"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить обновления"
           }
         },
         "zh-Hans" : {
@@ -1867,6 +2191,12 @@
             "value" : "Sprawdzaj aktualizacje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить обновления"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1899,6 +2229,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaznaczone"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверено"
           }
         },
         "zh-Hans" : {
@@ -1935,6 +2271,12 @@
             "value" : "Sprawdzanie…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверка…"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1967,6 +2309,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать"
           }
         },
         "zh-Hans" : {
@@ -2003,6 +2351,12 @@
             "value" : "Wybierz własny dźwięk…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать пользовательский звук…"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2035,6 +2389,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz aplikację, dla której chcesz ustawić reguły przełącznika."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите приложение, для которого нужно настроить правила переключения."
           }
         },
         "zh-Hans" : {
@@ -2071,6 +2431,12 @@
             "value" : "Wybierz aplikację, którą ten skrót aktywuje."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите приложение, которое будет активировать это сочетание клавиш."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2103,6 +2469,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz, które aplikacje pojawiają się w przełączniku, i pozwól niektórym aplikacjom zachować ⌘Tab dla siebie."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите приложения, которые будут отображаться в переключателе, и разрешите некоторым из них использовать ⌘Tab самостоятельно."
           }
         },
         "zh-Hans" : {
@@ -2139,6 +2511,12 @@
             "value" : "Wybierz, na którym ekranie ma się otwierać przełącznik, gdy masz więcej niż jeden ekran."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите монитор, на котором открывается переключатель, если у вас подключено несколько дисплеев."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2171,6 +2549,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать…"
           }
         },
         "zh-Hans" : {
@@ -2207,6 +2591,12 @@
             "value" : "Wybrane aplikacje pozostają widoczne po uruchomieniu „Ukryj wszystkie okna”."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранные приложения остаются видимыми при вызове команды «Скрыть все окна»."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2239,6 +2629,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyczyść"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить"
           }
         },
         "zh-Hans" : {
@@ -2275,6 +2671,12 @@
             "value" : "Kliknij wiersz, aby przełączyć się na to okno. Wyłączone ignoruje kliknięcia w przełączniku, więc mysz nie może wybrać okna — pasek kart i akcje po najechaniu nadal działają."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите строку, чтобы переключиться на соответствующее окно. Если параметр выключен, щелчки внутри переключателя игнорируются и мышь не может выбрать окно — панель вкладок и действия при наведении продолжат работать."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2307,6 +2709,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kliknij w dowolnym miejscu poza przełącznikiem, aby go zamknąć, pozostawiając aktywne bieżące okno."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите в любом месте за пределами переключателя, чтобы закрыть его, оставив текущее окно активным."
           }
         },
         "zh-Hans" : {
@@ -2343,6 +2751,12 @@
             "value" : "Kliknij na zewnątrz, aby zamknąć"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите вне области, чтобы закрыть"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2375,6 +2789,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kliknij, aby skopiować informacje o wersji"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите, чтобы скопировать информацию о версии"
           }
         },
         "zh-Hans" : {
@@ -2411,6 +2831,12 @@
             "value" : "Zamknij okno"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть окно"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2443,6 +2869,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kolor podświetlenia wokół zaznaczonego okna i liter szybkiego skoku. Domyślnie zgodny z kolorem akcentu macOS."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цвет рамки вокруг выбранного окна и букв быстрого перехода. По умолчанию соответствует акцентному цвету macOS."
           }
         },
         "zh-Hans" : {
@@ -2479,6 +2911,12 @@
             "value" : "Plik konfiguracyjny"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Файл конфигурации"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2511,6 +2949,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zawartość"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Содержимое"
           }
         },
         "zh-Hans" : {
@@ -2548,6 +2992,12 @@
             "value" : "Sterowanie"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управление"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2580,6 +3030,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Określa, czy ten program pojawia się w przełączniku.\n\n• Zawsze — zawsze na liście.\n• Z otwartymi oknami — na liście tylko wtedy, gdy ma co najmniej jedno otwarte okno.\n• Nigdy — nigdy na liście (ukryty w przełączniku)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Определяет, отображается ли это приложение в переключателе.\n\n• Всегда — всегда отображается в списке.\n• При наличии открытых окон — отображается, только если открыто хотя бы одно окно.\n• Никогда — не отображается в переключателе."
           }
         },
         "zh-Hans" : {
@@ -2616,6 +3072,12 @@
             "value" : "Promień zaokrąglenia narożników"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Радиус скругления углов"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2648,6 +3110,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się utworzyć pliku konfiguracyjnego"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось создать файл конфигурации"
           }
         },
         "zh-Hans" : {
@@ -2684,6 +3152,12 @@
             "value" : "Nie udało się wyeksportować ustawień"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось экспортировать настройки"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2716,6 +3190,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie udało się zaimportować ustawień"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось импортировать настройки"
           }
         },
         "zh-Hans" : {
@@ -2752,6 +3232,12 @@
             "value" : "Utwórz…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создать…"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2784,6 +3270,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bieżące biurko"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текущий рабочий стол"
           }
         },
         "zh-Hans" : {
@@ -2820,6 +3312,12 @@
             "value" : "Okna bieżącej aplikacji"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Окна текущего приложения"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2852,6 +3350,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Własne"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пользовательский"
           }
         },
         "zh-Hans" : {
@@ -2888,6 +3392,12 @@
             "value" : "Własny: %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пользовательский: %@"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2920,6 +3430,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Własny…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пользовательский…"
           }
         },
         "zh-Hans" : {
@@ -2956,6 +3472,12 @@
             "value" : "Przełączaj szerokości kafelków"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Циклическое изменение ширины плиток"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2990,6 +3512,12 @@
             "value" : "Ciemny"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тёмное"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3022,6 +3550,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Domyślny"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По умолчанию"
           }
         },
         "zh-Hans" : {
@@ -3059,6 +3593,12 @@
             "value" : "Ustawienia domyślne każdego skrótu"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Значения по умолчанию для каждого сочетания клавиш"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3091,6 +3631,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bezpośrednia aktywacja"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прямая активация"
           }
         },
         "zh-Hans" : {
@@ -3127,6 +3673,12 @@
             "value" : "Bezpośrednia aktywacja %lld"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прямая активация %lld"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3159,6 +3711,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie ukrywaj"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не скрывать"
           }
         },
         "zh-Hans" : {
@@ -3195,6 +3753,12 @@
             "value" : "Nie zaglądaj do moich okien"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не учитывать мои окна"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3227,6 +3791,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gotowe"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
           }
         },
         "zh-Hans" : {
@@ -3263,6 +3833,12 @@
             "value" : "Pobieranie %d%%"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загрузка %d%%"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3295,6 +3871,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przeciągnij, aby zmienić kolejność"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перетащите для изменения порядка"
           }
         },
         "zh-Hans" : {
@@ -3331,6 +3913,12 @@
             "value" : "Położenie wielokropka"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Положение многоточия"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3363,6 +3951,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Koniec"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Конец"
           }
         },
         "zh-Hans" : {
@@ -3399,6 +3993,12 @@
             "value" : "Rozwijaj karty przeglądarki jako okna"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Раскрывать вкладки браузера как окна"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3431,6 +4031,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eksportuj"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспортировать"
           }
         },
         "zh-Hans" : {
@@ -3467,6 +4073,12 @@
             "value" : "Eksportuj ustawienia"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспортировать настройки"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3499,6 +4111,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eksportuj ustawienia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспортировать настройки"
           }
         },
         "zh-Hans" : {
@@ -3535,6 +4153,12 @@
             "value" : "Eksportuj…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспортировать…"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3567,6 +4191,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bardzo duży"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очень крупный"
           }
         },
         "zh-Hans" : {
@@ -3603,6 +4233,12 @@
             "value" : "Bardzo mały"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очень мелкий"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3635,6 +4271,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szybsze przełączanie okien w systemie macOS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ускоренное переключение окон в macOS"
           }
         },
         "zh-Hans" : {
@@ -3671,6 +4313,12 @@
             "value" : "Reakcje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обратная связь"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3703,6 +4351,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czcionka"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шрифт"
           }
         },
         "zh-Hans" : {
@@ -3739,6 +4393,12 @@
             "value" : "Wymuś zakończenie aplikacji"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершить приложение принудительно"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3771,6 +4431,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pełny dostęp do dysku"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Полный доступ к диску"
           }
         },
         "zh-Hans" : {
@@ -3807,6 +4473,12 @@
             "value" : "Pełny ekran"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Полноэкранный режим"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3839,6 +4511,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pełny ekran"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Полноэкранный"
           }
         },
         "zh-Hans" : {
@@ -3875,6 +4553,12 @@
             "value" : "Okno na pełnym ekranie"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Окно в полноэкранном режиме"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3907,6 +4591,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ogólne"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основные"
           }
         },
         "zh-Hans" : {
@@ -3943,6 +4633,12 @@
             "value" : "Otrzymuj kompilacje przedpremierowe wcześniej. Mogą być niestabilne."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Получайте предварительные сборки раньше. Они могут быть нестабильными."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3975,6 +4671,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przypisz skrót do jednej aplikacji — aktywuje on tę aplikację, otwierając ją najpierw, jeśli to konieczne."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Назначьте сочетание клавиш одному приложению: оно активирует приложение, предварительно запустив его при необходимости."
           }
         },
         "zh-Hans" : {
@@ -4011,6 +4713,12 @@
             "value" : "Przyznaj dostęp"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предоставить доступ"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4043,6 +4751,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przyznaj dostęp Automatyzacji aplikacji %@ w Ustawieniach systemowych ▸ Prywatność"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предоставьте доступ к автоматизации для %@ в Системных настройках ▸ Конфиденциальность"
           }
         },
         "zh-Hans" : {
@@ -4080,6 +4794,12 @@
             "value" : "Przyznaj uprawnienia…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предоставить разрешения…"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4112,6 +4832,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przyznano"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предоставлено"
           }
         },
         "zh-Hans" : {
@@ -4148,6 +4874,12 @@
             "value" : "Grafitowy"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Графитовый"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4180,6 +4912,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zielony"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зелёный"
           }
         },
         "zh-Hans" : {
@@ -4216,6 +4954,12 @@
             "value" : "Siatka"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сетка"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4248,6 +4992,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kolumny siatki"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Столбцы сетки"
           }
         },
         "zh-Hans" : {
@@ -4284,6 +5034,12 @@
             "value" : "Grupuje ukryte aplikacje na końcu listy. Wyłącz tę opcję, aby zamiast tego pozostawić je na zwykłej pozycji."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Группировать скрытые приложения в конце списка. Отключите, чтобы оставить их в обычном порядке."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4316,6 +5072,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Grupuje zminimalizowane okna na końcu listy. Wyłącz tę opcję, aby zamiast tego pozostawić je na pozycji ostatnio używanej."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Группировать свёрнутые окна в конце списка. Отключите, чтобы оставить их в порядке последнего использования."
           }
         },
         "zh-Hans" : {
@@ -4352,6 +5114,12 @@
             "value" : "HUD (domyślny)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD (по умолчанию)"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4384,6 +5152,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reakcja haptyczna przy przełączaniu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тактильная обратная связь при переключении"
           }
         },
         "zh-Hans" : {
@@ -4420,6 +5194,12 @@
             "value" : "Ukryta aplikacja"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрытое приложение"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4452,6 +5232,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ukryj podgląd"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть предпросмотр"
           }
         },
         "zh-Hans" : {
@@ -4488,6 +5274,12 @@
             "value" : "Ukryj wszystkie okna"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть все окна"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4520,6 +5312,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "„Ukryj wszystkie okna” ukrywa każdą aplikację, łącznie z Finderem. Wybierz aplikacje, które mają pozostać widoczne."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Команда «Скрыть все окна» скрывает все приложения, включая Finder. Выберите приложения, которые должны остаться видимыми."
           }
         },
         "zh-Hans" : {
@@ -4556,6 +5354,12 @@
             "value" : "Ukryj aplikację"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть приложение"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4588,6 +5392,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ukryj wszystkie aplikacje, aby pokazać pulpit. Działa w całym systemie."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть все приложения, чтобы открыть рабочий стол. Работает на уровне всей системы."
           }
         },
         "zh-Hans" : {
@@ -4624,6 +5434,12 @@
             "value" : "Ukryj ikonę paska menu"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть значок в строке меню"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4656,6 +5472,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ukrywa nazwę aplikacji we wszystkich układach; rozpoznawaj aplikacje po ikonie."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрывать названия приложений во всех режимах отображения; приложения можно различать по значкам."
           }
         },
         "zh-Hans" : {
@@ -4692,6 +5514,12 @@
             "value" : "Ukryj przełącznik przed nagraniami ekranu i udostępnianymi ekranami (Zoom, Meet, Teams). Wymaga systemu macOS 14.6 lub nowszego."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть переключатель в записях экрана и при совместном доступе (Zoom, Meet, Teams). Требуется macOS 14.6 или новее."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4724,6 +5552,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ukryj ikonę ⌘. Otwórz to okno ponownie z poziomu Spotlight."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть значок ⌘. Откройте это окно через Spotlight."
           }
         },
         "zh-Hans" : {
@@ -4760,6 +5594,12 @@
             "value" : "Przytrzymaj modyfikator (domyślnie ⌘) i stukaj, aby przechodzić dalej."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удерживайте клавишу-модификатор (по умолчанию ⌘) и нажимайте клавишу переключения для перехода к следующему элементу."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4794,6 +5634,12 @@
             "value" : "Przytrzymaj ⌘"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удерживайте ⌘"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4826,6 +5672,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przytrzymaj ⌘: puść, aby wybrać. Pozostaw otwarte: wybierz klawiszem Return lub myszą."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удерживайте ⌘ и отпустите для выбора. В режиме фиксации выберите элемент клавишей Return или мышью."
           }
         },
         "zh-Hans" : {
@@ -4863,6 +5715,12 @@
             "value" : "Akcje po najechaniu"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Действия при наведении"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4895,6 +5753,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jak daleko trzeba przesunąć, aby przejść o jedną aplikację. Wyższa wartość oznacza, że krótsze przesunięcie przenosi dalej."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расстояние жеста для перехода на одну позицию. Чем выше значение, тем дальше перемещается выделение при более коротком жесте."
           }
         },
         "zh-Hans" : {
@@ -4931,6 +5795,12 @@
             "value" : "Jak długo wpisana sekwencja liter pozostaje aktywna. Po wygaśnięciu wyróżnienie znika, a lista wraca do pierwotnej kolejności."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Время, в течение которого активна последовательность введённых символов. По истечении времени подсветка сбрасывается, и список возвращается к исходному порядку."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4963,6 +5833,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ile ostatnio zamkniętych elementów wyświetlać."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Количество недавно закрытых элементов для отображения."
           }
         },
         "zh-Hans" : {
@@ -4999,6 +5875,12 @@
             "value" : "Jak często sprawdzać automatycznie. Kanał beta zawsze sprawdza co godzinę."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Частота автоматической проверки. В бета-канале проверка выполняется каждый час."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5031,6 +5913,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jak szybko tytuły okien w otwartym przełączniku aktualizują się po zmianie przez aplikację. Niższa wartość reaguje szybciej; wyższa oszczędza pracę, gdy tytuły zmieniają się często."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скорость обновления заголовков окон в переключателе после их изменения приложением. Меньшее значение обеспечивает более быструю реакцию; большее снижает нагрузку при частом изменении заголовков."
           }
         },
         "zh-Hans" : {
@@ -5067,6 +5955,12 @@
             "value" : "Importuj"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Импортировать"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5099,6 +5993,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Importuj ustawienia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Импортировать настройки"
           }
         },
         "zh-Hans" : {
@@ -5135,6 +6035,12 @@
             "value" : "Importuj ustawienia"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Импортировать настройки"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5167,6 +6073,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Importuj…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Импортировать…"
           }
         },
         "zh-Hans" : {
@@ -5203,6 +6115,12 @@
             "value" : "W trybie tylko aplikacje naciśnij ↓ lub \\ na aplikacji z kilkoma oknami, aby pokazać jej okna na pasku pod przełącznikiem i wybrać jedno."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В режиме «Только приложения» нажмите ↓ или \\ на приложении с несколькими окнами, чтобы показать его окна на панели под переключателем и выбрать нужное."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5235,6 +6153,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Na pełnym ekranie"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В полноэкранном режиме"
           }
         },
         "zh-Hans" : {
@@ -5271,6 +6195,12 @@
             "value" : "W układzie Podglądy miniatury odświeżają się na bieżąco, gdy przełącznik jest otwarty, pokazując, co aktualnie dzieje się w każdym oknie. Zużywa dodatkowe zasoby CPU i GPU, gdy panel jest widoczny."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В макете «Предпросмотр» миниатюры обновляются, пока переключатель открыт, поэтому они показывают текущее состояние каждого окна. Это потребляет дополнительные ресурсы CPU и GPU, пока панель активна."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5303,6 +6233,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Klawisze w panelu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Клавиши внутри переключателя"
           }
         },
         "zh-Hans" : {
@@ -5339,6 +6275,12 @@
             "value" : "Uwzględniaj wersje beta"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить бета-версии"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5371,6 +6313,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Instalowanie %d%%"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установка %d%%"
           }
         },
         "zh-Hans" : {
@@ -5407,6 +6355,12 @@
             "value" : "Przeskocz prosto do aplikacji"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Быстрый переход к приложению"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5439,6 +6393,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pozostaw aplikacje widoczne"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранять приложения видимыми"
           }
         },
         "zh-Hans" : {
@@ -5475,6 +6435,12 @@
             "value" : "Trzymaj ustawienia w %@. Zmiany w pliku działają od razu, a zmiany wprowadzone tutaj są zapisywane z powrotem."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранить настройки в %@. Изменения в файле применяются мгновенно, а изменения, внесённые здесь, записываются обратно."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5507,6 +6473,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przełącznik pozostaje na ekranie nawet po szybkim naciśnięciu i puszczeniu skrótu — dla skrótów mapowanych na przyciski myszy lub gesty. Wymaga „Pozostaw otwarte po puszczeniu modyfikatora”."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставлять переключатель на экране даже после быстрого нажатия и отпускания сочетания клавиш — удобно для сочетаний, назначенных кнопкам мыши или жестам. Требует включения параметра «Оставлять открытым после отпускания модификатора»."
           }
         },
         "zh-Hans" : {
@@ -5543,6 +6515,12 @@
             "value" : "Przełącznik pozostaje na ekranie, gdy puścisz skrót — wybierz klawiszem Return, literą skoku lub myszą; Esc zamyka. Szybkie tapnięcie nadal przełącza natychmiast."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставлять переключатель на экране после отпускания элемента активации. Выберите элемент клавишей Return, буквой быстрого перехода или мышью; Esc закрывает переключатель. Быстрое нажатие по-прежнему переключает мгновенно."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5575,6 +6553,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Klawiatura"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Клавиатура"
           }
         },
         "zh-Hans" : {
@@ -5611,6 +6595,12 @@
             "value" : "Skrót klawiszowy"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетание клавиш"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5645,6 +6635,12 @@
             "value" : "Etykiety"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Метки"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5677,6 +6673,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Duży"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Крупный"
           }
         },
         "zh-Hans" : {
@@ -5714,6 +6716,12 @@
             "value" : "Później"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позже"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5746,6 +6754,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchom"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запуск"
           }
         },
         "zh-Hans" : {
@@ -5782,6 +6796,12 @@
             "value" : "Uruchom aplikację"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запустить приложение"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5814,6 +6834,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchamiaj aplikacje z wyszukiwania"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запуск приложений из поиска"
           }
         },
         "zh-Hans" : {
@@ -5850,6 +6876,12 @@
             "value" : "Uruchamiaj przy logowaniu"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запускать при входе"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5882,6 +6914,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kolejność uruchamiania"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Порядок запуска"
           }
         },
         "zh-Hans" : {
@@ -5918,6 +6956,12 @@
             "value" : "Układ"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вид"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5950,6 +6994,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Do lewej"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слева"
           }
         },
         "zh-Hans" : {
@@ -5986,6 +7036,12 @@
             "value" : "Pozwala aplikacji BetterCmdTab przechwytywać skrót i odczytywać otwarte okna. Wymagane do działania."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позволяет BetterCmdTab перехватить сочетание клавиш и прочитать открытые окна. Необходимо для работы."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6018,6 +7074,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pozwala BetterCmdTab odczytywać magazyn favicon Safari, aby wpisy kart Safari pokazywały ikony stron. Opcjonalne — inne przeglądarki tego nie potrzebują."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позволяет BetterCmdTab читать хранилище значков Safari, чтобы вкладки отображали иконки сайтов. Необязательно — другим браузерам это не требуется."
           }
         },
         "zh-Hans" : {
@@ -6054,6 +7116,12 @@
             "value" : "Pozwala programowi zachować ⌘Tab dla siebie: skrót jest przekazywany do programu, zamiast otwierać przełącznik. Przydatne dla programów z własnym przełączaniem okien — maszyn wirtualnych, zdalnego pulpitu, niektórych gier.\n\n• Nigdy — przełącznik otwiera się zawsze.\n• Zawsze — program zachowuje ⌘Tab zawsze, gdy jest aktywny.\n• Na pełnym ekranie — tylko gdy program jest na pełnym ekranie."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позволяет приложению сохранять ⌘Tab для себя: сочетание клавиш передается приложению вместо открытия переключателя. Полезно для приложений с собственным переключением окон — виртуальные машины, удаленный рабочий стол, некоторые игры.\n\n• Никогда — переключатель всегда открывается.\n• Всегда — приложение сохраняет ⌘Tab, когда оно активно.\n• В полноэкранном режиме — только пока приложение находится в полноэкранном режиме."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6088,6 +7156,12 @@
             "value" : "Limit czasu sekwencji liter"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Время сброса последовательности букв"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6120,6 +7194,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Podpowiedzi literowe"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Буквенные подсказки"
           }
         },
         "zh-Hans" : {
@@ -6157,6 +7237,12 @@
             "value" : "Skok literą"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переход по буквам"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6189,6 +7275,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unieś palce, aby przełączyć na podświetloną aplikację. Gdy wyłączone, wybierz kliknięciem lub klawiszem Return."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уберите пальцы с трекпада, чтобы переключиться на выделенное приложение. Если параметр выключен, выберите приложение щелчком или клавишей Return."
           }
         },
         "zh-Hans" : {
@@ -6225,6 +7317,12 @@
             "value" : "Jasny"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Светлое"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6257,6 +7355,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ogranicz ten skrót do bieżącego biurka lub widocznych biurek, albo pokazuj wszystkie biurka."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ограничить действие этого сочетания клавиш текущим рабочим столом, всеми видимыми рабочими столами или показывать все рабочие столы."
           }
         },
         "zh-Hans" : {
@@ -6293,6 +7397,12 @@
             "value" : "Lista"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Список"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6325,6 +7435,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuje każdą kartę okna przeglądarki (Safari, Chrome, Arc, Brave, Edge, …) jako osobny wiersz obok pozostałych okien, zamiast jednego zwiniętego okna. Wymaga dostępu Apple Events, przyznawanego w sekcji „Prywatność › Uprawnienia”; wyłączone zachowuje jeden wiersz na okno — zamiast tego podejrzyj jego karty."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать каждую вкладку окна браузера (Safari, Chrome, Arc, Brave, Edge, …) отдельной строкой рядом с другими окнами вместо одного свёрнутого окна. Требуется доступ к Apple Events в разделе «Конфиденциальность» › «Разрешения». Если параметр выключен, для каждого окна остаётся одна строка, а вкладки можно быстро просмотреть отдельно."
           }
         },
         "zh-Hans" : {
@@ -6361,6 +7477,12 @@
             "value" : "Pokazuje każdą kartę okna z natywnymi kartami (Finder, Terminal, TextEdit, …) jako osobny wiersz, zamiast jednego zwiniętego okna. Wyłączone zachowuje jeden wiersz na okno — zamiast tego podejrzyj jego karty."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать каждую вкладку обычного окна с вкладками (Finder, Terminal, TextEdit, …) отдельной строкой вместо одного свёрнутого окна. Если параметр выключен, для каждого окна остаётся одна строка, а вкладки можно быстро просмотреть отдельно."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6393,6 +7515,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyświetla aplikacje i okna, które właśnie zamknięto, aby można je było otworzyć ponownie."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Список недавно закрытых приложений и окон для их повторного открытия."
           }
         },
         "zh-Hans" : {
@@ -6429,6 +7557,12 @@
             "value" : "Podglądy okien na żywo"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предпросмотр окон в реальном времени"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6463,6 +7597,12 @@
             "value" : "Ekran główny"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основной дисплей"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6495,6 +7635,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pogrubia tytuł podświetlonej pozycji w układach Siatka i Podglądy. Wyłączone tylko go rozjaśnia."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Делать название выделенного элемента жирным в макетах «Сетка» и «Предпросмотр». При отключении элемент только подсвечивается."
           }
         },
         "zh-Hans" : {
@@ -6532,6 +7678,12 @@
             "value" : "Wiele z nich można nadpisać dla pojedynczego skrótu w sekcji „Profile”."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Многие из этих параметров можно переопределить для конкретных сочетаний клавиш в разделе «Профили»."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6564,6 +7716,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Oznacza małym symbolem pozycje ukryte, zminimalizowane, pełnoekranowe i bez okien. Wskaźniki dźwięku, Uruchom i Przywróć są zawsze widoczne."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмечать небольшим значком скрытые, свёрнутые, полноэкранные элементы и приложения без окон. Значки воспроизведения аудио, запуска и повторного открытия отображаются всегда."
           }
         },
         "zh-Hans" : {
@@ -6600,6 +7758,12 @@
             "value" : "Maksymalizuj"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Развернуть"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6632,6 +7796,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Maksymalna szerokość listy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Максимальная ширина списка"
           }
         },
         "zh-Hans" : {
@@ -6669,6 +7839,12 @@
             "value" : "Średni"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Средний"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6701,6 +7877,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Menu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Меню"
           }
         },
         "zh-Hans" : {
@@ -6737,6 +7919,12 @@
             "value" : "Środek"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Середина"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6769,6 +7957,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zminimalizuj okno"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свернуть окно"
           }
         },
         "zh-Hans" : {
@@ -6805,6 +7999,12 @@
             "value" : "Zminimalizowane okno"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свёрнутое окно"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6837,6 +8037,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zminimalizowane okna"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свёрнутые окна"
           }
         },
         "zh-Hans" : {
@@ -6873,6 +8079,12 @@
             "value" : "Ekran z aktywną aplikacją"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дисплей с активным приложением"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6905,6 +8117,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ekran ze wskaźnikiem"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дисплей с курсором"
           }
         },
         "zh-Hans" : {
@@ -6941,6 +8159,12 @@
             "value" : "O stałej szerokości"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Моноширинный"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6973,6 +8197,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Więcej informacji"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дополнительные сведения"
           }
         },
         "zh-Hans" : {
@@ -7009,6 +8239,12 @@
             "value" : "Ostatnio używane"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недавние"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7041,6 +8277,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ostatnio używane (okna)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недавние (окна)"
           }
         },
         "zh-Hans" : {
@@ -7077,6 +8319,12 @@
             "value" : "Ostatnio używane zachowuje klasyczną kolejność ⌘Tab; Ostatnio używane (okna) przeplata okna wszystkich aplikacji według ostatniego użycia; pozostałe pozostają na miejscu podczas przełączania."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим «Недавние» сохраняет классический порядок ⌘Tab; режим «Недавние (окна)» объединяет окна всех приложений по времени последней активации; при других вариантах порядок не меняется во время переключения."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7109,6 +8357,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ostatnio używane zachowuje klasyczną kolejność ⌘Tab; pozostałe pozostają na miejscu."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим «Недавние» сохраняет классический порядок ⌘Tab; остальные остаются на месте."
           }
         },
         "zh-Hans" : {
@@ -7145,6 +8399,12 @@
             "value" : "Mysz"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мышь"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7177,6 +8437,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przenieś ukryte aplikacje na dół"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемещать скрытые приложения в конец списка"
           }
         },
         "zh-Hans" : {
@@ -7213,6 +8479,12 @@
             "value" : "Przenieś zminimalizowane okna na dół"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемещать свёрнутые окна в конец списка"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7245,6 +8517,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przenosi zaznaczenie na wiersz pod wskaźnikiem. Wyłączone utrzymuje zaznaczenie z klawiatury, więc mysz nie zmieni go przypadkiem."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемещать выделение на строку под указателем. Если параметр выключен, выбор с клавиатуры сохраняется, чтобы мышь не изменила его случайно."
           }
         },
         "zh-Hans" : {
@@ -7282,6 +8560,12 @@
             "value" : "Karty systemowe"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Встроенные вкладки"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7314,6 +8598,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nigdy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Никогда"
           }
         },
         "zh-Hans" : {
@@ -7350,6 +8640,12 @@
             "value" : "Nie dodano jeszcze żadnych aplikacji."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложения ещё не добавлены."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7382,6 +8678,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brak dopasowań"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Совпадений нет"
           }
         },
         "zh-Hans" : {
@@ -7418,6 +8720,12 @@
             "value" : "Brak otwartego okna"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет открытого окна"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7450,6 +8758,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brak otwartych okien"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет открытых окон"
           }
         },
         "zh-Hans" : {
@@ -7486,6 +8800,12 @@
             "value" : "Nie ma jeszcze przypiętych aplikacji."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закреплённые приложения ещё не добавлены."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7518,6 +8838,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Żadna obsługiwana przeglądarka nie jest uruchomiona"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поддерживаемые браузеры не запущены"
           }
         },
         "zh-Hans" : {
@@ -7554,6 +8880,12 @@
             "value" : "Nie przyznano"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет доступа"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7586,6 +8918,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ОК"
           }
         },
         "zh-Hans" : {
@@ -7622,6 +8960,12 @@
             "value" : "Wyłączone"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выкл."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7654,6 +8998,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Domyślnie wyłączone. Mogą się zmienić lub przestać działać."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключено по умолчанию. Они могут измениться или перестать работать."
           }
         },
         "zh-Hans" : {
@@ -7690,6 +9040,12 @@
             "value" : "Włączone"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкл."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7724,6 +9080,12 @@
             "value" : "Jeden wiersz na aplikację zamiast na okno."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Одна строка на приложение вместо одной на окно."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7756,6 +9118,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Działa tylko, gdy „Pozostaw otwarte po puszczeniu modyfikatora” jest włączone dla tego skrótu."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Действует только при включённой опции «Оставлять открытым после отпускания модификатора» для этого сочетания клавиш."
           }
         },
         "zh-Hans" : {
@@ -7793,6 +9161,12 @@
             "value" : "Otwórz ustawienia Dostępności"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки Универсального доступа"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7825,6 +9199,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwieraj BetterCmdTab automatycznie po zalogowaniu."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запускать BetterCmdTab автоматически при входе в систему."
           }
         },
         "zh-Hans" : {
@@ -7861,6 +9241,12 @@
             "value" : "Otwórz Ustawienia systemowe"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть Системные настройки"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7893,6 +9279,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz obsługiwaną przeglądarkę (Safari, Chrome, Arc, Brave, Edge, Vivaldi, Opera, Dia…) i kliknij przycisk ponownie."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Откройте поддерживаемый браузер (Safari, Chrome, Arc, Brave, Edge, Vivaldi, Opera, Dia…) и нажмите кнопку ещё раз."
           }
         },
         "zh-Hans" : {
@@ -7929,6 +9321,12 @@
             "value" : "Otwórz wyszukiwanie"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть поиск"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7961,6 +9359,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz przełącznik"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть переключатель"
           }
         },
         "zh-Hans" : {
@@ -7997,6 +9401,12 @@
             "value" : "Otwórz przełącznik: przewijaj aplikacje (zatwierdź klawiszem Return lub kliknięciem, Esc anuluje). Przełącz biurka: przeskocz do biurka po tej stronie, po jednym na krok. Szybkie przełączanie: przerzuć do ostatniej aplikacji, jak szybkie stuknięcie ⌘Tab — przesuń ponownie, aby wrócić."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть переключатель: перемещайтесь между приложениями жестом (подтвердите выбор клавишей Return или щелчком; Esc — отмена). Переключить рабочий стол: перейти на соседний рабочий стол с выбранной стороны, по одному за шаг. Быстрое переключение: перейти к последнему приложению, как при быстром нажатии ⌘Tab; повторите жест, чтобы вернуться."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8029,6 +9439,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwiera przełącznik tego skrótu. Przytrzymaj modyfikator i stuknij."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открывает переключатель для этого сочетания клавиш. Удерживайте модификатор и нажмите клавишу."
           }
         },
         "zh-Hans" : {
@@ -8065,6 +9481,12 @@
             "value" : "Pomarańczowy"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оранжевый"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8097,6 +9519,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Porządkuje wyniki według trafności zamiast ostatniego użycia, więc najlepsze dopasowanie jest zaznaczane jako pierwsze."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сортировать результаты по точности совпадения, а не по времени последнего использования, чтобы сначала выбирался самый подходящий вариант."
           }
         },
         "zh-Hans" : {
@@ -8133,6 +9561,12 @@
             "value" : "Panel"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Панель"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8165,6 +9599,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Krycie panelu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Непрозрачность панели"
           }
         },
         "zh-Hans" : {
@@ -8201,6 +9641,12 @@
             "value" : "Panel, kafelki i pasek kart płynnie przechodzą między stanami. Wyłączone lub „Ogranicz ruch” w macOS przełącza natychmiast."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Панель, плитки и панель вкладок плавно переходят между состояниями. Если параметр выключен или в macOS включено «Уменьшение движения», переход происходит мгновенно."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8233,6 +9679,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przekazuj ⌘Tab do programu, zamiast otwierać przełącznik — dla programów z własnym przełączaniem okien (maszyny wirtualne, zdalny pulpit, niektóre gry)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Передавать ⌘Tab приложению вместо открытия переключателя — для приложений с собственным переключением окон (виртуальные машины, удалённый рабочий стол, некоторые игры)."
           }
         },
         "zh-Hans" : {
@@ -8269,6 +9721,12 @@
             "value" : "Podejrzyj karty"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предпросмотр вкладок"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8301,6 +9759,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Podejrzyj okna klawiszem ↓"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предпросмотр окон с помощью ↓"
           }
         },
         "zh-Hans" : {
@@ -8337,6 +9801,12 @@
             "value" : "Uprawnienia"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешения"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8369,6 +9839,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz klawiszem Return, literą skoku lub myszą; Esc zamyka."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите элемент клавишей Return, буквой быстрого перехода или мышью; Esc закрывает переключатель."
           }
         },
         "zh-Hans" : {
@@ -8405,6 +9881,12 @@
             "value" : "Wybranie aplikacji na innym biurku lub na pełnym ekranie powoduje natychmiastowy przeskok, bez animacji przesuwania. Dotyczy też przełączania klawiaturą."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбор приложения на другом рабочем столе или в полноэкранном режиме переключает мгновенно, без анимации скольжения. Относится и к переключению по клавиатуре."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8437,6 +9919,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Różowy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Розовый"
           }
         },
         "zh-Hans" : {
@@ -8473,6 +9961,12 @@
             "value" : "Przypięte"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закреплено"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8505,6 +9999,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przypięte aplikacje"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закреплённые приложения"
           }
         },
         "zh-Hans" : {
@@ -8541,6 +10041,12 @@
             "value" : "Przypięte aplikacje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закреплённые приложения"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8573,6 +10079,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przypięte aplikacje są zawsze na początku przełącznika, przed ostatnio używanymi. Przeciągnij, aby ustawić ich kolejność."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закреплённые приложения всегда располагаются в начале переключателя, перед недавно использованными. Перетаскивайте их, чтобы изменить порядок."
           }
         },
         "zh-Hans" : {
@@ -8609,6 +10121,12 @@
             "value" : "Odtwarzaj dźwięk po wybraniu aplikacji."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Воспроизводить звук при выборе приложения."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8641,6 +10159,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Odtwarza dźwięk"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Воспроизведение аудио"
           }
         },
         "zh-Hans" : {
@@ -8677,6 +10201,12 @@
             "value" : "Popover"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всплывающее окно"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8709,6 +10239,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Położenie tytułu pod każdym kafelkiem Podglądów."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Положение заголовка под каждой плиткой предварительного просмотра."
           }
         },
         "zh-Hans" : {
@@ -8745,6 +10281,12 @@
             "value" : "Naciśnij %@ w przełączniku, aby filtrować według nazwy aplikacji lub okna."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите %@ в переключателе, чтобы отфильтровать по имени приложения или окна."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8777,6 +10319,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Naciśnij %@, aby wybrać kartę z paska pod przełącznikiem. Natywne karty używają Dostępności, a przeglądarki — Apple Events."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите %@, чтобы выбрать вкладку на панели под переключателем. Обычные вкладки используют Универсальный доступ, а браузеры — Apple Events."
           }
         },
         "zh-Hans" : {
@@ -8813,6 +10361,12 @@
             "value" : "Naciśnij ponownie Lewa połowa / Prawa połowa, aby przesuwać okno przez ½ → ⅔ → ⅓ ekranu po tej stronie."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторно нажимайте «В левую половину» или «В правую половину», чтобы последовательно менять ширину окна на этой стороне: ½ → ⅔ → ⅓ экрана."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8845,6 +10399,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Podgląd"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предпросмотр"
           }
         },
         "zh-Hans" : {
@@ -8881,6 +10441,12 @@
             "value" : "Podglądy"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предпросмотры"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8913,6 +10479,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prywatność"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Конфиденциальность"
           }
         },
         "zh-Hans" : {
@@ -8949,6 +10521,12 @@
             "value" : "Profile"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Профили"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8981,6 +10559,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fioletowy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фиолетовый"
           }
         },
         "zh-Hans" : {
@@ -9017,6 +10601,12 @@
             "value" : "Szybkie przełączanie (2 ostatnie aplikacje)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Быстрое переключение (последние 2 приложения)"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9049,6 +10639,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opóźnienie szybkiego przełączania"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задержка быстрого переключения"
           }
         },
         "zh-Hans" : {
@@ -9085,6 +10681,12 @@
             "value" : "Zakończ BetterCmdTab"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершить BetterCmdTab"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9119,6 +10721,12 @@
             "value" : "Zakończ aplikację"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершить приложение"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9151,6 +10759,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ranking wyników"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сортировать результаты поиска"
           }
         },
         "zh-Hans" : {
@@ -9188,6 +10802,12 @@
             "value" : "Ponownie włącz systemowe ⌘Tab i ⌘` — np. jeśli zostały wyłączone po awarii. BetterCmdTab oddaje je systemowi macOS do następnego uruchomienia aplikacji."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить системные сочетания ⌘Tab и ⌘` — например, если они отключились после сбоя. BetterCmdTab вернёт их в macOS до следующего перезапуска приложения."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9220,6 +10840,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ile ostatnio zamkniętych pokazywać"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать недавно закрытые"
           }
         },
         "zh-Hans" : {
@@ -9257,6 +10883,12 @@
             "value" : "Odzyskiwanie"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановление"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9289,6 +10921,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czerwony"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Красный"
           }
         },
         "zh-Hans" : {
@@ -9325,6 +10963,12 @@
             "value" : "Wydania"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Версии"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9357,6 +11001,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usuń z przypiętych"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить из закреплённых"
           }
         },
         "zh-Hans" : {
@@ -9393,6 +11043,12 @@
             "value" : "Usuń regułę"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить правило"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9425,6 +11081,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usuń skrót"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить сочетание"
           }
         },
         "zh-Hans" : {
@@ -9461,6 +11123,12 @@
             "value" : "Usuń tę regułę"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить это правило"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9493,6 +11161,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Otwórz ponownie"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть снова"
           }
         },
         "zh-Hans" : {
@@ -9529,6 +11203,12 @@
             "value" : "Otwórz ponownie ostatnio zamknięte"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть недавно закрытые"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9561,6 +11241,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zastąp bieżące ustawienia tymi z wcześniej wyeksportowanego pliku."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заменить текущие настройки настройками из ранее экспортированного файла."
           }
         },
         "zh-Hans" : {
@@ -9597,6 +11283,12 @@
             "value" : "Zgłoś problem"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сообщить об ошибке"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9629,6 +11321,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wymagane"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обязательно"
           }
         },
         "zh-Hans" : {
@@ -9665,6 +11363,12 @@
             "value" : "Wymaga macOS 14 lub nowszego. Miniatury są przechwytywane raz przy każdym otwarciu przełącznika."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется macOS 14 или новее. Снимок каждой миниатюры создаётся один раз при каждом открытии переключателя."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9697,6 +11401,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchom ponownie, aby uaktualnić"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перезапустить для обновления"
           }
         },
         "zh-Hans" : {
@@ -9734,6 +11444,12 @@
             "value" : "Przywróć"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9767,6 +11483,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przywróć skróty klawiszowe macOS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить стандартные сочетания клавиш macOS"
           }
         },
         "zh-Hans" : {
@@ -9803,6 +11525,12 @@
             "value" : "Przywróć poprzedni rozmiar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить предыдущий размер"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9835,6 +11563,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj szybkie przyciski w wierszu, nad którym znajduje się wskaźnik."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать быстрые кнопки в строке, над которой находится указатель."
           }
         },
         "zh-Hans" : {
@@ -9871,6 +11605,12 @@
             "value" : "Odwróć kierunek przewijania"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обратить направление прокрутки"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9903,6 +11643,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Odwróć kierunek przesunięcia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обратить направление жеста"
           }
         },
         "zh-Hans" : {
@@ -9939,6 +11685,12 @@
             "value" : "Do prawej"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Справа"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9971,6 +11723,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zaokrąglona"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скруглённый"
           }
         },
         "zh-Hans" : {
@@ -10007,6 +11765,12 @@
             "value" : "Zaokrąglenie narożników panelu. Automatyczny dopasowuje się do rozmiaru panelu; Kwadratowe wyłącza zaokrąglenie."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скругление углов панели. «Автоматически» подстраивается под размер панели; «Квадратные» отключает скругление."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10039,6 +11803,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchomione aplikacje bez otwartych okien."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запущенные приложения без открытых окон."
           }
         },
         "zh-Hans" : {
@@ -10075,6 +11845,12 @@
             "value" : "Zapisz wszystkie ustawienia do pliku, który możesz zarchiwizować lub przenieść na innego Maca."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить все настройки в файл для резервного копирования или переноса на другой Mac."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10107,6 +11883,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skrót zakresowy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контекстное сочетание клавиш"
           }
         },
         "zh-Hans" : {
@@ -10143,6 +11925,12 @@
             "value" : "Skrót zakresowy %lld"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контекстное сочетание клавиш %lld"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10175,6 +11963,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skróty zakresowe"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контекстные сочетания клавиш"
           }
         },
         "zh-Hans" : {
@@ -10211,6 +12005,12 @@
             "value" : "Udostępnianie ekranu"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Демонстрация экрана"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10243,6 +12043,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przewijaj w górę, aby przejść do przodu, zamiast w dół."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прокрутка вверх для перехода вперёд вместо прокрутки вниз."
           }
         },
         "zh-Hans" : {
@@ -10279,6 +12085,12 @@
             "value" : "Przewijaj w górę/w dół kółkiem myszy, aby przesuwać zaznaczenie, gdy przełącznik jest otwarty. Gładziki używają zamiast tego przesunięcia trzema palcami."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прокрутка вверх/вниз колёсиком мыши для перемещения выделения при открытом переключателе. На трекпадах используется свайп тремя пальцами."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10311,6 +12123,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szukaj"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск"
           }
         },
         "zh-Hans" : {
@@ -10347,6 +12165,12 @@
             "value" : "Szukaj programów…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск приложений…"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10379,6 +12203,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szukaj w kartach przeglądarki"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск вкладок браузера"
           }
         },
         "zh-Hans" : {
@@ -10415,6 +12245,12 @@
             "value" : "Wyszukiwanie dopasowuje każdą kartę przeglądarki po jej tytule, nie tylko aktywną kartę każdego okna. Pasujące karty pojawiają się jako tymczasowe pozycje, gdy pole wyszukiwania jest aktywne, i znikają po wyjściu z wyszukiwania. Zbędne, jeśli „Pokazuj karty przeglądarki jako osobne pozycje” wyświetla już wszystkie karty."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск ищет по названию любой вкладки браузера, а не только активной вкладки каждого окна. Найденные вкладки отображаются как временные строки, пока активно поле поиска, и исчезают при выходе из режима поиска. Не требуется, если параметр «Показывать вкладки браузера как отдельные записи» уже выводит каждую вкладку."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10447,6 +12283,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybieraj okno kliknięciem"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбирать окно по клику"
           }
         },
         "zh-Hans" : {
@@ -10483,6 +12325,12 @@
             "value" : "Wybieraj okno po najechaniu"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выделять окно при наведении"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10515,6 +12363,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybrane"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрано"
           }
         },
         "zh-Hans" : {
@@ -10551,6 +12405,12 @@
             "value" : "Wybrane aplikacje są wymuszane na początek przełącznika, przed ostatnio używanymi."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранные приложения всегда располагаются в начале переключателя, перед недавно использованными."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10583,6 +12443,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kolor zaznaczenia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цвет выделения"
           }
         },
         "zh-Hans" : {
@@ -10619,6 +12485,12 @@
             "value" : "Wysyła SIGKILL — dla zawieszonych aplikacji, które ignorują polecenie Zakończ. ⌘+⌥+Q zawsze działa niezależnie od tego."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправляет SIGKILL — для зависших приложений, игнорирующих команду «Выход». ⌘+⌥+Q работает всегда, независимо от этого."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10651,6 +12523,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szeryfowa"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С засечками"
           }
         },
         "zh-Hans" : {
@@ -10687,6 +12565,12 @@
             "value" : "Ustawienia…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки…"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10719,6 +12603,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skrót %lld"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетание клавиш %lld"
           }
         },
         "zh-Hans" : {
@@ -10756,6 +12646,12 @@
             "value" : "Skróty"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетания клавиш"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10788,6 +12684,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать"
           }
         },
         "zh-Hans" : {
@@ -10824,6 +12726,12 @@
             "value" : "Pokaż podgląd"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать предпросмотр"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10856,6 +12764,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj literę na każdym oknie i przeskocz do niego, wpisując tę literę. Wyłącz, aby pisząc od razu filtrować listę, bez naciskania %@ — przypisane klawisze akcji, jak ⌘W czy ⌘Q, nadal działają na podświetlonym oknie; naciśnij najpierw %@, aby wpisać te litery."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать букву на каждом окне и переходить к нему вводом этой буквы. Выключите параметр, чтобы при вводе сразу фильтровать список без нажатия %@. Назначенные клавиши действий, например ⌘W или ⌘Q, по-прежнему действуют на выделенное окно; чтобы ввести соответствующие буквы, сначала нажмите %@."
           }
         },
         "zh-Hans" : {
@@ -10892,6 +12806,12 @@
             "value" : "Pokaż wszystkie okna"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать все окна"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10924,6 +12844,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj nazwy aplikacji"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать названия приложений"
           }
         },
         "zh-Hans" : {
@@ -10960,6 +12886,12 @@
             "value" : "Pokazuj aplikacje bez okien"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать приложения без окон"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10992,6 +12924,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj ikonę przeglądarki na wpisach kart"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать значок браузера в записях вкладок"
           }
         },
         "zh-Hans" : {
@@ -11028,6 +12966,12 @@
             "value" : "Pokazuj karty przeglądarki jako osobne pozycje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать вкладки браузера как отдельные записи"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11060,6 +13004,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj liczbę z plakietki w Docku każdej aplikacji (np. nieprzeczytane wiadomości w Mail) w jej wierszu."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать в строке приложения счётчик с его значка в Dock, например количество непрочитанных писем в Mail."
           }
         },
         "zh-Hans" : {
@@ -11096,6 +13046,12 @@
             "value" : "Pokazuj tytuł każdego okna pod ikoną w układach Siatka i Podglądy."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать заголовок каждого окна под значком в макетах «Сетка» и «Предпросмотр»."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11128,6 +13084,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj ukryte aplikacje"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать скрытые приложения"
           }
         },
         "zh-Hans" : {
@@ -11164,6 +13126,12 @@
             "value" : "Pokaż w Finderze"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать в Finder"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11196,6 +13164,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj zminimalizowane okna"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать свёрнутые окна"
           }
         },
         "zh-Hans" : {
@@ -11232,6 +13206,12 @@
             "value" : "Pokazuj jeden wiersz na aplikację zamiast na okno — klasyczny ⌘Tab."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать одну строку на приложение вместо одной на окно — классический ⌘Tab."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11264,6 +13244,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj litery skoku"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать буквы быстрого перехода"
           }
         },
         "zh-Hans" : {
@@ -11300,6 +13286,12 @@
             "value" : "Pokazuj ostatnio zamknięte aplikacje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать недавно закрытые приложения"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11332,6 +13324,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj ikony stanu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать значки состояния"
           }
         },
         "zh-Hans" : {
@@ -11368,6 +13366,12 @@
             "value" : "Pokaż przełącznik na"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать переключатель на"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11400,6 +13404,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj karty jako osobne pozycje"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать вкладки как отдельные элементы"
           }
         },
         "zh-Hans" : {
@@ -11436,6 +13446,12 @@
             "value" : "Pokazuj plakietki nieprzeczytanych"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать счётчики непрочитанных"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11468,6 +13484,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pokazuj tytuł okna"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать заголовок окна"
           }
         },
         "zh-Hans" : {
@@ -11504,6 +13526,12 @@
             "value" : "Pokazuj okna z"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать окна из"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11536,6 +13564,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zmniejsza ikony, aby wszystkie okna mieściły się w jednej linii, zamiast otwierać drugi rząd."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уменьшить значки, чтобы все окна помещались на одной строке, а не начинали вторую."
           }
         },
         "zh-Hans" : {
@@ -11572,6 +13606,12 @@
             "value" : "Pasek boczny"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Боковая панель"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11604,6 +13644,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jeden rząd"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Одна строка"
           }
         },
         "zh-Hans" : {
@@ -11640,6 +13686,12 @@
             "value" : "Rozmiar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Размер"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11672,6 +13724,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rozmiar nazw i tytułów, niezależny od rozmiaru panelu."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Размер имён и заголовков, независимо от размера панели."
           }
         },
         "zh-Hans" : {
@@ -11708,6 +13766,12 @@
             "value" : "Przesuń w prawo, aby przejść w lewo, i w lewo, aby przejść w prawo."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Жест вправо перемещает влево, а жест влево — вправо."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11740,6 +13804,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przesuń trzema palcami w poziomie po gładziku. Odczytuje gładzik bezpośrednio, więc nie jest potrzebne żadne ustawienie systemowe."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проведите тремя пальцами по трекпаду по горизонтали. BetterCmdTab считывает жест напрямую, поэтому менять системные настройки не требуется."
           }
         },
         "zh-Hans" : {
@@ -11776,6 +13846,12 @@
             "value" : "Slot %lld"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слот %lld"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11808,6 +13884,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mały"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мелкий"
           }
         },
         "zh-Hans" : {
@@ -11844,6 +13926,12 @@
             "value" : "Kolejność sortowania"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Порядок сортировки"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11876,6 +13964,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dźwięk przy przełączaniu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Звук при переключении"
           }
         },
         "zh-Hans" : {
@@ -11912,6 +14006,12 @@
             "value" : "Kod źródłowy"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исходный код"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11944,6 +14044,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Biurka"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочие столы"
           }
         },
         "zh-Hans" : {
@@ -11980,6 +14086,12 @@
             "value" : "Kwadratowe"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без скругления"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12012,6 +14124,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uruchamianie"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запуск"
           }
         },
         "zh-Hans" : {
@@ -12048,6 +14166,12 @@
             "value" : "Pozostaw otwarte po puszczeniu modyfikatora"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставлять открытым после отпускания модификатора"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12080,6 +14204,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pozostaw otwarte, aż dokonam wyboru"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставлять открытым до выбора"
           }
         },
         "zh-Hans" : {
@@ -12116,6 +14246,12 @@
             "value" : "Działanie przesunięcia"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Действие жеста"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12148,6 +14284,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czułość przesunięcia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чувствительность жеста"
           }
         },
         "zh-Hans" : {
@@ -12184,6 +14326,12 @@
             "value" : "Przełącz biurka"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключать рабочие столы"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12216,6 +14364,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przełączaj biurka bez animacji"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключать рабочие столы без анимации"
           }
         },
         "zh-Hans" : {
@@ -12252,6 +14406,12 @@
             "value" : "Przełączaj aplikacje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключать приложения"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12284,6 +14444,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przełącz po puszczeniu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключать при отпускании"
           }
         },
         "zh-Hans" : {
@@ -12320,6 +14486,12 @@
             "value" : "Przełączaj okna"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключать окна"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12352,6 +14524,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przełączaj przewijaniem myszą"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключать прокруткой мыши"
           }
         },
         "zh-Hans" : {
@@ -12389,6 +14567,12 @@
             "value" : "Przełącznik"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключатель"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12421,6 +14605,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skróty przełącznika"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетания клавиш переключателя"
           }
         },
         "zh-Hans" : {
@@ -12457,6 +14647,12 @@
             "value" : "Systemowy"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как в системе"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12489,6 +14685,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dostęp do kart nie powiódł się dla: %@. Zwykle oznacza to, że zgoda na Automatyzację została wcześniej odrzucona — macOS pyta tylko raz i nie zapyta ponownie. Sprawdź przeglądarki pod „osascript” w Ustawieniach systemowych → Prywatność i ochrona → Automatyzacja."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось получить доступ к вкладкам для: %@. Обычно это означает, что разрешение на автоматизацию было отклонено ранее: macOS запрашивает его только один раз. Проверьте браузеры в строке «osascript» в разделе Системные настройки → Конфиденциальность и безопасность → Автоматизация."
           }
         },
         "zh-Hans" : {
@@ -12525,6 +14727,12 @@
             "value" : "Karty"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладки"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12557,6 +14765,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Można wyświetlić listę kart dla: %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладки доступны для: %@."
           }
         },
         "zh-Hans" : {
@@ -12593,6 +14807,12 @@
             "value" : "Cofaj tapnięciem Shift"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите Shift для перехода назад"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12625,6 +14845,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stuknij, aby przełączyć od razu; przytrzymaj dłużej, aby otworzyć przełącznik."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите для мгновенного переключения; удерживайте дольше, чтобы открыть переключатель."
           }
         },
         "zh-Hans" : {
@@ -12661,6 +14887,12 @@
             "value" : "Rozmiar tekstu"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Размер текста"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12693,6 +14925,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybrany plik nie jest obsługiwanym dźwiękiem."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранный файл не является поддерживаемым звуковым файлом."
           }
         },
         "zh-Hans" : {
@@ -12729,6 +14967,12 @@
             "value" : "Działają, gdy przełącznik jest otwarty. ⌘ jest przytrzymywany przez cały czas, więc zarejestrowany modyfikator jest ignorowany w panelu. Wyczyszczenie któregoś wyłącza ten klawisz."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эти действия работают, пока переключатель открыт. Клавиша ⌘ удерживается всё это время, поэтому записанная клавиша-модификатор внутри переключателя игнорируется. Если очистить назначение, соответствующая клавиша отключается."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12761,6 +15005,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Te funkcje są niestabilne"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эти функции работают нестабильно"
           }
         },
         "zh-Hans" : {
@@ -12797,6 +15047,12 @@
             "value" : "Tylko ten pulpit"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только для этого рабочего стола"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12829,6 +15085,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ten plik nie jest prawidłowym eksportem ustawień BetterCmdTab."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот файл не является допустимым экспортом настроек BetterCmdTab."
           }
         },
         "zh-Hans" : {
@@ -12865,6 +15127,12 @@
             "value" : "Ten plik ustawień używa nowszego formatu (wersja %lld), niż potrafi odczytać ta wersja BetterCmdTab. Zaktualizuj aplikację i spróbuj ponownie."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот файл настроек использует более новый формат (версия %lld), чем может прочитать текущая версия BetterCmdTab. Обновите приложение и повторите попытку."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12897,6 +15165,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przesunięcie trzema palcami"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Жест тремя пальцами"
           }
         },
         "zh-Hans" : {
@@ -12933,6 +15207,12 @@
             "value" : "Lewy dolny róg"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В левый нижний угол"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12965,6 +15245,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prawy dolny róg"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В правый нижний угол"
           }
         },
         "zh-Hans" : {
@@ -13001,6 +15287,12 @@
             "value" : "Lewa połowa"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В левую половину"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13033,6 +15325,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prawa połowa"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В правую половину"
           }
         },
         "zh-Hans" : {
@@ -13069,6 +15367,12 @@
             "value" : "Przyciągnij do połowy lub narożnika, zmaksymalizuj albo wyśrodkuj okno na pierwszym planie. Działa w całym systemie."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разместить активное окно на половине экрана или в углу, развернуть либо расположить по центру. Работает во всей системе."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13103,6 +15407,12 @@
             "value" : "Lewy górny róg"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В левый верхний угол"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13135,6 +15445,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prawy górny róg"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В правый верхний угол"
           }
         },
         "zh-Hans" : {
@@ -13172,6 +15488,12 @@
             "value" : "Czasy"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Время"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13204,6 +15526,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyrównanie tytułu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выравнивание заголовка"
           }
         },
         "zh-Hans" : {
@@ -13240,6 +15568,12 @@
             "value" : "Opóźnienie odświeżania tytułów"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задержка обновления заголовка"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13272,6 +15606,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Śledź kolejność użycia kart przeglądarki"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Учитывать время последнего использования вкладок браузера"
           }
         },
         "zh-Hans" : {
@@ -13308,6 +15648,12 @@
             "value" : "Przesunięcie po gładziku"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Жест на трекпаде"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13340,6 +15686,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przezroczystość panelu przełącznika."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Степень прозрачности панели переключателя."
           }
         },
         "zh-Hans" : {
@@ -13376,6 +15728,12 @@
             "value" : "Przezroczysty"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прозрачный"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13408,6 +15766,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyzwalacz"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активация"
           }
         },
         "zh-Hans" : {
@@ -13444,6 +15808,12 @@
             "value" : "Najpierw włącz powyżej „Pokazuj ukryte aplikacje”."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала включите расположенный выше параметр «Показывать скрытые приложения»."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13478,6 +15848,12 @@
             "value" : "Najpierw włącz powyżej „Pokazuj zminimalizowane okna”."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала включите расположенный выше параметр «Показывать свёрнутые окна»."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13510,6 +15886,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Najpierw włącz powyżej „Pozostaw otwarte po puszczeniu modyfikatora”."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала включите расположенный выше параметр «Оставлять открытым после отпускания модификатора»."
           }
         },
         "zh-Hans" : {
@@ -13547,6 +15929,12 @@
             "value" : "Najpierw włącz „Wyszukiwanie przez pisanie” w sekcji „Sterowanie”."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала включите параметр «Поиск вводом символов» в разделе «Управление»."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13579,6 +15967,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wyszukiwanie przez pisanie"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск вводом символов"
           }
         },
         "zh-Hans" : {
@@ -13615,6 +16009,12 @@
             "value" : "Krój pisma nazw i tytułów."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шрифт для имён и заголовков."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13647,6 +16047,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niezaznaczone"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не отмечено"
           }
         },
         "zh-Hans" : {
@@ -13683,6 +16089,12 @@
             "value" : "Pod oknem"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В меню «Окно»"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13715,6 +16127,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bez tytułu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без названия"
           }
         },
         "zh-Hans" : {
@@ -13751,6 +16169,12 @@
             "value" : "Aktualizacje"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновления"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13783,6 +16207,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Użyj ustawienia globalnego"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать глобальный параметр по умолчанию"
           }
         },
         "zh-Hans" : {
@@ -13819,6 +16249,12 @@
             "value" : "Używaj h / j / k / l jak klawiszy strzałek, gdy przełącznik jest otwarty. h zastępuje przypisanie Ukryj, a j / k / l zastępują skok literowy; tryb wyszukiwania nadal wpisuje te litery."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать h / j / k / l как клавиши со стрелками, пока переключатель открыт. h заменяет назначение команды «Скрыть», а j / k / l — переход по буквам; в режиме поиска эти буквы по-прежнему вводятся."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13851,6 +16287,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cofaj skrótem przełączania okien"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать сочетание клавиш переключения окон для перехода назад"
           }
         },
         "zh-Hans" : {
@@ -13887,6 +16329,12 @@
             "value" : "Klawisze vim (h j k l)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Клавиши Vim (h j k l)"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13919,6 +16367,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Widoczne biurka"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видимые рабочие столы"
           }
         },
         "zh-Hans" : {
@@ -13955,6 +16409,12 @@
             "value" : "Gdy pełny ekran"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В полноэкранном режиме"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13987,6 +16447,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gdy brak otwartych okien"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Когда нет открытых окон"
           }
         },
         "zh-Hans" : {
@@ -14023,6 +16489,12 @@
             "value" : "Podczas wyszukiwania"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "При поиске"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14055,6 +16527,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gdy ten program pojawia się w przełączniku"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Когда это приложение появляется в переключателе"
           }
         },
         "zh-Hans" : {
@@ -14091,6 +16569,12 @@
             "value" : "Która część długiego tytułu jest skracana wielokropkiem."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Определяет, с какой стороны длинный заголовок обрезается многоточием."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14123,6 +16607,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Które okna otwiera ten skrót."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Определяет, какие окна показывает это сочетание клавиш."
           }
         },
         "zh-Hans" : {
@@ -14159,6 +16649,12 @@
             "value" : "Gdy przełącznik aplikacji jest otwarty, naciśnij swój skrót przełączania okien (domyślnie ⌘`), aby cofać się między aplikacjami. Otwarcie przełącznika tym skrótem nadal przełącza kolejno okna."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока переключатель приложений открыт, нажимайте сочетание клавиш переключения окон (по умолчанию ⌘`), чтобы переходить по приложениям в обратном порядке. Если открыть переключатель этим сочетанием, оно по-прежнему будет переключать окна."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14191,6 +16687,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gdy przełącznik jest otwarty, tapnięcie klawisza Shift cofa zaznaczenie o jedną pozycję, a przytrzymanie Shift cofa dalej, aż go puścisz — tak jak przytrzymany Tab. Wyłącz tę opcję, aby cofać tylko przez przytrzymanie Shift podczas naciskania klawisza przełączania (⌘⇧Tab)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока переключатель открыт, нажатие Shift перемещает выделение на один шаг назад, а удержание Shift продолжает перемещение до отпускания — как при удержании Tab. Выключите параметр, чтобы переходить назад только при одновременном удержании Shift и нажатии клавиши переключения (⌘⇧Tab)."
           }
         },
         "zh-Hans" : {
@@ -14227,6 +16729,12 @@
             "value" : "Szerokość układu listy względem automatycznej — zmniejsz, aby zwęzić panel na dużych ekranach."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ширина режима «Список» относительно автоматической ширины. Уменьшите значение, чтобы сузить панель на больших дисплеях."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14259,6 +16767,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Okna"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Окна"
           }
         },
         "zh-Hans" : {
@@ -14295,6 +16809,12 @@
             "value" : "Okna na tym pulpicie"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Окна на этом рабочем столе"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14327,6 +16847,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Z otwartymi oknami"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "При наличии открытых окон"
           }
         },
         "zh-Hans" : {
@@ -14363,6 +16889,12 @@
             "value" : "Z włączonymi „Pokazuj karty przeglądarki jako osobne pozycje” i kolejnością „Ostatnio używane (okna)” ⌘Tab wraca do ostatnio używanej karty, a nie tylko do ostatniego okna. Wymaga stałego monitorowania przeglądarek, więc zużywa nieco energii."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если включены «Показывать вкладки браузера как отдельные записи» и порядок «Недавние (окна)», сочетание ⌘Tab возвращает к последней использованной вкладке, а не просто к последнему окну. Для этого требуется постоянное отслеживание браузеров, что немного увеличивает расход энергии."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14395,6 +16927,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Żółty"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Жёлтый"
           }
         },
         "zh-Hans" : {
@@ -14431,6 +16969,12 @@
             "value" : "Masz najnowszą wersję!"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас установлена последняя версия!"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14463,6 +17007,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Powiększ okno"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Масштабировать окно"
           }
         },
         "zh-Hans" : {
@@ -14499,6 +17049,12 @@
             "value" : "Kolor akcentu macOS"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Акцентный цвет macOS"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14531,6 +17087,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "„Otwórz wyszukiwanie”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "клавиша вызова поиска"
           }
         },
         "zh-Hans" : {
@@ -14567,6 +17129,12 @@
             "value" : "klawisz Podejrzyj karty"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "клавиша быстрого просмотра вкладок"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14599,6 +17167,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ta przeglądarka"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "этот браузер"
           }
         },
         "zh-Hans" : {
@@ -14635,6 +17209,12 @@
             "value" : "v%@  ·  Kompilacja %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@  ·  Сборка %@"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14667,6 +17247,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "v%@ — Wyświetl aktualizację"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@ — Просмотр обновления"
           }
         },
         "zh-Hans" : {

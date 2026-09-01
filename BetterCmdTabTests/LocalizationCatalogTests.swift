@@ -2,12 +2,12 @@ import Foundation
 import Testing
 
 /// Guards the Localizable.xcstrings contract: every key ships translated in all
-/// five locales with matching format specifiers, so catalog drift fails the
+/// supported locales with matching format specifiers, so catalog drift fails the
 /// suite instead of silently rendering English in shipped builds (#95).
 @Suite("Localization catalog")
 struct LocalizationCatalogTests {
 
-    private static let locales = ["de", "es", "fr", "pl", "zh-Hans"]
+    private static let locales = ["de", "es", "fr", "pl", "ru", "zh-Hans"]
 
     private struct CatalogError: Error, CustomStringConvertible {
         let description: String
@@ -15,11 +15,11 @@ struct LocalizationCatalogTests {
 
     /// The .xcstrings is not copied into the test bundle; read it off the
     /// checkout relative to this source file (repo-root/BetterCmdTab/…).
-    private static func catalog() throws -> [String: Any] {
+    private static func catalog(named name: String = "Localizable") throws -> [String: Any] {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("BetterCmdTab/Localizable.xcstrings")
+            .appendingPathComponent("BetterCmdTab/\(name).xcstrings")
         let data = try Data(contentsOf: url)
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw CatalogError(description: "catalog root is not a JSON object")
@@ -66,7 +66,7 @@ struct LocalizationCatalogTests {
         }
     }
 
-    @Test("every key is translated in all five locales")
+    @Test("every key is translated in all supported locales")
     func allLocalesFullyTranslated() throws {
         let strings = try Self.strings()
         for locale in Self.locales {
@@ -75,6 +75,17 @@ struct LocalizationCatalogTests {
                 .keys.sorted()
             #expect(missing.isEmpty, "\(locale) is missing \(missing.count) keys, e.g. \(missing.prefix(5))")
         }
+    }
+
+    @Test("Russian Info.plist strings are complete")
+    func russianInfoPlistStringsAreComplete() throws {
+        guard let strings = try Self.catalog(named: "InfoPlist")["strings"] as? [String: [String: Any]] else {
+            throw Self.CatalogError(description: "InfoPlist catalog has no strings dictionary")
+        }
+        let missing = strings
+            .filter { Self.translation($0.value, "ru")?.isEmpty != false }
+            .keys.sorted()
+        #expect(missing.isEmpty, "ru is missing \(missing.count) Info.plist keys, e.g. \(missing.prefix(5))")
     }
 
     @Test("format specifiers match the source key in every locale")
