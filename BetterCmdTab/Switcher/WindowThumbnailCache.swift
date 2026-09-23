@@ -478,13 +478,15 @@ private actor SCWindowProvider {
         config.ignoreShadowsSingleWindow = true
         config.scalesToFit = true
 
-        do {
-            return CapturedCGImage(image: try await SCScreenshotManager.captureImage(
-                contentFilter: filter,
-                configuration: config
-            ))
-        } catch {
-            return nil
+        // ScreenCaptureKit can complete with neither an image nor an error —
+        // seen with browser Picture in Picture windows playing protected video.
+        // The `async throws -> CGImage` import force-unwraps that reply and
+        // traps on the replayd XPC queue (#199), so consume the completion
+        // handler directly and treat a missing image as a capture miss.
+        return await withCheckedContinuation { continuation in
+            SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) { image, _ in
+                continuation.resume(returning: image.map { CapturedCGImage(image: $0) })
+            }
         }
     }
 
