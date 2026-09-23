@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import os
 @preconcurrency import ScreenCaptureKit
 
 /// Generation tokens for asynchronous thumbnail captures. Clearing the cache
@@ -412,9 +413,6 @@ struct ThumbnailLRU {
     }
 }
 
-/// Short-lived cache of `SCShareableContent` so a single reveal enumerates the
-/// window list once instead of once per captured window (the enumeration is the
-/// expensive part of an `SCScreenshotManager` capture).
 @available(macOS 14.0, *)
 private struct CapturedCGImage: @unchecked Sendable {
     /// CGImage is immutable and safe to retain/read across queues; CoreGraphics
@@ -422,6 +420,9 @@ private struct CapturedCGImage: @unchecked Sendable {
     let image: CGImage
 }
 
+/// Short-lived cache of `SCShareableContent` so a single reveal enumerates the
+/// window list once instead of once per captured window (the enumeration is the
+/// expensive part of an `SCScreenshotManager` capture).
 @available(macOS 14.0, *)
 private actor SCWindowProvider {
     static let shared = SCWindowProvider()
@@ -478,13 +479,16 @@ private actor SCWindowProvider {
         config.ignoreShadowsSingleWindow = true
         config.scalesToFit = true
 
-        // ScreenCaptureKit can complete with neither an image nor an error —
-        // seen with browser Picture in Picture windows playing protected video.
-        // The `async throws -> CGImage` import force-unwraps that reply and
-        // traps on the replayd XPC queue (#199), so consume the completion
-        // handler directly and treat a missing image as a capture miss.
+        // SCK can reply (nil, nil) for PiP DRM video; the async import force-unwraps
+        // that and traps on the replayd XPC queue (#199).
         return await withCheckedContinuation { continuation in
-            SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) { image, _ in
+            SCScreenshotManager.captureImage(
+                contentFilter: filter,
+                configuration: config
+            ) { image, error in
+                if image == nil, error == nil {
+                    Log.cache.debug("SCK returned no image and no error for window \(wid)")
+                }
                 continuation.resume(returning: image.map { CapturedCGImage(image: $0) })
             }
         }
@@ -543,31 +547,35 @@ private actor SCWindowProvider {
         }
         let backoff = lastFailureWasTransient ? transientFailureBackoff : failureBackoff
         guard Date().timeIntervalSince(lastFailureAt) >= backoff else { return }
-        do {
-            let content = try await SCShareableContent.excludingDesktopWindows(
+        // Completion handler, not the async import, for the same (nil, nil) trap as `capture`.
+        let content = await withCheckedContinuation { continuation in
+            SCShareableContent.getExcludingDesktopWindows(
                 false,
                 onScreenWindowsOnly: false
-            )
-            guard !Task.isCancelled, generation == refreshGeneration else { return }
-            windowsByID = Dictionary(
-                content.windows.map { ($0.windowID, $0) },
-                uniquingKeysWith: { first, _ in first }
-            )
-            // Completion time makes this refresh satisfy every caller that
-            // coalesced onto it. A later lookup that misses the cached map still
-            // gets the one explicit second-chance refresh in `window(for:)`.
-            fetchedAt = Date()
-            lastFailureAt = .distantPast
-            lastFailureWasTransient = false
-        } catch {
-            guard !Task.isCancelled, generation == refreshGeneration else { return }
+            ) { content, _ in
+                continuation.resume(returning: content)
+            }
+        }
+        guard !Task.isCancelled, generation == refreshGeneration else { return }
+        guard let content else {
             // Leave the previous map (possibly empty). Classify the failure so the
             // pacing above can retry a transient hiccup quickly while still holding
             // back per-tile XPC when the permission is genuinely denied.
             fetchedAt = .distantPast
             lastFailureAt = Date()
             lastFailureWasTransient = CGPreflightScreenCaptureAccess()
+            return
         }
+        windowsByID = Dictionary(
+            content.windows.map { ($0.windowID, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        // Completion time makes this refresh satisfy every caller that
+        // coalesced onto it. A later lookup that misses the cached map still
+        // gets the one explicit second-chance refresh in `window(for:)`.
+        fetchedAt = Date()
+        lastFailureAt = .distantPast
+        lastFailureWasTransient = false
     }
 
     /// Drop the broad shareable-content inventory and invalidate a suspended
