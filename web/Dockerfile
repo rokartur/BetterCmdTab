@@ -9,6 +9,8 @@ RUN bun run scripts/fetch-releases.ts || echo "keeping the committed releases.js
 RUN bun run build
 
 FROM oven/bun:1-alpine AS docs
+# docs' build script rewrites canonicals with perl, which alpine lacks.
+RUN apk add --no-cache perl
 WORKDIR /app/docs
 COPY docs/package.json docs/bun.lock ./
 RUN bun install --frozen-lockfile
