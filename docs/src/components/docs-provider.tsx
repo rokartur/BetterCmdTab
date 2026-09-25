@@ -26,7 +26,6 @@ export function DocsProvider({ locale, children }: { locale: Locale; children: R
 
   return (
     <RootProvider
-      theme={{ enabled: false }}
       i18n={{ ...i18nProvider(uiTranslations, locale), onLocaleChange: changeLocale }}
       // Matches the staticGET index in app/api/search — without this the
       // client would query the marketing site's /api/search endpoint.

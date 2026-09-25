@@ -9,7 +9,9 @@
  *   bg #faf9f6 · text #1c1b19 · dim #57534c · muted #6f6a62
  *   line #e5e1d8 · accent #2563eb · surface #ffffff
  *
- * Light-only (web is `color-scheme: light`); the provider's theme switch is off.
+ * Dark mirrors the landing page's `.dark` band:
+ *   bg #0b0b0a · text #f2f0eb · dim #b8b2a7 · muted #8f897f
+ *   line #2a2824 · accent #3b82f6 · surface #151412
  */
 :root {
   --color-fd-background: #faf9f6;
@@ -39,16 +41,41 @@
   --color-fd-overlay: rgba(28, 27, 25, 0.25);
 }
 
-/* neutral.css gives the sidebar its own greys; keep it on the palette. */
-#nd-sidebar {
-  --color-fd-muted: #f3f1ec;
-  --color-fd-secondary: #f3f1ec;
-  --color-fd-muted-foreground: #6f6a62;
+.dark {
+  --color-fd-background: #0b0b0a;
+  --color-fd-foreground: #f2f0eb;
+
+  --color-fd-muted: #121110;
+  --color-fd-card: #151412;
+  --color-fd-card-foreground: #f2f0eb;
+  --color-fd-popover: #151412;
+  --color-fd-popover-foreground: #f2f0eb;
+  --color-fd-secondary: #121110;
+  --color-fd-secondary-foreground: #f2f0eb;
+
+  --color-fd-muted-foreground: #8f897f;
+
+  --color-fd-border: #2a2824;
+
+  --color-fd-primary: #3b82f6;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-ring: #3b82f6;
+
+  --color-fd-accent: #1c1a17;
+  --color-fd-accent-foreground: #f2f0eb;
+
+  --color-fd-overlay: rgba(0, 0, 0, 0.5);
+}
+
+/* neutral.css gives the dark sidebar its own greys; keep it on the palette. */
+.dark #nd-sidebar {
+  --color-fd-muted: #121110;
+  --color-fd-secondary: #121110;
+  --color-fd-muted-foreground: #8f897f;
 }
 
 @layer base {
   html {
-    color-scheme: light;
     scrollbar-gutter: stable;
   }
 
@@ -150,4 +177,10 @@ html > body[data-scroll-locked] {
   line-height: 1;
   color: var(--color-fd-foreground);
   vertical-align: 1px;
+}
+
+.dark .prose kbd {
+  border-color: #2e2e2e;
+  background: linear-gradient(#171717, #0a0a0a);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
 }
