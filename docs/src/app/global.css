@@ -95,6 +95,42 @@ html > body[data-scroll-locked] {
   color: var(--color-fd-foreground);
 }
 
+/* Four columns leave the description ~130px wide on a phone; stack each row instead. */
+@media (max-width: 639px) {
+  .prose .config-table,
+  .prose .config-table tbody {
+    display: block;
+  }
+
+  .prose .config-table thead {
+    display: none;
+  }
+
+  .prose .config-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-fd-border);
+  }
+
+  .prose .config-table td {
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+
+  .prose .config-table td:first-child,
+  .prose .config-table td:last-child {
+    flex-basis: 100%;
+  }
+
+  .prose .config-table td[data-label]::before {
+    content: attr(data-label) ' ';
+    color: var(--color-fd-muted-foreground);
+  }
+}
+
 /* Same keycap as the landing page hero. */
 .prose kbd {
   display: inline-flex;

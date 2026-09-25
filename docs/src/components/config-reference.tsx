@@ -60,10 +60,12 @@ function Values({ fragment }: { fragment: SchemaFragment }) {
 function KeyRow({
   entry,
   anyLabel,
+  defaultLabel,
   exactItems,
 }: {
   entry: ConfigKey;
   anyLabel: string;
+  defaultLabel: string;
   exactItems: (count: number) => string;
 }) {
   return (
@@ -77,7 +79,7 @@ function KeyRow({
       <td className="align-top whitespace-nowrap">
         <Type fragment={entry.fragment} anyLabel={anyLabel} exactItems={exactItems} />
       </td>
-      <td className="align-top whitespace-nowrap">
+      <td className="align-top whitespace-nowrap" data-label={defaultLabel}>
         {entry.default ? <code>{entry.default}</code> : <span aria-hidden>—</span>}
       </td>
       <td className="align-top">
@@ -100,7 +102,7 @@ export function ConfigReference() {
         <section key={section.title}>
           <h2 id={sectionSlug(section.title)}>{t(`sections.${section.translationKey}.title`)}</h2>
           <p>{t(`sections.${section.translationKey}.blurb`)}</p>
-          <table>
+          <table className="config-table">
             <thead>
               <tr>
                 <th>{t('key')}</th>
@@ -115,6 +117,7 @@ export function ConfigReference() {
                   key={entry.name}
                   entry={entry}
                   anyLabel={anyLabel}
+                  defaultLabel={t('default')}
                   exactItems={exactItems}
                 />
               ))}
@@ -146,7 +149,7 @@ export function ConfigObject({ name }: { name: string }) {
   return (
     <>
       <p>{entry.fragment.description}</p>
-      <table>
+      <table className="config-table">
         <thead>
           <tr>
             <th>{t('field')}</th>
