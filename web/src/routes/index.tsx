@@ -1881,7 +1881,43 @@ function Home() {
 
       <Footer dmgUrl={dmgUrl} style={accentStyle} />
       <StickyCTA downloadUrl={dmgUrl} />
+      <BetterAudioCard />
     </MotionConfig>
+  );
+}
+
+// lg and up only: narrower, it collides with the centered sticky Download pill.
+function BetterAudioCard() {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <aside className="enter fixed right-7 bottom-7 z-40 hidden items-center gap-1 rounded-2xl border border-line bg-surface py-2 pr-2 pl-2.5 shadow-[0_6px_24px_rgb(0_0_0/0.08)] [animation-delay:1900ms] lg:flex">
+      <ExternalLink
+        className="flex items-center gap-2.5 border-0 text-text"
+        href="https://betteraudio.pro/"
+      >
+        <img
+          className="block h-8 w-8 shrink-0 rounded-[7px]"
+          src="/betteraudio.png"
+          alt=""
+          width={32}
+          height={32}
+          decoding="async"
+        />
+        <span className="flex flex-col">
+          <span className="text-[13px] font-semibold">BetterAudio</span>
+          <span className="text-[12px] text-dim">Per-app volume for macOS</span>
+        </span>
+      </ExternalLink>
+      <button
+        type="button"
+        aria-label="Dismiss BetterAudio"
+        onClick={() => setDismissed(true)}
+        className="cursor-pointer self-start rounded-md border-0 bg-transparent px-1.5 text-[16px] leading-none text-dim hover:text-text"
+      >
+        &times;
+      </button>
+    </aside>
   );
 }
 
