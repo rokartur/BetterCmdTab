@@ -2,52 +2,73 @@
 
 @theme {
   --color-*: initial;
-  --color-bg: #0a0a0a;
-  --color-text: #ededed;
-  --color-muted: #6b6b6b;
-  --color-dim: #8a8a8a;
-  --color-line: #222222;
-  --color-accent: #3b82f6;
+  --color-bg: #faf9f6;
+  --color-surface: #ffffff;
+  --color-text: #1c1b19;
+  /* Muted, dim, accent and pro all clear WCAG AA (4.5:1) on #faf9f6 at 13px. */
+  --color-muted: #6f6a62;
+  --color-dim: #57534c;
+  --color-line: #e5e1d8;
+  --color-accent: #2563eb;
+  --color-pro: #9a6700;
   --color-black: #000000;
   /* `--color-*: initial` above drops Tailwind's default palette, so `bg-white/…`
      silently compiles to nothing without this. Used for the faint raised
      surfaces: the channel segment and the Copy button. */
   --color-white: #ffffff;
+  /* Tailwind's stone, for StickyCTA, ported as-is from the BetterAudio site. */
+  --color-stone-100: oklch(97% 0.001 106.424);
+  --color-stone-200: oklch(92.3% 0.003 48.717);
+  --color-stone-400: oklch(70.9% 0.01 56.259);
+  --color-stone-900: oklch(21.6% 0.006 56.043);
 
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Menlo", "Monaco", monospace;
-
-  --animate-caret: caret-blink 1.15s steps(1, end) infinite;
-
-  @keyframes caret-blink {
-    0%,
-    50% {
-      opacity: 1;
-    }
-    50.01%,
-    100% {
-      opacity: 0;
-    }
-  }
 }
 
 /* Entrance cascade. CSS on purpose: a keyframe on the prerendered HTML starts at
    the first paint, while anything JS-driven can't start until ~800 KB of Motion
    has hydrated — content would sit visibly parked and then hop. `both` holds the
-   from-state through the delay so a staggered element never flashes first. */
+   from-state through the delay so a staggered element never flashes first.
+   Fade and blur clear by 60% while the slide keeps settling, so nothing drifts
+   in half-transparent. */
 @keyframes enter {
   from {
     opacity: 0;
-    transform: translate3d(0, 12px, 0);
+    filter: blur(6px);
+    transform: translate3d(0, 18px, 0);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
   }
 }
 
-/* Transform only, no fade: this one carries the LCP screenshot, and an element
-   at opacity 0 doesn't count as painted, so fading it would push LCP out by the
-   length of the animation. Transform moves are excluded from CLS, so a longer,
-   slower drift here is free. */
+/* Transform and blur only, no fade: this one carries the LCP screenshot, and an
+   element at opacity 0 doesn't count as painted, so fading it would push LCP out
+   by the length of the animation. A blurred frame still counts, and transform
+   moves are excluded from CLS, so a longer, slower drift here is free. */
 @keyframes rise {
   from {
-    transform: translate3d(0, 20px, 0);
+    filter: blur(6px);
+    transform: translate3d(0, 32px, 0);
+  }
+  60% {
+    filter: blur(0);
+  }
+}
+
+/* The showcase's active dot; its animationend is what advances the carousel. */
+@keyframes dot-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* The config.json line the demo just edited. */
+@keyframes line-flash {
+  from {
+    background-color: rgb(37 99 235 / 0.14);
   }
 }
 
@@ -55,11 +76,11 @@
   /* In `components`, not `utilities`, so a `[animation-delay:…]` utility on the
      same element still wins over this shorthand's implicit 0s. */
   .enter {
-    animation: enter 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: enter 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .rise {
-    animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: rise 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -74,21 +95,37 @@
   html {
     background: var(--color-bg);
     color: var(--color-text);
-    color-scheme: dark;
+    color-scheme: light;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    --accent-on-dark: #3b82f6;
+  }
+
+  /* Dark band: re-points the theme tokens, so every token utility inside flips.
+     Both accents clear WCAG AA on #0b0b0a; #2563eb and #9a6700 do not. */
+  .dark {
+    --color-bg: #0b0b0a;
+    --color-surface: #151412;
+    --color-text: #f2f0eb;
+    --color-muted: #8f897f;
+    --color-dim: #b8b2a7;
+    --color-line: #2a2824;
+    --color-accent: var(--accent-on-dark);
+    background: var(--color-bg);
+    color: var(--color-text);
+    color-scheme: dark;
   }
 
   body {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    line-height: 1.7;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
   }
 
   ::selection {
-    background: --alpha(var(--color-accent) / 35%);
+    background: --alpha(var(--color-accent) / 20%);
   }
 
   a {

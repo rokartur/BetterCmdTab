@@ -42,8 +42,8 @@ const meta = [
     content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
   },
   { name: "format-detection", content: "telephone=no" },
-  { name: "color-scheme", content: "dark" },
-  { name: "theme-color", content: "#0a0a0a" },
+  { name: "color-scheme", content: "light" },
+  { name: "theme-color", content: "#faf9f6" },
   { name: "mobile-web-app-capable", content: "yes" },
   // The modern spelling above is what browsers read; keep the legacy Apple
   // one for older iOS Safari.
@@ -164,53 +164,6 @@ const jsonLd = {
       inLanguage: "en",
       description: "A fast, native Cmd+Tab window switcher and app launcher for macOS.",
       publisher: { "@id": `${SITE}/#author` },
-    },
-    {
-      "@type": "FAQPage",
-      "@id": `${SITE}/#faq`,
-      isPartOf: { "@id": `${SITE}/#website` },
-      mainEntity: [
-        {
-          "@type": "Question",
-          name: "Is BetterCmdTab free?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "Yes. BetterCmdTab is free forever and open-source under GPL v3, with zero telemetry and no subscription.",
-          },
-        },
-        {
-          "@type": "Question",
-          name: "Which macOS versions and Macs does it support?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "macOS 13.0 or later, on both Apple Silicon and Intel.",
-          },
-        },
-        {
-          "@type": "Question",
-          name: "How is it different from AltTab or the built-in Cmd+Tab?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "All three switch what you have open; the real difference is what costs money. The built-in Cmd+Tab only cycles apps — no windows, search, or previews. AltTab is free at its core but now locks search, extra layouts, and multiple shortcuts behind a paid Pro tier. BetterCmdTab is a native AppKit menu-bar app that stays free forever and open-source with no paywall and no telemetry: list, grid, and live-preview layouts, fuzzy search that also launches any installed app, window cycling, browser-tab drill-in, and window tiling the stock switcher cannot do.",
-          },
-        },
-        {
-          "@type": "Question",
-          name: "Does Cmd+Tab still work in password fields?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "Yes. A Carbon survivor trigger keeps the switcher working even while a password field holds Secure Event Input.",
-          },
-        },
-        {
-          "@type": "Question",
-          name: "Does it collect any data?",
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: "No. There is no telemetry, analytics, or background network. The only network call is an opt-in check for updates on GitHub Releases.",
-          },
-        },
-      ],
     },
   ],
 };

@@ -1,10 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from "motion/react";
-import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  MotionConfig,
+  motion,
+  useAnimationControls,
+  useInView,
+  useReducedMotion,
+  type Variants,
+} from "motion/react";
+import { type CSSProperties, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import snapshot from "../../releases.json";
 import {
+  type Channel,
   channels,
   FETCH_TIMEOUT,
   freshest,
@@ -15,6 +24,7 @@ import {
   type Releases,
   writeCache,
 } from "../releases";
+import { Icon, StickyCTA } from "../StickyCTA";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -24,6 +34,9 @@ const BREW = "brew install --cask bettercmdtab";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+// Split so each word blurs in on its own beat.
+const headlineWords = ["The", "⌘+Tab", "macOS", "deserves."];
+
 // The entrance cascade is the `enter`/`rise` classes in globals.css, and it stays
 // CSS: a keyframe on the prerendered HTML runs at the first paint, while anything
 // Motion-driven can't start until ~800 KB of JS hydrates, which means content
@@ -31,178 +44,30 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 // everything below the fold ships in its final position. Motion here is only for
 // what a click or a hover asks for.
 
-// Shared utility strings — the recurring "components" of the page.
-const SECTION = "flex flex-col gap-4";
-
-// Section headings carry a hairline rule out to the edge — at 960px wide a bare
-// 13px label is too quiet to separate anything.
 const H2 =
-  "m-0 flex items-center gap-3 text-[13px] font-normal tracking-[0.04em] text-muted after:h-px after:flex-1 after:bg-line after:content-['']";
-
-// Shared tab-strip look for the layout showcase and the config presets.
-const TAB =
-  "relative cursor-pointer rounded-[6px] border-0 bg-transparent px-2.5 py-[3px] font-mono text-[13px] leading-normal transition-colors duration-200";
+  "m-0 mb-7 max-w-[22ch] text-[clamp(26px,3.4vw,40px)] leading-[1.1] font-bold tracking-[-0.025em] text-balance";
 
 // The first entry is what layout.tsx preloads, so the LCP image is already in
-// flight before this mounts — keep the two in sync.
+// flight before this mounts, so keep the two in sync.
 const layouts = [
   {
     id: "previews",
-    label: "previews",
+    label: "Previews",
     src: "/screenshots/preview.jpg",
     caption: "Live previews of every window on screen",
   },
   {
     id: "grid",
-    label: "grid",
+    label: "Grid",
     src: "/screenshots/grid.jpg",
     caption: "A grid of app icons, window titles underneath",
   },
   {
     id: "list",
-    label: "list",
+    label: "List",
     src: "/screenshots/list.jpg",
     caption: "The classic vertical list, one row per window",
   },
-];
-
-const featureGroups: Array<{ label: string; rows: Array<[string, string]> }> = [
-  {
-    label: "switching",
-    rows: [
-      ["Letter-prefix jump", "type a name to jump to it"],
-      ["Search & launch", "press / to fuzzy-find, or launch any installed app"],
-      ["Window switching", "Cmd+` cycles windows of the front app"],
-      [
-        "Scoped shortcuts",
-        "add as many hotkeys as you like, each opening the switcher pre-filtered (all windows, this Space, Visible Spaces, the current app, or minimized) with its own layout, sorting, filters, and colors",
-      ],
-      ["Tap or hold", "tap to switch instantly, hold to open the switcher"],
-      [
-        "Stay open",
-        "optionally keep the switcher open after you release Cmd: confirm with Return or a click, dismiss with Esc",
-      ],
-      ["Reverse step", "hold Shift to keep stepping backwards, or turn the tap-Shift reverse off"],
-      ["Scroll to switch", "spin the mouse wheel to move through apps"],
-      ["Keyboard only", "optionally turn off selecting with mouse hover and mouse click"],
-      ["App hotkeys", "assign a global shortcut to focus or launch a chosen app (9 slots)"],
-    ],
-  },
-  {
-    label: "layouts",
-    rows: [
-      ["Three layouts", "classic list, grid of icons, or live window previews"],
-      ["Window titles", "show each window's title under its icon in Grid and Previews"],
-      [
-        "Preview titles",
-        "choose how window titles align in previews and whether the selected name is bold",
-      ],
-      [
-        "Theming",
-        "panel opacity, corner radius, and background material — the highlight follows your macOS accent color",
-      ],
-      ["Multi-monitor", "opens on the display you're actively working on"],
-    ],
-  },
-  {
-    label: "tabs",
-    rows: [
-      ["Tab drill-in", "press \\ to pick a tab from Safari, Chrome, Arc, Finder, Terminal, …"],
-      [
-        "Tabs as rows",
-        "surface each native or browser tab as its own row, with a most-recently-used order and a hint when Safari/Chrome need automation permission",
-      ],
-    ],
-  },
-  {
-    label: "windows",
-    rows: [
-      ["Quick actions", "quit, close, minimize, maximize, hide inline"],
-      [
-        "Hover actions",
-        "quick-action buttons appear on hover: close, minimize, zoom, hide, quit, force-quit",
-      ],
-      ["Force quit", "Cmd+Option+Q SIGKILLs hung apps when graceful Quit hangs"],
-      [
-        "Window management",
-        "tile to halves or corners, maximize, or center with Ctrl+Cmd arrows; cycle ½ → ⅔ → ⅓ widths",
-      ],
-      ["Move windows", "send the highlighted window to the next display"],
-      ["Recently closed", "reopen an app you just quit"],
-    ],
-  },
-  {
-    label: "filters",
-    rows: [
-      [
-        "Sort order",
-        "order apps by recents, alphabetically, launch order, or most-recent windows across every app",
-      ],
-      ["Minimized & hidden", "include minimized windows, hidden and windowless apps"],
-      ["Pin & filter", "keep favorites up top, hide the rest"],
-      ["Per-app rules", "hide an app, or have it ignore Cmd+Tab always or only when fullscreen"],
-    ],
-  },
-  {
-    label: "spaces",
-    rows: [
-      ["Instant Spaces", "switch Spaces with no animation"],
-      [
-        "Show windows from",
-        "All Spaces, the current Space, or Visible Spaces — made for multiple monitors, showing what's on screen across all displays",
-      ],
-      ["Unread badges", "Dock badge counts, in the switcher"],
-      ["Audio indicator", "flags apps playing sound"],
-    ],
-  },
-  {
-    label: "system",
-    rows: [
-      [
-        "Secure-input survivor",
-        "Cmd+Tab keeps working even while a password field holds Secure Event Input",
-      ],
-      [
-        "Trackpad & haptics",
-        "three-finger swipe to open the switcher or switch Spaces, with optional haptic and click feedback",
-      ],
-      [
-        "Hide from screen sharing",
-        "keep the switcher out of screen recordings and shared screens. Needs macOS 14.6+",
-      ],
-      ["Export & import", "back up and move your whole setup as a plain JSON file"],
-      [
-        "Config file",
-        "optionally keep settings in ~/.config/bettercmdtab/config.json — file edits apply live, app changes write back",
-      ],
-      ["Configurable", "custom hotkey, size, scale, layout, grid columns, and reveal delay"],
-    ],
-  },
-];
-
-// Mirrored by the FAQPage JSON-LD in app/layout.tsx, which is what machine
-// readers get. Edit both sides together so they keep saying the same thing.
-const faqs: Array<[string, string]> = [
-  [
-    "Is BetterCmdTab free?",
-    "Yes. BetterCmdTab is free forever and open-source under GPL v3, with zero telemetry and no subscription.",
-  ],
-  [
-    "Which macOS versions and Macs does it support?",
-    "macOS 13.0 or later, on both Apple Silicon and Intel.",
-  ],
-  [
-    "How is it different from AltTab or the built-in Cmd+Tab?",
-    "All three switch what you have open; the real difference is what costs money. The built-in Cmd+Tab only cycles apps — no windows, search, or previews. AltTab is free at its core but now locks search, extra layouts, and multiple shortcuts behind a paid Pro tier. BetterCmdTab is a native AppKit menu-bar app that stays free forever and open-source with no paywall and no telemetry: list, grid, and live-preview layouts, fuzzy search that also launches any installed app, window cycling, browser-tab drill-in, and window tiling the stock switcher cannot do.",
-  ],
-  [
-    "Does Cmd+Tab still work in password fields?",
-    "Yes. A Carbon survivor trigger keeps the switcher working even while a password field holds Secure Event Input.",
-  ],
-  [
-    "Does it collect any data?",
-    "No. There is no telemetry, analytics, or background network. The only network call is an opt-in check for updates on GitHub Releases.",
-  ],
 ];
 
 // Baked at build time (scripts/fetch-releases.ts, run by the Docker build) so
@@ -257,109 +122,32 @@ function useReleases(): Releases {
 
 const ExternalLink = "a";
 
-// APG tab pattern: Left/Right (and Home/End) move between tabs and take focus
-// with them, and only the selected tab is in the tab order. A bare row of
-// role="tab" buttons without that leaves the others unreachable by keyboard, so
-// the behaviour lives here once and both tab strips use it.
-function Tabs({
-  label,
-  tabs,
-  active,
-  onChange,
-  idPrefix,
-  panelId,
-}: {
-  label: string;
-  tabs: ReadonlyArray<{ id: string; label: string }>;
-  active: number;
-  onChange: (i: number) => void;
-  idPrefix: string;
-  panelId: string;
-}) {
-  const refs = useRef<Array<HTMLButtonElement | null>>([]);
-
-  const onTabKey = (e: React.KeyboardEvent) => {
-    const last = tabs.length - 1;
-    let next: number | null = null;
-    if (e.key === "ArrowRight") next = active === last ? 0 : active + 1;
-    else if (e.key === "ArrowLeft") next = active === 0 ? last : active - 1;
-    else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = last;
-    if (next === null) return;
-    e.preventDefault();
-    onChange(next);
-    refs.current[next]?.focus();
-  };
-
-  return (
-    // No LayoutGroup here: `idPrefix` already makes the pill's layoutId unique
-    // per strip, and an extra group would only nest inside the caller's.
-    <div className="flex flex-wrap items-center gap-1" role="tablist" aria-label={label}>
-      {tabs.map((t, i) => (
-        <button
-          key={t.id}
-          ref={(el) => {
-            refs.current[i] = el;
-          }}
-          type="button"
-          role="tab"
-          id={`${idPrefix}-tab-${t.id}`}
-          aria-selected={i === active}
-          // Only the visible panel exists, so pointing at it from an inactive
-          // tab would dangle.
-          aria-controls={i === active ? panelId : undefined}
-          tabIndex={i === active ? 0 : -1}
-          onKeyDown={onTabKey}
-          className={`${TAB} ${i === active ? "text-accent" : "text-muted hover:text-text"}`}
-          onClick={() => onChange(i)}
-        >
-          {i === active && (
-            <motion.span
-              layoutId={`${idPrefix}-pill`}
-              className="absolute inset-0 -z-10 rounded-[6px] border border-accent/40 bg-accent/[0.08]"
-              transition={{ duration: 0.28, ease: EASE }}
-            />
-          )}
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// The product, front and centre: one large screenshot with the three switcher
-// layouts as tabs over it.
+// The product, front and centre: an auto-advancing peek carousel of the three
+// switcher layouts, neighbours dimmed at the edges.
 function Showcase() {
   const [active, setActive] = useState(0);
-  // Each screenshot is ~250 KB. Only a tab you actually opened is allowed to
-  // fetch, so the page costs one image instead of three; once opened it stays
-  // mounted and every later switch is instant.
-  const [opened, setOpened] = useState<number[]>([0]);
-  // A tab only swaps once its bitmap has actually decoded. Promoting it on
-  // click is what made the switch flash the empty box on first open.
-  const [ready, setReady] = useState<number[]>([0]);
-  // Two layers, not a cross-fade: the incoming image fades in *over* the
-  // outgoing one, which holds at full opacity underneath. Fading both at once
-  // dips through a half-transparent middle, which on this background reads as
-  // a flicker.
-  const [view, setView] = useState({ prev: 0, shown: 0 });
+  // Each screenshot is ~200 KB. A slide fetches only once it is active or next
+  // in line, so landing costs the LCP shot plus the neighbour peeking beside it.
+  const [reach, setReach] = useState(1);
+  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [onScreen, setOnScreen] = useState(true);
   const [zoomed, setZoomed] = useState(false);
+  const reduced = useReducedMotion();
   // The lightbox portals into document.body, which doesn't exist during the
   // build-time static render. Gate it on mount so SSR stays document-free.
+  // The dot fill waits for it too: the server can't know reduced motion.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const select = (i: number) => {
-    setActive(i);
-    setOpened((o) => (o.includes(i) ? o : [...o, i]));
-  };
-
-  // The pill moves on click for immediate feedback; the picture and its caption
-  // follow together as soon as the picture can be shown.
+  const section = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (!ready.includes(active)) return;
-    setView((v) => (v.shown === active ? v : { prev: v.shown, shown: active }));
-  }, [active, ready]);
+    const el = section.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setOnScreen(entry.isIntersecting));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!zoomed) return;
@@ -374,80 +162,109 @@ function Showcase() {
     };
   }, [zoomed]);
 
-  const { prev, shown } = view;
-  const shot = layouts[shown];
+  const go = (i: number) => {
+    setActive(i);
+    setReach((r) => Math.max(r, i + 1));
+  };
+
+  const autoplay = mounted && !reduced;
+  const playing = !paused && !hovered && !zoomed && onScreen;
+  const shot = layouts[active];
 
   return (
     // Drifts up under the hero cascade with no delay of its own, so the big
     // picture is already settling while the text above it arrives.
-    <section className="rise flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-4 max-[560px]:flex-col max-[560px]:items-start max-[560px]:gap-1.5">
-        <Tabs
-          label="Switcher layouts"
-          tabs={layouts}
-          active={active}
-          onChange={select}
-          idPrefix="layout"
-          panelId="layout-panel"
-        />
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.p
-            key={shot.id}
-            className="m-0 text-[13px] text-muted"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: EASE }}
-          >
-            {shot.caption}
-          </motion.p>
-        </AnimatePresence>
+    <section
+      ref={section}
+      className="rise flex flex-col gap-5 [animation-delay:320ms]"
+      aria-label="Switcher layouts"
+      aria-roledescription="carousel"
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+    >
+      {/* The fade spans the 8% peek, so the side slides dissolve instead of being sliced. */}
+      <div className="overflow-hidden mask-x-from-92% mask-x-to-100%">
+        <div
+          className="flex gap-5 transition-transform duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+          // Percentages here are of the track, which is the viewport's width:
+          // 8% centres an 84% slide, 84% + the gap steps one slide.
+          style={{ transform: `translateX(calc(8% - ${active} * (84% + 1.25rem)))` }}
+        >
+          {layouts.map((l, i) => (
+            <button
+              key={l.id}
+              type="button"
+              tabIndex={i === active ? 0 : -1}
+              onClick={() => (i === active ? setZoomed(true) : go(i))}
+              aria-label={i === active ? `Enlarge: ${l.caption}` : `Show ${l.label}`}
+              // The intrinsic 2000×1043 ratio reserves the height before the
+              // image lands.
+              className={`relative aspect-[2000/1043] w-[84%] shrink-0 overflow-hidden rounded-[14px] border border-line bg-line p-0 transition-[opacity,scale] duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+                i === active
+                  ? "cursor-zoom-in"
+                  : "scale-[0.96] cursor-pointer opacity-35 hover:opacity-60"
+              }`}
+            >
+              {/* The first one is the LCP image layout.tsx preloads at
+                  fetchpriority=high; nothing here may hide or defer it. */}
+              {i <= reach && (
+                <img
+                  src={l.src}
+                  alt={l.caption}
+                  className="block h-full w-full object-cover"
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : "auto"}
+                  decoding="async"
+                />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Holds the LCP image, which layout.tsx preloads at fetchpriority=high —
-          nothing here may hide or defer it. */}
-      <div id="layout-panel" role="tabpanel" aria-labelledby={`layout-tab-${shot.id}`}>
+      <p className="m-0 text-center text-sm text-muted">{shot.caption}</p>
+
+      <div className="flex items-center justify-center gap-3.5">
+        <div className="flex gap-2.5 rounded-full bg-text/5 px-4 py-3">
+          {layouts.map((l, i) => (
+            <button
+              key={l.id}
+              type="button"
+              aria-label={l.label}
+              aria-current={i === active}
+              onClick={() => go(i)}
+              className={`relative h-2 cursor-pointer overflow-hidden rounded-full border-0 bg-text/20 p-0 transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                i === active ? "w-11" : "w-2 hover:bg-text/40"
+              }`}
+            >
+              {i === active && autoplay && (
+                <span
+                  className="absolute inset-0 origin-left animate-[dot-fill_5s_linear_forwards] bg-text"
+                  style={{ animationPlayState: playing ? "running" : "paused" }}
+                  onAnimationEnd={() => go((active + 1) % layouts.length)}
+                />
+              )}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
-          onClick={() => setZoomed(true)}
-          aria-label={`Enlarge: ${shot.caption}`}
-          // The intrinsic 2000×1043 ratio, so the whole screenshot shows
-          // instead of being cropped, and the box reserves its height before
-          // the image lands.
-          className="relative block aspect-[2000/1043] w-full cursor-zoom-in overflow-hidden rounded-[10px] border border-line bg-[#111111]"
+          aria-label={paused ? "Play" : "Pause"}
+          onClick={() => setPaused((p) => !p)}
+          className={`grid size-9 cursor-pointer place-items-center rounded-full border-0 bg-text/5 p-0 text-text transition-colors duration-200 hover:bg-text/10 ${
+            mounted && reduced ? "hidden" : ""
+          }`}
         >
-          {layouts.map((l, i) =>
-            opened.includes(i) ? (
-              <motion.img
-                key={l.id}
-                src={l.src}
-                alt={l.caption}
-                aria-hidden={i !== shown}
-                className="absolute inset-0 block h-full w-full object-cover"
-                loading={i === 0 ? "eager" : "lazy"}
-                fetchPriority={i === 0 ? "high" : "auto"}
-                decoding="async"
-                // An image that never loads would otherwise pin the switcher on
-                // the old picture forever.
-                onLoad={() => setReady((r) => (r.includes(i) ? r : [...r, i]))}
-                onError={() => setReady((r) => (r.includes(i) ? r : [...r, i]))}
-                style={{ zIndex: i === shown ? 2 : i === prev ? 1 : 0 }}
-                // The LCP image must paint at full opacity on the first frame
-                // rather than fade in.
-                initial={i === 0 ? false : { opacity: 0 }}
-                animate={{ opacity: i === shown || i === prev ? 1 : 0 }}
-                // Only the incoming layer animates; the one underneath is
-                // already covered, so moving it is wasted work.
-                transition={{ duration: i === shown ? 0.45 : 0, ease: EASE }}
-                // Once the incoming layer has fully covered the outgoing one,
-                // retire it. Otherwise it stays at opacity 1 underneath and
-                // coming back to it later snaps instead of fading.
-                onAnimationComplete={() => {
-                  if (i === shown && prev !== shown) setView({ prev: shown, shown });
-                }}
-              />
-            ) : null,
-          )}
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+            {paused ? (
+              <path d="M3 1.5v9l7.5-4.5z" />
+            ) : (
+              <>
+                <rect x="2" y="1" width="3" height="10" rx="1" />
+                <rect x="7" y="1" width="3" height="10" rx="1" />
+              </>
+            )}
+          </svg>
         </button>
       </div>
 
@@ -456,7 +273,7 @@ function Showcase() {
           <AnimatePresence>
             {zoomed && (
               <motion.div
-                className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-[rgba(0,0,0,0.82)] p-6 backdrop-blur-[6px]"
+                className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-[rgba(250,249,246,0.88)] p-6 backdrop-blur-[6px]"
                 onClick={() => setZoomed(false)}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -484,320 +301,108 @@ function Showcase() {
   );
 }
 
-// Name and description side by side, hairline between rows — a spec sheet.
-// Every description is always readable: the previous build hid them in a
-// hover panel, which is text you can't reach on touch and can't scan anywhere.
-function Rows({ rows }: { rows: Array<[string, string]> }) {
-  return (
-    <ul className="m-0 flex list-none flex-col p-0">
-      {rows.map(([term, desc]) => (
-        <li
-          key={term}
-          className="grid grid-cols-[minmax(0,14rem)_minmax(0,1fr)] items-baseline gap-x-8 border-t border-line py-2.5 max-[640px]:grid-cols-1 max-[640px]:gap-y-0.5"
-        >
-          <span className="text-text">{term}</span>
-          <span className="text-[13px] leading-[1.55] text-muted">{desc}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-const FEATURE_COUNT = featureGroups.reduce((n, g) => n + g.rows.length, 0);
-
-// Built once: Tabs wants {id,label}, the groups are keyed by their label.
-const featureTabs = featureGroups.map((g) => ({ id: g.label, label: g.label }));
-
-// Thirty-eight features is a wall, so they work the way the app does: one
-// group at a time from the same tab strip the showcase uses. Every group stays
-// in the DOM (`hidden`, not unmounted) so the full list still ships in the
-// static HTML.
-function Features() {
-  const [active, setActive] = useState(0);
-  const panels = useRef<Array<HTMLDivElement | null>>([]);
-  const [height, setHeight] = useState<number>();
-  // The group that is still fading out. It keeps the outgoing rows on screen
-  // for the length of the swap, so the box never flashes empty mid-transition.
-  const [leaving, setLeaving] = useState<number | null>(null);
-  const reduce = useReducedMotion();
-
-  const select = (i: number) => {
-    if (i === active) return;
-    setLeaving(active);
-    setActive(i);
-  };
-
-  // Groups run from two to ten rows, so the box glides to the new one instead
-  // of the page lurching. Measured rather than animated by layout projection:
-  // the panel holds wrapping text, and scaling that squashes every row.
-  useEffect(() => {
-    const measure = () => setHeight(panels.current[active]?.offsetHeight);
-    measure();
-    // The box clips its panel, so a stale height after a rewrap would cut text.
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [active]);
-
-  return (
-    <section className={SECTION}>
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="m-0 shrink-0 text-[13px] font-normal tracking-[0.04em] text-muted">
-          Features
-        </h2>
-        <span className="h-px flex-1 bg-line max-[560px]:hidden" aria-hidden />
-        <span className="shrink-0 text-[13px] text-dim tabular-nums">{FEATURE_COUNT}</span>
-      </div>
-
-      <Tabs
-        label="Feature groups"
-        tabs={featureTabs}
-        active={active}
-        onChange={select}
-        idPrefix="feature"
-        panelId="feature-panel"
-      />
-      <motion.div
-        className="relative overflow-hidden"
-        initial={false}
-        animate={{ height: height ?? "auto" }}
-        transition={{ duration: reduce ? 0 : 0.36, ease: EASE }}
-      >
-        {featureGroups.map((group, i) => (
-          <motion.div
-            key={group.label}
-            ref={(el) => {
-              panels.current[i] = el;
-            }}
-            // The one on its way out leaves the flow, so the incoming
-            // panel alone sets the height the box is gliding to.
-            className={i === leaving ? "absolute inset-x-0 top-0" : undefined}
-            // Only the visible panel is referenced by its tab, so only it
-            // carries the id Tabs points at.
-            id={i === active ? "feature-panel" : undefined}
-            role="tabpanel"
-            aria-labelledby={`feature-tab-${group.label}`}
-            // Nothing inside a panel is focusable, so the panel itself has
-            // to be, or the rows are unreachable from the tab strip.
-            tabIndex={i === active ? 0 : undefined}
-            aria-hidden={i === leaving || undefined}
-            // Hidden, not unmounted: the rows stay in the static HTML,
-            // and each panel keeps the parked state it animates back from
-            // the next time it is picked.
-            hidden={i !== active && i !== leaving}
-            initial={false}
-            // Panels park on the side they sit on in the strip, so a group
-            // picked to the right comes in from the right and the one it
-            // replaces leaves to the left. No direction to track: the
-            // index against the new selection already says which way.
-            animate={i === active ? { opacity: 1, x: 0 } : { opacity: 0, x: i < active ? -16 : 16 }}
-            transition={
-              i === active
-                ? { duration: 0.3, delay: 0.05, ease: EASE }
-                : // Parked panels are display:none, so their reset is free
-                  // and only the two panels in the swap spend frames.
-                  { duration: i === leaving ? 0.22 : 0, ease: EASE }
-            }
-            onAnimationComplete={() => {
-              if (i === leaving) setLeaving(null);
-            }}
-          >
-            <Rows rows={group.rows} />
-          </motion.div>
-        ))}
-      </motion.div>
-    </section>
-  );
-}
-
-// Controlled accordion: the answer stays mounted (height-clipped when closed)
-// so its text ships in the statically rendered HTML and keeps matching the
-// FAQPage JSON-LD — AnimatePresence would unmount it and break the rich result.
-function FaqItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="border-b border-line">
-      <button
-        type="button"
-        className="flex w-full cursor-pointer items-baseline gap-2.5 border-0 bg-transparent py-2 text-left text-text transition-colors duration-150 hover:text-accent"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <motion.span
-          className={`inline-block flex-none transition-colors duration-150 [font-variant-ligatures:none] ${
-            open ? "text-accent" : "text-muted"
-          }`}
-          aria-hidden
-          animate={{ rotate: open ? 45 : 0 }}
-          transition={{ duration: 0.25, ease: EASE }}
-        >
-          +
-        </motion.span>
-        <span>{q}</span>
-      </button>
-      <motion.div
-        className="overflow-hidden"
-        initial={false}
-        animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }}
-        transition={{ duration: 0.3, ease: EASE }}
-      >
-        <p className="mb-3 ml-5 text-muted">{a}</p>
-      </motion.div>
-    </div>
-  );
-}
-
-const SCRAMBLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/<>_-$";
-
-function useScramble(text: string, active: boolean, enabled: boolean): string {
-  const [out, setOut] = useState(text);
-  const idRef = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    if (idRef.current !== undefined) window.clearInterval(idRef.current);
-
-    if (!enabled || !active) {
-      setOut(text);
-      return;
-    }
-
-    let i = 0;
-    idRef.current = window.setInterval(() => {
-      setOut(
-        text
-          .split("")
-          .map((ch, idx) => {
-            if (ch === " " || ch === ".") return ch;
-            if (idx < Math.floor(i)) return text[idx];
-            return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
-          })
-          .join(""),
-      );
-      i += 0.5;
-      if (i >= text.length) {
-        if (idRef.current !== undefined) window.clearInterval(idRef.current);
-        setOut(text);
-      }
-    }, 28);
-
-    return () => {
-      if (idRef.current !== undefined) window.clearInterval(idRef.current);
-    };
-  }, [text, active, enabled]);
-
-  return out;
-}
-
-// The download control — flat and quiet like the rest of the page, one capsule
-// mirroring BrewCmd's [command | Copy] split: the download link on the left
-// and, when a beta exists, an attached Latest/Beta channel segment on the
-// right. Hover brightens the border and text, scrambles the label in, and
-// drops the arrow into its tray; a tap gives a small spring scale as feedback.
 function DownloadCta({
   href,
-  beta,
   channel,
   onChange,
+  stable,
+  beta,
 }: {
   href: string;
-  beta: boolean;
   channel: "stable" | "beta";
-  onChange: (c: "stable" | "beta") => void;
+  onChange: (channel: "stable" | "beta") => void;
+  stable: Channel;
+  beta: Channel | null;
 }) {
-  const reduce = useReducedMotion();
-  const [active, setActive] = useState(false);
-  const label = useScramble("Download.dmg", active, !reduce);
-
   return (
-    <div className="inline-flex max-w-full items-stretch overflow-hidden rounded-[9px] border border-line bg-[#111111] transition-colors duration-150 has-[a:focus-visible]:border-accent has-[a:hover]:border-accent">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
       <motion.a
-        className="inline-flex cursor-pointer items-center gap-2 px-4 py-[7px] leading-normal text-text transition-[color,background-color] duration-150 hover:bg-accent/[0.08] hover:text-accent focus-visible:bg-accent/[0.08] focus-visible:text-accent"
         href={href}
-        download
-        whileTap={{ scale: 0.98 }}
-        transition={{ type: "spring", stiffness: 500, damping: 25 }}
-        onHoverStart={() => setActive(true)}
-        onHoverEnd={() => setActive(false)}
-        onFocus={() => setActive(true)}
-        onBlur={() => setActive(false)}
+        initial="rest"
+        whileHover="hover"
+        whileTap="press"
+        variants={{ rest: { scale: 1 }, hover: { scale: 1 }, press: { scale: 0.97 } }}
+        transition={{ duration: 0.12, ease: EASE }}
+        className="inline-flex h-12 items-center gap-2.5 rounded-xl border-0 bg-text px-5 text-[16px] font-semibold text-bg transition-colors duration-150 hover:bg-[#3a3833] hover:text-bg"
       >
         <svg
-          className="block flex-none"
-          width="14"
-          height="15"
+          aria-hidden="true"
+          width="16"
+          height="17"
           viewBox="0 0 14 15"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.5"
+          strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
-          aria-hidden
         >
           <motion.g
-            animate={active && !reduce ? { y: [0, 4, 4, 0] } : { y: 0 }}
-            transition={
-              active && !reduce
-                ? {
-                    duration: 1,
-                    times: [0, 0.32, 0.46, 1],
-                    ease: ["easeIn", "linear", "easeOut"],
-                    repeat: Infinity,
-                    repeatDelay: 0.1,
-                  }
-                : { duration: 0.25 }
-            }
+            variants={{
+              rest: { transform: "translateY(0px)" },
+              hover: { transform: "translateY(1.5px)" },
+              press: { transform: "translateY(3px)" },
+            }}
+            transition={{ type: "spring", duration: 0.35, bounce: 0.3 }}
           >
-            <path d="M7 2 V9" />
-            <path d="M4 6 L7 9 L10 6" />
+            <path d="M7 2V9" />
+            <path d="M4 6 7 9 10 6" />
           </motion.g>
-          <motion.path
-            className="origin-center [transform-box:fill-box]"
-            d="M2.5 13 H11.5"
-            animate={
-              active && !reduce
-                ? { scaleX: [1, 1, 1.25, 1], opacity: [0.6, 0.6, 1, 0.85] }
-                : { scaleX: 1, opacity: 0.85 }
-            }
-            transition={
-              active && !reduce
-                ? { duration: 1, times: [0, 0.34, 0.46, 1], repeat: Infinity, repeatDelay: 0.1 }
-                : { duration: 0.25 }
-            }
-          />
+          <path d="M2.5 13h9" />
         </svg>
-        <span className="[font-variant-ligatures:none]">{label}</span>
+        Download for Mac
       </motion.a>
-      {beta && (
-        <div className="flex flex-none items-center gap-0.5 border-l border-line bg-white/[0.03] px-1.5 text-[13px] leading-normal">
-          {(["stable", "beta"] as const).map((c) => {
-            const on = channel === c;
-            return (
-              <button
-                key={c}
-                type="button"
-                onClick={() => onChange(c)}
-                aria-pressed={on}
-                className="relative cursor-pointer rounded-[6px] px-2 py-[3px]"
-              >
-                {on && (
-                  <motion.span
-                    layoutId="channel-pill"
-                    className="absolute inset-0 rounded-[6px] bg-accent/[0.12]"
-                    transition={{ type: "spring", stiffness: 500, damping: 34 }}
-                  />
-                )}
-                <span
-                  className={`relative z-10 transition-colors duration-150 ${
-                    on ? "text-accent" : "text-dim hover:text-text"
-                  }`}
-                >
-                  {c === "stable" ? "Latest" : "Beta"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <div role="group" aria-label="Release channel" className="flex gap-4 text-[14px]">
+        <ChannelOption
+          label="Stable"
+          version={stable.version}
+          active={channel === "stable"}
+          onSelect={() => onChange("stable")}
+        />
+        {beta && (
+          <ChannelOption
+            label="Beta"
+            version={beta.version}
+            active={channel === "beta"}
+            onSelect={() => onChange("beta")}
+          />
+        )}
+      </div>
     </div>
+  );
+}
+
+function ChannelOption({
+  label,
+  version,
+  active,
+  onSelect,
+}: {
+  label: string;
+  version: string | null;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onSelect}
+      className={`relative cursor-pointer border-0 bg-transparent px-0 py-0.5 transition-colors duration-150 ${
+        active ? "text-text" : "text-muted hover:text-text"
+      }`}
+    >
+      {label}
+      {version && (
+        <span className="ml-1.5 text-muted tabular-nums">{version.replace(/^v/, "")}</span>
+      )}
+      {active && (
+        <motion.span
+          layoutId="channel-underline"
+          transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+          className="absolute inset-x-0 -bottom-px h-px bg-accent transition-colors duration-300"
+        />
+      )}
+    </button>
   );
 }
 
@@ -876,61 +481,54 @@ function useCopy(): [boolean, (text: string) => void] {
   return [copied, copy];
 }
 
-// Copyable Homebrew one-liner.
 function BrewCmd({ beta }: { beta: boolean }) {
   const [copied, copy] = useCopy();
-
   return (
-    // Flat, matching the download button; a successful copy flashes the
-    // border white.
-    <motion.div
-      layout
-      className="inline-flex max-w-full items-stretch overflow-hidden rounded-[9px] border bg-[#111111]"
-      initial={false}
-      animate={{ borderColor: copied ? "var(--color-accent)" : "#222222" }}
-      transition={{ duration: 0.3, ease: EASE }}
-    >
-      <code className="block overflow-x-auto px-3.5 py-[7px] font-mono leading-normal whitespace-nowrap text-dim before:text-muted before:content-['$_']">
+    <p className="m-0 flex flex-wrap items-center gap-x-2.5 text-[14px] text-muted">
+      or
+      <code className="relative font-mono text-[13.5px] text-text [font-variant-ligatures:none]">
         {BREW}
-        {/* Only the suffix moves, so the command reads as one stable string:
-            it slides its own width open instead of the whole box jumping. */}
-        <AnimatePresence initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           {beta && (
             <motion.span
-              className="inline-block overflow-hidden align-bottom text-accent"
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: "auto", opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.28, ease: EASE }}
+              initial={{ opacity: 0, clipPath: "inset(0 100% 0 0)" }}
+              animate={{ opacity: 1, clipPath: "inset(0 0% 0 0)" }}
+              exit={{ opacity: 0, clipPath: "inset(0 100% 0 0)" }}
+              transition={{ duration: 0.22, ease: EASE }}
+              className="inline-block text-accent"
             >
               @beta
             </motion.span>
           )}
         </AnimatePresence>
       </code>
+      {/* Wide enough for "Copied", so the label swap never resizes the row. */}
       <motion.button
+        layout="position"
         type="button"
-        // fixed width so the Copy → Copied swap doesn't reflow the box
-        className="inline-flex min-w-[98px] flex-none cursor-pointer items-center justify-center border-l border-line bg-white/[0.03] px-3.5 py-[7px] font-mono leading-normal text-muted transition-colors duration-200 hover:bg-accent/[0.08] hover:text-accent focus-visible:bg-accent/[0.08] focus-visible:text-accent"
         onClick={() => copy(beta ? `${BREW}@beta` : BREW)}
-        aria-label={copied ? "Copied to clipboard" : "Copy Homebrew command"}
         whileTap={{ scale: 0.96 }}
+        transition={{ duration: 0.22, ease: EASE }}
+        className="-ml-1 inline-flex min-w-[84px] cursor-pointer items-center gap-1.5 overflow-hidden rounded-md border-0 bg-transparent px-2 py-1 text-[13px] text-muted transition-colors duration-150 hover:bg-text/5 hover:text-text"
       >
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.span
-            key={copied ? "done" : "idle"}
-            className="inline-flex items-center gap-1.5"
-            initial={{ opacity: 0, y: 9 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -9 }}
+            key={copied ? "copied" : "copy"}
+            initial={{ opacity: 0, transform: "translateY(6px)" }}
+            animate={{ opacity: 1, transform: "translateY(0px)" }}
+            exit={{ opacity: 0, transform: "translateY(-6px)" }}
             transition={{ duration: 0.18, ease: EASE }}
+            className={`inline-flex items-center gap-1.5 ${copied ? "text-accent" : ""}`}
           >
             {copied ? <CheckGlyph /> : <CopyGlyph />}
             {copied ? "Copied" : "Copy"}
           </motion.span>
         </AnimatePresence>
+        <span aria-live="polite" className="sr-only">
+          {copied ? "Copied to clipboard" : ""}
+        </span>
       </motion.button>
-    </motion.div>
+    </p>
   );
 }
 
@@ -939,263 +537,524 @@ function BrewCmd({ beta }: { beta: boolean }) {
 // swallowing it.
 const DOCS = "/docs";
 
-// Real keys straight out of the config schema — each preset is a file you
-// could paste into ~/.config/bettercmdtab/config.json as-is.
-const configPresets: Array<{ id: string; label: string; blurb: string; json: string }> = [
-  {
-    id: "minimal",
-    label: "minimal",
-    blurb: "A quiet list, sorted A→Z.",
-    json: `{
-  "layoutMode": "list",
-  "sortOrder": "alphabetical",
-  "panelScalePercent": 100,
-  "showWindowTitleLabel": false
-}`,
-  },
-  {
-    id: "power",
-    label: "power user",
-    blurb: "Previews of every window on screen, browser tabs included.",
-    json: `{
-  "layoutMode": "windowPreview",
-  "spaceScope": "visibleSpaces",
-  "sortOrder": "mruWindows",
-  "stayOpenOnRelease": true,
-  "expandBrowserTabsAsWindows": true,
-  "searchIncludesLaunchableApps": true
-}`,
-  },
-  {
-    id: "rules",
-    label: "per-app rules",
-    blurb: "Let a game keep Cmd+Tab; hide the apps you never switch to.",
-    json: `{
-  "pinnedBundleIDs": ["com.apple.Safari"],
-  "appExceptions": [
-    {
-      "bundleID": "com.valvesoftware.steam",
-      "ignore": "whenFullscreen"
-    },
-    {
-      "bundleID": "com.apple.ActivityMonitor",
-      "hide": "whenNoWindows"
-    }
-  ]
-}`,
-  },
-];
-
 // Paths are relative to DOCS; the quick start is the docs landing page, hence
 // the bare slash. Every one ends in a slash to match the docs' canonical URLs
 // — the bare form is a 301 on both deploy targets, and an internal link should
 // not spend a redirect.
 const docsLinks: Array<[string, string, string]> = [
-  ["quick start", "Install, permissions, your first switch", "/"],
-  ["config file", "How the live two-way sync works", "/configuration/"],
-  ["config reference", "Every key, with types and defaults", "/config-reference/"],
-  ["per-shortcut overrides", "A different switcher on every hotkey", "/overrides/"],
+  ["Quick start", "Install, permissions, your first switch", "/"],
+  ["Config file", "How the live two-way sync works", "/configuration/"],
+  ["Config reference", "Every key, with types and defaults", "/config-reference/"],
+  ["Per-shortcut overrides", "A different switcher on every hotkey", "/overrides/"],
 ];
 
-// Key / string / literal / number, in that order. Anything unmatched (braces,
-// commas, whitespace) falls through as plain punctuation.
-const JSON_TOKEN =
-  /("(?:\\.|[^"\\])*")(\s*:)|("(?:\\.|[^"\\])*")|\b(true|false|null)\b|(-?\d+(?:\.\d+)?)/g;
+// Real config keys and values (App/Preferences.swift). Clicking a value in the
+// demo file steps to the next entry; the first entry is what the demo opens on.
+const configChoices = {
+  layoutMode: ["list", "iconDock", "windowPreview"],
+  sortOrder: ["mru", "alphabetical", "launchOrder"],
+  panelOpacity: [100, 80, 60, 40],
+} as const;
 
-function highlight(line: string) {
-  const out: Array<ReactNode> = [];
-  let last = 0;
-  let m: RegExpExecArray | null;
-  JSON_TOKEN.lastIndex = 0;
-  while ((m = JSON_TOKEN.exec(line)) !== null) {
-    if (m.index > last) out.push(line.slice(last, m.index));
-    const [, key, colon, str, lit, num] = m;
-    const cls = key ? "text-text" : str ? "text-accent" : "text-dim";
-    out.push(
-      <span key={m.index} className={cls}>
-        {key ?? str ?? lit ?? num}
-      </span>,
-    );
-    if (colon) out.push(colon);
-    last = m.index + m[0].length;
-  }
-  if (last < line.length) out.push(line.slice(last));
-  return out;
+type ConfigKey = keyof typeof configChoices;
+
+const configKeys: Array<ConfigKey> = ["layoutMode", "sortOrder", "panelOpacity"];
+
+// `icon` is the column in /demo/apps.webp and the N in /demo/win-N.webp.
+const demoApps = [
+  { name: "Helium", title: "BetterCmdTab: a better Cmd+Tab", icon: 1, launched: 3, badge: "" },
+  { name: "Ghostty", title: "~/Developer/BetterCmdTab", icon: 0, launched: 0, badge: "" },
+  { name: "Code", title: "GeneralSettingsViewController.swift", icon: 2, launched: 2, badge: "" },
+  { name: "Spotify", title: "Gibbs - Pył gwiazd", icon: 3, launched: 1, badge: "" },
+  { name: "Mail", title: "All Inboxes, 1 unread", icon: 4, launched: 4, badge: "1" },
+  { name: "Discord", title: "Friends", icon: 5, launched: 5, badge: "1" },
+];
+
+type DemoApp = (typeof demoApps)[number];
+
+function sortDemoApps(order: string): Array<DemoApp> {
+  const apps = [...demoApps];
+  if (order === "alphabetical") apps.sort((a, b) => a.name.localeCompare(b.name));
+  if (order === "launchOrder") apps.sort((a, b) => a.launched - b.launched);
+  return apps;
 }
 
-// Tabbed config.json preview. The panel keeps a single `layout` wrapper so
-// swapping presets glides the height instead of snapping it.
-function ConfigPreview() {
-  const [active, setActive] = useState(0);
-  const [copied, copy] = useCopy();
-  const preset = configPresets[active];
-  const lines = preset.json.split("\n");
+const STAGE_BG =
+  "radial-gradient(90% 80% at 80% 100%, #5b7cff 0, transparent 55%), radial-gradient(80% 70% at 0% 0%, #3a22c9 0, transparent 60%), linear-gradient(160deg, #1c1990, #2a3fd0 60%, #1b2aa0)";
 
-  // Animate the *real* height. `layout` only compensates visually: the DOM box
-  // resizes in one frame, so the panel glided while everything below the Docs
-  // section snapped. Driving the height itself keeps the page flow in step,
-  // which is the whole point. Line wrapping is off (whitespace-pre), so a
-  // preset's height doesn't depend on the panel's width and one measurement
-  // per preset holds.
-  const body = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState<number | "auto">("auto");
+// config.json on the left, a switcher on the right that rebuilds from it the
+// moment a value changes, which is the "edits apply live" claim, shown.
+function LiveConfig() {
+  const [picked, setPicked] = useState<Record<ConfigKey, number>>({
+    layoutMode: 0,
+    sortOrder: 0,
+    panelOpacity: 0,
+  });
+  // `n` remounts the edited line, which restarts its flash.
+  const [edit, setEdit] = useState<{ key: ConfigKey; n: number } | null>(null);
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
-    if (body.current) setHeight(body.current.offsetHeight);
-  }, [active]);
+    if (!saving) return;
+    const timer = setTimeout(() => setSaving(false), 400);
+    return () => clearTimeout(timer);
+  }, [saving, edit]);
+
+  const valueOf = (key: ConfigKey) => configChoices[key][picked[key]];
+
+  const change = (key: ConfigKey) => {
+    setPicked((p) => ({ ...p, [key]: (p[key] + 1) % configChoices[key].length }));
+    setEdit((e) => ({ key, n: (e?.n ?? 0) + 1 }));
+    setSaving(true);
+  };
+
+  let status = "saved";
+  if (saving) status = "saving";
+  else if (edit) status = "saved, applied";
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <Tabs
-        label="Configuration examples"
-        tabs={configPresets}
-        active={active}
-        onChange={setActive}
-        idPrefix="cfg"
-        panelId="cfg-panel"
-      />
-
-      <div className="overflow-hidden rounded-[9px] border border-line bg-[#111111]">
-        <div className="flex items-center justify-between gap-3 border-b border-line px-3.5 py-[7px]">
-          <span className="truncate text-[13px] leading-normal text-muted">
-            ~/.config/bettercmdtab/config.json
-          </span>
-          <motion.button
-            type="button"
-            className="inline-flex flex-none cursor-pointer items-center gap-1.5 rounded-[6px] border-0 bg-transparent p-0 font-mono text-[13px] leading-normal text-muted transition-colors duration-200 hover:text-accent focus-visible:text-accent"
-            onClick={() => copy(preset.json)}
-            aria-label={copied ? "Copied to clipboard" : "Copy this configuration"}
-            whileTap={{ scale: 0.96 }}
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={copied ? "done" : "idle"}
-                className="inline-flex items-center gap-1.5"
-                initial={{ opacity: 0, y: 9 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -9 }}
-                transition={{ duration: 0.18, ease: EASE }}
-              >
-                {copied ? <CheckGlyph /> : <CopyGlyph />}
-                {copied ? "Copied" : "Copy"}
-              </motion.span>
-            </AnimatePresence>
-          </motion.button>
-        </div>
-
-        <motion.div
-          className="overflow-hidden"
-          initial={false}
-          animate={{ height }}
-          transition={{ duration: 0.3, ease: EASE }}
-        >
-          {/* Measured while the wrapper above still holds the previous height,
-              so the new preset is laid out but not yet shown at full size.
-              `relative` because popLayout takes the outgoing preset out of flow
-              — which also keeps it out of this measurement. */}
-          <div ref={body} className="relative">
-            {/* popLayout, not wait: `wait` unmounts the old preset before the new
-                one mounts, so the panel briefly holds nothing and collapses. */}
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.pre
-                key={preset.id}
-                id="cfg-panel"
-                role="tabpanel"
-                aria-labelledby={`cfg-tab-${preset.id}`}
-                // Scrollable region with no focusable children, so it needs to be
-                // focusable itself or a long line can't be scrolled by keyboard.
-                tabIndex={0}
-                className="m-0 w-full overflow-x-auto px-3.5 py-3 font-mono leading-normal"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.16, ease: EASE }}
-              >
-                <code>
-                  {lines.map((line, i) => (
-                    // Lines cascade in so switching presets reads as the file
-                    // being retyped rather than swapped.
-                    <motion.span
-                      key={i}
-                      className="block whitespace-pre text-muted"
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.025, ease: EASE }}
-                    >
-                      {highlight(line)}
-                    </motion.span>
-                  ))}
-                </code>
-              </motion.pre>
-            </AnimatePresence>
+    <div className="grid grid-cols-[minmax(0,1.15fr)_74px_minmax(0,1fr)] max-[860px]:grid-cols-1">
+      <div className="flex flex-col gap-3.5">
+        <div className="overflow-hidden rounded-[14px] border border-line bg-surface">
+          <div className="flex h-[38px] items-center gap-2 border-b border-line bg-bg px-3.5 text-[12.5px] text-muted">
+            <span className="mr-2 flex gap-[7px]" aria-hidden>
+              <i className="size-[11px] rounded-full bg-line" />
+              <i className="size-[11px] rounded-full bg-line" />
+              <i className="size-[11px] rounded-full bg-line" />
+            </span>
+            <span className="truncate font-mono">
+              ~/.config/bettercmdtab/<b className="font-medium text-text">config.json</b>
+            </span>
+            <span
+              aria-live="polite"
+              className={`ml-auto flex flex-none items-center gap-1.5 text-[12px] transition-colors duration-200 ${
+                saving ? "text-muted" : "text-text"
+              }`}
+            >
+              <i
+                aria-hidden
+                className={`size-1.5 rounded-full transition-colors duration-200 ${
+                  saving ? "bg-muted" : "bg-[#16a34a]"
+                }`}
+              />
+              {status}
+            </span>
           </div>
-        </motion.div>
+
+          <div className="py-3.5 font-mono text-[13px] leading-[1.8]">
+            <CodeLine n={1}>
+              <span className="text-muted">{"{"}</span>
+            </CodeLine>
+            {configKeys.map((key, i) => {
+              const value = valueOf(key);
+              const flashing = edit?.key === key;
+              return (
+                <CodeLine
+                  key={flashing ? `${key}-${edit.n}` : key}
+                  n={i + 2}
+                  className={flashing ? "animate-[line-flash_0.9s_ease-out]" : ""}
+                >
+                  {"  "}
+                  <span className="text-text">"{key}"</span>
+                  <span className="text-muted">: </span>
+                  <button
+                    type="button"
+                    onClick={() => change(key)}
+                    aria-label={`${key} is ${value}, change it`}
+                    className="-mx-[3px] cursor-pointer rounded-[5px] border-0 bg-transparent px-[3px] py-px font-mono shadow-[inset_0_-1px_0_rgba(37,99,235,0.55)] transition-colors duration-150 hover:bg-accent/20 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+                  >
+                    {typeof value === "string" ? (
+                      <span className="text-accent">"{value}"</span>
+                    ) : (
+                      <span className="text-dim">{value}</span>
+                    )}
+                  </button>
+                  {i < configKeys.length - 1 && <span className="text-muted">,</span>}
+                </CodeLine>
+              );
+            })}
+            <CodeLine n={configKeys.length + 2}>
+              <span className="text-muted">{"}"}</span>
+            </CodeLine>
+          </div>
+        </div>
+        <p className="m-0 text-[13px] text-muted">
+          Click any{" "}
+          <span className="text-text shadow-[inset_0_-1px_0_rgba(37,99,235,0.7)]">
+            underlined value
+          </span>{" "}
+          to change it.
+        </p>
       </div>
 
-      {/* No `layout` here: the panel above now changes real height, so the
-          blurb is carried by normal flow. */}
-      <div className="relative">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.p
-            key={preset.id}
-            className="m-0 text-[13px] text-muted"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: EASE }}
-          >
-            {preset.blurb}
-          </motion.p>
-        </AnimatePresence>
+      <div
+        aria-hidden
+        className="relative grid place-items-center before:absolute before:inset-x-0 before:top-1/2 before:h-px before:bg-[linear-gradient(90deg,var(--color-line),var(--color-accent),var(--color-line))] max-[860px]:h-14 max-[860px]:before:inset-x-auto max-[860px]:before:inset-y-0 max-[860px]:before:left-1/2 max-[860px]:before:h-auto max-[860px]:before:w-px"
+      >
+        <span
+          className={`relative rounded-[6px] border bg-bg px-[7px] py-0.5 font-mono text-[11px] transition-colors duration-200 ${
+            saving ? "border-accent text-text" : "border-line text-muted"
+          }`}
+        >
+          live
+        </span>
       </div>
+
+      <div
+        className="grid min-h-[340px] place-items-center overflow-hidden rounded-[14px] p-4"
+        style={{ background: STAGE_BG }}
+      >
+        <MiniSwitcher
+          layout={configChoices.layoutMode[picked.layoutMode]}
+          apps={sortDemoApps(configChoices.sortOrder[picked.sortOrder])}
+          opacity={configChoices.panelOpacity[picked.panelOpacity]}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CodeLine({
+  n,
+  className = "",
+  children,
+}: {
+  n: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`grid grid-cols-[44px_1fr] whitespace-pre ${className}`}>
+      <span aria-hidden className="pr-3 text-right text-muted/60 select-none">
+        {n}
+      </span>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+function MiniSwitcher({
+  layout,
+  apps,
+  opacity,
+}: {
+  layout: string;
+  apps: Array<DemoApp>;
+  opacity: number;
+}) {
+  return (
+    <div
+      role="img"
+      aria-label={`Switcher preview, ${layout} layout, ${apps.map((a) => a.name).join(", ")}`}
+      className="rounded-[18px] border border-white/15 p-[9px] text-white shadow-[0_26px_60px_-20px_rgba(0,0,20,0.7),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-[30px] backdrop-saturate-[1.7] transition-[background-color] duration-300"
+      style={{ backgroundColor: `rgba(40, 52, 150, ${(0.45 * opacity) / 100 + 0.02})` }}
+    >
+      {layout === "list" &&
+        apps.map((app, i) => (
+          <div
+            key={app.name}
+            className={`grid h-[29px] w-[330px] grid-cols-[62px_16px_1fr_auto] items-center gap-[9px] rounded-[7px] px-[9px] text-[12.5px] max-[520px]:w-[270px] ${
+              i === 1 ? "bg-[#3b82f6]" : ""
+            }`}
+          >
+            <span className={`text-right ${i === 1 ? "" : "text-white/70"}`}>{app.name}</span>
+            <AppIcon icon={app.icon} className="size-4" />
+            <span className="truncate">{app.title}</span>
+            {app.badge ? (
+              <span className="grid h-4 min-w-4 place-items-center rounded-full bg-[#ef4444] px-[5px] text-[10px] font-semibold">
+                {app.badge}
+              </span>
+            ) : (
+              <span />
+            )}
+          </div>
+        ))}
+      {layout === "iconDock" && (
+        <div className="flex gap-1">
+          {apps.map((app, i) => (
+            <div
+              key={app.name}
+              className={`w-[62px] rounded-xl px-1 pt-[9px] pb-[7px] text-center text-[10.5px] max-[520px]:w-[44px] ${
+                i === 1
+                  ? "bg-white/20 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25)]"
+                  : "text-white/85"
+              }`}
+            >
+              <span className="mx-auto mb-1.5 flex size-[38px] max-[520px]:size-7">
+                <AppIcon icon={app.icon} className="size-full" />
+              </span>
+              <span className="block truncate">{app.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {layout === "windowPreview" && (
+        <div className="grid grid-cols-[repeat(3,98px)] gap-1.5 max-[520px]:grid-cols-[repeat(3,80px)]">
+          {apps.map((app, i) => (
+            <div
+              key={app.name}
+              className={`rounded-[9px] p-1 text-[9.5px] ${
+                i === 1 ? "bg-white/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3)]" : ""
+              }`}
+            >
+              <img
+                src={`/demo/win-${app.icon}.webp`}
+                alt=""
+                width={90}
+                height={58}
+                loading="lazy"
+                className="block h-[58px] w-full rounded-[5px] object-cover max-[520px]:h-12"
+              />
+              <span className="mt-1 flex items-center gap-1 overflow-hidden whitespace-nowrap">
+                <AppIcon icon={app.icon} className="size-3" />
+                <span className="truncate">{app.name}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 function Docs() {
   return (
-    <section className={SECTION}>
-      <h2 className={H2}>Docs</h2>
+    <section
+      id="config"
+      className="dark -mx-6 scroll-mt-10 rounded-[28px] px-14 py-16 max-[860px]:rounded-none max-[860px]:px-6 max-[860px]:py-14"
+    >
+      <h2 className={H2}>Configure it in a file.</h2>
+      <p className="m-0 -mt-3 mb-11 max-w-[54ch] text-[17px] text-muted">
+        Every setting lives in a plain JSON file you can diff, version and keep in your dotfiles.
+        Save it and the switcher changes, no restart. Change a setting in the app and the file is
+        written back.
+      </p>
 
-      {/* The pitch sits beside the artifact it is describing instead of above
-          it. Stacked, this section was the tallest on the page while half the
-          width next to the code panel stayed empty. */}
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-start gap-x-10 gap-y-7 max-[860px]:grid-cols-1">
-        <div className="flex flex-col gap-4">
-          <p className="m-0 text-muted">
-            Every setting also lives in a plain JSON file you can diff, version and drop into your
-            dotfiles. Edits apply live, changes made in the app are written back, and a generated
-            schema keeps your editor autocompleting.
-          </p>
+      <LiveConfig />
 
-          <ul className="m-0 flex list-none flex-col p-0">
-            {docsLinks.map(([title, desc, path]) => (
-              <li key={title}>
-                <a className="group/doc flex flex-col gap-0.5 py-2.5" href={`${DOCS}${path}`}>
-                  <span className="flex items-center gap-1.5 text-text transition-colors duration-150 group-hover/doc:text-accent">
-                    {title}
-                    <span
-                      className="text-muted transition-transform duration-200 group-hover/doc:translate-x-1 motion-reduce:transition-none"
-                      aria-hidden
-                    >
-                      →
-                    </span>
-                  </span>
-                  <span className="text-[13px] leading-[1.55] text-muted">{desc}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-
-          <a
-            className="inline-flex w-fit items-center gap-2 rounded-[9px] border border-line bg-[#111111] px-3.5 py-[7px] leading-normal text-text transition-colors duration-150 hover:border-accent hover:bg-accent/[0.08] hover:text-accent focus-visible:border-accent"
-            href={`${DOCS}/`}
+      <nav
+        aria-label="Configuration docs"
+        className="mt-11 grid grid-cols-4 border-t border-line max-[860px]:grid-cols-2 max-[860px]:gap-y-4"
+      >
+        {docsLinks.map(([title, desc, path], i) => (
+          <div
+            key={title}
+            className={
+              i > 0 ? "border-l border-line pl-5 max-[860px]:border-l-0 max-[860px]:pl-0" : ""
+            }
           >
-            Read the docs
-            <span aria-hidden>→</span>
-          </a>
-        </div>
+            <a className="group/doc block border-0 pt-[18px] pr-5" href={`${DOCS}${path}`}>
+              <span className="flex items-center gap-1.5 font-medium text-text transition-colors duration-150 group-hover/doc:text-accent">
+                {title}
+                <span
+                  aria-hidden
+                  className="text-muted transition-transform duration-200 group-hover/doc:translate-x-1 motion-reduce:transition-none"
+                >
+                  →
+                </span>
+              </span>
+              <span className="mt-0.5 block text-[13px] text-muted">{desc}</span>
+            </a>
+          </div>
+        ))}
+      </nav>
+    </section>
+  );
+}
 
-        <ConfigPreview />
+type Mark = "yes" | "no" | "pro";
+type Cell = Mark | [mark: Mark, label: string];
+
+const markLabel: Record<Mark, string> = { yes: "Yes", no: "No", pro: "Pro" };
+
+const products: Array<{ name: string; proPrice?: string }> = [
+  { name: "BetterCmdTab" },
+  { name: "Built-in" },
+  { name: "AltTab", proPrice: "$9.99" },
+];
+
+type Row = [feature: string, cells: [ours: Cell, builtIn: Cell, altTab: Cell]];
+
+// AltTab cells follow alt-tab.app (Free vs Pro table, /features) and lwouis/alt-tab-macos@56891e0
+// (Pro gates in src/pro/ProFeature.swift, settings in src/preferences/Preferences.swift).
+const comparisonGroups: Array<{ label: string; rows: Array<Row> }> = [
+  {
+    label: "switching",
+    rows: [
+      ["Switch windows, not just apps", ["yes", ["no", "Current app only"], "yes"]],
+      ["Tap to switch, hold to open", ["yes", "yes", "yes"]],
+      ["Stay open after releasing Cmd", ["yes", "no", "yes"]],
+      ["Cycle the front app's windows", ["yes", ["yes", "Cmd+`"], ["pro", "Pro, extra shortcut"]]],
+      ["Type to search", ["yes", "no", "pro"]],
+      ["Launch any installed app", ["yes", "no", "no"]],
+      ["Multiple shortcuts", ["yes", "no", ["pro", "Pro, up to 9"]]],
+      ["Hotkey per app", ["yes", "no", "no"]],
+      ["Trackpad swipe to open", ["yes", "no", "yes"]],
+    ],
+  },
+  {
+    label: "layouts",
+    rows: [
+      ["Live window previews", ["yes", "no", "yes"]],
+      ["App icon grid", ["yes", "yes", "pro"]],
+      ["Window title list", ["yes", "no", "pro"]],
+    ],
+  },
+  {
+    label: "tabs",
+    rows: [
+      ["Browser tab drill-in", ["yes", "no", "no"]],
+      ["Tabs as separate rows", ["yes", "no", ["yes", "Native tabs only"]]],
+    ],
+  },
+  {
+    label: "windows",
+    rows: [
+      ["Close, minimize, hide, quit", ["yes", ["no", "Quit and hide only"], "yes"]],
+      ["Action buttons on hover", ["yes", "no", "yes"]],
+      ["Force quit hung apps", ["yes", "no", "no"]],
+      ["Window tiling", ["yes", ["yes", "macOS 15+"], "no"]],
+      ["Move window to another display", ["yes", "no", "no"]],
+      ["Reopen recently closed apps", ["yes", "no", "no"]],
+    ],
+  },
+  {
+    label: "filters",
+    rows: [
+      ["Minimized and hidden windows", ["yes", "no", "yes"]],
+      ["Windows from all Spaces", ["yes", "no", "yes"]],
+      ["Sort order options", ["yes", "no", "yes"]],
+      ["Pin favorites", ["yes", "no", "no"]],
+      ["Per-app hide and ignore rules", ["yes", "no", "yes"]],
+    ],
+  },
+  {
+    label: "status",
+    rows: [
+      ["Dock badge counts", ["yes", "no", "yes"]],
+      ["Playing audio indicator", ["yes", "no", "no"]],
+    ],
+  },
+  {
+    label: "system",
+    rows: [
+      ["Hidden from screen sharing", [["yes", "macOS 14.6+"], "no", "no"]],
+      ["Export and import settings", ["yes", "no", "yes"]],
+      ["Live JSON config file", ["yes", "no", "no"]],
+      ["Open source", ["yes", "no", "yes"]],
+    ],
+  },
+];
+
+const comparison = comparisonGroups.flatMap((group) => group.rows);
+
+function splitCell(cell: Cell): [Mark, string] {
+  return typeof cell === "string" ? [cell, markLabel[cell]] : cell;
+}
+
+const labelClass: Record<Mark, string> = { yes: "text-text", no: "text-muted", pro: "text-pro" };
+
+function fillClass(mark: Mark, ours: boolean) {
+  if (mark === "pro") return "bg-pro";
+  if (mark === "no") return "bg-line";
+  return ours ? "bg-accent" : "bg-text";
+}
+
+function Compare() {
+  const total = comparison.length;
+  return (
+    <section id="compare" className="scroll-mt-10">
+      <h2 className={H2}>Compared.</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[620px] table-fixed border-collapse text-[14px]">
+          <colgroup>
+            <col className="w-[34%]" />
+            <col />
+            <col />
+            <col />
+          </colgroup>
+          <thead>
+            <tr className="border-b border-line">
+              <td className="pb-5 align-bottom font-mono text-[12px] text-muted">
+                {total} features
+              </td>
+              {products.map((product, column) => {
+                const ours = column === 0;
+                const marks = comparison.map(([, cells]) => splitCell(cells[column])[0]);
+                const yes = marks.filter((mark) => mark === "yes").length;
+                const pro = marks.filter((mark) => mark === "pro").length;
+                return (
+                  <th
+                    key={product.name}
+                    scope="col"
+                    className="px-4 pb-5 text-left align-bottom font-normal"
+                  >
+                    <div className={`text-[15px] font-semibold ${ours ? "text-accent" : ""}`}>
+                      {product.name}
+                    </div>
+                    <div className="mt-2.5 text-[34px] leading-[1.1] font-bold tracking-[-0.03em] tabular-nums">
+                      {yes}
+                      <span className="text-[15px] font-medium tracking-normal text-muted">
+                        {" "}
+                        / {total}
+                      </span>
+                    </div>
+                    <div aria-hidden="true" className="mt-2.5 flex h-1 gap-0.5">
+                      <i
+                        className={`rounded-[1px] ${fillClass("yes", ours)}`}
+                        style={{ flexGrow: yes }}
+                      />
+                      {pro > 0 && <i className="rounded-[1px] bg-pro" style={{ flexGrow: pro }} />}
+                      <i
+                        className="rounded-[1px] bg-line"
+                        style={{ flexGrow: total - yes - pro }}
+                      />
+                    </div>
+                    <div className="mt-2 text-[12px] text-muted">
+                      {pro > 0 ? `+${pro} with Pro, ${product.proPrice}` : "Free"}
+                    </div>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          {comparisonGroups.map((group) => (
+            <tbody key={group.label}>
+              <tr>
+                <th
+                  scope="rowgroup"
+                  colSpan={4}
+                  className="pt-8 pb-2.5 text-left font-mono text-[12px] font-normal text-muted"
+                >
+                  {group.label}
+                </th>
+              </tr>
+              {group.rows.map(([feature, cells]) => (
+                <tr key={feature} className="border-b border-line/60">
+                  <th scope="row" className="py-[11px] pr-4 text-left font-normal text-dim">
+                    {feature}
+                  </th>
+                  {cells.map((cell, column) => {
+                    const [mark, label] = splitCell(cell);
+                    return (
+                      <td key={products[column].name} className="px-4 py-[11px]">
+                        <span
+                          aria-hidden="true"
+                          className={`mr-2.5 inline-block size-2 rounded-full align-[1px] ${
+                            mark === "no"
+                              ? "shadow-[inset_0_0_0_1.5px_#cfcac0]"
+                              : fillClass(mark, column === 0)
+                          }`}
+                        />
+                        <span className={labelClass[mark]}>{label}</span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
       </div>
     </section>
   );
@@ -1203,168 +1062,552 @@ function Docs() {
 
 const downloadFmt = new Intl.NumberFormat("en-US");
 
+function useHeldKeys() {
+  const [held, setHeld] = useState({ meta: false, tab: false });
+  useEffect(() => {
+    const set = (key: string, down: boolean) => {
+      if (key === "Meta") setHeld((h) => (h.meta === down ? h : { ...h, meta: down }));
+      if (key === "Tab") setHeld((h) => (h.tab === down ? h : { ...h, tab: down }));
+    };
+    const onDown = (e: KeyboardEvent) => set(e.key, true);
+    const onUp = (e: KeyboardEvent) => set(e.key, false);
+    // Cmd+Tab away from the page never delivers the keyup.
+    const onBlur = () => setHeld({ meta: false, tab: false });
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("keyup", onUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("keyup", onUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
+  return held;
+}
+
+// Sized in em, so the parent's font-size sets the whole chord.
+function Chord({ className }: { className: string }) {
+  const held = useHeldKeys();
+  return (
+    <div aria-hidden="true" className={`flex items-end gap-[0.08em] leading-none ${className}`}>
+      <Keycap down={held.meta} glyph="⌘" label="command" className="w-[0.92em]" />
+      <Keycap down={held.tab} label="tab" className="w-[1.3em]" />
+    </div>
+  );
+}
+
+function Keycap({
+  down,
+  glyph,
+  label,
+  className,
+}: {
+  down: boolean;
+  glyph?: string;
+  label: string;
+  className: string;
+}) {
+  return (
+    <kbd
+      className={`relative block h-[0.84em] rounded-[0.14em] border bg-[linear-gradient(#ffffff,#f1eee8)] font-sans shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-[translate,border-color,border-bottom-width] duration-75 in-[.dark]:bg-[linear-gradient(#171717,#0a0a0a)] in-[.dark]:shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] ${
+        down
+          ? "translate-y-[0.03em] border-b-[0.015em] border-accent"
+          : "border-b-[0.045em] border-[#d6d1c7] in-[.dark]:border-[#2e2e2e]"
+      } ${className}`}
+    >
+      {glyph && (
+        <span className="absolute top-[0.5em] right-[0.55em] text-[0.26em] text-text">{glyph}</span>
+      )}
+      <span className="absolute bottom-[0.9em] left-[1em] text-[0.15em] text-dim">{label}</span>
+    </kbd>
+  );
+}
+
+// Real macOS app icons, one 128px column each: Ghostty, Helium, Code, Spotify,
+// Mail, Discord, Xcode.
+function AppIcon({ icon, className }: { icon: number; className: string }) {
+  return (
+    <i
+      aria-hidden="true"
+      className={`inline-block flex-none bg-[url(/demo/apps.webp)] bg-[length:700%_100%] ${className}`}
+      style={{ backgroundPosition: `${(icon * 100) / 6}% 0` }}
+    />
+  );
+}
+
+const FRAME_OUTLINE =
+  "M7.8 3h8.4C19.2 3 21 5.1 21 8v8c0 2.9-1.8 5-4.8 5H7.8C4.8 21 3 18.9 3 16V8c0-2.9 1.8-5 4.8-5Z";
+
+function Highlights() {
+  return (
+    <section id="features" className="scroll-mt-10">
+      <h2 className="sr-only">Features</h2>
+      <div className="grid grid-cols-4 gap-x-7 gap-y-16 text-center max-[860px]:grid-cols-2">
+        <Highlight title="Windows," rest="not just apps">
+          <motion.path
+            variants={slideIn}
+            d="M8 6.5V6a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3v6.5a3 3 0 0 1-3 3h-1.5"
+          />
+          <motion.g variants={squash(0.05)}>
+            <rect x="3" y="8" width="14" height="13" rx="3" />
+            <motion.path variants={draw(0.35, 0.4)} d="M3 12h14" />
+          </motion.g>
+        </Highlight>
+        <Highlight title="Search and" rest="launch anything">
+          <motion.g variants={wiggle}>
+            <motion.path variants={draw(0, 0.6)} d="M11 3a8 8 0 1 1 0 16a8 8 0 1 1 0-16" />
+            <motion.path variants={draw(0.35, 0.3)} d="M16.8 16.8 21 21" />
+            <motion.path variants={spinIn} d="M11 8v6M8 11h6" />
+          </motion.g>
+        </Highlight>
+        <Highlight title="Browser tab" rest="drill-in">
+          <path d={FRAME_OUTLINE} />
+          <path d="M3 8.5h18M9 3v5.5M15 3v5.5" />
+          <motion.path variants={tabWalk} d="M15.8 6.5h2.6" strokeWidth="2.4" />
+          <motion.path variants={draw(0.7, 0.35)} d="M7 13h10" />
+          <motion.path variants={draw(0.8, 0.35)} d="M7 16.5h6" />
+        </Highlight>
+        <Highlight title="List, grid" rest="or previews">
+          <motion.g variants={quarterTurn(0.35)}>
+            {[
+              [3, 3],
+              [13.5, 3],
+              [13.5, 13.5],
+              [3, 13.5],
+            ].map(([x, y], i) => (
+              <motion.rect
+                key={i}
+                variants={pop(i * 0.08)}
+                x={x}
+                y={y}
+                width="7.5"
+                height="7.5"
+                rx="2.2"
+              />
+            ))}
+          </motion.g>
+        </Highlight>
+        <Highlight title="Badges and" rest="playing audio">
+          <motion.g variants={squash(0)}>
+            <path d="M13.5 5h-6A4.5 4.5 0 0 0 3 9.5v7A4.5 4.5 0 0 0 7.5 21h7a4.5 4.5 0 0 0 4.5-4.5v-6" />
+            <motion.path variants={bar(0.3)} style={{ originY: 1 }} d="M7.5 17v-3" />
+            <motion.path variants={bar(0.4)} style={{ originY: 1 }} d="M11 17v-6" />
+            <motion.path variants={bar(0.5)} style={{ originY: 1 }} d="M14.5 17v-4" />
+          </motion.g>
+          <motion.circle variants={badge} cx="18.5" cy="5.5" r="2.5" />
+        </Highlight>
+        <Highlight title="Every Space," rest="every display">
+          <clipPath id="hl-screen-clip">
+            <rect x="3.5" y="4.5" width="17" height="11" rx="2" />
+          </clipPath>
+          <motion.rect variants={squash(0.4)} x="2.5" y="3.5" width="19" height="13" rx="3" />
+          <path d="M12 16.5V21M8.5 21h7" />
+          <g clipPath="url(#hl-screen-clip)">
+            <motion.rect variants={spaceHop} x="6" y="7" width="7" height="5.5" rx="1.4" />
+          </g>
+        </Highlight>
+        <Highlight title="Tiling and" rest="window moves">
+          <path d={FRAME_OUTLINE} />
+          <motion.path variants={divider} d="M14 3v18" />
+          <motion.path variants={draw(0.55, 0.35)} d="M14 12h7" />
+        </Highlight>
+        <Highlight title="Native and" rest="instant">
+          <motion.path
+            variants={commandKey}
+            d="M6.72 8.84A2.12 2.12 0 1 1 8.84 6.72V17.28A2.12 2.12 0 1 1 6.72 15.16H17.28A2.12 2.12 0 1 1 15.16 17.28V6.72A2.12 2.12 0 1 1 17.28 8.84Z"
+          />
+        </Highlight>
+      </div>
+    </section>
+  );
+}
+
+// Plays "show" once on scroll-in, then "hover" per mouse entry. Every "hover" starts and
+// ends at the "show" end state, and a new one waits for the last, so nothing ever jumps.
+function Highlight({
+  title,
+  rest,
+  children,
+}: {
+  title: string;
+  rest: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.6 });
+  const reduceMotion = useReducedMotion();
+  const controls = useAnimationControls();
+  const busy = useRef(true);
+
+  useEffect(() => {
+    if (!inView) return;
+    void controls.start("show", reduceMotion ? { duration: 0 } : undefined).then(() => {
+      busy.current = Boolean(reduceMotion);
+    });
+  }, [inView, reduceMotion, controls]);
+
+  function replay() {
+    if (busy.current) return;
+    busy.current = true;
+    void controls.start("hover").then(() => {
+      busy.current = false;
+    });
+  }
+
+  return (
+    <motion.div ref={ref} whileHover="lift" onHoverStart={replay}>
+      <motion.div
+        variants={{ lift: { scale: 1.05, rotate: -3 } }}
+        transition={{ type: "spring", bounce: 0.4, duration: 0.5 }}
+        className="mx-auto grid size-[92px] place-items-center rounded-[26px] bg-text"
+      >
+        <motion.svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          initial="hidden"
+          animate={controls}
+          className="size-12 overflow-visible fill-none stroke-bg stroke-[1.5] [stroke-linecap:round] [stroke-linejoin:round]"
+        >
+          {children}
+        </motion.svg>
+      </motion.div>
+      <h3 className="m-0 mt-5 text-[24px] leading-[1.18] font-semibold tracking-[-0.02em] max-[520px]:text-[19px]">
+        {title}
+        <br />
+        {rest}
+      </h3>
+    </motion.div>
+  );
+}
+
+const spring = { type: "spring", bounce: 0.5, duration: 0.6 } as const;
+const wobble = { duration: 0.7, ease: "easeInOut" } as const;
+
+function draw(delay: number, duration: number): Variants {
+  return {
+    hidden: { pathLength: 0, opacity: 0 },
+    show: {
+      pathLength: 1,
+      opacity: 1,
+      transition: { delay, duration, ease: EASE, opacity: { delay, duration: 0.01 } },
+    },
+    hover: {
+      pathLength: [1, 0, 1],
+      transition: { delay, duration: duration * 1.6, ease: "easeInOut" },
+    },
+  };
+}
+
+function pop(delay: number): Variants {
+  return {
+    hidden: { scale: 0, opacity: 0 },
+    show: { scale: 1, opacity: 1, transition: { ...spring, delay } },
+    hover: { scale: [1, 0.6, 1], transition: { ...wobble, duration: 0.5, delay } },
+  };
+}
+
+function squash(delay: number): Variants {
+  return {
+    hidden: { scale: 0.6, opacity: 0 },
+    show: { scale: 1, opacity: 1, transition: { ...spring, delay } },
+    hover: {
+      scaleX: [1, 1.1, 0.95, 1],
+      scaleY: [1, 0.9, 1.05, 1],
+      transition: { ...wobble, delay },
+    },
+  };
+}
+
+function quarterTurn(delay: number): Variants {
+  return {
+    hidden: { rotate: -90 },
+    show: { rotate: 0, transition: { ...spring, delay } },
+    // Four-fold symmetric glyphs, so ending on 90deg looks identical to 0deg.
+    hover: { rotate: [0, 90], transition: spring },
+  };
+}
+
+function bar(delay: number): Variants {
+  return {
+    hidden: { scaleY: 0.2 },
+    show: { scaleY: 1, transition: { ...spring, bounce: 0.6, delay } },
+    hover: {
+      scaleY: [1, 0.3, 1.35, 1],
+      transition: { ...wobble, duration: 0.8, delay: delay - 0.3 },
+    },
+  };
+}
+
+const slideIn: Variants = {
+  hidden: { x: -4, y: 4, opacity: 0 },
+  show: { x: 0, y: 0, opacity: 1, transition: spring },
+  hover: { x: [0, -2.5, 0], y: [0, 2.5, 0], transition: wobble },
+};
+
+const wiggle: Variants = {
+  hidden: { rotate: -20 },
+  show: { rotate: 0, transition: { ...spring, delay: 0.3 } },
+  hover: { rotate: [0, -14, 8, 0], transition: { ...wobble, duration: 0.8 } },
+};
+
+const spinIn: Variants = {
+  hidden: { scale: 0, rotate: -90, opacity: 0 },
+  show: { scale: 1, rotate: 0, opacity: 1, transition: { ...spring, delay: 0.6 } },
+  hover: { rotate: [0, 90], transition: { ...spring, delay: 0.2 } },
+};
+
+const tabWalk: Variants = {
+  hidden: { x: -11 },
+  show: { x: [-11, -5.5, 0], transition: { duration: 0.9, ease: ["backOut", "backOut"] } },
+  hover: {
+    x: [0, -11, -5.5, 0],
+    transition: { duration: 1, times: [0, 0.3, 0.65, 1], ease: "backOut" },
+  },
+};
+
+const badge: Variants = {
+  hidden: { scale: 0, rotate: -90 },
+  show: { scale: 1, rotate: 0, transition: { ...spring, delay: 0.2 } },
+  hover: { scale: [1, 1.4, 1], transition: { ...wobble, duration: 0.5, delay: 0.1 } },
+};
+
+const spaceHop: Variants = {
+  hidden: { x: -12, opacity: 0 },
+  show: { x: 0, opacity: 1, transition: { ...spring, delay: 0.15 } },
+  hover: {
+    x: [0, 12, -12, 0],
+    opacity: [1, 0, 0, 1],
+    transition: { duration: 1, times: [0, 0.35, 0.36, 1], ease: "easeInOut" },
+  },
+};
+
+const divider: Variants = {
+  hidden: { pathLength: 0, opacity: 0, x: -3 },
+  show: {
+    pathLength: 1,
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.45,
+      ease: EASE,
+      opacity: { duration: 0.01 },
+      x: { ...spring, delay: 0.35 },
+    },
+  },
+  hover: { x: [0, -5, 0], transition: { ...wobble, duration: 0.9 } },
+};
+
+const commandKey: Variants = {
+  hidden: { pathLength: 0, opacity: 0, rotate: -90 },
+  show: {
+    pathLength: 1,
+    opacity: 1,
+    rotate: 0,
+    transition: {
+      duration: 0.8,
+      ease: EASE,
+      opacity: { duration: 0.01 },
+      rotate: { ...spring, delay: 0.5 },
+    },
+  },
+  hover: {
+    rotate: [0, 90],
+    scale: [1, 0.85, 1],
+    transition: { ...spring, scale: { ...wobble, duration: 0.5 } },
+  },
+};
+
 function Home() {
   const { stable, beta, totalDownloads } = useReleases();
   const [channel, setChannel] = useState<"stable" | "beta">("stable");
   const sel = channel === "beta" && beta ? beta : stable;
-  const { version, dmgUrl } = sel;
+  const { dmgUrl } = sel;
   // On the beta channel, recolor the whole page amber by overriding the single
-  // Tailwind accent var — every `*-accent` utility follows it.
+  // Tailwind accent var; every `*-accent` utility follows it.
   const accentStyle =
-    channel === "beta" ? ({ "--color-accent": "#D29922" } as CSSProperties) : undefined;
+    channel === "beta"
+      ? ({ "--color-accent": "#9a6700", "--accent-on-dark": "#d29922" } as CSSProperties)
+      : undefined;
 
   return (
     <MotionConfig reducedMotion="user">
       <main
-        className="mx-auto flex max-w-[960px] flex-col gap-14 px-6 pt-[10vh] pb-[14vh]"
+        className="mx-auto flex max-w-[1120px] flex-col gap-28 px-6 pt-8 pb-28"
         style={accentStyle}
       >
-        {/* Left-aligned like everything below it: a centred hero over a
-            left-aligned page is two axes fighting, and centred logo-over-
-            headline is the most default shape a landing page has. */}
-        <header className="flex flex-col gap-5">
-          {/* Brand mark, not a heading — the h1 is the promise. */}
-          <div className="enter flex items-center gap-2.5">
-            <motion.img
-              className="block h-7 w-7 rounded-[7px]"
-              // 56px source for a 28px box — 2x for retina and nothing more.
-              // The 256px icon.png is 56 KB and React preloads whatever the
-              // first <img> points at, so it was competing with the LCP
-              // screenshot for bandwidth to paint a logo the size of a favicon.
-              src="/icon-56.png"
-              alt=""
-              width={28}
-              height={28}
-              whileHover={{ rotate: -8, scale: 1.1 }}
-              whileTap={{ scale: 0.94 }}
-              transition={{ type: "spring", stiffness: 500, damping: 16 }}
-            />
-            <span className="text-[13px] tracking-[0.02em] text-muted">BetterCmdTab</span>
-          </div>
-
-          {/* No width cap: 27 mono characters at 34px is ~565px, so the line
-             holds together on one line and the step down lands exactly where
-             it stops fitting. Phones still wrap — one line there would mean a
-             19px headline, which is barely louder than the paragraph. */}
-          <h1 className="enter m-0 text-[34px] leading-[1.18] font-semibold tracking-[-0.02em] [animation-delay:70ms] max-[640px]:text-[24px]">
-            The <span className="text-accent">Cmd+Tab</span> macOS deserves.
-            <span
-              className="ml-1.5 inline-block h-[0.9em] w-[9px] animate-caret rounded-[1px] bg-accent align-[-0.06em] motion-reduce:animate-none"
-              aria-hidden
-            />
-          </h1>
-
-          <p className="enter m-0 max-w-[56ch] text-muted [animation-delay:140ms]">
-            A fast, native window switcher and app launcher. Free forever, zero telemetry, no
-            subscription.
-          </p>
-        </header>
-
-        <section className="enter flex flex-col gap-4 [animation-delay:210ms]">
-          <div className="flex max-w-full flex-wrap items-center gap-2.5">
-            <DownloadCta href={dmgUrl} beta={!!beta} channel={channel} onChange={setChannel} />
-            <BrewCmd beta={channel === "beta"} />
-          </div>
-          {/* Meta as quiet chips, echoing the capsules above. Mirrors the
-              BetterAudio price animation: LayoutGroup + eased layout on every
-              chip so width changes glide, per-char roll inside the version. */}
-          <LayoutGroup>
-            <motion.div
-              layout
-              className="flex flex-wrap items-center gap-2 text-[13px] leading-normal text-dim"
-              transition={{ duration: 0.32, ease: EASE }}
-            >
-              {version && (
-                <motion.span
-                  layout
-                  className={`inline-flex items-center overflow-hidden rounded-[6px] border px-2 py-[3px] tabular-nums transition-colors duration-300 ${
-                    channel === "beta" ? "border-accent/40 text-accent" : "border-line text-text"
-                  }`}
-                  transition={{ duration: 0.32, ease: EASE }}
-                >
-                  {/* Per-character roll: chars keyed by index+char so only the
-                      ones that actually change roll over, cascading with blur. */}
-                  {version.split("").map((char, i) => (
-                    <motion.span
-                      key={i}
-                      layout
-                      className="relative inline-block overflow-hidden"
-                      transition={{ duration: 0.32, ease: EASE }}
+        <div className="flex flex-col gap-14">
+          <header className="grid grid-cols-[1fr_auto] items-center gap-x-10 gap-y-6 pt-12 max-[960px]:grid-cols-1 max-[640px]:pt-4">
+            <div className="flex flex-col gap-6">
+              <h1 className="m-0 max-w-[13ch] text-[clamp(40px,7vw,88px)] leading-[1.02] font-bold tracking-[-0.04em]">
+                {headlineWords.map((word, i) => (
+                  <Fragment key={word}>
+                    {i > 0 && " "}
+                    <span
+                      className="enter inline-block"
+                      style={{ animationDelay: `${120 + i * 70}ms` }}
                     >
-                      <AnimatePresence mode="popLayout" initial={false}>
-                        <motion.span
-                          key={`${i}-${char}`}
-                          className="inline-block"
-                          initial={{ y: "-100%", opacity: 0, filter: "blur(4px)" }}
-                          animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
-                          exit={{ y: "100%", opacity: 0, filter: "blur(2px)" }}
-                          transition={{ duration: 0.22, delay: i * 0.02, ease: EASE }}
-                        >
-                          {char}
-                        </motion.span>
-                      </AnimatePresence>
-                    </motion.span>
-                  ))}
-                </motion.span>
-              )}
-              {totalDownloads > 0 && (
-                <motion.span
-                  layout="position"
-                  className="inline-flex items-center rounded-[6px] border border-line px-2 py-[3px] tabular-nums"
-                  transition={{ duration: 0.32, ease: EASE }}
-                >
-                  {downloadFmt.format(totalDownloads)} downloads
-                </motion.span>
-              )}
-              <motion.span
-                layout="position"
-                className="inline-flex items-center rounded-[6px] border border-line px-2 py-[3px]"
-                transition={{ duration: 0.32, ease: EASE }}
-              >
-                macOS 13.0+
-              </motion.span>
-              <motion.span
-                layout="position"
-                className="inline-flex items-center rounded-[6px] border border-line px-2 py-[3px]"
-                transition={{ duration: 0.32, ease: EASE }}
-              >
-                Apple Silicon &amp; Intel
-              </motion.span>
-            </motion.div>
-          </LayoutGroup>
-        </section>
+                      {word}
+                    </span>
+                  </Fragment>
+                ))}
+              </h1>
 
-        <Showcase />
+              <div className="enter flex flex-col gap-3 [animation-delay:420ms]">
+                <DownloadCta
+                  href={dmgUrl}
+                  channel={channel}
+                  onChange={setChannel}
+                  stable={stable}
+                  beta={beta}
+                />
+                <BrewCmd beta={channel === "beta"} />
+                {/* Per-character roll on the version: chars keyed by index+char so
+                  only the ones that change roll over when the channel flips. */}
+                <p className="m-0 text-[13px] text-muted">
+                  {totalDownloads > 0 && `${downloadFmt.format(totalDownloads)} downloads · `}
+                  macOS 13+ · Apple Silicon and Intel
+                </p>
+              </div>
+            </div>
 
-        <Features />
+            <div className="enter flex flex-col items-center gap-4 [animation-delay:40ms] max-[960px]:order-first max-[960px]:items-start">
+              <Chord className="text-[clamp(110px,12vw,150px)] max-[960px]:text-[72px]" />
+              <p className="m-0 text-[13px] text-muted max-[960px]:hidden">
+                Go on, press <kbd className="font-sans text-dim">⌘</kbd> or{" "}
+                <kbd className="font-sans text-dim">tab</kbd>
+              </p>
+            </div>
+          </header>
+
+          <Showcase />
+        </div>
+
+        <Highlights />
+
+        <Compare />
 
         <Docs />
 
-        <section className={SECTION}>
-          <h2 className={H2}>FAQ</h2>
-          <div className="flex flex-col gap-2">
-            {faqs.map(([q, a]) => (
-              <FaqItem key={q} q={q} a={a} />
-            ))}
-          </div>
+        <section id="download" className="flex flex-col items-center gap-7 text-center">
+          <h2 className="m-0 text-[clamp(34px,4.4vw,52px)] leading-[1.05] font-bold tracking-[-0.04em]">
+            Stop hunting for windows.
+          </h2>
+          <DownloadCta
+            href={dmgUrl}
+            channel={channel}
+            onChange={setChannel}
+            stable={stable}
+            beta={beta}
+          />
         </section>
-
-        <section className={SECTION}>
-          <h2 className={H2}>Connect</h2>
-          <p className="m-0 flex items-center gap-3">
-            <ExternalLink href={REPO}>GitHub</ExternalLink>
-            <span className="text-line">·</span>
-            <ExternalLink href={`${REPO}/releases`}>Releases</ExternalLink>
-            <span className="text-line">·</span>
-            <ExternalLink href={`${REPO}/blob/main/LICENSE`}>License</ExternalLink>
-          </p>
-        </section>
-
-        <footer className="text-[13px] text-muted">
-          Built by <ExternalLink href="https://github.com/rokartur">@rokartur</ExternalLink> · GPL
-          v3
-        </footer>
       </main>
+
+      <Footer dmgUrl={dmgUrl} style={accentStyle} />
+      <StickyCTA downloadUrl={dmgUrl} />
     </MotionConfig>
+  );
+}
+
+const footerLinks: Array<[string, string]> = [
+  ["Changelog", `${REPO}/releases`],
+  ["Documentation", `${DOCS}/`],
+  ["Config reference", `${DOCS}/config-reference/`],
+  ["Report an issue", `${REPO}/issues`],
+  ["License", `${REPO}/blob/main/LICENSE`],
+];
+
+const FOOTER_HEADING = "m-0 mb-5 text-[12px] font-semibold tracking-[0.12em] text-muted uppercase";
+const DARK_BUTTON =
+  "inline-flex items-center gap-2.5 rounded-xl border border-line bg-surface font-medium text-text transition-colors duration-150 hover:bg-[#1f1e1b]";
+
+function Footer({ dmgUrl, style }: { dmgUrl: string; style: CSSProperties | undefined }) {
+  return (
+    <footer
+      className="dark bg-[radial-gradient(50%_160px_at_50%_0,rgba(255,255,255,0.05),transparent)]"
+      style={style}
+    >
+      <div className="mx-auto max-w-[1120px] px-6 pt-24">
+        <div className="grid grid-cols-[1fr_minmax(0,420px)] gap-16 max-[860px]:grid-cols-1">
+          <div className="flex flex-col items-start gap-6">
+            <a className="flex items-center gap-3 border-0 text-[17px] font-semibold" href="/">
+              <img
+                className="block h-9 w-9"
+                src="/icon-56.png"
+                alt=""
+                width={36}
+                height={36}
+                loading="lazy"
+                decoding="async"
+              />
+              BetterCmdTab
+            </a>
+            <p className="m-0 text-[clamp(26px,3vw,34px)] leading-[1.1] font-bold tracking-[-0.03em]">
+              The ⌘+Tab macOS deserves.
+            </p>
+            <div className="mt-10 flex flex-wrap gap-3 max-[860px]:mt-2">
+              <a
+                className="inline-flex h-12 items-center gap-2.5 rounded-xl border-0 bg-text px-5 text-[16px] font-semibold text-bg transition-colors duration-150 hover:bg-white hover:text-bg"
+                href={dmgUrl}
+              >
+                <Icon.Apple className="h-[18px] w-[18px]" />
+                Download for Mac
+              </a>
+              <ExternalLink className={`${DARK_BUTTON} h-12 px-5 text-[16px]`} href={REPO}>
+                <Icon.GitHub className="h-[18px] w-[18px]" />
+                Star on GitHub
+              </ExternalLink>
+            </div>
+          </div>
+
+          <div>
+            <h2 className={FOOTER_HEADING}>Resources</h2>
+            <ul className="m-0 flex list-none flex-col gap-3 p-0 text-[15px]">
+              {footerLinks.map(([label, href]) => (
+                <li key={label}>
+                  <a className="border-0 text-dim hover:text-text" href={href}>
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+
+            <h2 className={`${FOOTER_HEADING} mt-10 border-t border-line pt-10`}>More</h2>
+            <div className="flex flex-wrap gap-3 text-[14px]">
+              <ExternalLink className={`${DARK_BUTTON} h-10 px-4`} href="https://betteraudio.pro/">
+                <img
+                  className="block h-[18px] w-[18px] rounded-[4px]"
+                  src="/betteraudio.png"
+                  alt=""
+                  width={18}
+                  height={18}
+                  loading="lazy"
+                  decoding="async"
+                />
+                BetterAudio
+              </ExternalLink>
+              <ExternalLink
+                className={`${DARK_BUTTON} h-10 px-4`}
+                href="https://github.com/rokartur"
+              >
+                <Icon.GitHub className="h-4 w-4" />
+                @rokartur
+              </ExternalLink>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-20 flex flex-wrap justify-between gap-x-6 gap-y-2 border-t border-line pt-7 text-[13px] text-muted">
+          <span>© Artur Rok. Open source under GPL v3.</span>
+          <span>Not affiliated with Apple Inc.</span>
+        </div>
+
+        <div
+          aria-hidden="true"
+          className="mt-12 h-[0.6em] overflow-hidden [mask-image:linear-gradient(black,transparent_90%)] text-[min(19vw,380px)] opacity-50"
+        >
+          <Chord className="justify-center" />
+        </div>
+      </div>
+    </footer>
   );
 }
