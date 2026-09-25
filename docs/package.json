@@ -3,7 +3,7 @@
   "version": "0.0.11",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "next build && perl -pi -e 's{\"https://bettercmdtab\\.app/docs/\"}{\"https://bettercmdtab.app/docs\"}g' out/index.html out/*/index.html",
     "dev": "next dev",
     "preview": "bunx --bun serve out -p 3001",
     "types:check": "next typegen && tsc --noEmit",

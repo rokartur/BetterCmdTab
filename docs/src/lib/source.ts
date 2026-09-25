@@ -51,8 +51,14 @@ function publicUrl(route: string, segments: string[]) {
  * an index.html on disk; GitHub Pages answers the bare form with its own 301.
  * Next would normalise the canonical anyway, but a canonical URL is not
  * something to leave to an implicit rewrite.
+ *
+ * The one exception is the English landing page: a Cloudflare URL rewrite
+ * serves bare `/docs` from `/docs/index.html`, so that is its public URL.
+ * Next's metadata resolver re-appends the slash under `trailingSlash`, so the
+ * `build` script strips it from the exported HTML again.
  */
 export function getPageUrl(page: (typeof source)['$inferPage']) {
+  if (page.url === '/') return siteUrl + docsBasePath;
   return siteUrl + docsBasePath + (page.url.endsWith('/') ? page.url : `${page.url}/`);
 }
 

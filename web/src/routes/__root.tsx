@@ -211,7 +211,7 @@ export function NotFound() {
         This page does not exist.
       </h1>
       <p className="m-0 text-[15px] text-muted">
-        <a href="/">Back to BetterCmdTab</a> · <a href="/docs/">Documentation</a>
+        <a href="/">Back to BetterCmdTab</a> · <a href="/docs">Documentation</a>
       </p>
     </main>
   );

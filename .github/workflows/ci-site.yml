@@ -159,24 +159,25 @@ jobs:
           fail=0
 
           # Pages answers a URL ending in a slash with <path>/index.html, and
-          # 301s the bare form to it. So every sitemap entry must end in a slash
+          # 301s the bare form to it (bare /docs excepted: Cloudflare rewrites it
+          # to /docs/ at the edge). So every sitemap entry must end in a slash
           # AND have that exact file, or the sitemap advertises a redirect or a
           # 404 — both worse than not listing the page at all.
           for u in $(grep -o '<loc>[^<]*</loc>' web/public/sitemap.xml \
                      | sed 's|</*loc>||g; s|https://bettercmdtab.app||'); do
             case "$u" in
-              */) ;;
+              /docs|*/) ;;
               *) echo "::error::sitemap URL '$u' has no trailing slash — Pages would 301 it"; fail=1; continue;;
             esac
-            test -f "${root}${u}index.html" \
-              || { echo "::error::sitemap lists $u but ${root}${u}index.html does not exist"; fail=1; }
+            test -f "${root}${u%/}/index.html" \
+              || { echo "::error::sitemap lists $u but ${root}${u%/}/index.html does not exist"; fail=1; }
           done
 
           # An internal link to a redirecting URL spends a hop and dilutes the
           # signal it passes. Same slash rule as above.
           for h in $(grep -oh 'href="/docs[^"]*"' $root/index.html | sed 's|href="||; s|"||' | sort -u); do
             case "$h" in
-              */) test -f "${root}${h}index.html" \
+              /docs|*/) test -f "${root}${h%/}/index.html" \
                     || { echo "::error::marketing page links to $h, which has no page"; fail=1; };;
               *) echo "::error::marketing page links to $h without a trailing slash (301 on Pages)"; fail=1;;
             esac
@@ -205,7 +206,9 @@ jobs:
             slug=$(basename "$file" .mdx)
             prefix="https://bettercmdtab.app/docs"
             [ "$locale" = en ] || prefix="$prefix/$locale"
-            [ "$slug" = index ] && url="$prefix/" || url="$prefix/$slug/"
+            if [ "$slug" != index ]; then url="$prefix/$slug/"
+            elif [ "$locale" = en ]; then url="$prefix"
+            else url="$prefix/"; fi
             grep -qF "<loc>$url</loc>" web/public/sitemap.xml \
               || { echo "::error::$url is missing from web/public/sitemap.xml"; fail=1; }
           done

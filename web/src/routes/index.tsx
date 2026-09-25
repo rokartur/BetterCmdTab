@@ -610,12 +610,13 @@ function BrewCmd({ beta }: { beta: boolean }) {
 // swallowing it.
 const DOCS = "/docs";
 
-// Paths are relative to DOCS; the quick start is the docs landing page, hence
-// the bare slash. Every one ends in a slash to match the docs' canonical URLs
+// Paths are relative to DOCS; the quick start is the docs landing page, served
+// as bare /docs by a Cloudflare rewrite. The rest end in a slash to match the
+// docs' canonical URLs
 // — the bare form is a 301 on both deploy targets, and an internal link should
 // not spend a redirect.
 const docsLinks: Array<[string, string, string]> = [
-  ["Quick start", "Install, permissions, your first switch", "/"],
+  ["Quick start", "Install, permissions, your first switch", ""],
   ["Config file", "How the live two-way sync works", "/configuration/"],
   ["Config reference", "Every key, with types and defaults", "/config-reference/"],
   ["Per-shortcut overrides", "A different switcher on every hotkey", "/overrides/"],
@@ -1882,7 +1883,7 @@ function Home() {
 
 const footerLinks: Array<[string, string]> = [
   ["Changelog", `${REPO}/releases`],
-  ["Documentation", `${DOCS}/`],
+  ["Documentation", DOCS],
   ["Config reference", `${DOCS}/config-reference/`],
   ["Report an issue", `${REPO}/issues`],
   ["License", `${REPO}/blob/main/LICENSE`],

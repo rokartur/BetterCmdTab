@@ -39,7 +39,7 @@
 
   <!-- Documentation (docs/, built with basePath=/docs into the same origin). -->
   <url>
-    <loc>https://bettercmdtab.app/docs/</loc>
+    <loc>https://bettercmdtab.app/docs</loc>
   </url>
   <url>
     <loc>https://bettercmdtab.app/docs/configuration/</loc>

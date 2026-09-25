@@ -191,8 +191,9 @@ that would be a server rule has to be a property of the built tree instead:
 - Every page is `<slug>/index.html` and the slashed URL is the one that exists — `docs/` sets
   Next's `trailingSlash: true`, `web/` gets it from TanStack Start's prerender, which writes
   subfolder indexes by default. Canonicals, the sitemap and internal links all use that form;
-  the bare form is Pages' own 301, and pointing at it wastes a hop. The one exception is
-  `web/out/404.html`, prerendered from the `/404` route with `autoSubfolderIndex: false`
+  the bare form is Pages' own 301, and pointing at it wastes a hop. Two exceptions: bare
+  `/docs`, which a Cloudflare URL rewrite (`/docs` -> `/docs/`) serves from `docs/index.html`,
+  and `web/out/404.html`, prerendered from the `/404` route with `autoSubfolderIndex: false`
   because Pages only serves that exact filename.
 - `web/public/sitemap.xml` is hand-maintained. CI checks it both ways: every URL resolves to a real
   file, and every `docs/content/docs/*/*.mdx` is listed.
