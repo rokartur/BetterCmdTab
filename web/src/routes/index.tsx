@@ -373,10 +373,11 @@ function DownloadCta({
             isBeta ? "opacity-100" : "opacity-0"
           }`}
         />
+        {/* Label snaps once the background passes its midpoint (~40ms into CHANNEL_SWAP); tweened, the two colors meet and the label vanishes. */}
         <DownloadButton
           href={href}
           size="lg"
-          className={`bg-transparent max-[420px]:px-4 max-[360px]:px-3 max-[360px]:text-[15px] ${CHANNEL_SWAP} ${isBeta ? "text-text hover:text-text" : "text-bg hover:text-bg"}`}
+          className={`bg-transparent delay-40 duration-0 max-[420px]:px-4 max-[360px]:px-3 max-[360px]:text-[15px] ${isBeta ? "text-text hover:text-text" : "text-bg hover:text-bg"}`}
         />
         {beta && (
           <div
