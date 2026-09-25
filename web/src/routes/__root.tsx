@@ -13,7 +13,7 @@ const DESCRIPTION =
   "A fast, native Cmd+Tab replacement for macOS: grid & list app switcher, fuzzy search & launch, and window cycling. Free, open-source, zero telemetry. macOS 13+.";
 const SOCIAL_DESCRIPTION =
   "A fast, native Cmd+Tab replacement for macOS: grid & list app switcher, fuzzy search & launch, and window cycling. Free, open-source, zero telemetry.";
-const IMAGE_ALT = "BetterCmdTab — A Native Window Switcher and App Launcher for macOS";
+const IMAGE_ALT = "BetterCmdTab: The ⌘+Tab macOS deserves. Window previews switcher screenshot.";
 
 // The homepage is the only route, so every tag below is a constant. Router
 // `head()` emits raw tags, so URLs that Next used to absolutise against
@@ -153,8 +153,21 @@ const jsonLd = {
     {
       "@type": "Person",
       "@id": `${SITE}/#author`,
-      name: "rokartur",
+      name: "Artur Rok",
+      alternateName: "rokartur",
       url: "https://github.com/rokartur",
+      sameAs: ["https://github.com/rokartur"],
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://betteraudio.pro/#app",
+      name: "BetterAudio",
+      url: "https://betteraudio.pro/",
+      applicationCategory: "UtilitiesApplication",
+      operatingSystem: "macOS",
+      description:
+        "Per-app volume control, local AI transcription, and professional audio routing for macOS.",
+      author: { "@id": `${SITE}/#author` },
     },
     {
       "@type": "WebSite",
@@ -176,7 +189,7 @@ export const Route = createRootRoute({
       // LCP is the featured first screenshot, so preload it and let the <img>
       // mark itself fetchpriority=high; the rest warm up the release lookup
       // the page fires on mount.
-      { rel: "preload", as: "image", href: "/screenshots/preview.jpg", fetchPriority: "high" },
+      { rel: "preload", as: "image", href: "/screenshots/preview.webp", fetchPriority: "high" },
       { rel: "preconnect", href: "https://api.github.com", crossOrigin: "" },
       { rel: "dns-prefetch", href: "https://api.github.com" },
       { rel: "dns-prefetch", href: "https://objects.githubusercontent.com" },

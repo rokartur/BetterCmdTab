@@ -58,7 +58,7 @@ macOS kontroluje osobno w sekcji **Prywatność i ochrona → Automatyzacja**.
 Otwórz **Ustawienia → Prywatność → Uprawnienia → Dostęp do kart przeglądarki** i naciśnij
 **Sprawdź dostęp…**, pozostawiając otwarte okno ustawień — macOS wyświetla prośbę o zgodę
 tylko wtedy, gdy okno jest aktywne, i pyta raz dla każdej przeglądarki. Jeśli pominiesz
-ten krok, `\` w wierszu przeglądarki, `expandBrowserTabsAsWindows` oraz
+ten krok, <kbd>{"\\"}</kbd> w wierszu przeglądarki, `expandBrowserTabsAsWindows` oraz
 `searchExpandsBrowserTabs` będą po cichu zwracać puste wyniki.
 
 Karty natywne (Finder, Terminal, TextEdit) korzystają z Dostępności i nie wymagają
@@ -68,36 +68,36 @@ niczego więcej.
 
 | Czynność | Klawisze |
 | --- | --- |
-| Otwórz przełącznik | Przytrzymaj `⌘` i naciśnij `Tab` |
-| Przejdź do przodu / do tyłu | `Tab` / `⇧Tab` lub klawisze strzałek |
-| Zatwierdź i przełącz | Puść `⌘` |
-| Przełącz bez pokazywania panelu | Szybko naciśnij `⌘Tab` |
-| Przełączaj okna aktywnej aplikacji | `` ⌘` `` |
+| Otwórz przełącznik | Przytrzymaj <kbd>⌘</kbd> i naciśnij <kbd>Tab</kbd> |
+| Przejdź do przodu / do tyłu | <kbd>Tab</kbd> / <kbd>⇧Tab</kbd> lub klawisze strzałek |
+| Zatwierdź i przełącz | Puść <kbd>⌘</kbd> |
+| Przełącz bez pokazywania panelu | Szybko naciśnij <kbd>⌘Tab</kbd> |
+| Przełączaj okna aktywnej aplikacji | <kbd>⌘`</kbd> |
 | Przejdź do pozycji | Wpisz widoczną na niej literę |
-| Podejrzyj okna aplikacji | `↓` (patrz niżej) |
-| Anuluj | `Esc` |
+| Podejrzyj okna aplikacji | <kbd>↓</kbd> (patrz niżej) |
+| Anuluj | <kbd>Esc</kbd> |
 
 Poniższe czynności działają, gdy przełącznik jest otwarty. Wszystkie można przypisać
 osobno dla każdego profilu w **Ustawienia → Profile**; ustawienia domyślne to:
 
 | Czynność | Klawisze |
 | --- | --- |
-| Zamknij okno | `⌘W` |
-| Minimalizuj okno | `⌘M` |
-| Ukryj aplikację | `⌘H` |
-| Zamknij aplikację | `⌘Q` |
-| Wymuś zamknięcie aplikacji | `⌘⌥Q` |
-| Pełny ekran | `⌘F` |
-| Szukaj | `/`, a następnie zacznij pisać |
-| Podejrzyj karty okna | `\` |
+| Zamknij okno | <kbd>⌘W</kbd> |
+| Minimalizuj okno | <kbd>⌘M</kbd> |
+| Ukryj aplikację | <kbd>⌘H</kbd> |
+| Zamknij aplikację | <kbd>⌘Q</kbd> |
+| Wymuś zamknięcie aplikacji | <kbd>⌘⌥Q</kbd> |
+| Pełny ekran | <kbd>⌘F</kbd> |
+| Szukaj | <kbd>/</kbd>, a następnie zacznij pisać |
+| Podejrzyj karty okna | <kbd>{"\\"}</kbd> |
 
-`⌘` jest przytrzymywany przez cały czas, gdy panel jest widoczny, więc liczy się tylko
+<kbd>⌘</kbd> jest przytrzymywany przez cały czas, gdy panel jest widoczny, więc liczy się tylko
 zarejestrowany klawisz — modyfikator jest w panelu ignorowany. Wyczyszczenie pola
 wyłącza dany klawisz.
 
-`↓` przechodzi do okien aplikacji tylko tam, gdzie w innym przypadku nie wykonywałby
+<kbd>↓</kbd> przechodzi do okien aplikacji tylko tam, gdzie w innym przypadku nie wykonywałby
 użytecznej czynności — w układzie siatki i podglądu okien, gdy panel ma jeden wiersz.
-W układzie listy i wielowierszowej siatce `↓` nadal przesuwa zaznaczenie. Funkcja wymaga
+W układzie listy i wielowierszowej siatce <kbd>↓</kbd> nadal przesuwa zaznaczenie. Funkcja wymaga
 też włączenia [`windowDrillEnabled`](/config-reference#windowDrillEnabled), jednego
 wiersza na aplikację ([`applicationsOnly`](/config-reference#applicationsOnly)) oraz
 aplikacji z co najmniej dwoma oknami.
@@ -115,12 +115,12 @@ pozycji:
 | Ikona | Znaczenie |
 | --- | --- |
 | Zielony głośnik | Aplikacja odtwarza dźwięk |
-| Przekreślone oko | Aplikacja jest ukryta (`⌘H`) |
+| Przekreślone oko | Aplikacja jest ukryta (<kbd>⌘H</kbd>) |
 | Minus w prostokącie | Okno jest zminimalizowane |
-| Kwadrat z przerywaną ramką | Aplikacja działa, ale nie ma otwartego okna — `Return` je otworzy |
+| Kwadrat z przerywaną ramką | Aplikacja działa, ale nie ma otwartego okna — <kbd>Return</kbd> je otworzy |
 | Dwie skośne strzałki | Okno jest w trybie pełnoekranowym |
-| Strzałka wychodząca z kwadratu | Aplikacja nie jest uruchomiona — `Return` ją uruchomi |
-| Zegar ze strzałką | Ostatnio zamknięte — `Return` przywróci |
+| Strzałka wychodząca z kwadratu | Aplikacja nie jest uruchomiona — <kbd>Return</kbd> ją uruchomi |
+| Zegar ze strzałką | Ostatnio zamknięte — <kbd>Return</kbd> przywróci |
 
 Cztery symbole stanu okna (ukryta, zminimalizowane, brak okna, pełny ekran) można
 wyłączyć w **Wygląd → Etykiety → Pokazuj ikony stanu**
@@ -148,8 +148,8 @@ Trzy zmiany, które warto wprowadzić od razu:
   `Widoczne biurka` pokazuje to, co faktycznie znajduje się na ekranie, i ukrywa okna
   pozostawione na biurkach w tle.
 - **Pozostaw otwarte** — Sterowanie → Klawiatura. Panel pozostaje widoczny po puszczeniu
-  `⌘`, dzięki czemu możesz spokojnie przeglądać pozycje i zatwierdzić wybór klawiszem
-  `Return`.
+  <kbd>⌘</kbd>, dzięki czemu możesz spokojnie przeglądać pozycje i zatwierdzić wybór klawiszem
+  <kbd>Return</kbd>.
 
 ## 5. Opcjonalnie: przenieś ustawienia do pliku
 

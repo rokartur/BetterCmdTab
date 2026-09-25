@@ -8,7 +8,15 @@ import {
   useReducedMotion,
   type Variants,
 } from "motion/react";
-import { type CSSProperties, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 
 import snapshot from "../../releases.json";
@@ -24,7 +32,7 @@ import {
   type Releases,
   writeCache,
 } from "../releases";
-import { Icon, StickyCTA } from "../StickyCTA";
+import { DownloadButton, Icon, StickyCTA } from "../StickyCTA";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -53,19 +61,19 @@ const layouts = [
   {
     id: "previews",
     label: "Previews",
-    src: "/screenshots/preview.jpg",
+    src: "/screenshots/preview.webp",
     caption: "Live previews of every window on screen",
   },
   {
     id: "grid",
     label: "Grid",
-    src: "/screenshots/grid.jpg",
+    src: "/screenshots/grid.webp",
     caption: "A grid of app icons, window titles underneath",
   },
   {
     id: "list",
     label: "List",
-    src: "/screenshots/list.jpg",
+    src: "/screenshots/list.webp",
     caption: "The classic vertical list, one row per window",
   },
 ];
@@ -167,6 +175,18 @@ function Showcase() {
     setReach((r) => Math.max(r, i + 1));
   };
 
+  const swipeStartX = useRef<number | null>(null);
+  // A swipe ends in a click on the slide under the finger; this eats that click.
+  const swiped = useRef(false);
+  const endSwipe = (x: number) => {
+    if (swipeStartX.current === null) return;
+    const dx = x - swipeStartX.current;
+    swipeStartX.current = null;
+    if (Math.abs(dx) < 40) return;
+    swiped.current = true;
+    go(Math.min(Math.max(active + (dx < 0 ? 1 : -1), 0), layouts.length - 1));
+  };
+
   const autoplay = mounted && !reduced;
   const playing = !paused && !hovered && !zoomed && onScreen;
   const shot = layouts[active];
@@ -183,7 +203,20 @@ function Showcase() {
       onPointerLeave={() => setHovered(false)}
     >
       {/* The fade spans the 8% peek, so the side slides dissolve instead of being sliced. */}
-      <div className="overflow-hidden mask-x-from-92% mask-x-to-100%">
+      <div
+        className="touch-pan-y overflow-hidden mask-x-from-92% mask-x-to-100% select-none"
+        onPointerDown={(e) => {
+          swipeStartX.current = e.clientX;
+          swiped.current = false;
+        }}
+        onPointerUp={(e) => endSwipe(e.clientX)}
+        onPointerCancel={() => (swipeStartX.current = null)}
+        onClickCapture={(e) => {
+          if (!swiped.current) return;
+          swiped.current = false;
+          e.stopPropagation();
+        }}
+      >
         <div
           className="flex gap-5 transition-transform duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
           // Percentages here are of the track, which is the viewport's width:
@@ -215,6 +248,7 @@ function Showcase() {
                   loading={i === 0 ? "eager" : "lazy"}
                   fetchPriority={i === 0 ? "high" : "auto"}
                   decoding="async"
+                  draggable={false}
                 />
               )}
             </button>
@@ -225,7 +259,7 @@ function Showcase() {
       <p className="m-0 text-center text-sm text-muted">{shot.caption}</p>
 
       <div className="flex items-center justify-center gap-3.5">
-        <div className="flex gap-2.5 rounded-full bg-text/5 px-4 py-3">
+        <div className="flex gap-4 rounded-full bg-text/5 px-4 py-3">
           {layouts.map((l, i) => (
             <button
               key={l.id}
@@ -314,71 +348,57 @@ function DownloadCta({
   stable: Channel;
   beta: Channel | null;
 }) {
+  // Hero and footer both render this; a shared layoutId would fly the thumb between them.
+  const thumbId = `channel-thumb-${useId()}`;
+  const version = channel === "beta" && beta ? beta.version : stable.version;
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-      <motion.a
+      <DownloadButton
         href={href}
-        initial="rest"
-        whileHover="hover"
-        whileTap="press"
-        variants={{ rest: { scale: 1 }, hover: { scale: 1 }, press: { scale: 0.97 } }}
-        transition={{ duration: 0.12, ease: EASE }}
-        className="inline-flex h-12 items-center gap-2.5 rounded-xl border-0 bg-text px-5 text-[16px] font-semibold text-bg transition-colors duration-150 hover:bg-[#3a3833] hover:text-bg"
-      >
-        <svg
-          aria-hidden="true"
-          width="16"
-          height="17"
-          viewBox="0 0 14 15"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <motion.g
-            variants={{
-              rest: { transform: "translateY(0px)" },
-              hover: { transform: "translateY(1.5px)" },
-              press: { transform: "translateY(3px)" },
-            }}
-            transition={{ type: "spring", duration: 0.35, bounce: 0.3 }}
-          >
-            <path d="M7 2V9" />
-            <path d="M4 6 7 9 10 6" />
-          </motion.g>
-          <path d="M2.5 13h9" />
-        </svg>
-        Download for Mac
-      </motion.a>
-      <div role="group" aria-label="Release channel" className="flex gap-4 text-[14px]">
-        <ChannelOption
-          label="Stable"
-          version={stable.version}
-          active={channel === "stable"}
-          onSelect={() => onChange("stable")}
-        />
+        size="lg"
+        className="bg-text text-bg hover:bg-[#3a3833] hover:text-bg"
+      />
+      <div className="flex items-center gap-3">
         {beta && (
-          <ChannelOption
-            label="Beta"
-            version={beta.version}
-            active={channel === "beta"}
-            onSelect={() => onChange("beta")}
-          />
+          <div
+            role="group"
+            aria-label="Release channel"
+            className="inline-flex rounded-[10px] bg-black/[0.055] p-[3px]"
+          >
+            <ChannelSegment
+              label="Stable"
+              thumbId={thumbId}
+              active={channel === "stable"}
+              onSelect={() => onChange("stable")}
+            />
+            <ChannelSegment
+              label="Beta"
+              thumbId={thumbId}
+              active={channel === "beta"}
+              onSelect={() => onChange("beta")}
+            />
+          </div>
+        )}
+        {version && (
+          <span className="text-[13px] text-muted tabular-nums">{formatVersion(version)}</span>
         )}
       </div>
     </div>
   );
 }
 
-function ChannelOption({
+function formatVersion(version: string) {
+  return version.replace(/^v/, "").replace("-beta.", " beta ");
+}
+
+function ChannelSegment({
   label,
-  version,
+  thumbId,
   active,
   onSelect,
 }: {
   label: string;
-  version: string | null;
+  thumbId: string;
   active: boolean;
   onSelect: () => void;
 }) {
@@ -387,21 +407,18 @@ function ChannelOption({
       type="button"
       aria-pressed={active}
       onClick={onSelect}
-      className={`relative cursor-pointer border-0 bg-transparent px-0 py-0.5 transition-colors duration-150 ${
+      className={`relative cursor-pointer rounded-[7px] border-0 bg-transparent px-3 py-[5px] text-[13px] font-medium transition-colors duration-150 ${
         active ? "text-text" : "text-muted hover:text-text"
       }`}
     >
-      {label}
-      {version && (
-        <span className="ml-1.5 text-muted tabular-nums">{version.replace(/^v/, "")}</span>
-      )}
       {active && (
         <motion.span
-          layoutId="channel-underline"
+          layoutId={thumbId}
           transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
-          className="absolute inset-x-0 -bottom-px h-px bg-accent transition-colors duration-300"
+          className="absolute inset-0 rounded-[7px] bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.06)]"
         />
       )}
+      <span className="relative">{label}</span>
     </button>
   );
 }
@@ -450,11 +467,11 @@ function CheckGlyph() {
   );
 }
 
-// Copy-to-clipboard with a self-resetting "copied" flag. clipboard access
+// Copy-to-clipboard that remembers the copied text for 1.6 s. clipboard access
 // lives inside the returned callback, so this stays SSR-safe during the
 // static render (no top-level navigator/window reference).
-function useCopy(): [boolean, (text: string) => void] {
-  const [copied, setCopied] = useState(false);
+function useCopy(): [string | null, (text: string) => void] {
+  const [copied, setCopied] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
 
   useEffect(
@@ -468,9 +485,9 @@ function useCopy(): [boolean, (text: string) => void] {
     navigator.clipboard
       ?.writeText(text)
       .then(() => {
-        setCopied(true);
+        setCopied(text);
         if (timer.current !== undefined) window.clearTimeout(timer.current);
-        timer.current = window.setTimeout(() => setCopied(false), 1600);
+        timer.current = window.setTimeout(() => setCopied(null), 1600);
       })
       // Denied permission or an unfocused document rejects here; swallowing it
       // keeps the button honest (it just never says "Copied") instead of
@@ -482,7 +499,10 @@ function useCopy(): [boolean, (text: string) => void] {
 }
 
 function BrewCmd({ beta }: { beta: boolean }) {
-  const [copied, copy] = useCopy();
+  const [copiedText, copy] = useCopy();
+  const command = beta ? `${BREW}@beta` : BREW;
+  // Switching channel changes the command, so the stale "Copied" drops back to "Copy".
+  const copied = copiedText === command;
   return (
     <p className="m-0 flex flex-wrap items-center gap-x-2.5 text-[14px] text-muted">
       or
@@ -502,21 +522,23 @@ function BrewCmd({ beta }: { beta: boolean }) {
           )}
         </AnimatePresence>
       </code>
-      {/* Wide enough for "Copied", so the label swap never resizes the row. */}
+      {/* borderRadius in style so Motion's layout scale correction keeps the corners round. */}
       <motion.button
-        layout="position"
+        layout
         type="button"
-        onClick={() => copy(beta ? `${BREW}@beta` : BREW)}
+        onClick={() => copy(command)}
         whileTap={{ scale: 0.96 }}
         transition={{ duration: 0.22, ease: EASE }}
-        className="-ml-1 inline-flex min-w-[84px] cursor-pointer items-center gap-1.5 overflow-hidden rounded-md border-0 bg-transparent px-2 py-1 text-[13px] text-muted transition-colors duration-150 hover:bg-text/5 hover:text-text"
+        style={{ borderRadius: 6 }}
+        className="-ml-1 inline-flex cursor-pointer items-center gap-1.5 overflow-hidden border-0 bg-transparent px-2 py-1 text-[13px] text-muted transition-colors duration-150 hover:bg-text/5 hover:text-text"
       >
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.span
             key={copied ? "copied" : "copy"}
-            initial={{ opacity: 0, transform: "translateY(6px)" }}
-            animate={{ opacity: 1, transform: "translateY(0px)" }}
-            exit={{ opacity: 0, transform: "translateY(-6px)" }}
+            layout="position"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.18, ease: EASE }}
             className={`inline-flex items-center gap-1.5 ${copied ? "text-accent" : ""}`}
           >
@@ -754,7 +776,7 @@ function MiniSwitcher({
           <div
             key={app.name}
             className={`grid h-[29px] w-[330px] grid-cols-[62px_16px_1fr_auto] items-center gap-[9px] rounded-[7px] px-[9px] text-[12.5px] max-[520px]:w-[270px] ${
-              i === 1 ? "bg-[#3b82f6]" : ""
+              i === 1 ? "bg-[#2563eb]" : ""
             }`}
           >
             <span className={`text-right ${i === 1 ? "" : "text-white/70"}`}>{app.name}</span>
@@ -821,7 +843,7 @@ function Docs() {
   return (
     <section
       id="config"
-      className="dark -mx-6 scroll-mt-10 rounded-[28px] px-14 py-16 max-[860px]:rounded-none max-[860px]:px-6 max-[860px]:py-14"
+      className="dark -mx-6 rounded-[28px] px-14 py-16 max-[860px]:rounded-none max-[860px]:px-6 max-[860px]:py-14"
     >
       <h2 className={H2}>Configure it in a file.</h2>
       <p className="m-0 -mt-3 mb-11 max-w-[54ch] text-[17px] text-muted">
@@ -863,7 +885,7 @@ function Docs() {
 }
 
 type Mark = "yes" | "no" | "pro";
-type Cell = Mark | [mark: Mark, label: string];
+type Cell = Mark | [mark: Mark, label: ReactNode];
 
 const markLabel: Record<Mark, string> = { yes: "Yes", no: "No", pro: "Pro" };
 
@@ -873,7 +895,7 @@ const products: Array<{ name: string; proPrice?: string }> = [
   { name: "AltTab", proPrice: "$9.99" },
 ];
 
-type Row = [feature: string, cells: [ours: Cell, builtIn: Cell, altTab: Cell]];
+type Row = [feature: ReactNode, cells: [ours: Cell, builtIn: Cell, altTab: Cell]];
 
 // AltTab cells follow alt-tab.app (Free vs Pro table, /features) and lwouis/alt-tab-macos@56891e0
 // (Pro gates in src/pro/ProFeature.swift, settings in src/preferences/Preferences.swift).
@@ -883,8 +905,16 @@ const comparisonGroups: Array<{ label: string; rows: Array<Row> }> = [
     rows: [
       ["Switch windows, not just apps", ["yes", ["no", "Current app only"], "yes"]],
       ["Tap to switch, hold to open", ["yes", "yes", "yes"]],
-      ["Stay open after releasing Cmd", ["yes", "no", "yes"]],
-      ["Cycle the front app's windows", ["yes", ["yes", "Cmd+`"], ["pro", "Pro, extra shortcut"]]],
+      [
+        <>
+          Stay open after releasing <Kbd>⌘</Kbd>
+        </>,
+        ["yes", "no", "yes"],
+      ],
+      [
+        "Cycle the front app's windows",
+        ["yes", ["yes", <Kbd key="cmd-backtick">⌘`</Kbd>], ["pro", "Pro, extra shortcut"]],
+      ],
       ["Type to search", ["yes", "no", "pro"]],
       ["Launch any installed app", ["yes", "no", "no"]],
       ["Multiple shortcuts", ["yes", "no", ["pro", "Pro, up to 9"]]],
@@ -948,7 +978,7 @@ const comparisonGroups: Array<{ label: string; rows: Array<Row> }> = [
 
 const comparison = comparisonGroups.flatMap((group) => group.rows);
 
-function splitCell(cell: Cell): [Mark, string] {
+function splitCell(cell: Cell): [Mark, ReactNode] {
   return typeof cell === "string" ? [cell, markLabel[cell]] : cell;
 }
 
@@ -963,7 +993,7 @@ function fillClass(mark: Mark, ours: boolean) {
 function Compare() {
   const total = comparison.length;
   return (
-    <section id="compare" className="scroll-mt-10">
+    <section id="compare">
       <h2 className={H2}>Compared.</h2>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[620px] table-fixed border-collapse text-[14px]">
@@ -975,9 +1005,12 @@ function Compare() {
           </colgroup>
           <thead>
             <tr className="border-b border-line">
-              <td className="pb-5 align-bottom font-mono text-[12px] text-muted">
+              <th
+                scope="col"
+                className="pb-5 text-left align-bottom font-mono text-[12px] font-normal text-muted"
+              >
                 {total} features
-              </td>
+              </th>
               {products.map((product, column) => {
                 const ours = column === 0;
                 const marks = comparison.map(([, cells]) => splitCell(cells[column])[0]);
@@ -1029,8 +1062,8 @@ function Compare() {
                   {group.label}
                 </th>
               </tr>
-              {group.rows.map(([feature, cells]) => (
-                <tr key={feature} className="border-b border-line/60">
+              {group.rows.map(([feature, cells], row) => (
+                <tr key={row} className="border-b border-line/60">
                   <th scope="row" className="py-[11px] pr-4 text-left font-normal text-dim">
                     {feature}
                   </th>
@@ -1083,6 +1116,15 @@ function useHeldKeys() {
     };
   }, []);
   return held;
+}
+
+// Static twin of Keycap for shortcuts shown inline in text.
+function Kbd({ children }: { children: ReactNode }) {
+  return (
+    <kbd className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-[6px] border border-b-2 border-[#d6d1c7] bg-[linear-gradient(#ffffff,#f1eee8)] px-1.5 align-[1px] font-sans text-[12px] leading-none font-medium tracking-[0.04em] text-text shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+      {children}
+    </kbd>
+  );
 }
 
 // Sized in em, so the parent's font-size sets the whole chord.
@@ -1140,16 +1182,13 @@ const FRAME_OUTLINE =
 
 function Highlights() {
   return (
-    <section id="features" className="scroll-mt-10">
+    <section id="features">
       <h2 className="sr-only">Features</h2>
       <div className="grid grid-cols-4 gap-x-7 gap-y-16 text-center max-[860px]:grid-cols-2">
         <Highlight title="Windows," rest="not just apps">
-          <motion.path
-            variants={slideIn}
-            d="M8 6.5V6a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3v6.5a3 3 0 0 1-3 3h-1.5"
-          />
+          <motion.rect variants={slideIn} x="8" y="3" width="13" height="12.5" rx="3" />
           <motion.g variants={squash(0.05)}>
-            <rect x="3" y="8" width="14" height="13" rx="3" />
+            <rect x="3" y="8" width="14" height="13" rx="3" className="fill-text" />
             <motion.path variants={draw(0.35, 0.4)} d="M3 12h14" />
           </motion.g>
         </Highlight>
@@ -1163,7 +1202,7 @@ function Highlights() {
         <Highlight title="Browser tab" rest="drill-in">
           <path d={FRAME_OUTLINE} />
           <path d="M3 8.5h18M9 3v5.5M15 3v5.5" />
-          <motion.path variants={tabWalk} d="M15.8 6.5h2.6" strokeWidth="2.4" />
+          <motion.path variants={tabWalk} d="M17.7 6h0.6" strokeWidth="2" />
           <motion.path variants={draw(0.7, 0.35)} d="M7 13h10" />
           <motion.path variants={draw(0.8, 0.35)} d="M7 16.5h6" />
         </Highlight>
@@ -1208,8 +1247,7 @@ function Highlights() {
         </Highlight>
         <Highlight title="Tiling and" rest="window moves">
           <path d={FRAME_OUTLINE} />
-          <motion.path variants={divider} d="M14 3v18" />
-          <motion.path variants={draw(0.55, 0.35)} d="M14 12h7" />
+          <motion.path variants={tileSplit} d={TILE_SPLIT} />
         </Highlight>
         <Highlight title="Native and" rest="instant">
           <motion.path
@@ -1357,10 +1395,10 @@ const spinIn: Variants = {
 };
 
 const tabWalk: Variants = {
-  hidden: { x: -11 },
-  show: { x: [-11, -5.5, 0], transition: { duration: 0.9, ease: ["backOut", "backOut"] } },
+  hidden: { x: -12 },
+  show: { x: [-12, -6, 0], transition: { duration: 0.9, ease: ["backOut", "backOut"] } },
   hover: {
-    x: [0, -11, -5.5, 0],
+    x: [0, -12, -6, 0],
     transition: { duration: 1, times: [0, 0.3, 0.65, 1], ease: "backOut" },
   },
 };
@@ -1381,39 +1419,36 @@ const spaceHop: Variants = {
   },
 };
 
-const divider: Variants = {
-  hidden: { pathLength: 0, opacity: 0, x: -3 },
+// Divider and the split it anchors morph as one path, so the split never detaches.
+const TILE_SPLIT = "M14 3v18M14 12h7";
+const tileSplit: Variants = {
+  hidden: { pathLength: 0, opacity: 0 },
   show: {
     pathLength: 1,
     opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.45,
-      ease: EASE,
-      opacity: { duration: 0.01 },
-      x: { ...spring, delay: 0.35 },
-    },
+    transition: { duration: 0.7, ease: EASE, opacity: { duration: 0.01 } },
   },
-  hover: { x: [0, -5, 0], transition: { ...wobble, duration: 0.9 } },
+  hover: {
+    d: [TILE_SPLIT, "M9 3v18M9 12h12", "M16 3v18M16 12h5", TILE_SPLIT],
+    transition: { duration: 1.1, times: [0, 0.35, 0.7, 1], ease: "easeInOut" },
+  },
 };
 
 const commandKey: Variants = {
-  hidden: { pathLength: 0, opacity: 0, rotate: -90 },
+  hidden: { pathLength: 0, opacity: 0, scale: 0.7 },
   show: {
     pathLength: 1,
     opacity: 1,
-    rotate: 0,
-    transition: {
-      duration: 0.8,
-      ease: EASE,
-      opacity: { duration: 0.01 },
-      rotate: { ...spring, delay: 0.5 },
-    },
+    scale: 1,
+    transition: { duration: 0.8, ease: EASE, opacity: { duration: 0.01 }, scale: spring },
   },
   hover: {
     rotate: [0, 90],
     scale: [1, 0.85, 1],
-    transition: { ...spring, scale: { ...wobble, duration: 0.5 } },
+    transition: {
+      rotate: { type: "spring", bounce: 0.2, duration: 0.6 },
+      scale: { ...wobble, duration: 0.5 },
+    },
   },
 };
 
@@ -1473,8 +1508,7 @@ function Home() {
             <div className="enter flex flex-col items-center gap-4 [animation-delay:40ms] max-[960px]:order-first max-[960px]:items-start">
               <Chord className="text-[clamp(110px,12vw,150px)] max-[960px]:text-[72px]" />
               <p className="m-0 text-[13px] text-muted max-[960px]:hidden">
-                Go on, press <kbd className="font-sans text-dim">⌘</kbd> or{" "}
-                <kbd className="font-sans text-dim">tab</kbd>
+                Go on, press <Kbd>⌘</Kbd> or <Kbd>tab</Kbd>
               </p>
             </div>
           </header>
@@ -1488,17 +1522,38 @@ function Home() {
 
         <Docs />
 
-        <section id="download" className="flex flex-col items-center gap-7 text-center">
+        <section id="download" className="flex flex-col items-center gap-6 text-center">
+          <Chord className="text-[72px]" />
           <h2 className="m-0 text-[clamp(34px,4.4vw,52px)] leading-[1.05] font-bold tracking-[-0.04em]">
             Stop hunting for windows.
           </h2>
-          <DownloadCta
-            href={dmgUrl}
-            channel={channel}
-            onChange={setChannel}
-            stable={stable}
-            beta={beta}
-          />
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
+            <DownloadButton
+              href={dmgUrl}
+              size="lg"
+              className="bg-text text-bg hover:bg-[#3a3833] hover:text-bg"
+            />
+            {/* The command is wider than a phone; the hero's copy covers mobile. */}
+            <div className="max-[640px]:hidden">
+              <BrewCmd beta={channel === "beta"} />
+            </div>
+          </div>
+          <p className="m-0 text-[13px] text-muted">
+            {sel.version && `${formatVersion(sel.version)} · `}
+            macOS 13+ · Apple Silicon and Intel
+            {beta && (
+              <>
+                {" · "}
+                <button
+                  type="button"
+                  onClick={() => setChannel(channel === "beta" ? "stable" : "beta")}
+                  className="cursor-pointer border-0 bg-transparent p-0 text-text underline decoration-line underline-offset-[3px] hover:decoration-text"
+                >
+                  {channel === "beta" ? "Back to stable" : "Try the beta"}
+                </button>
+              </>
+            )}
+          </p>
         </section>
       </main>
 
@@ -1545,13 +1600,11 @@ function Footer({ dmgUrl, style }: { dmgUrl: string; style: CSSProperties | unde
               The ⌘+Tab macOS deserves.
             </p>
             <div className="mt-10 flex flex-wrap gap-3 max-[860px]:mt-2">
-              <a
-                className="inline-flex h-12 items-center gap-2.5 rounded-xl border-0 bg-text px-5 text-[16px] font-semibold text-bg transition-colors duration-150 hover:bg-white hover:text-bg"
+              <DownloadButton
                 href={dmgUrl}
-              >
-                <Icon.Apple className="h-[18px] w-[18px]" />
-                Download for Mac
-              </a>
+                size="lg"
+                className="bg-text text-bg hover:bg-white hover:text-bg"
+              />
               <ExternalLink className={`${DARK_BUTTON} h-12 px-5 text-[16px]`} href={REPO}>
                 <Icon.GitHub className="h-[18px] w-[18px]" />
                 Star on GitHub
@@ -1571,20 +1624,30 @@ function Footer({ dmgUrl, style }: { dmgUrl: string; style: CSSProperties | unde
               ))}
             </ul>
 
-            <h2 className={`${FOOTER_HEADING} mt-10 border-t border-line pt-10`}>More</h2>
+            <h2 className={`${FOOTER_HEADING} mt-10 border-t border-line pt-10`}>
+              Also by Artur Rok
+            </h2>
+            <ExternalLink
+              className={`${DARK_BUTTON} mb-3 max-w-[360px] gap-3.5 px-4 py-3`}
+              href="https://betteraudio.pro/"
+            >
+              <img
+                className="block h-9 w-9 shrink-0 rounded-[8px]"
+                src="/betteraudio.png"
+                alt=""
+                width={36}
+                height={36}
+                loading="lazy"
+                decoding="async"
+              />
+              <span className="flex flex-col">
+                <span className="text-[15px]">BetterAudio</span>
+                <span className="text-[13px] font-normal text-dim">
+                  Per-app volume and audio routing for macOS
+                </span>
+              </span>
+            </ExternalLink>
             <div className="flex flex-wrap gap-3 text-[14px]">
-              <ExternalLink className={`${DARK_BUTTON} h-10 px-4`} href="https://betteraudio.pro/">
-                <img
-                  className="block h-[18px] w-[18px] rounded-[4px]"
-                  src="/betteraudio.png"
-                  alt=""
-                  width={18}
-                  height={18}
-                  loading="lazy"
-                  decoding="async"
-                />
-                BetterAudio
-              </ExternalLink>
               <ExternalLink
                 className={`${DARK_BUTTON} h-10 px-4`}
                 href="https://github.com/rokartur"

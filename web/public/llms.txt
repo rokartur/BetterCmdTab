@@ -56,3 +56,4 @@ The built-in ⌘Tab only cycles apps — no windows, no search, no previews. Alt
 - [Full docs as one file](https://bettercmdtab.app/docs/llms-full.txt): every documentation page concatenated as plain text.
 - [Docs index](https://bettercmdtab.app/docs/llms.txt): the same page list, generated from the docs source.
 - [Releases](https://github.com/rokartur/BetterCmdTab/releases): download links and changelogs.
+- [BetterAudio](https://betteraudio.pro/): per-app volume control and audio routing for macOS, by the same author.

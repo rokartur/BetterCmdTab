@@ -56,7 +56,7 @@ gates separately under **Privacy & Security → Automation**.
 
 Open **Settings → Privacy → Permissions → Browser tab access** and press **Check access…**
 with the settings window still open — macOS only surfaces the consent prompt while a
-window has focus, and it asks once per browser. Skip this and `\` on a browser row,
+window has focus, and it asks once per browser. Skip this and <kbd>{"\\"}</kbd> on a browser row,
 `expandBrowserTabsAsWindows` and `searchExpandsBrowserTabs` all silently come back
 empty.
 
@@ -66,35 +66,35 @@ Native tabs (Finder, Terminal, TextEdit) use Accessibility and need nothing extr
 
 | Action | Keys |
 | --- | --- |
-| Open the switcher | Hold `⌘` and press `Tab` |
-| Step forward / backward | `Tab` / `⇧Tab`, or the arrow keys |
-| Commit and switch | Release `⌘` |
-| Switch without showing the panel | Tap `⌘Tab` quickly |
-| Cycle the front app's windows | `` ⌘` `` |
+| Open the switcher | Hold <kbd>⌘</kbd> and press <kbd>Tab</kbd> |
+| Step forward / backward | <kbd>Tab</kbd> / <kbd>⇧Tab</kbd>, or the arrow keys |
+| Commit and switch | Release <kbd>⌘</kbd> |
+| Switch without showing the panel | Tap <kbd>⌘Tab</kbd> quickly |
+| Cycle the front app's windows | <kbd>⌘`</kbd> |
 | Jump to an entry | Type the letter shown on it |
-| Peek an app's windows | `↓` (see below) |
-| Cancel | `Esc` |
+| Peek an app's windows | <kbd>↓</kbd> (see below) |
+| Cancel | <kbd>Esc</kbd> |
 
 These act while the switcher is open. All of them are rebindable per profile under
 **Settings → Profiles**; the shipped defaults are:
 
 | Action | Keys |
 | --- | --- |
-| Close the window | `⌘W` |
-| Minimize the window | `⌘M` |
-| Hide the app | `⌘H` |
-| Quit the app | `⌘Q` |
-| Force quit the app | `⌘⌥Q` |
-| Full screen | `⌘F` |
-| Search | `/`, then type |
-| Peek a window's tabs | `\` |
+| Close the window | <kbd>⌘W</kbd> |
+| Minimize the window | <kbd>⌘M</kbd> |
+| Hide the app | <kbd>⌘H</kbd> |
+| Quit the app | <kbd>⌘Q</kbd> |
+| Force quit the app | <kbd>⌘⌥Q</kbd> |
+| Full screen | <kbd>⌘F</kbd> |
+| Search | <kbd>/</kbd>, then type |
+| Peek a window's tabs | <kbd>{"\\"}</kbd> |
 
-`⌘` is held the whole time the panel is up, so only the key you record matters —
+<kbd>⌘</kbd> is held the whole time the panel is up, so only the key you record matters —
 the modifier is ignored in-panel. Clearing a recorder turns that key off.
 
-`↓` only drills into an app's windows where it would otherwise do nothing useful — the
+<kbd>↓</kbd> only drills into an app's windows where it would otherwise do nothing useful — the
 grid and window-preview layouts while the panel is a single row. In the list layout,
-and in a multi-row grid, `↓` keeps moving the selection instead. It also needs
+and in a multi-row grid, <kbd>↓</kbd> keeps moving the selection instead. It also needs
 [`windowDrillEnabled`](/config-reference#windowDrillEnabled), one row per app
 ([`applicationsOnly`](/config-reference#applicationsOnly)), and an app with at least
 two windows.
@@ -111,12 +111,12 @@ entry is in:
 | Icon | Meaning |
 | --- | --- |
 | Green speaker | The app is playing audio |
-| Eye with a slash | The app is hidden (`⌘H`) |
+| Eye with a slash | The app is hidden (<kbd>⌘H</kbd>) |
 | Minus in a rectangle | The window is minimized |
-| Dashed square | The app is running but has no open window — `Return` opens one |
+| Dashed square | The app is running but has no open window — <kbd>Return</kbd> opens one |
 | Two diagonal arrows | The window is full-screen |
-| Arrow leaving a square | The app is not running yet — `Return` launches it |
-| Clock with an arrow | Recently closed — `Return` reopens it |
+| Arrow leaving a square | The app is not running yet — <kbd>Return</kbd> launches it |
+| Clock with an arrow | Recently closed — <kbd>Return</kbd> reopens it |
 
 The four window-state glyphs (hidden, minimized, no window, full-screen) can be
 turned off under **Appearance → Labels → Show status icons**
@@ -142,8 +142,8 @@ Three changes worth making straight away:
 - **Show windows from** — Switcher → Contents. On a multi-monitor setup
   `Visible Spaces` lists what is actually on screen and hides windows parked on
   background desktops.
-- **Stay open** — Controls → Keyboard. Keeps the panel up after you release `⌘`
-  so you can browse at your own pace and confirm with `Return`.
+- **Stay open** — Controls → Keyboard. Keeps the panel up after you release <kbd>⌘</kbd>
+  so you can browse at your own pace and confirm with <kbd>Return</kbd>.
 
 ## 5. Optional: move your settings into a file
 

@@ -96,6 +96,8 @@
     background: var(--color-bg);
     color: var(--color-text);
     color-scheme: light;
+    /* Under main's gap-28 (112px), so the previous section never peeks in above a target. */
+    scroll-padding-top: clamp(24px, 8vh, 72px);
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;

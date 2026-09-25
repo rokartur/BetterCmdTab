@@ -1,9 +1,20 @@
-import { motion, AnimatePresence, useReducedMotion, useSpring, useTransform } from "motion/react";
+import {
+  animate,
+  motion,
+  AnimatePresence,
+  type MotionValue,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+} from "motion/react";
 import {
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -73,6 +84,7 @@ const MENU_ITEMS: ReadonlyArray<{ label: string; href: string }> = [
   { label: "Config file", href: "#config" },
   { label: "GitHub", href: REPO },
   { label: "Releases", href: `${REPO}/releases` },
+  { label: "BetterAudio", href: "https://betteraudio.pro/" },
 ];
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
@@ -104,6 +116,76 @@ export const Icon = {
     </svg>
   ),
 };
+
+const downloadSizes = {
+  lg: {
+    className: "h-12 rounded-2xl px-6 text-[16px]",
+    content: "gap-2.5",
+    icon: "h-[18px] w-[18px]",
+    label: "Download for Mac",
+  },
+  sm: {
+    className: "h-9 rounded-full px-3.5 text-[12.5px] sm:h-10 sm:px-4 sm:text-[13.5px]",
+    content: "gap-1.5",
+    icon: "h-3.5 w-3.5 sm:h-4 sm:w-4",
+    label: "Download",
+  },
+};
+
+const swapTransition = { duration: 0.22, ease: easeOut };
+
+// Hover slides "Apple + label" out left and "label + arrow" in from the right.
+export function DownloadButton({
+  href,
+  size,
+  className,
+}: {
+  href: string;
+  size: keyof typeof downloadSizes;
+  className: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const s = downloadSizes[size];
+
+  return (
+    <motion.a
+      href={href}
+      onHoverStart={() => setHovered(true)}
+      onHoverEnd={() => setHovered(false)}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={`relative inline-flex items-center justify-center overflow-hidden border-0 font-semibold whitespace-nowrap no-underline transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:outline-none ${s.className} ${className}`}
+    >
+      <motion.span
+        initial={false}
+        animate={{
+          opacity: hovered ? 0 : 1,
+          x: hovered ? -16 : 0,
+          filter: hovered ? "blur(6px)" : "blur(0px)",
+        }}
+        transition={swapTransition}
+        className={`flex items-center ${s.content}`}
+      >
+        <Icon.Apple className={s.icon} />
+        {s.label}
+      </motion.span>
+      <motion.span
+        aria-hidden="true"
+        initial={false}
+        animate={{
+          opacity: hovered ? 1 : 0,
+          x: hovered ? 0 : 16,
+          filter: hovered ? "blur(0px)" : "blur(6px)",
+        }}
+        transition={swapTransition}
+        className={`absolute flex items-center ${s.content}`}
+      >
+        {s.label}
+        <Icon.Arrow className={s.icon} />
+      </motion.span>
+    </motion.a>
+  );
+}
 
 // Visual radius the OPEN panel uses on its corners. The CLOSED pill uses
 // half its measured height (= the natural "fully rounded" cap) so that
@@ -138,6 +220,8 @@ export function StickyCTA({ downloadUrl }: { downloadUrl: string }) {
   const closedMeasureRef = useRef<HTMLDivElement>(null);
   const openMeasureRef = useRef<HTMLDivElement>(null);
   const [sizes, setSizes] = useState<MeasuredSizes | null>(null);
+  const pageY = useMotionValue(0);
+  useMotionValueEvent(pageY, "change", (y) => window.scrollTo(0, y));
 
   // Measure the closed and open content trees off-screen. Re-measure when
   // fonts finish loading (text widths can jump 2–4px between fallback and
@@ -278,7 +362,12 @@ export function StickyCTA({ downloadUrl }: { downloadUrl: string }) {
                             key={item.label}
                             item={item}
                             reduced={!!reduced}
-                            onSelect={() => setOpen(false)}
+                            onSelect={(event) => {
+                              setOpen(false);
+                              if (reduced || !item.href.startsWith("#")) return;
+                              event.preventDefault();
+                              glideTo(pageY, item.href);
+                            }}
                           />
                         ))}
                       </motion.ul>
@@ -360,17 +449,11 @@ function PillRow({
 }) {
   return (
     <div className="flex items-center justify-center gap-0.5 p-1 sm:p-1.5">
-      <a
+      <DownloadButton
         href={downloadUrl}
-        className="group/download relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-full border-0 bg-stone-100 px-3.5 text-[12.5px] font-semibold text-stone-900 no-underline transition-[transform,background-color] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:outline-none active:scale-[0.96] sm:h-10 sm:px-4 sm:text-[13.5px]"
-      >
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/45 to-transparent transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover/download:translate-x-[300%]"
-        />
-        <Icon.Apple className="relative h-3.5 w-3.5 sm:h-4 sm:w-4" />
-        <span className="relative">Download</span>
-      </a>
+        size="sm"
+        className="bg-stone-100 text-stone-900 hover:bg-white"
+      />
 
       <PillDivider />
 
@@ -417,7 +500,7 @@ function MenuItem({
 }: {
   item: { label: string; href: string };
   reduced: boolean;
-  onSelect: () => void;
+  onSelect: (event: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   return (
     <motion.li
@@ -442,6 +525,40 @@ function MenuItem({
       </a>
     </motion.li>
   );
+}
+
+// A native hash jump is instant and `scroll-behavior: smooth` has no curve or interrupt.
+// Springing one MotionValue keeps velocity when a second link retargets mid-flight.
+function glideTo(pageY: MotionValue<number>, hash: string) {
+  const target = document.querySelector(hash);
+  if (!target) return;
+  const root = document.documentElement;
+  const padding = parseFloat(getComputedStyle(root).scrollPaddingTop);
+  const maxY = root.scrollHeight - window.innerHeight;
+  const from = window.scrollY;
+  const to = Math.round(
+    Math.max(0, Math.min(maxY, from + target.getBoundingClientRect().top - padding)),
+  );
+  if (!pageY.isAnimating()) pageY.jump(from);
+
+  const interrupt = () => pageY.stop();
+  const inputs = ["wheel", "touchstart", "keydown"] as const;
+  for (const type of inputs) window.addEventListener(type, interrupt, { passive: true });
+  const release = () => {
+    for (const type of inputs) window.removeEventListener(type, interrupt);
+  };
+
+  animate(pageY, to, {
+    type: "spring",
+    bounce: 0,
+    visualDuration: Math.min(1.1, 0.5 + Math.abs(to - from) / 4000),
+    onStop: release,
+    onComplete: () => {
+      release();
+      // Lands exactly where the native jump would, so this only records history and focus origin.
+      location.hash = hash;
+    },
+  });
 }
 
 // Two off-screen phantom copies of the closed and open content trees,

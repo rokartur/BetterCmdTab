@@ -1,21 +1,14 @@
 <!doctype html>
 <!--
-  Source of web/public/og.jpeg (1200x630 Open Graph / ads image).
-  Not part of the Next build - web/og/ is outside public/, so it never ships.
+  Source of web/public/og.jpeg (1200x630 Open Graph image). Outside public/, so it never ships.
+  Mirrors the homepage hero: #faf9f6 page, the h1, and the preview screenshot.
 
-  The product itself, no copy: the three switcher layouts from
-  web/public/screenshots/ on the site background (#0a0a0a), each cropped to its
-  panel. If those screenshots are re-shot, re-check the crop offsets below and
-  re-render.
+  Render (any Chromium; 2x, then downscale so the panel text stays crisp):
 
-  Render (any Chromium; renders at 2x, then downscale so the panel text stays crisp):
-
-    /Applications/Helium.app/Contents/MacOS/Helium --headless --disable-gpu \
-      --force-device-scale-factor=2 --window-size=1200,630 \
-      --allow-file-access-from-files \
-      --screenshot=/tmp/og@2x.png web/og/og.html
-    sips -z 630 1200 -s format jpeg -s formatOptions 90 /tmp/og@2x.png \
-      --out web/public/og.jpeg
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+      --hide-scrollbars --force-device-scale-factor=2 --window-size=1200,630 \
+      --allow-file-access-from-files --screenshot=/tmp/og@2x.png web/og/og.html
+    sips -z 630 1200 -s format jpeg -s formatOptions 85 /tmp/og@2x.png --out web/public/og.jpeg
 -->
 <meta charset="utf-8" />
 <title>BetterCmdTab OG</title>
@@ -30,66 +23,65 @@
   body {
     width: 1200px;
     height: 630px;
-    background: #0a0a0a;
     overflow: hidden;
+    background: #faf9f6;
+    color: #1c1b19;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
   body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 18px;
-    padding: 32px;
-  }
-
-  .row {
-    display: flex;
-    gap: 18px;
-  }
-
-  /* Each card crops one 2000x1043 screenshot down to its switcher panel. The
-     image is oversized and pulled up/left by the crop origin, all in percentages
-     of the card so the layout stays resolution-independent. */
-  .card {
     position: relative;
-    flex: 1;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 10px;
+    padding: 64px 72px;
   }
 
-  .card img {
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .brand img {
+    width: 52px;
+    height: 52px;
+  }
+
+  h1 {
+    margin-top: 36px;
+    font-size: 72px;
+    line-height: 1.02;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+
+  .meta {
+    margin-top: 28px;
+    font-size: 22px;
+    color: #6f6a62;
+  }
+
+  /* Bleeds off the right and bottom edges, like the hero carousel peeking past the fold. */
+  .shot {
     position: absolute;
+    left: 680px;
+    top: 270px;
+    width: 760px;
+    border-radius: 16px;
+    border: 1px solid #e5e1d8;
+    box-shadow: 0 24px 60px -20px rgb(28 27 25 / 0.35);
+    overflow: hidden;
   }
 
-  /* previews: crop 1860x580 at (70, 231) */
-  .previews {
-    aspect-ratio: 1860 / 580;
-  }
-
-  .previews img {
-    width: 107.527%;
-    left: -3.763%;
-    top: -39.828%;
-  }
-
-  /* grid & list: crop 1330x460 at (335, 291) */
-  .half {
-    aspect-ratio: 1330 / 460;
-  }
-
-  .half img {
-    width: 150.376%;
-    left: -25.188%;
-    top: -63.261%;
+  .shot img {
+    display: block;
+    width: 100%;
   }
 </style>
 
-<div class="card previews">
-  <img src="../public/screenshots/preview.jpg" alt="" />
-</div>
-
-<div class="row">
-  <div class="card half"><img src="../public/screenshots/grid.jpg" alt="" /></div>
-  <div class="card half"><img src="../public/screenshots/list.jpg" alt="" /></div>
-</div>
+<div class="brand"><img src="../public/icon.png" alt="" />BetterCmdTab</div>
+<h1>The ⌘+Tab<br />macOS deserves.</h1>
+<p class="meta">Free and open source · macOS 13+</p>
+<div class="shot"><img src="../public/screenshots/preview.jpg" alt="" /></div>
