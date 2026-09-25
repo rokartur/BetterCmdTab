@@ -362,14 +362,13 @@ function DownloadCta({
   const version = isBeta && beta ? beta.version : stable.version;
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+      {/* Channel colors crossfade opaque layers: Chrome paints a finished background-color transition's start color for one frame. */}
       <div
-        className={`relative inline-flex h-12 rounded-2xl transition-colors ${CHANNEL_SWAP} ${
-          isBeta ? "bg-surface has-[a:hover]:bg-pro/5" : "bg-text has-[a:hover]:bg-[#3a3833]"
-        }`}
+        className={`group/cta relative inline-flex h-12 rounded-2xl bg-text transition-colors has-[a:hover]:bg-[#3a3833] ${CHANNEL_SWAP}`}
       >
         <span
           aria-hidden
-          className={`pointer-events-none beta-blueprint absolute inset-0 rounded-2xl transition-opacity ${CHANNEL_SWAP} ${
+          className={`pointer-events-none beta-blueprint absolute inset-0 rounded-2xl bg-surface transition-[opacity,background-color] group-has-[a:hover]/cta:bg-[color-mix(in_oklab,var(--color-pro)_5%,var(--color-surface))] ${CHANNEL_SWAP} ${
             isBeta ? "opacity-100" : "opacity-0"
           }`}
         />
@@ -383,18 +382,26 @@ function DownloadCta({
           <div
             role="group"
             aria-label="Release channel"
-            className={`relative m-[5px] grid grid-cols-2 rounded-[11px] p-[3px] transition-colors ${CHANNEL_SWAP} ${
-              isBeta
-                ? "bg-[color-mix(in_oklab,var(--color-pro)_10%,var(--color-surface))]"
-                : "bg-white/12"
-            }`}
+            className="relative m-[5px] grid grid-cols-2 rounded-[11px] bg-white/12 p-[3px]"
           >
             <span
               aria-hidden
-              className={`absolute inset-y-[3px] left-[3px] w-[calc(50%-3px)] rounded-lg shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-[translate,background-color] motion-reduce:transition-colors ${CHANNEL_SWAP} ${
-                isBeta ? "translate-x-full bg-text" : "bg-bg"
+              className={`absolute inset-0 rounded-[inherit] bg-[color-mix(in_oklab,var(--color-pro)_10%,var(--color-surface))] transition-opacity ${CHANNEL_SWAP} ${
+                isBeta ? "opacity-100" : "opacity-0"
               }`}
             />
+            <span
+              aria-hidden
+              className={`absolute inset-y-[3px] left-[3px] w-[calc(50%-3px)] rounded-lg bg-bg shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-[translate] motion-reduce:transition-none ${CHANNEL_SWAP} ${
+                isBeta ? "translate-x-full" : ""
+              }`}
+            >
+              <span
+                className={`absolute inset-0 rounded-[inherit] bg-text transition-opacity ${CHANNEL_SWAP} ${
+                  isBeta ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            </span>
             <ChannelSegment
               label="Stable"
               active={!isBeta}
