@@ -584,12 +584,33 @@ const configKeys: Array<ConfigKey> = ["layoutMode", "sortOrder", "panelOpacity"]
 
 // `icon` is the column in /demo/apps.webp and the N in /demo/win-N.webp.
 const demoApps = [
-  { name: "Helium", title: "BetterCmdTab: a better Cmd+Tab", icon: 1, launched: 3, badge: "" },
-  { name: "Ghostty", title: "~/Developer/BetterCmdTab", icon: 0, launched: 0, badge: "" },
-  { name: "Code", title: "GeneralSettingsViewController.swift", icon: 2, launched: 2, badge: "" },
-  { name: "Spotify", title: "Gibbs - Pył gwiazd", icon: 3, launched: 1, badge: "" },
-  { name: "Mail", title: "All Inboxes, 1 unread", icon: 4, launched: 4, badge: "1" },
-  { name: "Discord", title: "Friends", icon: 5, launched: 5, badge: "1" },
+  {
+    name: "Helium",
+    title: "BetterCmdTab: a better Cmd+Tab",
+    icon: 1,
+    launched: 3,
+    badge: "",
+    audio: false,
+  },
+  {
+    name: "Ghostty",
+    title: "~/Developer/BetterCmdTab",
+    icon: 0,
+    launched: 0,
+    badge: "",
+    audio: false,
+  },
+  {
+    name: "Code",
+    title: "GeneralSettingsViewController.swift",
+    icon: 2,
+    launched: 2,
+    badge: "",
+    audio: false,
+  },
+  { name: "Spotify", title: "Gibbs - Pył gwiazd", icon: 3, launched: 1, badge: "", audio: true },
+  { name: "Mail", title: "All Inboxes, 1 unread", icon: 4, launched: 4, badge: "1", audio: false },
+  { name: "Discord", title: "Friends", icon: 5, launched: 5, badge: "1", audio: false },
 ];
 
 type DemoApp = (typeof demoApps)[number];
@@ -601,8 +622,17 @@ function sortDemoApps(order: string): Array<DemoApp> {
   return apps;
 }
 
-const STAGE_BG =
-  "radial-gradient(90% 80% at 80% 100%, #5b7cff 0, transparent 55%), radial-gradient(80% 70% at 0% 0%, #3a22c9 0, transparent 60%), linear-gradient(160deg, #1c1990, #2a3fd0 60%, #1b2aa0)";
+// The screenshots' wallpaper in gradients: warm sand left, slate bottom, pale
+// right, with the two bright fold edges as thin arcs.
+const STAGE_BG = [
+  "radial-gradient(120% 95% at -12% 118%, transparent 58%, rgba(255,246,230,0.6) 59.5%, transparent 62%)",
+  "radial-gradient(105% 85% at 112% -22%, transparent 56%, rgba(255,250,240,0.55) 57.5%, transparent 60%)",
+  "radial-gradient(60% 55% at 55% 108%, #43415a 0, #535365 35%, transparent 100%)",
+  "radial-gradient(45% 70% at 104% 55%, #d8d7d0 0, transparent 100%)",
+  "radial-gradient(55% 60% at 38% 0%, #e4d6c1 0, transparent 100%)",
+  "radial-gradient(50% 70% at 0% 50%, #b08b57 0, transparent 100%)",
+  "linear-gradient(160deg, #7a573b, #8a7462 45%, #6c6f86)",
+].join(", ");
 
 // config.json on the left, a switcher on the right that rebuilds from it the
 // moment a value changes, which is the "edits apply live" claim, shown.
@@ -768,74 +798,110 @@ function MiniSwitcher({
     <div
       role="img"
       aria-label={`Switcher preview, ${layout} layout, ${apps.map((a) => a.name).join(", ")}`}
-      className="rounded-[18px] border border-white/15 p-[9px] text-white shadow-[0_26px_60px_-20px_rgba(0,0,20,0.7),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-[30px] backdrop-saturate-[1.7] transition-[background-color] duration-300"
-      style={{ backgroundColor: `rgba(40, 52, 150, ${(0.45 * opacity) / 100 + 0.02})` }}
+      className="rounded-[20px] border border-white/20 p-2.5 text-white shadow-[0_30px_70px_-24px_rgba(20,12,4,0.6),inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-[30px] backdrop-saturate-[1.4] transition-[background-color] duration-300"
+      style={{ backgroundColor: `rgba(34, 30, 27, ${(0.42 * opacity) / 100 + 0.04})` }}
     >
       {layout === "list" &&
         apps.map((app, i) => (
           <div
             key={app.name}
-            className={`grid h-[29px] w-[330px] grid-cols-[62px_16px_1fr_auto] items-center gap-[9px] rounded-[7px] px-[9px] text-[12.5px] max-[520px]:w-[270px] ${
-              i === 1 ? "bg-[#2563eb]" : ""
+            className={`grid h-[30px] w-[340px] grid-cols-[60px_17px_1fr_auto] items-center gap-2.5 rounded-[8px] px-2.5 text-[13px] max-[520px]:w-[270px] ${
+              i === 1 ? "bg-[#3b7ef4]" : ""
             }`}
           >
-            <span className={`text-right ${i === 1 ? "" : "text-white/70"}`}>{app.name}</span>
-            <AppIcon icon={app.icon} className="size-4" />
+            <span className="truncate text-right">{app.name}</span>
+            <AppIcon icon={app.icon} className="size-[17px]" />
             <span className="truncate">{app.title}</span>
-            {app.badge ? (
-              <span className="grid h-4 min-w-4 place-items-center rounded-full bg-[#ef4444] px-[5px] text-[10px] font-semibold">
-                {app.badge}
-              </span>
-            ) : (
-              <span />
-            )}
+            <Indicators app={app} selected={i === 1} />
           </div>
         ))}
       {layout === "iconDock" && (
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           {apps.map((app, i) => (
             <div
               key={app.name}
-              className={`w-[62px] rounded-xl px-1 pt-[9px] pb-[7px] text-center text-[10.5px] max-[520px]:w-[44px] ${
-                i === 1
-                  ? "bg-white/20 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25)]"
-                  : "text-white/85"
+              className={`w-[60px] text-center text-[10.5px] leading-tight max-[520px]:w-[42px] ${
+                i === 1 ? "font-semibold text-white" : "text-white/70"
               }`}
             >
-              <span className="mx-auto mb-1.5 flex size-[38px] max-[520px]:size-7">
+              <span
+                className={`mx-auto mb-1.5 flex size-[52px] rounded-[13px] p-[5px] max-[520px]:size-9 max-[520px]:p-1 ${
+                  i === 1 ? "bg-[#3b7ef4]/35 shadow-[inset_0_0_0_1.5px_rgba(99,150,255,0.8)]" : ""
+                }`}
+              >
                 <AppIcon icon={app.icon} className="size-full" />
               </span>
               <span className="block truncate">{app.name}</span>
+              <span className="mt-px block truncate text-[9px] font-normal text-white/60">
+                {app.title}
+              </span>
             </div>
           ))}
         </div>
       )}
       {layout === "windowPreview" && (
-        <div className="grid grid-cols-[repeat(3,98px)] gap-1.5 max-[520px]:grid-cols-[repeat(3,80px)]">
+        <div className="grid grid-cols-[repeat(3,100px)] gap-x-2 gap-y-2.5 max-[520px]:grid-cols-[repeat(3,80px)]">
           {apps.map((app, i) => (
-            <div
-              key={app.name}
-              className={`rounded-[9px] p-1 text-[9.5px] ${
-                i === 1 ? "bg-white/20 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3)]" : ""
-              }`}
-            >
+            <div key={app.name} className="text-[9.5px]">
               <img
                 src={`/demo/win-${app.icon}.webp`}
                 alt=""
-                width={90}
-                height={58}
+                width={100}
+                height={62}
                 loading="lazy"
-                className="block h-[58px] w-full rounded-[5px] object-cover max-[520px]:h-12"
+                className={`block h-[62px] w-full rounded-[6px] object-cover max-[520px]:h-12 ${
+                  i === 1 ? "ring-2 ring-white/85" : ""
+                }`}
               />
-              <span className="mt-1 flex items-center gap-1 overflow-hidden whitespace-nowrap">
+              <span
+                className={`mt-1.5 flex items-center justify-center gap-1 overflow-hidden whitespace-nowrap ${
+                  i === 1 ? "text-white" : "text-white/70"
+                }`}
+              >
                 <AppIcon icon={app.icon} className="size-3" />
-                <span className="truncate">{app.name}</span>
+                <span className="truncate">
+                  {app.name} – {app.title}
+                </span>
+                {app.badge && <Badge text={app.badge} />}
               </span>
             </div>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+// SwitcherIndicators.swift: audio is systemGreen, except on the opaque list selection.
+function Indicators({ app, selected }: { app: DemoApp; selected: boolean }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      {app.audio && (
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 16 16"
+          className={`size-3.5 ${selected ? "text-white/90" : "text-[#30d158]"}`}
+        >
+          <path d="M1.5 6h2.6L7.5 3v10L4.1 10H1.5z" fill="currentColor" />
+          <path
+            d="M10 5.8a3 3 0 0 1 0 4.4M12.2 3.8a6 6 0 0 1 0 8.4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      )}
+      {app.badge && <Badge text={app.badge} />}
+    </span>
+  );
+}
+
+function Badge({ text }: { text: string }) {
+  return (
+    <span className="grid h-4 min-w-4 flex-none place-items-center rounded-full bg-[#ff3b30] px-[5px] text-[10px] font-semibold text-white">
+      {text}
+    </span>
   );
 }
 
@@ -1096,7 +1162,7 @@ function Compare() {
 const downloadFmt = new Intl.NumberFormat("en-US");
 
 function useHeldKeys() {
-  const [held, setHeld] = useState({ meta: false, tab: false });
+  const [held, setHeld] = useState(NO_KEYS);
   useEffect(() => {
     const set = (key: string, down: boolean) => {
       if (key === "Meta") setHeld((h) => (h.meta === down ? h : { ...h, meta: down }));
@@ -1105,7 +1171,7 @@ function useHeldKeys() {
     const onDown = (e: KeyboardEvent) => set(e.key, true);
     const onUp = (e: KeyboardEvent) => set(e.key, false);
     // Cmd+Tab away from the page never delivers the keyup.
-    const onBlur = () => setHeld({ meta: false, tab: false });
+    const onBlur = () => setHeld(NO_KEYS);
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup", onUp);
     window.addEventListener("blur", onBlur);
@@ -1127,13 +1193,50 @@ function Kbd({ children }: { children: ReactNode }) {
   );
 }
 
+type HeldKeys = { meta: boolean; tab: boolean };
+const NO_KEYS: HeldKeys = { meta: false, tab: false };
+
+// Hold command, tap tab twice, let go: the gesture the page is selling.
+const CHORD_TAPS: Array<[number, HeldKeys]> = [
+  [0, { meta: true, tab: false }],
+  [260, { meta: true, tab: true }],
+  [420, { meta: true, tab: false }],
+  [620, { meta: true, tab: true }],
+  [780, { meta: true, tab: false }],
+  [1100, NO_KEYS],
+];
+
+// Plays CHORD_TAPS once in view and again on hover; real key presses still show.
+function PlayingChord({ className }: { className: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.8 });
+  const reduceMotion = useReducedMotion();
+  const [run, setRun] = useState(0);
+  const [keys, setKeys] = useState(NO_KEYS);
+
+  useEffect(() => {
+    if (!inView || reduceMotion) return;
+    const timers = CHORD_TAPS.map(([at, next]) => setTimeout(() => setKeys(next), at + 350));
+    return () => {
+      timers.forEach(clearTimeout);
+      setKeys(NO_KEYS);
+    };
+  }, [inView, reduceMotion, run]);
+
+  return (
+    <div ref={ref} onPointerEnter={() => setRun((r) => r + 1)}>
+      <Chord className={className} pressed={keys} />
+    </div>
+  );
+}
+
 // Sized in em, so the parent's font-size sets the whole chord.
-function Chord({ className }: { className: string }) {
+function Chord({ className, pressed = NO_KEYS }: { className: string; pressed?: HeldKeys }) {
   const held = useHeldKeys();
   return (
     <div aria-hidden="true" className={`flex items-end gap-[0.08em] leading-none ${className}`}>
-      <Keycap down={held.meta} glyph="⌘" label="command" className="w-[0.92em]" />
-      <Keycap down={held.tab} label="tab" className="w-[1.3em]" />
+      <Keycap down={held.meta || pressed.meta} glyph="⌘" label="command" className="w-[0.92em]" />
+      <Keycap down={held.tab || pressed.tab} label="tab" className="w-[1.3em]" />
     </div>
   );
 }
@@ -1376,6 +1479,11 @@ function bar(delay: number): Variants {
   };
 }
 
+const rise: Variants = {
+  hidden: { y: 18, opacity: 0 },
+  show: { y: 0, opacity: 1, transition: { duration: 0.6, ease: EASE } },
+};
+
 const slideIn: Variants = {
   hidden: { x: -4, y: 4, opacity: 0 },
   show: { x: 0, y: 0, opacity: 1, transition: spring },
@@ -1522,12 +1630,27 @@ function Home() {
 
         <Docs />
 
-        <section id="download" className="flex flex-col items-center gap-6 text-center">
-          <Chord className="text-[72px]" />
-          <h2 className="m-0 text-[clamp(34px,4.4vw,52px)] leading-[1.05] font-bold tracking-[-0.04em]">
+        <motion.section
+          id="download"
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ staggerChildren: 0.08 }}
+          className="flex flex-col items-center gap-6 text-center"
+        >
+          <motion.div variants={rise}>
+            <PlayingChord className="text-[72px]" />
+          </motion.div>
+          <motion.h2
+            variants={rise}
+            className="m-0 text-[clamp(34px,4.4vw,52px)] leading-[1.05] font-bold tracking-[-0.04em]"
+          >
             Stop hunting for windows.
-          </h2>
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
+          </motion.h2>
+          <motion.div
+            variants={rise}
+            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3"
+          >
             <DownloadButton
               href={dmgUrl}
               size="lg"
@@ -1537,8 +1660,8 @@ function Home() {
             <div className="max-[640px]:hidden">
               <BrewCmd beta={channel === "beta"} />
             </div>
-          </div>
-          <p className="m-0 text-[13px] text-muted">
+          </motion.div>
+          <motion.p variants={rise} className="m-0 text-[13px] text-muted">
             {sel.version && `${formatVersion(sel.version)} · `}
             macOS 13+ · Apple Silicon and Intel
             {beta && (
@@ -1553,8 +1676,8 @@ function Home() {
                 </button>
               </>
             )}
-          </p>
-        </section>
+          </motion.p>
+        </motion.section>
       </main>
 
       <Footer dmgUrl={dmgUrl} style={accentStyle} />
