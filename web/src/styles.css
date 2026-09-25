@@ -44,16 +44,16 @@
   }
 }
 
-/* Transform and blur only, no fade: this one carries the LCP screenshot, and an
-   element at opacity 0 doesn't count as painted, so fading it would push LCP out
-   by the length of the animation. A blurred frame still counts, and transform
-   moves are excluded from CLS, so a longer, slower drift here is free. */
+/* The showcase's longer drift. It fades too, so the page starts empty for the
+   chord intro; that costs LCP (opacity 0 is not painted) until ~1s in. */
 @keyframes rise {
   from {
+    opacity: 0;
     filter: blur(6px);
     transform: translate3d(0, 32px, 0);
   }
   60% {
+    opacity: 1;
     filter: blur(0);
   }
 }
@@ -155,5 +155,31 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 3px;
     border-radius: 4px;
+  }
+}
+
+/* Pro, not accent: accent snaps back to blue on the stable click while this is still fading out. */
+@utility beta-blueprint {
+  border: 1px solid var(--color-pro);
+  background-image: radial-gradient(--alpha(var(--color-pro) / 35%) 0.75px, transparent 1px);
+  background-size: 6px 6px;
+  background-position: center;
+
+  /* Guides tangent to the edges run past the box and cross into + marks at each corner. */
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    border-color: --alpha(var(--color-pro) / 45%);
+  }
+  &::before {
+    inset: -1px -16px;
+    border-block-width: 1px;
+    mask-image: linear-gradient(to right, transparent, #000 16px calc(100% - 16px), transparent);
+  }
+  &::after {
+    inset: -10px -1px;
+    border-inline-width: 1px;
+    mask-image: linear-gradient(transparent, #000 10px calc(100% - 10px), transparent);
   }
 }

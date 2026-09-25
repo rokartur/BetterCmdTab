@@ -154,8 +154,13 @@ export function DownloadButton({
       onHoverEnd={() => setHovered(false)}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      className={`relative inline-flex items-center justify-center overflow-hidden border-0 font-semibold whitespace-nowrap no-underline transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:outline-none ${s.className} ${className}`}
+      className={`relative inline-flex items-center justify-center overflow-hidden border-0 font-semibold whitespace-nowrap no-underline transition-colors focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:outline-none ${s.className} ${className}`}
     >
+      {/* Sizer: both slide layers are absolute, so this in-flow copy gives the button its width. */}
+      <span aria-hidden="true" className={`invisible flex items-center ${s.content}`}>
+        <Icon.Apple className={s.icon} />
+        {s.label}
+      </span>
       <motion.span
         initial={false}
         animate={{
@@ -164,7 +169,7 @@ export function DownloadButton({
           filter: hovered ? "blur(6px)" : "blur(0px)",
         }}
         transition={swapTransition}
-        className={`flex items-center ${s.content}`}
+        className={`absolute flex items-center ${s.content}`}
       >
         <Icon.Apple className={s.icon} />
         {s.label}
@@ -216,6 +221,18 @@ interface MeasuredSizes {
 export function StickyCTA({ downloadUrl }: { downloadUrl: string }) {
   const reduced = useReducedMotion();
   const [open, setOpen] = useState(false);
+  // Hidden while the hero chord intro plays (~1.9s after navigation), unless the
+  // hero is out of view: the page opened scrolled, or the reader scrolls first.
+  const [held, setHeld] = useState(true);
+  useEffect(() => {
+    const release = () => setHeld(false);
+    const timer = setTimeout(release, reduced || scrollY > 0 ? 0 : 1900 - performance.now());
+    addEventListener("scroll", release, { once: true, passive: true });
+    return () => {
+      clearTimeout(timer);
+      removeEventListener("scroll", release);
+    };
+  }, [reduced]);
   const containerRef = useRef<HTMLDivElement>(null);
   const closedMeasureRef = useRef<HTMLDivElement>(null);
   const openMeasureRef = useRef<HTMLDivElement>(null);
@@ -294,7 +311,7 @@ export function StickyCTA({ downloadUrl }: { downloadUrl: string }) {
         downloadUrl={downloadUrl}
       />
       <AnimatePresence>
-        {sizes ? (
+        {sizes && !held ? (
           <motion.div
             key="sticky-v3"
             initial={reduced ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.97 }}

@@ -9,15 +9,7 @@ import {
   useReducedMotion,
   type Variants,
 } from "motion/react";
-import {
-  type CSSProperties,
-  Fragment,
-  type ReactNode,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import { type CSSProperties, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import snapshot from "../../releases.json";
@@ -43,8 +35,11 @@ const BREW = "brew install --cask bettercmdtab";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+// Every color in the channel toggle crossfades on this one clock, or the inverted text dips under its background.
+const CHANNEL_SWAP = "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]";
+
 // Split so each word blurs in on its own beat.
-const headlineWords = ["The", "⌘+Tab", "macOS", "deserves."];
+const headlineWords = ["The", "⌘Tab", "macOS", "deserves."];
 
 // The entrance cascade is the `enter`/`rise` classes in globals.css, and it stays
 // CSS: a keyframe on the prerendered HTML runs at the first paint, while anything
@@ -193,11 +188,10 @@ function Showcase() {
   const shot = layouts[active];
 
   return (
-    // Drifts up under the hero cascade with no delay of its own, so the big
-    // picture is already settling while the text above it arrives.
+    // Starts once the chord is on its way to its slot, under the headline.
     <section
       ref={section}
-      className="rise flex flex-col gap-5 [animation-delay:320ms]"
+      className="rise flex flex-col gap-5 [animation-delay:1350ms]"
       aria-label="Switcher layouts"
       aria-roledescription="carousel"
       onPointerEnter={() => setHovered(true)}
@@ -349,42 +343,90 @@ function DownloadCta({
   stable: Channel;
   beta: Channel | null;
 }) {
-  // Hero and footer both render this; a shared layoutId would fly the thumb between them.
-  const thumbId = `channel-thumb-${useId()}`;
-  const version = channel === "beta" && beta ? beta.version : stable.version;
+  const isBeta = channel === "beta";
+  const version = isBeta && beta ? beta.version : stable.version;
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-      <DownloadButton
-        href={href}
-        size="lg"
-        className="bg-text text-bg hover:bg-[#3a3833] hover:text-bg"
-      />
-      <div className="flex items-center gap-3">
+      <div
+        className={`relative inline-flex h-12 rounded-2xl transition-colors ${CHANNEL_SWAP} ${
+          isBeta ? "bg-surface has-[a:hover]:bg-pro/5" : "bg-text has-[a:hover]:bg-[#3a3833]"
+        }`}
+      >
+        <span
+          aria-hidden
+          className={`pointer-events-none beta-blueprint absolute inset-0 rounded-2xl transition-opacity ${CHANNEL_SWAP} ${
+            isBeta ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        <DownloadButton
+          href={href}
+          size="lg"
+          className={`bg-transparent max-[420px]:px-4 max-[360px]:px-3 max-[360px]:text-[15px] ${CHANNEL_SWAP} ${isBeta ? "text-text hover:text-text" : "text-bg hover:text-bg"}`}
+        />
         {beta && (
           <div
             role="group"
             aria-label="Release channel"
-            className="inline-flex rounded-[10px] bg-black/[0.055] p-[3px]"
+            className={`relative m-[5px] grid grid-cols-2 rounded-[11px] p-[3px] transition-colors ${CHANNEL_SWAP} ${
+              isBeta
+                ? "bg-[color-mix(in_oklab,var(--color-pro)_10%,var(--color-surface))]"
+                : "bg-white/12"
+            }`}
           >
+            <span
+              aria-hidden
+              className={`absolute inset-y-[3px] left-[3px] w-[calc(50%-3px)] rounded-lg shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-[translate,background-color] motion-reduce:transition-colors ${CHANNEL_SWAP} ${
+                isBeta ? "translate-x-full bg-text" : "bg-bg"
+              }`}
+            />
             <ChannelSegment
               label="Stable"
-              thumbId={thumbId}
-              active={channel === "stable"}
+              active={!isBeta}
+              onLight={isBeta}
               onSelect={() => onChange("stable")}
             />
             <ChannelSegment
               label="Beta"
-              thumbId={thumbId}
-              active={channel === "beta"}
+              active={isBeta}
+              onLight={isBeta}
               onSelect={() => onChange("beta")}
             />
           </div>
         )}
-        {version && (
-          <span className="text-[13px] text-muted tabular-nums">{formatVersion(version)}</span>
-        )}
       </div>
+      {version && (
+        <RollingText
+          className="text-[13px] text-muted tabular-nums"
+          text={formatVersion(version)}
+        />
+      )}
     </div>
+  );
+}
+
+// Chars keyed by index+char, so only the ones that differ roll when the channel flips.
+function RollingText({ text, className }: { text: string; className: string }) {
+  const chars = [...text];
+  return (
+    <span className={className}>
+      <span className="sr-only">{text}</span>
+      <span aria-hidden className="relative inline-flex overflow-hidden whitespace-pre">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {chars.map((char, i) => (
+            <motion.span
+              key={`${i}:${char}`}
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "-100%", opacity: 0 }}
+              transition={{ duration: 0.28, ease: EASE, delay: i * 0.02 }}
+              className="inline-block"
+            >
+              {char}
+            </motion.span>
+          ))}
+        </AnimatePresence>
+      </span>
+    </span>
   );
 }
 
@@ -394,32 +436,25 @@ function formatVersion(version: string) {
 
 function ChannelSegment({
   label,
-  thumbId,
   active,
+  onLight,
   onSelect,
 }: {
   label: string;
-  thumbId: string;
   active: boolean;
+  onLight: boolean;
   onSelect: () => void;
 }) {
+  let text = active ? "text-text" : "text-bg/70 hover:text-bg";
+  if (onLight) text = active ? "text-bg" : "text-muted hover:text-text";
   return (
     <button
       type="button"
       aria-pressed={active}
       onClick={onSelect}
-      className={`relative cursor-pointer rounded-[7px] border-0 bg-transparent px-3 py-[5px] text-[13px] font-medium transition-colors duration-150 ${
-        active ? "text-text" : "text-muted hover:text-text"
-      }`}
+      className={`relative cursor-pointer rounded-lg border-0 bg-transparent px-3 text-[13px] font-semibold transition-colors max-[420px]:px-2.5 max-[360px]:px-1.5 ${CHANNEL_SWAP} ${text}`}
     >
-      {active && (
-        <motion.span
-          layoutId={thumbId}
-          transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
-          className="absolute inset-0 rounded-[7px] bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.06)]"
-        />
-      )}
-      <span className="relative">{label}</span>
+      {label}
     </button>
   );
 }
@@ -516,7 +551,7 @@ function BrewCmd({ beta }: { beta: boolean }) {
               animate={{ opacity: 1, clipPath: "inset(0 0% 0 0)" }}
               exit={{ opacity: 0, clipPath: "inset(0 100% 0 0)" }}
               transition={{ duration: 0.22, ease: EASE }}
-              className="inline-block text-accent"
+              className="inline-block text-pro"
             >
               @beta
             </motion.span>
@@ -806,7 +841,7 @@ function MiniSwitcher({
         apps.map((app, i) => (
           <div
             key={app.name}
-            className={`grid h-[30px] w-[340px] grid-cols-[60px_17px_1fr_auto] items-center gap-2.5 rounded-[8px] px-2.5 text-[13px] max-[520px]:w-[270px] ${
+            className={`grid h-[30px] w-[340px] grid-cols-[60px_17px_1fr_auto] items-center gap-2.5 rounded-[8px] px-2.5 text-[13px] max-[520px]:w-[270px] max-[360px]:w-[226px] ${
               i === 1 ? "bg-[#3b7ef4]" : ""
             }`}
           >
@@ -933,11 +968,11 @@ function Docs() {
             }
           >
             <a className="group/doc block border-0 pt-[18px] pr-5" href={`${DOCS}${path}`}>
-              <span className="flex items-center gap-1.5 font-medium text-text transition-colors duration-150 group-hover/doc:text-accent">
+              <span className="block font-medium text-text transition-colors duration-150 group-hover/doc:text-accent">
                 {title}
                 <span
                   aria-hidden
-                  className="text-muted transition-transform duration-200 group-hover/doc:translate-x-1 motion-reduce:transition-none"
+                  className="ml-1.5 inline-block text-muted transition-transform duration-200 group-hover/doc:translate-x-1 motion-reduce:transition-none"
                 >
                   →
                 </span>
@@ -1028,7 +1063,7 @@ const comparisonGroups: Array<{ label: string; rows: Array<Row> }> = [
   {
     label: "status",
     rows: [
-      ["Dock badge counts", ["yes", "no", "yes"]],
+      ["Dock badge counts", ["yes", "yes", "yes"]],
       ["Playing audio indicator", ["yes", "no", "no"]],
     ],
   },
@@ -1059,22 +1094,47 @@ function fillClass(mark: Mark, ours: boolean) {
 
 function Compare() {
   const total = comparison.length;
+  // Phones show BetterCmdTab against one rival; three columns do not fit.
+  const [rival, setRival] = useState(2);
+  const phoneHidden = (column: number) =>
+    column === 0 || column === rival ? "" : "max-[640px]:hidden";
   return (
     <section id="compare">
       <h2 className={H2}>Compared.</h2>
+      <div
+        role="group"
+        aria-label="Compare with"
+        className="mb-5 hidden grid-cols-2 rounded-[10px] bg-line/70 p-[3px] max-[640px]:grid"
+      >
+        {[2, 1].map((column) => (
+          <button
+            key={column}
+            type="button"
+            aria-pressed={rival === column}
+            onClick={() => setRival(column)}
+            className={`cursor-pointer rounded-lg border-0 py-2 text-[13px] font-medium transition-colors ${
+              rival === column
+                ? "bg-surface text-text shadow-[0_1px_2px_rgba(0,0,0,0.15)]"
+                : "bg-transparent text-dim"
+            }`}
+          >
+            vs {products[column].name}
+          </button>
+        ))}
+      </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[620px] table-fixed border-collapse text-[14px]">
+        <table className="w-full min-w-[620px] table-fixed border-collapse text-[14px] max-[640px]:block max-[640px]:min-w-0">
           <colgroup>
             <col className="w-[34%]" />
             <col />
             <col />
             <col />
           </colgroup>
-          <thead>
-            <tr className="border-b border-line">
+          <thead className="max-[640px]:block">
+            <tr className="border-b border-line max-[640px]:grid max-[640px]:grid-cols-2 max-[640px]:gap-x-4">
               <th
                 scope="col"
-                className="pb-5 text-left align-bottom font-mono text-[12px] font-normal text-muted"
+                className="pb-5 text-left align-bottom font-mono text-[12px] font-normal text-muted max-[640px]:hidden"
               >
                 {total} features
               </th>
@@ -1087,7 +1147,7 @@ function Compare() {
                   <th
                     key={product.name}
                     scope="col"
-                    className="px-4 pb-5 text-left align-bottom font-normal"
+                    className={`px-4 pb-5 text-left align-bottom font-normal max-[640px]:px-0 ${phoneHidden(column)}`}
                   >
                     <div className={`text-[15px] font-semibold ${ours ? "text-accent" : ""}`}>
                       {product.name}
@@ -1119,25 +1179,34 @@ function Compare() {
             </tr>
           </thead>
           {comparisonGroups.map((group) => (
-            <tbody key={group.label}>
-              <tr>
+            <tbody key={group.label} className="max-[640px]:block">
+              <tr className="max-[640px]:block">
                 <th
                   scope="rowgroup"
                   colSpan={4}
-                  className="pt-8 pb-2.5 text-left font-mono text-[12px] font-normal text-muted"
+                  className="pt-8 pb-2.5 text-left font-mono text-[12px] font-normal text-muted max-[640px]:block"
                 >
                   {group.label}
                 </th>
               </tr>
               {group.rows.map(([feature, cells], row) => (
-                <tr key={row} className="border-b border-line/60">
-                  <th scope="row" className="py-[11px] pr-4 text-left font-normal text-dim">
+                <tr
+                  key={row}
+                  className="border-b border-line/60 max-[640px]:grid max-[640px]:grid-cols-2 max-[640px]:gap-x-4 max-[640px]:gap-y-1 max-[640px]:py-2.5"
+                >
+                  <th
+                    scope="row"
+                    className="py-[11px] pr-4 text-left font-normal text-dim max-[640px]:col-span-2 max-[640px]:p-0"
+                  >
                     {feature}
                   </th>
                   {cells.map((cell, column) => {
                     const [mark, label] = splitCell(cell);
                     return (
-                      <td key={products[column].name} className="px-4 py-[11px]">
+                      <td
+                        key={products[column].name}
+                        className={`px-4 py-[11px] max-[640px]:p-0 max-[640px]:text-[13px] ${phoneHidden(column)}`}
+                      >
                         <span
                           aria-hidden="true"
                           className={`mr-2.5 inline-block size-2 rounded-full align-[1px] ${
@@ -1185,6 +1254,75 @@ function useHeldKeys() {
   return held;
 }
 
+const HOME_WORD = headlineWords.indexOf("⌘Tab");
+
+// The headline cycles like the switcher: tab moves the selection, a pause activates it.
+// Its own component so a tab press re-renders four words, not Home.
+function SwitcherHeadline() {
+  const [selected, setSelected] = useState(HOME_WORD);
+  const [activated, setActivated] = useState(false);
+
+  useEffect(() => {
+    let settle = 0;
+    let back = 0;
+    const reset = () => {
+      clearTimeout(settle);
+      clearTimeout(back);
+      setActivated(false);
+    };
+    const onDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab" || e.repeat) return;
+      reset();
+      const step = e.shiftKey ? -1 : 1;
+      setSelected((i) => (i + step + headlineWords.length) % headlineWords.length);
+      settle = window.setTimeout(() => {
+        setActivated(true);
+        back = window.setTimeout(() => {
+          setActivated(false);
+          setSelected(HOME_WORD);
+        }, 220);
+      }, 1100);
+    };
+    const onBlur = () => {
+      reset();
+      setSelected(HOME_WORD);
+    };
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      reset();
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
+
+  return (
+    <h1 className="isolate m-0 text-[clamp(40px,7vw,88px)] leading-[1.02] font-bold tracking-[-0.04em]">
+      {headlineWords.map((word, i) => (
+        <Fragment key={word}>
+          {i === 2 ? <br /> : i > 0 && " "}
+          <span className="enter inline-block" style={{ animationDelay: `${1250 + i * 60}ms` }}>
+            <span
+              className={`relative inline-block transition-[color,scale] duration-150 motion-reduce:transition-none ${
+                i === selected ? "text-accent" : ""
+              } ${i === selected && activated ? "scale-[1.06]" : ""}`}
+            >
+              {i === selected && (
+                <motion.span
+                  layoutId="headline-selection"
+                  transition={{ duration: 0.18, ease: EASE }}
+                  className="absolute -inset-x-[0.08em] inset-y-0 -z-10 rounded-[0.14em] bg-accent/13"
+                />
+              )}
+              {word}
+            </span>
+          </span>
+        </Fragment>
+      ))}
+    </h1>
+  );
+}
+
 // Static twin of Keycap for shortcuts shown inline in text.
 function Kbd({ children }: { children: ReactNode }) {
   return (
@@ -1230,6 +1368,43 @@ function PlayingChord({ className }: { className: string }) {
     </div>
   );
 }
+
+// Inline in the prerendered HTML so it starts at first paint, not after hydration:
+// the keys pop in one by one at the viewport centre, play ⌘ held + tab tapped, then the
+// chord arcs into its slot.
+// The glide splits x (`translate`, leads) from y (`transform`, lags) so the
+// path curves under, not over; opacity and filter are pinned so the chord's CSS `enter` stays overridden.
+const CHORD_INTRO = `(() => {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const chord = document.currentScript.previousElementSibling;
+  const r = chord.getBoundingClientRect();
+  const x = innerWidth / 2 - r.left - r.width / 2;
+  const y = innerHeight / 2 - r.top - r.height / 2;
+  const hold = 1150 / 1900;
+  chord.animate([
+    { opacity: 1, filter: "none", transform: \`translateY(\${y}px)\`, scale: 1 },
+    { offset: hold, transform: \`translateY(\${y}px)\`, scale: 1, easing: "cubic-bezier(0.55, 0, 0.25, 1)" },
+    { offset: 0.78, scale: 1.03, easing: "ease-in-out" },
+    { opacity: 1, filter: "none", transform: "translateY(0)", scale: 1 },
+  ], 1900);
+  chord.animate([
+    { translate: \`\${x}px 0\` },
+    { offset: hold, translate: \`\${x}px 0\`, easing: "cubic-bezier(0.4, 0, 0.1, 1)" },
+    { translate: "0 0" },
+  ], 1900);
+  const [cmd, tab] = chord.children;
+  [cmd, tab].forEach((key, i) => key.animate([
+    { opacity: 0, filter: "blur(6px)", transform: \`scale(0.5) rotate(\${i ? 8 : -8}deg)\` },
+    { opacity: 1, filter: "blur(0)", transform: "none" },
+  ], { duration: 550, delay: i * 140, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)", fill: "backwards" }));
+  const down = { translate: "0 0.03em", borderBottomWidth: "0.015em", borderColor: "var(--color-accent)" };
+  const press = (key, at, held) => key.animate([
+    { ...down, offset: 40 / (held + 100) },
+    { ...down, offset: held / (held + 100) },
+  ], { duration: held + 100, delay: at });
+  press(cmd, 750, 350);
+  press(tab, 900, 100);
+})()`;
 
 // Sized in em, so the parent's font-size sets the whole chord.
 function Chord({ className, pressed = NO_KEYS }: { className: string; pressed?: HeldKeys }) {
@@ -1584,41 +1759,32 @@ function Home() {
         <div className="flex flex-col gap-14">
           <header className="grid grid-cols-[1fr_auto] items-center gap-x-10 gap-y-6 pt-12 max-[960px]:grid-cols-1 max-[640px]:pt-4">
             <div className="flex flex-col gap-6">
-              <h1 className="m-0 max-w-[13ch] text-[clamp(40px,7vw,88px)] leading-[1.02] font-bold tracking-[-0.04em]">
-                {headlineWords.map((word, i) => (
-                  <Fragment key={word}>
-                    {i > 0 && " "}
-                    <span
-                      className="enter inline-block"
-                      style={{ animationDelay: `${120 + i * 70}ms` }}
-                    >
-                      {word}
-                    </span>
-                  </Fragment>
-                ))}
-              </h1>
+              <SwitcherHeadline />
 
-              <div className="enter flex flex-col gap-3 [animation-delay:420ms]">
-                <DownloadCta
-                  href={dmgUrl}
-                  channel={channel}
-                  onChange={setChannel}
-                  stable={stable}
-                  beta={beta}
-                />
-                <BrewCmd beta={channel === "beta"} />
-                {/* Per-character roll on the version: chars keyed by index+char so
-                  only the ones that change roll over when the channel flips. */}
-                <p className="m-0 text-[13px] text-muted">
+              <div className="flex flex-col gap-3">
+                <div className="enter [animation-delay:1450ms]">
+                  <DownloadCta
+                    href={dmgUrl}
+                    channel={channel}
+                    onChange={setChannel}
+                    stable={stable}
+                    beta={beta}
+                  />
+                </div>
+                <div className="enter [animation-delay:1510ms]">
+                  <BrewCmd beta={channel === "beta"} />
+                </div>
+                <p className="enter m-0 text-[13px] text-muted [animation-delay:1570ms]">
                   {totalDownloads > 0 && `${downloadFmt.format(totalDownloads)} downloads · `}
                   macOS 13+ · Apple Silicon and Intel
                 </p>
               </div>
             </div>
 
-            <div className="enter flex flex-col items-center gap-4 [animation-delay:40ms] max-[960px]:order-first max-[960px]:items-start">
-              <Chord className="text-[clamp(110px,12vw,150px)] max-[960px]:text-[72px]" />
-              <p className="m-0 text-[13px] text-muted max-[960px]:hidden">
+            <div className="flex flex-col items-center gap-4 max-[960px]:order-first max-[960px]:items-start">
+              <Chord className="enter text-[clamp(110px,12vw,150px)] max-[960px]:text-[72px]" />
+              <script dangerouslySetInnerHTML={{ __html: CHORD_INTRO }} />
+              <p className="enter m-0 text-[13px] text-muted [animation-delay:1800ms] max-[960px]:hidden">
                 Go on, press <Kbd>⌘</Kbd> or <Kbd>tab</Kbd>
               </p>
             </div>
@@ -1678,11 +1844,11 @@ function Home() {
               macOS 13+ · Apple Silicon and Intel
               {beta && (
                 <>
-                  {" · "}
+                  <span className="max-[640px]:hidden"> · </span>
                   <button
                     type="button"
                     onClick={() => setChannel(channel === "beta" ? "stable" : "beta")}
-                    className="cursor-pointer border-0 bg-transparent p-0 text-text underline decoration-line underline-offset-[3px] hover:decoration-text"
+                    className="cursor-pointer border-0 bg-transparent p-0 text-text underline decoration-line underline-offset-[3px] hover:decoration-text max-[640px]:mx-auto max-[640px]:mt-1 max-[640px]:block"
                   >
                     {channel === "beta" ? "Back to stable" : "Try the beta"}
                   </button>
@@ -1733,7 +1899,7 @@ function Footer({ dmgUrl, style }: { dmgUrl: string; style: CSSProperties | unde
               BetterCmdTab
             </a>
             <p className="m-0 text-[clamp(26px,3vw,34px)] leading-[1.1] font-bold tracking-[-0.03em]">
-              The ⌘+Tab macOS deserves.
+              The ⌘Tab macOS deserves.
             </p>
             <div className="mt-10 flex flex-wrap gap-3 max-[860px]:mt-2">
               <DownloadButton
