@@ -181,8 +181,8 @@ to pick it up). Without that permission the switcher never boots and ⌘Tab does
 The public site, two separate static exports (React 19, oxlint/oxfmt) that share one origin:
 `web/` is the marketing page at `/`, built with **TanStack Start** on Vite and prerendered
 (SSR at build time) to `web/out`; `docs/` is the Fumadocs site built with **Next.js** and
-`basePath: '/docs'`. `.github/workflows/deploy-pages.yml` merges the docs export into `web/out/docs`
-and publishes the result to GitHub Pages on `bettercmdtab.app`. Separate from the app; touch them
+`basePath: '/docs'`. `web/Dockerfile` merges the docs export into `web/out/docs` and serves it with
+`web/serve.ts`, deployed on vexdock as `bettercmdtab.app`. Separate from the app; touch them
 only for the site, not app behavior.
 
 GitHub Pages serves files and nothing else — no rewrites, no redirects, no custom headers. Anything

@@ -1,10 +1,10 @@
-# Build context is the repo root: the image serves web/ at / and docs/ at /docs, like deploy-pages.yml.
+# Build context is the repo root: the image serves web/ at / and docs/ at /docs.
 FROM oven/bun:1-alpine AS web
 WORKDIR /app/web
 COPY web/package.json web/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY web ./
-# Same non-fatal refresh as deploy-pages.yml: the committed releases.json is a valid fallback.
+# Non-fatal: the committed releases.json is a valid fallback when GitHub rate-limits the refresh.
 RUN bun run scripts/fetch-releases.ts || echo "keeping the committed releases.json"
 RUN bun run build
 

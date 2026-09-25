@@ -196,9 +196,9 @@ files with no server at runtime.
 
 ## How it ships
 
-`.github/workflows/deploy-pages.yml` builds `web/` and `docs/`, copies this
-export into `web/out/docs`, and publishes the merged tree to GitHub Pages. There
-is no separate docs service, no reverse proxy and no container.
+`web/Dockerfile` builds `web/` and `docs/`, copies this export into
+`web/out/docs`, and serves the merged tree with `web/serve.ts`, deployed on
+vexdock. There is no separate docs service and no reverse proxy.
 
 That means a docs change reaches production through the same artifact as a
 marketing change — and that `bun run build` failing here fails the whole site's

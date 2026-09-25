@@ -20,9 +20,9 @@ covered in [CONTRIBUTING.md](CONTRIBUTING.md). Read that before editing.
 
 `output: 'export'` with `basePath: '/docs'`, so the build is a directory of static
 files whose URLs already carry the `/docs` prefix.
-`.github/workflows/deploy-pages.yml` builds this together with `../web`, copies
-this export into `web/out/docs`, and publishes the merged tree to GitHub Pages —
-no docs server, no reverse proxy, no container.
+`../web/Dockerfile` builds this together with `../web`, copies this export into
+`web/out/docs`, and serves the merged tree with `web/serve.ts` on vexdock — no
+docs server, no reverse proxy.
 
 Pages serves files and nothing else: no rewrites, no redirects, no custom
 headers. That is why both apps set `trailingSlash: true` — every page ships as

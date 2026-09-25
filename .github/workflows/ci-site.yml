@@ -1,8 +1,8 @@
 name: Site CI
 
 # The site ships as two static exports — web/ (TanStack Start, prerendered) and
-# docs/ (Next) — merged into one tree and published to GitHub Pages (see
-# deploy-pages.yml). Pages serves files and nothing else —
+# docs/ (Next) — merged into one tree and served by web/serve.ts (see
+# web/Dockerfile). It serves files and nothing else —
 # no rewrites, no redirects, no custom headers — so anything that used to be a
 # server rule is now a property of the built tree, and that is what gets checked
 # here. A broken export must fail on the PR, not on the live domain.
