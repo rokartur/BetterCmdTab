@@ -349,19 +349,16 @@ function DownloadCta({
   href,
   channel,
   onChange,
-  stable,
   beta,
 }: {
   href: string;
   channel: "stable" | "beta";
   onChange: (channel: "stable" | "beta") => void;
-  stable: Channel;
   beta: Channel | null;
 }) {
   const isBeta = channel === "beta";
-  const version = isBeta && beta ? beta.version : stable.version;
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+    <div className="flex">
       {/* Channel colors crossfade opaque layers: Chrome paints a finished background-color transition's start color for one frame. */}
       <div
         className={`group/cta relative inline-flex h-12 rounded-2xl bg-text transition-colors has-[a:hover]:bg-[#3a3833] ${CHANNEL_SWAP}`}
@@ -417,12 +414,6 @@ function DownloadCta({
           </div>
         )}
       </div>
-      {version && (
-        <RollingText
-          className="text-[13px] text-muted tabular-nums"
-          text={formatVersion(version)}
-        />
-      )}
     </div>
   );
 }
@@ -1787,20 +1778,20 @@ function Home() {
 
               <div className="flex flex-col gap-3">
                 <div className="enter [animation-delay:1450ms]">
-                  <DownloadCta
-                    href={dmgUrl}
-                    channel={channel}
-                    onChange={setChannel}
-                    stable={stable}
-                    beta={beta}
-                  />
+                  <DownloadCta href={dmgUrl} channel={channel} onChange={setChannel} beta={beta} />
                 </div>
                 <div className="enter [animation-delay:1510ms]">
                   <BrewCmd beta={channel === "beta"} />
                 </div>
                 <p className="enter m-0 text-[13px] text-muted [animation-delay:1570ms]">
                   {totalDownloads > 0 && `${downloadFmt.format(totalDownloads)} downloads · `}
-                  macOS 13+ · Apple Silicon and Intel
+                  macOS 13+
+                  {sel.version && (
+                    <>
+                      {" · "}
+                      <RollingText className="tabular-nums" text={formatVersion(sel.version)} />
+                    </>
+                  )}
                 </p>
               </div>
             </div>
@@ -1864,8 +1855,13 @@ function Home() {
               transition={layoutShift}
               className="m-0 text-[13px] text-muted"
             >
-              {sel.version && `${formatVersion(sel.version)} · `}
-              macOS 13+ · Apple Silicon and Intel
+              macOS 13+
+              {sel.version && (
+                <>
+                  {" · "}
+                  <RollingText className="tabular-nums" text={formatVersion(sel.version)} />
+                </>
+              )}
               {beta && (
                 <>
                   <span className="max-[640px]:hidden"> · </span>
