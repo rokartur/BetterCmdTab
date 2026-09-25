@@ -59,6 +59,23 @@
     letter-spacing: -0.04em;
   }
 
+  /* The hero's selected headline word: SwitcherHeadline in web/src/routes/index.tsx. */
+  .selected {
+    display: inline-block;
+    position: relative;
+    z-index: 0;
+    color: #2563eb;
+  }
+
+  .selected::before {
+    content: "";
+    position: absolute;
+    inset: 0 -0.08em;
+    z-index: -1;
+    border-radius: 0.14em;
+    background: rgb(37 99 235 / 0.13);
+  }
+
   .meta {
     margin-top: 28px;
     font-size: 22px;
@@ -84,6 +101,6 @@
 </style>
 
 <div class="brand"><img src="../public/icon.png" alt="" />BetterCmdTab</div>
-<h1>The ⌘+Tab<br />macOS deserves.</h1>
+<h1>The <span class="selected">⌘Tab</span><br />macOS deserves.</h1>
 <p class="meta">Free and open source · macOS 13+</p>
 <div class="shot"><img src="../public/screenshots/preview.jpg" alt="" /></div>

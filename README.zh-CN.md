@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/og.png" alt="BetterCmdTab：macOS 应得的 ⌘+Tab" width="100%" />
+<img src=".github/og.png" alt="BetterCmdTab：macOS 应得的 ⌘Tab" width="100%" />
 
 <p>
   <a href="https://github.com/rokartur/BetterCmdTab/releases/latest"><img alt="下载" src="https://img.shields.io/badge/Download-F5F5F4?style=for-the-badge&logo=apple&logoColor=black"></a>

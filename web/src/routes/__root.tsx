@@ -13,7 +13,7 @@ const DESCRIPTION =
   "A fast, native Cmd+Tab replacement for macOS: grid & list app switcher, fuzzy search & launch, and window cycling. Free, open-source, zero telemetry. macOS 13+.";
 const SOCIAL_DESCRIPTION =
   "A fast, native Cmd+Tab replacement for macOS: grid & list app switcher, fuzzy search & launch, and window cycling. Free, open-source, zero telemetry.";
-const IMAGE_ALT = "BetterCmdTab: The ⌘+Tab macOS deserves. Window previews switcher screenshot.";
+const IMAGE_ALT = "BetterCmdTab: The ⌘Tab macOS deserves. Window previews switcher screenshot.";
 
 // The homepage is the only route, so every tag below is a constant. Router
 // `head()` emits raw tags, so URLs that Next used to absolutise against
