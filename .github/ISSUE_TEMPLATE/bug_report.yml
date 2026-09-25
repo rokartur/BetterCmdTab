@@ -39,7 +39,7 @@ body:
       description: Pick the release shown in Settings > About.
       options:
         # release-options:start
-        - "26.8-beta.2 (20260923192047) — beta"
+        - "26.8-beta.3 (20260925120738) — beta"
         - "26.7 (20260813144806) — latest"
         - "26.6.1 (20260703123053) — release"
         - "26.6 (20260702140005) — release"
