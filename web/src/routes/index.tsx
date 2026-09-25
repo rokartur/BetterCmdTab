@@ -9,7 +9,15 @@ import {
   useReducedMotion,
   type Variants,
 } from "motion/react";
-import { type CSSProperties, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createPortal } from "react-dom";
 
 import snapshot from "../../releases.json";
@@ -79,6 +87,9 @@ const layouts = [
 // last deploy even when GitHub's API limit is exhausted, which it routinely is.
 const baked = channels(snapshot);
 
+// The server snapshot is false and the client's is true, so hydration reads false first.
+const subscribeNever = () => () => {};
+
 function useReleases(): Releases {
   const [rel, setRel] = useState<Releases>(baked);
 
@@ -87,6 +98,7 @@ function useReleases(): Releases {
     // client's first render must agree or hydration throws the markup away.
     const cache = readCache();
     const best = freshest(baked, cache?.rel);
+    // oxlint-disable-next-line react/set-state-in-effect -- post-hydration localStorage sync, see above
     if (best !== baked) setRel(best);
     if (cache && isFresh(cache)) return;
 
@@ -141,8 +153,11 @@ function Showcase() {
   // The lightbox portals into document.body, which doesn't exist during the
   // build-time static render. Gate it on mount so SSR stays document-free.
   // The dot fill waits for it too: the server can't know reduced motion.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
 
   const section = useRef<HTMLElement>(null);
   useEffect(() => {

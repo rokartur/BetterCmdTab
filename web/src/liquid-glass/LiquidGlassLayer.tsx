@@ -15,7 +15,7 @@
  *   - The specular rim is a CSS ring instead of a per-size SVG image.
  *   - Params are fixed to DEFAULT_LIQUID_GLASS_PARAMS (no tuning panel).
  */
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   DEFAULT_LIQUID_GLASS_PARAMS,
@@ -35,6 +35,9 @@ interface Props {
 // mid-morph the current tiles are scaled to the live radius instead.
 const RESIZE_DEBOUNCE_MS = 80;
 const params = DEFAULT_LIQUID_GLASS_PARAMS;
+
+// Browser support never changes at runtime, so there is nothing to subscribe to.
+const subscribeNever = () => () => {};
 
 let backdropSupportsSvg: boolean | null = null;
 function detectBackdropSvgSupport(): boolean {
@@ -63,9 +66,11 @@ export function LiquidGlassLayer({ radius, className }: Props) {
   const filterId = `liquid-glass-${useId().replace(/[:]/g, "")}`;
 
   const radiusRef = useRef(radius);
-  radiusRef.current = radius;
+  useLayoutEffect(() => {
+    radiusRef.current = radius;
+  });
   const sizeRef = useRef({ width: 0, height: 0 });
-  const [supportsSvg, setSupportsSvg] = useState(false);
+  const supportsSvg = useSyncExternalStore(subscribeNever, detectBackdropSvgSupport, () => false);
   const [tileRadius, setTileRadius] = useState(0);
   const [renderScale, setRenderScale] = useState(1);
 
@@ -99,10 +104,6 @@ export function LiquidGlassLayer({ radius, className }: Props) {
       image.setAttribute("height", String(height));
     }
   };
-
-  useEffect(() => {
-    setSupportsSvg(detectBackdropSvgSupport());
-  }, []);
 
   useLayoutEffect(() => {
     const parent = wrapperRef.current?.parentElement;
