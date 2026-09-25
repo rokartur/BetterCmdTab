@@ -13,6 +13,7 @@ import {
   type CSSProperties,
   Fragment,
   type ReactNode,
+  type RefObject,
   useEffect,
   useRef,
   useState,
@@ -1269,6 +1270,106 @@ function useHeldKeys() {
   return held;
 }
 
+type KeySound = "cmd" | "tab" | "up";
+type PlayKeySound = (sound: KeySound) => Promise<void>;
+
+const SOUND_KEY = "BetterCmdTab.sound";
+
+// The files prefetch at mount so the first press isn't late. Called once, unlike useHeldKeys, so each press clicks once.
+function useKeySounds() {
+  const play = useRef<PlayKeySound>(async () => {});
+  const enabled = useRef(false);
+  const [on, setOn] = useState(false);
+
+  useEffect(() => {
+    enabled.current = localStorage.getItem(SOUND_KEY) === "on";
+    // oxlint-disable-next-line react/set-state-in-effect -- post-hydration localStorage sync, as in useReleases
+    setOn(enabled.current);
+    const load = async (url: string) => (await fetch(url)).arrayBuffer();
+    const files = Promise.all([
+      load("/sounds/cmd-down.wav"),
+      load("/sounds/tab-down.wav"),
+      load("/sounds/key-up.wav"),
+    ]);
+    const decode = (audio: AudioContext) =>
+      files.then((buffers) => Promise.all(buffers.map((b) => audio.decodeAudioData(b))));
+    let ctx: AudioContext | undefined;
+    let sounds: Promise<AudioBuffer[]> | undefined;
+
+    play.current = async (sound) => {
+      // Chrome grants no activation for modifier keys, so a lone ⌘ can't unlock audio; a click
+      // or Tab can. Clicks started on a locked context would queue up and burst on unlock.
+      if (!enabled.current || !navigator.userActivation.hasBeenActive) return;
+      const audio = (ctx ??= new AudioContext());
+      if (audio.state !== "running") await audio.resume();
+      const [cmd, tab, up] = await (sounds ??= decode(audio));
+      let buffer = up;
+      if (sound === "cmd") buffer = cmd;
+      if (sound === "tab") buffer = tab;
+      const source = audio.createBufferSource();
+      source.buffer = buffer;
+      // A few percent of pitch drift so repeated taps don't sound like one sample.
+      source.playbackRate.value = 0.96 + Math.random() * 0.08;
+      source.connect(audio.destination);
+      source.start();
+    };
+    const onKey = (e: KeyboardEvent, down: boolean) => {
+      if (e.repeat || (e.key !== "Meta" && e.key !== "Tab")) return;
+      let sound: KeySound = "up";
+      if (down) sound = e.key === "Meta" ? "cmd" : "tab";
+      void play.current(sound);
+    };
+    const onDown = (e: KeyboardEvent) => onKey(e, true);
+    const onUp = (e: KeyboardEvent) => onKey(e, false);
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("keyup", onUp);
+    return () => {
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("keyup", onUp);
+      void ctx?.close();
+    };
+  }, []);
+
+  const toggle = () => {
+    enabled.current = !enabled.current;
+    setOn(enabled.current);
+    localStorage.setItem(SOUND_KEY, enabled.current ? "on" : "off");
+    // The click is the user gesture that unlocks audio, and the tap confirms it's on.
+    if (enabled.current) void play.current("cmd");
+  };
+  return { play, on, toggle };
+}
+
+function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Key sounds"
+      aria-pressed={on}
+      onClick={onToggle}
+      className="enter fixed bottom-7 left-7 z-40 hidden h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-line bg-surface text-dim shadow-[0_6px_24px_rgb(0_0_0/0.08)] [animation-delay:1900ms] hover:text-text lg:flex"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5"
+        aria-hidden="true"
+      >
+        <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+        {on ? (
+          <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+        ) : (
+          <path d="m16 9 6 6m0-6-6 6" />
+        )}
+      </svg>
+    </button>
+  );
+}
+
 const HOME_WORD = headlineWords.indexOf("⌘Tab");
 
 // The headline cycles like the switcher: tab moves the selection, a pause activates it.
@@ -1351,17 +1452,17 @@ type HeldKeys = { meta: boolean; tab: boolean };
 const NO_KEYS: HeldKeys = { meta: false, tab: false };
 
 // Hold command, tap tab twice, let go: the gesture the page is selling.
-const CHORD_TAPS: Array<[number, HeldKeys]> = [
-  [0, { meta: true, tab: false }],
-  [260, { meta: true, tab: true }],
-  [420, { meta: true, tab: false }],
-  [620, { meta: true, tab: true }],
-  [780, { meta: true, tab: false }],
-  [1100, NO_KEYS],
+const CHORD_TAPS: Array<[number, HeldKeys, KeySound]> = [
+  [0, { meta: true, tab: false }, "cmd"],
+  [260, { meta: true, tab: true }, "tab"],
+  [420, { meta: true, tab: false }, "up"],
+  [620, { meta: true, tab: true }, "tab"],
+  [780, { meta: true, tab: false }, "up"],
+  [1100, NO_KEYS, "up"],
 ];
 
 // Plays CHORD_TAPS once in view and again on hover; real key presses still show.
-function PlayingChord({ className }: { className: string }) {
+function PlayingChord({ className, sound }: { className: string; sound: RefObject<PlayKeySound> }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.8 });
   const reduceMotion = useReducedMotion();
@@ -1370,12 +1471,17 @@ function PlayingChord({ className }: { className: string }) {
 
   useEffect(() => {
     if (!inView || reduceMotion) return;
-    const timers = CHORD_TAPS.map(([at, next]) => setTimeout(() => setKeys(next), at + 350));
+    const timers = CHORD_TAPS.map(([at, next, click]) =>
+      setTimeout(() => {
+        setKeys(next);
+        void sound.current(click);
+      }, at + 350),
+    );
     return () => {
       timers.forEach(clearTimeout);
       setKeys(NO_KEYS);
     };
-  }, [inView, reduceMotion, run]);
+  }, [inView, reduceMotion, run, sound]);
 
   return (
     <div ref={ref} onPointerEnter={() => setRun((r) => r + 1)}>
@@ -1419,6 +1525,19 @@ const CHORD_INTRO = `(() => {
   ], { duration: held + 100, delay: at });
   press(cmd, 750, 350);
   press(tab, 900, 100);
+  // Audio is locked until the user interacts; Chrome carries that over same-origin links, not reloads.
+  if (!navigator.userActivation.hasBeenActive || localStorage.getItem("BetterCmdTab.sound") !== "on") return;
+  const audio = new AudioContext();
+  const start = performance.now();
+  const load = async (name) => audio.decodeAudioData(await (await fetch(\`/sounds/\${name}.wav\`)).arrayBuffer());
+  Promise.all([load("cmd-down"), load("tab-down"), load("key-up")]).then(([down, tabDown, up]) => {
+    for (const [buffer, at] of [[down, 790], [tabDown, 940], [up, 1000], [up, 1100]]) {
+      const source = audio.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audio.destination);
+      source.start(audio.currentTime + Math.max(0, start + at - performance.now()) / 1000);
+    }
+  });
 })()`;
 
 // Sized in em, so the parent's font-size sets the whole chord.
@@ -1758,6 +1877,7 @@ function Home() {
   const [channel, setChannel] = useState<"stable" | "beta">("stable");
   const sel = channel === "beta" && beta ? beta : stable;
   const { dmgUrl } = sel;
+  const keySound = useKeySounds();
   // On the beta channel, recolor the whole page amber by overriding the single
   // Tailwind accent var; every `*-accent` utility follows it.
   const accentStyle =
@@ -1823,7 +1943,7 @@ function Home() {
           className="flex flex-col items-center gap-6 text-center"
         >
           <motion.div variants={rise}>
-            <PlayingChord className="text-[72px]" />
+            <PlayingChord className="text-[72px]" sound={keySound.play} />
           </motion.div>
           <motion.h2
             variants={rise}
@@ -1882,6 +2002,7 @@ function Home() {
       <Footer dmgUrl={dmgUrl} style={accentStyle} />
       <StickyCTA downloadUrl={dmgUrl} />
       <BetterAudioCard />
+      <SoundToggle on={keySound.on} onToggle={keySound.toggle} />
     </MotionConfig>
   );
 }
