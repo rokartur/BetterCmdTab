@@ -1,6 +1,7 @@
 <!doctype html>
 <!--
-  Source of web/public/og.jpeg (1200x630 Open Graph image). Outside public/, so it never ships.
+  Source of web/public/og.jpeg (1200x630 Open Graph image) and .github/og.png (the README
+  banner, the 2x render as-is). Outside public/, so it never ships.
   Mirrors the homepage hero: #faf9f6 page, the h1, and the preview screenshot.
 
   Render (any Chromium; 2x, then downscale so the panel text stays crisp):
@@ -9,6 +10,7 @@
       --hide-scrollbars --force-device-scale-factor=2 --window-size=1200,630 \
       --allow-file-access-from-files --screenshot=/tmp/og@2x.png web/og/og.html
     sips -z 630 1200 -s format jpeg -s formatOptions 85 /tmp/og@2x.png --out web/public/og.jpeg
+    cp /tmp/og@2x.png .github/og.png
 -->
 <meta charset="utf-8" />
 <title>BetterCmdTab OG</title>
