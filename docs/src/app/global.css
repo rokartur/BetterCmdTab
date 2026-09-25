@@ -3,56 +3,52 @@
 @import 'fumadocs-ui/css/preset.css';
 
 /*
- * BetterCmdTab palette, mirroring web/app/globals.css so the landing page at /
+ * BetterCmdTab palette, mirroring web/src/styles.css so the landing page at /
  * and the docs at /docs read as one site. Keep the two in sync.
  *
- *   bg #0a0a0a · text #ededed · dim #8a8a8a · muted #6b6b6b
- *   line #222222 · accent #3b82f6 · surface #111111
+ *   bg #faf9f6 · text #1c1b19 · dim #57534c · muted #6f6a62
+ *   line #e5e1d8 · accent #2563eb · surface #ffffff
  *
- * Declared on both :root and .dark: the site is dark-only (web is
- * `color-scheme: dark`), so the light palette must not survive in any state.
+ * Light-only (web is `color-scheme: light`); the provider's theme switch is off.
  */
-:root,
-.dark {
-  --color-fd-background: #0a0a0a;
-  --color-fd-foreground: #ededed;
+:root {
+  --color-fd-background: #faf9f6;
+  --color-fd-foreground: #1c1b19;
 
   /* Raised surfaces — code blocks, cards, popovers. */
-  --color-fd-muted: #111111;
-  --color-fd-card: #111111;
-  --color-fd-card-foreground: #ededed;
-  --color-fd-popover: #111111;
-  --color-fd-popover-foreground: #ededed;
-  --color-fd-secondary: #111111;
-  --color-fd-secondary-foreground: #ededed;
+  --color-fd-muted: #f3f1ec;
+  --color-fd-card: #ffffff;
+  --color-fd-card-foreground: #1c1b19;
+  --color-fd-popover: #ffffff;
+  --color-fd-popover-foreground: #1c1b19;
+  --color-fd-secondary: #f3f1ec;
+  --color-fd-secondary-foreground: #1c1b19;
 
-  /* Secondary text: web's --color-dim. */
-  --color-fd-muted-foreground: #8a8a8a;
+  --color-fd-muted-foreground: #6f6a62;
 
-  --color-fd-border: #222222;
+  --color-fd-border: #e5e1d8;
 
   /* Links, active nav/TOC entries, focus rings. */
-  --color-fd-primary: #3b82f6;
-  --color-fd-primary-foreground: #0a0a0a;
-  --color-fd-ring: #3b82f6;
+  --color-fd-primary: #2563eb;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-ring: #2563eb;
 
-  /* Hover/active surface — a lift off the background, not a grey slab. */
-  --color-fd-accent: #191919;
-  --color-fd-accent-foreground: #ededed;
+  --color-fd-accent: #efece6;
+  --color-fd-accent-foreground: #1c1b19;
 
-  --color-fd-overlay: rgba(0, 0, 0, 0.6);
+  --color-fd-overlay: rgba(28, 27, 25, 0.25);
 }
 
-/* neutral.css lightens the sidebar with its own greys; keep it on the palette. */
-.dark #nd-sidebar {
-  --color-fd-muted: #111111;
-  --color-fd-secondary: #111111;
-  --color-fd-muted-foreground: #8a8a8a;
+/* neutral.css gives the sidebar its own greys; keep it on the palette. */
+#nd-sidebar {
+  --color-fd-muted: #f3f1ec;
+  --color-fd-secondary: #f3f1ec;
+  --color-fd-muted-foreground: #6f6a62;
 }
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
     scrollbar-gutter: stable;
   }
 
@@ -64,7 +60,7 @@
   }
 
   ::selection {
-    background: --alpha(var(--color-fd-primary) / 35%);
+    background: --alpha(var(--color-fd-primary) / 20%);
   }
 }
 

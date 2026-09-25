@@ -32,7 +32,7 @@ export async function baseOptions(locale: Locale): Promise<BaseLayoutProps> {
         </>
       ),
     },
-    // Dark-only site, so next-themes is off in the provider — without this the
+    // Light-only site, so next-themes is off in the provider — without this the
     // layout still renders a switch that cannot do anything.
     themeSwitch: { enabled: false },
     slots: {

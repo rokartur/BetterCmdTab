@@ -50,7 +50,7 @@ export default async function Layout(props: Props) {
   return (
     // The root layout lives inside the optional catch-all so the static Polish
     // pages can set the document language without middleware or a duplicate tree.
-    <html lang={locale} className="dark" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col">
         <DocsProvider locale={locale}>
           <DocsLayout tree={source.getPageTree(locale)} {...await baseOptions(locale)}>
