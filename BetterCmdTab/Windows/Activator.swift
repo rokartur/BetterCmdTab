@@ -396,7 +396,6 @@ enum Activator {
         instantSpace: Bool,
         completion: @escaping @MainActor @Sendable () -> Void
     ) {
-        let pid = app.processIdentifier
         let gen = beginActivation()
 
         if app.isHidden {
@@ -415,18 +414,32 @@ enum Activator {
 
         let wid = resolvedWindowID(live: PrivateAPI.cgWindowId(of: window), cached: cachedWid)
 
-        // Jump to the window's Space instantly (no slide) before raising, so the
-        // raise lands on the now-current Space instead of animating across. This
-        // posts a synthetic Dock-swipe (see PrivateAPI.switchToSpace); when it
-        // fires we must NOT also do the cross-Space `raiseWindow` below, whose
-        // `_SLPS…` raise can win the race and animate-switch past the target.
-        let postedSpaceSwitch = instantSpace && wid != 0 && PrivateAPI.switchToSpace(ofWindow: wid)
+        // Jump to the window's Space instantly (no slide) before raising. The
+        // synthetic Dock-swipe lands asynchronously, so focus waits for it.
+        if instantSpace && wid != 0 && PrivateAPI.switchToSpace(ofWindow: wid) {
+            afterSpaceSwitch {
+                guard isCurrentActivation(gen) else { return completion() }
+                focusRunning(app: app, window: window, wid: wid, isMinimized: isMinimized, generation: gen, completion: completion)
+            }
+            return
+        }
+        focusRunning(app: app, window: window, wid: wid, isMinimized: isMinimized, generation: gen, completion: completion)
+    }
 
-        // Order matches process activation first (synchronous
-        // path via NSRunningApplication.activate), then per-window raise via
-        // AX + SLPS. `NSWorkspace.openApplication` was racing — its async
-        // completion fired after our raise and overrode focus with the app's
-        // last-active window.
+    /// Order matches process activation first (synchronous path via
+    /// NSRunningApplication.activate), then per-window raise via AX + SLPS.
+    /// `NSWorkspace.openApplication` was racing: its async completion fired
+    /// after our raise and overrode focus with the app's last-active window.
+    @MainActor
+    private static func focusRunning(
+        app: NSRunningApplication,
+        window: AXUIElement,
+        wid: CGWindowID,
+        isMinimized: Bool,
+        generation gen: UInt64,
+        completion: @escaping @MainActor @Sendable () -> Void
+    ) {
+        let pid = app.processIdentifier
         activateProcess(app)
 
         let applyFocus: @Sendable () -> Void = {
@@ -438,7 +451,7 @@ enum Activator {
             }
             guard isCurrentActivation(gen) else { return }
             AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-            if wid != 0 && !postedSpaceSwitch {
+            if wid != 0 {
                 PrivateAPI.raiseWindow(pid: pid, wid: wid)
             }
             guard isCurrentActivation(gen) else { return }
@@ -537,7 +550,6 @@ enum Activator {
         instantSpace: Bool,
         completion: @escaping @MainActor @Sendable () -> Void
     ) {
-        let pid = app.processIdentifier
         let gen = beginActivation()
 
         if app.isHidden {
@@ -545,8 +557,26 @@ enum Activator {
         }
 
         let wid = resolvedWindowID(live: PrivateAPI.cgWindowId(of: window), cached: cachedWid)
-        let postedSpaceSwitch = instantSpace && wid != 0 && PrivateAPI.switchToSpace(ofWindow: wid)
+        guard instantSpace && wid != 0 && PrivateAPI.switchToSpace(ofWindow: wid) else {
+            return focusTab(app: app, window: window, tab: tab, wid: wid, isMinimized: isMinimized, generation: gen, completion: completion)
+        }
+        afterSpaceSwitch {
+            guard isCurrentActivation(gen) else { return completion() }
+            focusTab(app: app, window: window, tab: tab, wid: wid, isMinimized: isMinimized, generation: gen, completion: completion)
+        }
+    }
 
+    @MainActor
+    private static func focusTab(
+        app: NSRunningApplication,
+        window: AXUIElement,
+        tab: AXUIElement,
+        wid: CGWindowID,
+        isMinimized: Bool,
+        generation gen: UInt64,
+        completion: @escaping @MainActor @Sendable () -> Void
+    ) {
+        let pid = app.processIdentifier
         activateProcess(app)
         let apply: @Sendable () -> Void = {
             defer { DispatchQueue.main.async { completion() } }
@@ -558,7 +588,7 @@ enum Activator {
             }
             guard isCurrentActivation(gen) else { return }
             AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-            if wid != 0 && !postedSpaceSwitch {
+            if wid != 0 {
                 PrivateAPI.raiseWindow(pid: pid, wid: wid)
             }
             AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
@@ -568,6 +598,32 @@ enum Activator {
             AXUIElementSetAttributeValue(tab, kAXSelectedAttribute as CFString, kCFBooleanTrue)
         }
         if pid == getpid() { apply() } else { activationQueue.async(execute: apply) }
+    }
+
+    /// Landing a Space switch focuses that Space's frontmost app, which took focus
+    /// from a raise sent before it (#188). 0.5s bounds a swipe the Dock dropped.
+    @MainActor
+    private static func afterSpaceSwitch(_ body: @escaping @MainActor @Sendable () -> Void) {
+        let center = NSWorkspace.shared.notificationCenter
+        let pending = OSAllocatedUnfairLock(initialState: true)
+        let runOnce: @MainActor @Sendable () -> Void = {
+            guard pending.withLock({ isPending in
+                defer { isPending = false }
+                return isPending
+            }) else { return }
+            body()
+        }
+        let observer = center.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { runOnce() }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            center.removeObserver(observer)
+            runOnce()
+        }
     }
 
     @MainActor
