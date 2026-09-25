@@ -587,6 +587,9 @@ final class SwitcherController: SwitcherViewDelegate {
                 // scoped list to empty. No-op cost when the scope is `.allSpaces`
                 // (that path never memoizes an allow-set that hides anything).
                 CatalogFilter.invalidateSpaceMemo()
+                // A panel already open across the flip still holds rows filtered
+                // for the old Space (#199); no-op unless the panel is visible.
+                self.scheduleVisibleRefresh()
             }
         }
         workspaceObservers.append(activeSpaceObserver)
