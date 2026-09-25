@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   AnimatePresence,
+  LayoutGroup,
   MotionConfig,
   motion,
   useAnimationControls,
@@ -1479,6 +1480,8 @@ function bar(delay: number): Variants {
   };
 }
 
+const layoutShift = { layout: { duration: 0.22, ease: EASE } };
+
 const rise: Variants = {
   hidden: { y: 18, opacity: 0 },
   show: { y: 0, opacity: 1, transition: { duration: 0.6, ease: EASE } },
@@ -1647,36 +1650,46 @@ function Home() {
           >
             Stop hunting for windows.
           </motion.h2>
-          <motion.div
-            variants={rise}
-            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3"
-          >
-            <DownloadButton
-              href={dmgUrl}
-              size="lg"
-              className="bg-text text-bg hover:bg-[#3a3833] hover:text-bg"
-            />
-            {/* The command is wider than a phone; the hero's copy covers mobile. */}
-            <div className="max-[640px]:hidden">
-              <BrewCmd beta={channel === "beta"} />
-            </div>
-          </motion.div>
-          <motion.p variants={rise} className="m-0 text-[13px] text-muted">
-            {sel.version && `${formatVersion(sel.version)} · `}
-            macOS 13+ · Apple Silicon and Intel
-            {beta && (
-              <>
-                {" · "}
-                <button
-                  type="button"
-                  onClick={() => setChannel(channel === "beta" ? "stable" : "beta")}
-                  className="cursor-pointer border-0 bg-transparent p-0 text-text underline decoration-line underline-offset-[3px] hover:decoration-text"
-                >
-                  {channel === "beta" ? "Back to stable" : "Try the beta"}
-                </button>
-              </>
-            )}
-          </motion.p>
+          {/* Centered row: "@beta" and "Copied" resize it, so every piece slides together. */}
+          <LayoutGroup>
+            <motion.div
+              variants={rise}
+              className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3"
+            >
+              <motion.div layout="position" transition={layoutShift}>
+                <DownloadButton
+                  href={dmgUrl}
+                  size="lg"
+                  className="bg-text text-bg hover:bg-[#3a3833] hover:text-bg"
+                />
+              </motion.div>
+              {/* The command is wider than a phone; the hero's copy covers mobile. */}
+              <motion.div layout="position" transition={layoutShift} className="max-[640px]:hidden">
+                <BrewCmd beta={channel === "beta"} />
+              </motion.div>
+            </motion.div>
+            <motion.p
+              layout="position"
+              variants={rise}
+              transition={layoutShift}
+              className="m-0 text-[13px] text-muted"
+            >
+              {sel.version && `${formatVersion(sel.version)} · `}
+              macOS 13+ · Apple Silicon and Intel
+              {beta && (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    onClick={() => setChannel(channel === "beta" ? "stable" : "beta")}
+                    className="cursor-pointer border-0 bg-transparent p-0 text-text underline decoration-line underline-offset-[3px] hover:decoration-text"
+                  >
+                    {channel === "beta" ? "Back to stable" : "Try the beta"}
+                  </button>
+                </>
+              )}
+            </motion.p>
+          </LayoutGroup>
         </motion.section>
       </main>
 
