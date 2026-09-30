@@ -76,6 +76,17 @@ struct RowLabelsTests {
         #expect(labels == ["c", "n"])
     }
 
+    @Test("non-Latin names hint by their transliteration (#187)")
+    func transliteratedNames() {
+        let labels = RowLabels.labels(forInputs: [
+            input("钉钉"),
+            input("Телеграм"),
+            // q is reserved for quit, so the hint comes from the pinyin.
+            input("QQ音乐")
+        ])
+        #expect(labels == ["d", "t", "y"])
+    }
+
     @Test("name with no usable letters returns empty label")
     func noLetters() {
         let labels = RowLabels.labels(forInputs: [

@@ -158,9 +158,24 @@ enum RowLabels {
         }
     }
 
-    private static func firstAvailableLetter(_ raw: String, reserved: Set<Character>) -> Character? {
+    /// Labels are rebuilt on every reveal and a transliteration costs ~30 µs per
+    /// name, so each name is transliterated once.
+    private static let latinNameStore = OSAllocatedUnfairLock<[String: String]>(initialState: [:])
+
+    /// A name still non-ASCII after folding ("微信", "QQ音乐") hints by its
+    /// transliteration, pinyin for Chinese (#187).
+    private static func foldedAppName(_ raw: String) -> String {
         let folded = raw.folding(options: .diacriticInsensitive, locale: nil).lowercased()
-        for c in folded {
+        if folded.allSatisfy(\.isASCII) { return folded }
+        if let cached = latinNameStore.withLock({ $0[raw] }) { return cached }
+        guard let latin = raw.applyingTransform(.toLatin, reverse: false) else { return folded }
+        let latinFolded = latin.folding(options: .diacriticInsensitive, locale: nil).lowercased()
+        latinNameStore.withLock { $0[raw] = latinFolded }
+        return latinFolded
+    }
+
+    private static func firstAvailableLetter(_ raw: String, reserved: Set<Character>) -> Character? {
+        for c in foldedAppName(raw) {
             if c.isASCII, c.isLetter, !reserved.contains(c) { return c }
         }
         return nil
@@ -173,9 +188,8 @@ enum RowLabels {
                 if c.isASCII, c.isLetter, c != first, !reserved.contains(c) { return c }
             }
         }
-        let appFolded = row.appName.folding(options: .diacriticInsensitive, locale: nil).lowercased()
         var seenFirst = false
-        for c in appFolded {
+        for c in foldedAppName(row.appName) {
             if c.isASCII, c.isLetter, !reserved.contains(c) {
                 if !seenFirst { seenFirst = true; continue }
                 if c != first { return c }
