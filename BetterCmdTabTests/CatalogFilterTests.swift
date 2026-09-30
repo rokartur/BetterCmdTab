@@ -418,6 +418,14 @@ struct CatalogFilterTests {
             pids: [9, 9], kept: [false, false], rescuable: [false, false]).isEmpty)
     }
 
+    @Test("a ⌘H-hidden app stays out when show hidden apps is off (#196)")
+    func hiddenAppNotRescued() {
+        #expect(!CatalogFilter.isRescuable(bundleID: "com.x", appHidden: true, hasWindow: true,
+                                           config(showMinimized: false, showHidden: false)))
+        #expect(CatalogFilter.isRescuable(bundleID: "com.x", appHidden: true, hasWindow: true,
+                                          config(showMinimized: false)))
+    }
+
     @Test("windowless and placeholder rows carry no pid and are left alone")
     func pidlessRowsNotRescued() {
         #expect(CatalogFilter.strandedAppIndices(
