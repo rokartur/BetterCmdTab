@@ -1115,7 +1115,8 @@ function Compare() {
   const phoneHidden = (column: number) =>
     column === 0 || column === rival ? "" : "max-[640px]:hidden";
   return (
-    <section id="compare">
+    // Google built the snippet from these score cells ("31 · Free ; Built-in. 5 ...").
+    <section id="compare" data-nosnippet>
       <h2 className={H2}>Compared.</h2>
       <div
         role="group"

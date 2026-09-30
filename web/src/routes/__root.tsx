@@ -4,15 +4,11 @@ import type { ReactNode } from "react";
 import appCss from "../styles.css?url";
 
 const SITE = "https://bettercmdtab.app";
-// Title Case after the dash on purpose: Google strips a leading brand that
-// duplicates the site name, so the tail has to read as a title on its own.
-const TITLE = "BetterCmdTab — A Better Cmd+Tab Window Switcher for macOS";
-// The <meta name="description"> variant carries the OS floor; the social cards
-// drop it to stay inside the ~200-char preview budget.
+// Under ~50 chars: Google cut the previous 58-char title at "for ...".
+const TITLE = "BetterCmdTab: Cmd+Tab Window Switcher for macOS";
+// Under ~155 chars so Google shows it whole instead of rewriting it.
 const DESCRIPTION =
-  "A fast, native Cmd+Tab replacement for macOS: grid & list app switcher, fuzzy search & launch, and window cycling. Free, open-source, zero telemetry. macOS 13+.";
-const SOCIAL_DESCRIPTION =
-  "A fast, native Cmd+Tab replacement for macOS: grid & list app switcher, fuzzy search & launch, and window cycling. Free, open-source, zero telemetry.";
+  "Free, open-source Cmd+Tab replacement for macOS: window switcher with list, grid and live preview layouts, fuzzy app search and launch, zero telemetry.";
 const IMAGE_ALT = "BetterCmdTab: The ⌘Tab macOS deserves. Window previews switcher screenshot.";
 
 // The homepage is the only route, so every tag below is a constant. Router
@@ -53,7 +49,7 @@ const meta = [
   { property: "og:type", content: "website" },
   { property: "og:site_name", content: "BetterCmdTab" },
   { property: "og:title", content: TITLE },
-  { property: "og:description", content: SOCIAL_DESCRIPTION },
+  { property: "og:description", content: DESCRIPTION },
   { property: "og:url", content: `${SITE}/` },
   { property: "og:locale", content: "en_US" },
   { property: "og:image", content: `${SITE}/og.jpeg` },
@@ -64,7 +60,7 @@ const meta = [
   { property: "og:image:alt", content: IMAGE_ALT },
   { name: "twitter:card", content: "summary_large_image" },
   { name: "twitter:title", content: TITLE },
-  { name: "twitter:description", content: SOCIAL_DESCRIPTION },
+  { name: "twitter:description", content: DESCRIPTION },
   { name: "twitter:image", content: `${SITE}/og.jpeg` },
   { name: "twitter:image:alt", content: IMAGE_ALT },
 ];
@@ -173,6 +169,7 @@ const jsonLd = {
       "@type": "WebSite",
       "@id": `${SITE}/#website`,
       name: "BetterCmdTab",
+      alternateName: "Better Cmd Tab",
       url: `${SITE}/`,
       inLanguage: "en",
       description: "A fast, native Cmd+Tab window switcher and app launcher for macOS.",
