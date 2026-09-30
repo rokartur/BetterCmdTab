@@ -286,7 +286,6 @@ enum Activator {
             if !hasVisibleWindow, let firstMinimized {
                 AXUIElementSetAttributeValue(firstMinimized, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
             }
-            let hasWindows = !windows.isEmpty
             DispatchQueue.main.async {
                 guard isCurrentActivation(gen) else {
                     completion()
@@ -296,7 +295,7 @@ enum Activator {
                     completion()
                     return
                 }
-                if hasWindows { bringToFront(live) } else { openFreshWindow(for: live) }
+                bringToFront(live)
                 completion()
             }
         }
@@ -321,7 +320,6 @@ enum Activator {
                 window: row.window,
                 cachedWid: row.cgWindowID,
                 isMinimized: row.isMinimized,
-                isFullscreen: row.isFullscreen,
                 instantSpace: instantSpace,
                 completion: completion
             )
@@ -392,7 +390,6 @@ enum Activator {
         window: AXUIElement?,
         cachedWid: CGWindowID,
         isMinimized: Bool,
-        isFullscreen: Bool,
         instantSpace: Bool,
         completion: @escaping @MainActor @Sendable () -> Void
     ) {
@@ -403,11 +400,7 @@ enum Activator {
         }
 
         guard let window else {
-            if isFullscreen {
-                bringToFront(app)
-            } else {
-                openFreshWindow(for: app)
-            }
+            bringToFront(app)
             completion()
             return
         }
@@ -661,27 +654,6 @@ enum Activator {
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true
         NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
-    }
-
-    @MainActor
-    private static func openFreshWindow(for app: NSRunningApplication) {
-        if app.bundleIdentifier == finderBundleID {
-            openNewFinderWindow()
-            bringToFront(app)
-            return
-        }
-        guard let url = app.bundleURL else {
-            bringToFront(app)
-            return
-        }
-        openActivating(url, bundleID: app.bundleIdentifier)
-    }
-
-    private static func openNewFinderWindow() {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let config = NSWorkspace.OpenConfiguration()
-        config.activates = true
-        NSWorkspace.shared.open([home], withApplicationAt: URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app"), configuration: config) { _, _ in }
     }
 
     static func closeWindow(_ row: SwitcherRow) {
