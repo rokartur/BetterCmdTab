@@ -30,7 +30,7 @@ cd BetterCmdTab
 xcodebuild -scheme "BetterCmdTab Debug" -configuration Debug build
 ```
 
-You need Xcode 16+ and the macOS 26 SDK installed. The Liquid Glass code paths are gated to macOS 26 — building against an older SDK still works, the app just falls back to NSVisualEffectView at runtime.
+You need the macOS 26 SDK: the Liquid Glass panel compiles against `NSGlassEffectView` with no `#if`, so an older SDK fails the build. At runtime macOS 13 to 15 fall back to `NSVisualEffectView`.
 
 ## Running tests
 

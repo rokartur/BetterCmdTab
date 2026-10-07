@@ -1,11 +1,10 @@
 # Coding standards
 
-Rules for any change to app code under `BetterCmdTab/`. Each one departs from what a generic
-Swift change would do; the build, the scripts and `CONTRIBUTING.md` carry the rest.
+Rules for any change to app code under `BetterCmdTab/`.
 
 ## Platform
 
-- AppKit only: no SwiftUI, no Catalyst, no third-party UI frameworks.
+- AppKit only.
 - The deployment target is macOS 13.0. Gate newer APIs with `if #available` and give the older
   path a working fallback.
 - The only network traffic is the opt-in GitHub Releases update check.
@@ -18,7 +17,7 @@ background task needs a case that twenty lines cannot cover.
 
 ## Logging
 
-Log through `Log.*` (`BetterCmdTab/System/Log.swift`, the `os.Logger` wrapper).
+Log through `Log.*` (`BetterCmdTab/System/Log.swift`).
 
 ## Strings
 
