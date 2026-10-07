@@ -151,4 +151,25 @@ struct RowLabelsTests {
         )
         #expect(labels == ["w"])
     }
+
+    private static let rightHandQwertyLetters = Set<Character>("yuiophjklnm")
+
+    @Test("one-hand hints use only the held hand's letters (#198)")
+    func oneHandHintsStayOnHand() {
+        let labels = RowLabels.labels(
+            forInputs: [input("1Password"), input("Slack"), input("Safari"), input("Kitty")],
+            offHandLetters: Self.rightHandQwertyLetters
+        )
+        #expect(labels.allSatisfy { !$0.isEmpty })
+        #expect(labels.allSatisfy { $0.allSatisfy { !Self.rightHandQwertyLetters.contains($0) } })
+    }
+
+    @Test("a name with no on-hand letter gets a free on-hand letter (#198)")
+    func oneHandHintsFallBackToFreeLetter() {
+        let labels = RowLabels.labels(
+            forInputs: [input("1Password"), input("Kitty"), input("Hulu")],
+            offHandLetters: Self.rightHandQwertyLetters
+        )
+        #expect(labels == ["a", "t", "b"])
+    }
 }

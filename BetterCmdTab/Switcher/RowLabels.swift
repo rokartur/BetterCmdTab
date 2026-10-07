@@ -35,6 +35,13 @@ enum RowLabels {
         excludedStore.withLock { $0 = ids }
     }
 
+    /// Letters off the hand holding the trigger while one-hand hints are on (#198),
+    /// set by `SwitcherController` for each switch session, empty otherwise.
+    private static let offHandStore = OSAllocatedUnfairLock<Set<Character>>(initialState: [])
+    static func setOffHandLetters(_ letters: Set<Character>) {
+        offHandStore.withLock { $0 = letters }
+    }
+
     /// Full a–z pool for disambiguation suffixes; reserved letters are filtered
     /// out at the point of use so the pool tracks the dynamic reservation.
     static let suffixAlphabet: [Character] = Array("abcdefghijklmnopqrstuvwxyz")
@@ -54,19 +61,22 @@ enum RowLabels {
     static func labels(for rows: [SwitcherRow]) -> [String] {
         let mappings = customStore.withLock { $0 }
         let excluded = excludedStore.withLock { $0 }
+        let offHand = offHandStore.withLock { $0 }
         return labels(
             forInputs: rows.map {
                 Input(appName: $0.appName, windowTitle: $0.windowTitle, bundleID: $0.bundleIdentifier)
             },
             customMappings: mappings,
-            excludedBundleIDs: excluded
+            excludedBundleIDs: excluded,
+            offHandLetters: offHand
         )
     }
 
     static func labels(
         forInputs rows: [Input],
         customMappings: [String: Character] = [:],
-        excludedBundleIDs: Set<String> = []
+        excludedBundleIDs: Set<String> = [],
+        offHandLetters: Set<Character> = []
     ) -> [String] {
         var labels = [String](repeating: "", count: rows.count)
         guard !rows.isEmpty else { return labels }
@@ -75,7 +85,7 @@ enum RowLabels {
         // it through the per-character loops below. Custom letters also stay out
         // of dynamically-generated labels, so opening another app can never steal
         // a persistent mapping.
-        let reserved = Self.reserved.union(customMappings.values)
+        let reserved = Self.reserved.union(customMappings.values).union(offHandLetters)
 
         // A mapping targets the first (most-recent) row for its app. Other
         // windows of the same app keep ordinary dynamic labels, avoiding a
@@ -130,6 +140,9 @@ enum RowLabels {
         }
 
         disambiguateDuplicates(&labels, reserved: reserved)
+        if !offHandLetters.isEmpty {
+            assignFreeLetters(&labels, skipping: skipIndices, reserved: reserved)
+        }
         return labels
     }
 
@@ -155,6 +168,17 @@ enum RowLabels {
                     }
                 }
             }
+        }
+    }
+
+    /// One-hand mode leaves names like "Hulu" with no on-hand letter; give each such
+    /// row a letter no other label starts with, so every row stays reachable.
+    private static func assignFreeLetters(_ labels: inout [String], skipping skipIndices: Set<Int>, reserved: Set<Character>) {
+        let usedFirstLetters = Set(labels.compactMap(\.first))
+        var freeLetters = suffixAlphabet.filter { !reserved.contains($0) && !usedFirstLetters.contains($0) }.makeIterator()
+        for i in labels.indices where labels[i].isEmpty && !skipIndices.contains(i) {
+            guard let letter = freeLetters.next() else { return }
+            labels[i] = String(letter)
         }
     }
 

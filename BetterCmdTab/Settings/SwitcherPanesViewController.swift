@@ -100,6 +100,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let shiftTapBackSwitch = PreferenceSwitch(bind: \.shiftTapStepsBackward)
     private let backtickReverseSwitch = PreferenceSwitch(bind: \.backtickReversesAppSwitching)
     private let vimNavSwitch = PreferenceSwitch(bind: \.vimNavigationEnabled)
+    private let oneHandHintsSwitch = PreferenceSwitch(bind: \.oneHandLetterHints)
 
     // Mouse
     private let scrollSwitch = NSSwitch()
@@ -129,6 +130,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
             addGlobalDefaultNote()
             buildKeyboardSection()
             buildLetterJumpSection()
+            buildOneHandHintsSection()
             buildSearchSection()
             buildMouseSection()
         case .tabs:
@@ -297,6 +299,16 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                accessory: letterTimeoutStack, searchItemID: SearchID.letterChainTimeout)
     }
 
+    private func buildOneHandHintsSection() {
+        let oneHand = addSection(title: String(localized: "One-hand letter jump"), anchor: SettingsAnchor.oneHandHints)
+        addRow(to: oneHand, icon: "flask.fill",
+               title: String(localized: "These features are unstable"),
+               subtitle: String(localized: "Off by default. They may change or break."))
+        addRow(to: oneHand, title: String(localized: "Hints on the ⌘ side"),
+               subtitle: String(localized: "Left ⌘ shows only left-hand letters, right ⌘ only right-hand letters, so the hand holding ⌘ reaches every hint."),
+               accessory: oneHandHintsSwitch, searchItemID: SearchID.oneHandHints)
+    }
+
     /// Search — type-to-filter behavior. “Search browser tabs” lives with the
     /// other browser-tab rows under Tabs.
     private func buildSearchSection() {
@@ -458,6 +470,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         applyLetterTimeout(prefs.letterChainTimeoutMs)
         letterTimeoutSlider.isEnabled = prefs.letterHintsEnabled
         letterTimeoutValueField.isEnabled = prefs.letterHintsEnabled
+        oneHandHintsSwitch.sync()
 
         fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
         fuzzyRow?.update(subtitle: Self.fuzzySubtitle())

@@ -357,6 +357,10 @@
       "description" : "Internal counter for allocating scoped-shortcut ids. Never decreases, so a removed id is never reused. Don't edit.",
       "type" : "integer"
     },
+    "oneHandLetterHints" : {
+      "description" : "Draw hint letters only from the keyboard half on the side of the held ⌘.",
+      "type" : "boolean"
+    },
     "panelAppearance" : {
       "description" : "Light or dark switcher, independent of the rest of macOS.",
       "enum" : [

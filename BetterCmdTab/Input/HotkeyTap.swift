@@ -187,6 +187,8 @@ final class HotkeyTap: @unchecked Sendable {
     /// reader is only trusted with secure input OFF. Updated on every keyDown /
     /// flagsChanged; read via `liveTriggerHoldHeld`.
     private let liveTriggerHoldFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// Which side's modifier held the last trigger chord, for one-hand hints (#198).
+    private let triggerHandFlag = OSAllocatedUnfairLock<KeyboardHand>(initialState: .left)
     private let shiftWasHeld = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let layoutData = OSAllocatedUnfairLock<Data?>(initialState: nil)
     /// When true the tap consumes every keyDown (blocking system shortcuts) and
@@ -665,6 +667,16 @@ final class HotkeyTap: @unchecked Sendable {
     /// See `liveTriggerHoldFlag` (issue #16). Safe to call from main.
     func liveTriggerHoldHeld() -> Bool {
         liveTriggerHoldFlag.withLock { $0 }
+    }
+
+    /// The side of the keyboard whose modifier held the last trigger chord the tap saw.
+    func triggerHand() -> KeyboardHand {
+        triggerHandFlag.withLock { $0 }
+    }
+
+    static func hand(holding flags: CGEventFlags) -> KeyboardHand {
+        let rightModifierBits = UInt64(NX_DEVICERCMDKEYMASK | NX_DEVICERALTKEYMASK | NX_DEVICERCTLKEYMASK)
+        return flags.rawValue & rightModifierBits != 0 ? .right : .left
     }
 
     /// Enter/leave recording mode. While recording, keyDowns are consumed and
@@ -1259,6 +1271,7 @@ final class HotkeyTap: @unchecked Sendable {
             if appModHeld, let appKey = cfg.appKey, Self.chordKeyMatches(keyCode, appKey),
                switchingNow || Self.triggerChordMatches(flags, configured: cfg.appModifier) {
                 if suppressTrigger { return Unmanaged.passUnretained(event) }
+                triggerHandFlag.withLock { $0 = Self.hand(holding: flags) }
                 let dir: Event = shiftHeld ? .prevApp : .nextApp
                 deliver(dir)
                 return nil
@@ -1266,6 +1279,7 @@ final class HotkeyTap: @unchecked Sendable {
             if windowModHeld, let windowKey = cfg.windowKey, Self.chordKeyMatches(keyCode, windowKey),
                switchingNow || Self.triggerChordMatches(flags, configured: cfg.windowModifier) {
                 if suppressTrigger { return Unmanaged.passUnretained(event) }
+                triggerHandFlag.withLock { $0 = Self.hand(holding: flags) }
                 let dir: Event = shiftHeld ? .prevWindow : .nextWindow
                 deliver(dir)
                 return nil

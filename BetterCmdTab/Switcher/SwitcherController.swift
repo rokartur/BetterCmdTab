@@ -1986,7 +1986,9 @@ final class SwitcherController: SwitcherViewDelegate {
             if wasIdle != (newValue == .idle) {
                 if newValue == .idle {
                     secureInputMonitor.stop()
+                    RowLabels.setOffHandLetters([])
                 } else {
+                    RowLabels.setOffHandLetters(sessionOffHandLetters())
                     Activator.beginActivation()
                     secureInputMonitor.start()
                     cache.retryFailedAXObservers()
@@ -2053,6 +2055,11 @@ final class SwitcherController: SwitcherViewDelegate {
                 syncNativeHotkeyOverride()
             }
         }
+    }
+
+    private func sessionOffHandLetters() -> Set<Character> {
+        guard Preferences.shared.oneHandLetterHints else { return [] }
+        return Set(RowLabels.suffixAlphabet).subtracting(KeyboardLayout.letters(under: hotkey.triggerHand()))
     }
 
     /// Resolve the firing shortcut's per-shortcut override (#74) into the two
