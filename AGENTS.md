@@ -19,6 +19,8 @@ xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
 
 The switcher boots only after Accessibility is granted (System Settings → Privacy & Security),
 so no unit test reaches it, and a running app whose ⌘Tab does nothing is missing that grant.
+Quit it with `osascript -e 'quit app "BetterCmdTab Debug"'`. A signal (`pkill`, `kill`) skips
+`SymbolicHotkeyGuard`'s restore, so native ⌘Tab stays off until the app launches again.
 
 ## Where the rest lives
 

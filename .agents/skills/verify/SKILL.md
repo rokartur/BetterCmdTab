@@ -113,7 +113,7 @@ Swift function is a test, not a witness.
 
 | Changed area | Drive | Witness |
 | --- | --- | --- |
-| `App/`, `System/` | Fresh launch, reopen, menu action, or relevant permission transition | Window/menu/lifecycle state and filtered unified-log lines |
+| `App/`, `System/` | Fresh launch, reopen, menu action, or relevant permission transition. Open the status menu with System Events `click menu bar item 1 of menu bar 1` of the app process, backgrounded with `&` since the click blocks until the menu closes (an `.accessory` app has no `menu bar 2`) | Window/menu/lifecycle state and filtered unified-log lines |
 | `Input/`, `Switcher/` | Hold and send the actual configured chord with System Events; use a real password field for Secure Event Input and ask the user for a real trackpad gesture | Cropped panel capture plus the selected/cancelled app or window outcome |
 | `Settings/`, `Preferences` | Reopen Settings, operate the control, restart with the same isolated state, then exercise its downstream behavior | Restored control state and the changed live behavior |
 | `Catalog/`, `Windows/` | Prepare named real apps/windows, open the switcher, then select or act on one | Visible rows and resulting frontmost app/window state |

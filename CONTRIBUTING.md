@@ -19,7 +19,7 @@ The codebase is small. Read these first:
 - `BetterCmdTab/Windows/Activator.swift` — activation, raise, close, hide, quit
 - `BetterCmdTab/Windows/MRUTracker.swift` — most-recently-used app ordering
 - `BetterCmdTab/Settings/` — native AppKit Settings window
-- `BetterCmdTab/Updater/` — GitHub Releases updater and update window
+- `BetterUpdater` (SPM package) — GitHub Releases updater and update window
 - `BetterCmdTab/System/PrivateAPIs.swift` — private CGS / SkyLight glue, isolated for review
 
 ## Building
