@@ -1,204 +1,33 @@
-## Project priority — performance first
+## Project priority: performance first
 
-Performance, optimization, and minimal resource usage are the top priority for every change
-in this project. It is a ⌘Tab hot-path app: prefer the solution that uses the least CPU,
-memory, and energy, keep work off the main thread (or measure it), avoid allocations and
-polling on hot paths, and don't add a dependency or background task when a lighter approach
-works. When two designs are equally correct, ship the cheaper one.
+This is a ⌘Tab hot-path app, so performance and minimal resource usage come first in every
+change. When two designs are equally correct, ship the cheaper one.
+
+Rules for app code (platform, hot path, logging, strings, preferences, tests, commits) live in
+`CODING_STANDARDS.md`; read it before any change under `BetterCmdTab/`.
 
 ## Build / test / run
 
-Xcode 16+ and the macOS 26 SDK are required (Liquid Glass paths are SDK-gated; deployment
-target is macOS 13.0, which falls back to `NSVisualEffectView` at runtime). Two schemes
-exist: `BetterCmdTab Debug` and `BetterCmdTab`.
+`CONTRIBUTING.md` has the build and whole-suite test commands and which suites need a live
+WindowServer. To run one suite or case, address the Swift Testing function by its bare name
+(`noMatch`, `appNameSubsequence`); there are no `testXxx()` methods:
 
 ```bash
-# Build
-xcodebuild -scheme "BetterCmdTab Debug" -configuration Debug build
-xcodebuild -scheme "BetterCmdTab" -configuration Release build   # ships Liquid Glass
-
-# Test (whole suite)
-xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' test
-
-# Single test class / method
-xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
-  test -only-testing:BetterCmdTabTests/FuzzyMatchTests
 xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
   test -only-testing:BetterCmdTabTests/FuzzyMatchTests/noMatch
 ```
 
-Tests use **Swift Testing** (`import Testing`, `@Suite`/`@Test`), not XCTest — there are
-no `testXxx()` methods, so select a single case by its Swift function name (e.g. `noMatch`,
-`appNameSubsequence`), not by a `test`-prefixed name.
-
-Tests cover **pure logic** (switcher metrics, row labels, catalog filtering, fuzzy
-match, updater parsing, Liquid Glass selection, settings portability), plus a small
-AppKit-hosted set — `TabStripWindowingTests`, `SwitcherReflowTests` — that needs a live
-WindowServer and macOS Reduce Motion off. The rest of the UI is verified manually: the
-switcher needs Accessibility permission, so that surface fails in headless/CI and is not
-part of the unit run.
-
-## Release / version
-
-```bash
-scripts/set_version.sh 26.5               # set MARKETING_VERSION, auto-commits (chore: bump …)
-scripts/set_version.sh --show             # print current version & build
-scripts/build_release.sh                  # build + sign + notarize + dmg/zip → build/release/
-scripts/build_release.sh --beta           # beta build, auto-detects next beta.N from GitHub tags
-scripts/build_release.sh --auto-release   # after notarize, create the GitHub release (needs --notes "$(cat notes.md)" or prompts)
-scripts/build_release.sh --skip-notarization   # dev build, no notarize (refuses --auto-release)
-scripts/update-packages.sh                # bump SPM deps (clears Package.resolved, re-resolves)
-```
-
-`build_release.sh` stamps a fresh `CURRENT_PROJECT_VERSION` on every build (skip with
-`--skip-build-bump`); only the app target's version moves, the test target keeps its own.
-Signing/notarization needs the `Developer ID Application: Artur Rok (N529W98U62)` certificate
-and the `BetterCmdTabNotarization` notarytool keychain profile (see the script header).
-`.github/workflows/sign-release.yml` runs signing in CI.
-
-### Changelog format (the release body)
-
-The changelog *is* the GitHub Release body (no `CHANGELOG.md`). Pass it to
-`build_release.sh --auto-release --notes "$(cat notes.md)"` — that flag takes the notes
-text, not a path, so an unquoted filename would become the release body. Or write it
-after the fact with
-`gh release create <tag> -R rokartur/BetterCmdTab --title "BetterCmdTab <version>" --notes-file notes.md`.
-Every tag is bare — no `v` prefix — for stable (`26.7`) and prereleases alike (`26.7-beta.3`,
-published with `--prerelease`); only historical stable tags through `v26.6.1` carry the prefix.
-`MAJOR` tracks the macOS year. Both Homebrew casks template their download URL on the tag, so
-the first bare stable release must also drop the `v` from `Casks/b/bettercmdtab.rb` (the
-`bettercmdtab@beta` cask is already bare) or `brew bump` lands a 404.
-
-Homebrew's own BrewTestBot autobumps both casks off their `livecheck` blocks, which read the
-version out of the DMG *asset filename*, not the tag. There is no cask workflow in this repo
-and there should not be one: a second bot would race BrewTestBot and need a token with push
-rights on a third-party repository. Cask upkeep is limited to landing template fixes upstream.
-
-Match the established BetterCmdTab body shape — this is an end-user app, so bullets are
-**user-facing and outcome-first**, not internal symbol names:
-
-- **First line** is `## Highlights` — a one/two-sentence summary of what the release delivers.
-- Then `### Added`, `### Changed`, `### Fixed`, `### Removed` as they apply (omit empty sections).
-- Each bullet describes the observable behavior change for the user — what now works / changed,
-  not which type was renamed. Exclude `chore`/`refactor`/`build`/`test`/`ci`/`docs`-only changes.
-- End with a compare footer for any release with a predecessor (blank line before it):
-
-  ```
-  **Full changelog:** https://github.com/rokartur/BetterCmdTab/compare/<prev-tag>...<tag>
-  ```
-
-(Library packages in the `Better*` family — `BetterSettings`, `BetterUpdater`, etc. — use the same
-structure but with technical, API-level bullets; see their `CLAUDE.md`.)
-
-## Architecture
-
-macOS menu-bar (`.accessory`) app, **AppKit only** — no SwiftUI, no Catalyst, no
-third-party UI frameworks. `AppDelegate` (`App/AppDelegate.swift`) wires everything at
-launch and owns the single `SwitcherController`. Three SPM packages, all first-party
-(`rokartur/*`): `BetterSettings`, `BetterUpdater`, `BetterShortcuts` (`swift-argument-parser`
-shows up in the resolved graph only as their transitive dep — not used by the app directly).
-
-`AppDelegate.main()` sets `.accessory` (no Dock icon) and calls `app.run()`, but the
-`SwitcherController` does **not** boot until Accessibility is trusted: `AccessibilityWaiter`
-polls `AXIsProcessTrusted()` and then calls `bootController()`. A switcher that "does
-nothing" almost always means the AX permission was not granted.
-
-Data + control flow on the ⌘Tab hot path:
-
-- **Input** (`Input/`) — `HotkeyTap` is a CGEvent tap on its **own thread** that detects
-  the ⌘Tab chord and suppresses the native switcher. The tap goes deaf under **Secure
-  Event Input** (password fields), so `CarbonHotkeyTrigger` (Carbon `RegisterEventHotKey`)
-  is the survivor trigger that still opens the panel in that state. `DirectActivation` /
-  `ScopedSwitch` handle
-  per-app hotkeys and scoped cycling without opening the panel. `SwipeTrigger` +
-  `SpaceSwipeSuppressor` drive the three-finger trackpad gesture. `WindowManagement` moves
-  windows across displays.
-- **Catalog** (`Catalog/`) — `AppCatalog` enumerates apps/windows via the Accessibility
-  API. `AppCatalogCache` keeps an incremental cache fed by AX observers and MRU bumps so
-  the panel opens instantly. `CatalogFilter` applies pin/hide/scope rules; `IconCache` and
-  `InstalledAppsIndex` back icons and the launch-any-app search.
-- **Switcher** (`Switcher/`) — `SwitcherController` is the state machine (selection,
-  letter-jump, fuzzy search, tab drill-in). `SwitcherPanel` is the non-activating panel.
-  `SwitcherView` lays out the three layouts (list / grid / window previews) via the
-  per-layout item views. `WindowThumbnailCache` backs preview thumbnails; `TabStripView` +
-  `Windows/BrowserTabs` implement the `\` tab drill-in.
-- **Windows** (`Windows/`) — `Activator` performs activate/raise/close/hide/quit.
-  `MRUTracker` / `WindowMRUTracker` order apps and windows by recency;
-  `RecentlyClosedStore` powers reopen-recently-closed; `WindowEnumerator` lists windows.
-- **System** (`System/`) — `PrivateAPIs` isolates all private CGS/SkyLight glue (kept in
-  one file for review). `AccessibilityCheck` gates on the AX permission. `Log` is the
-  `os.Logger` wrapper — use `Log.*`, never `print`. Plus audio-activity, Dock-badge,
-  symbolic-hotkey-guard, and launch-at-login helpers.
-- **Settings** (`Settings/`) — native AppKit settings window, ten panes registered in
-  `SettingsCatalog` (General, Profiles, Shortcuts, Switcher, Controls, Tabs, Apps,
-  Appearance, Privacy, About). One controller per pane, except that
-  `SwitcherPanesViewController` backs Switcher/Controls/Tabs from one `Pane` parameter
-  since they share every control and one `viewWillAppear` sync. Fragile/new features ship
-  off by default under a “These features are unstable” notice on their own section.
-
-## Preferences, persistence & i18n
-
-- **Preferences** — `App/Preferences.swift` is a `@MainActor` `ObservableObject` singleton
-  (`Preferences.shared`) whose `@Published` properties persist to `UserDefaults` via `didSet`.
-  All keys live in a `Keys` enum under the `"Switcher."` prefix. Hot-path consumers
-  (`CatalogFilter`, `SwitcherController`) read some keys (sort order, app exceptions,
-  expand-tabs) **directly off the main actor** from `UserDefaults`, so the key strings are
-  the contract — don't rename one without updating both sides.
-- **Portability** — `App/SettingsPortability.swift` exports/imports the whole `Switcher.*`
-  namespace as flat prefix-free JSON (`.json`); import also accepts the legacy versioned
-  `.cmdtab` envelope (`schemaVersion`, UTI `pro.bettercmdtab.settings`). Import is partial
-  (absent keys keep their current value) and calls `reloadFromDefaults()` to refresh live
-  subscribers. `App/ConfigFile.swift` two-way-syncs the same flat format with
-  `~/.config/bettercmdtab/config.json` (`$XDG_CONFIG_HOME` honored) when that file exists —
-  event-driven watcher + debounced write-back, dormant when absent (#117). It also writes a
-  sidecar `schema.json` (referenced by the config's `$schema` key) generated from the live
-  snapshot — types only, open-ended, so a new preference needs no schema edit.
-- **Localization** — user-facing strings use `String(localized: "…")` and live in the
-  version-controlled `BetterCmdTab/Localizable.xcstrings` (native Xcode string catalog,
-  macOS 13+). Enum display names (layout mode, accent, etc.) are localized too.
-
-## Running locally
-
-Run the `BetterCmdTab Debug` scheme from Xcode. The app is `.accessory` — no Dock icon, it
-lives in the menu bar. On first launch grant **Accessibility** under System Settings →
-Privacy & Security → Accessibility, then quit/relaunch (or wait for `AccessibilityWaiter`
-to pick it up). Without that permission the switcher never boots and ⌘Tab does nothing.
+The switcher boots only after Accessibility is granted (System Settings → Privacy & Security),
+so no unit test reaches it, and a running app whose ⌘Tab does nothing is missing that grant.
 Quit it with `osascript -e 'quit app "BetterCmdTab Debug"'`. A signal (`pkill`, `kill`) skips
 `SymbolicHotkeyGuard`'s restore, so native ⌘Tab stays off until the app launches again.
 
-## Conventions (from CONTRIBUTING.md)
+## Where the rest lives
 
-- AppKit only; no telemetry/analytics/background network. Only allowed network calls are
-  opt-in GitHub Releases update checks.
-- Deployment target stays macOS 13.0. New-OS features must be `if #available`-gated with a
-  graceful fallback.
-- Hot-path work (anything on ⌘Tab) stays off the main thread or must be measured.
-- Logging via `os.Logger` through `Log.*` — no leftover `print`.
-- Commits: `type: short summary` (`fix:`/`feat:`/`perf:`/`refactor:`/`docs:`/`chore:`),
-  body wrapped ~72 chars explaining *why*. One logical change per PR.
-- New pure-logic behavior ships with at least one test.
-
-## web/ and docs/
-
-The public site, two separate static exports (React 19, oxlint/oxfmt) that share one origin:
-`web/` is the marketing page at `/`, built with **TanStack Start** on Vite and prerendered
-(SSR at build time) to `web/out`; `docs/` is the Fumadocs site built with **Next.js** and
-`basePath: '/docs'`. `web/Dockerfile` merges the docs export into `web/out/docs` and serves it with
-`web/serve.ts`, deployed on vexdock as `bettercmdtab.app`. Separate from the app; touch them
-only for the site, not app behavior.
-
-GitHub Pages serves files and nothing else — no rewrites, no redirects, no custom headers. Anything
-that would be a server rule has to be a property of the built tree instead:
-
-- Every page is `<slug>/index.html` and the slashed URL is the one that exists — `docs/` sets
-  Next's `trailingSlash: true`, `web/` gets it from TanStack Start's prerender, which writes
-  subfolder indexes by default. Canonicals, the sitemap and internal links all use that form;
-  the bare form is Pages' own 301, and pointing at it wastes a hop. Two exceptions: bare
-  `/docs`, which a Cloudflare URL rewrite (`/docs` -> `/docs/`) serves from `docs/index.html`,
-  and `web/out/404.html`, prerendered from the `/404` route with `autoSubfolderIndex: false`
-  because Pages only serves that exact filename.
-- `web/public/sitemap.xml` is hand-maintained. CI checks it both ways: every URL resolves to a real
-  file, and every `docs/content/docs/*/*.mdx` is listed.
-- Next writes an RSC payload twin (`index.txt`, `__next._full.txt`) beside every docs page holding
-  that page's whole text. Pages cannot send `X-Robots-Tag`, so `web/public/robots.txt` disallows `*.txt$`
-  and re-allows the two `llms*.txt` files. Do not relax that without a replacement.
+- **Architecture**: `ARCHITECTURE.md` maps the ⌘Tab hot path (tap thread, Secure Event Input,
+  catalog cache) and the preferences pipeline (direct `UserDefaults` reads, export/import,
+  config file). Read it before touching `Input/`, `Catalog/`, `Switcher/`, `Windows/`,
+  `App/Preferences.swift` or `App/ConfigFile.swift`.
+- **Site**: `web/` and `docs/` are the public site, separate from the app. Their rules
+  (trailing slashes, sitemap, robots, `web/serve.ts`) live in `docs/CONTRIBUTING.md`; read it
+  before touching either directory.

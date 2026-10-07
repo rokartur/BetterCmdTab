@@ -55,7 +55,7 @@ If you cannot verify a claim, write the weaker sentence that is true.
 | `src/components/config-reference.tsx` | Renders the reference tables. |
 | `src/data/config-schema.json` | **Generated** — a copy of the app's own `schema.json`. |
 | `src/lib/layout.shared.tsx` | Nav, sidebar footer links, logo. |
-| `src/app/global.css` | Palette, mirrored from `web/app/globals.css`. |
+| `src/app/global.css` | Palette, mirrored from `web/src/styles.css`. |
 
 ## Adding a page
 
@@ -75,6 +75,9 @@ If you cannot verify a claim, write the weaker sentence that is true.
    slug to `content/docs/pl/meta.json`. The build intentionally has no language
    fallback: a missing translation must fail visibly rather than publish English
    under `/pl`.
+4. List both URLs in `web/public/sitemap.xml`, slashed (`/docs/my-page/`,
+   `/docs/pl/my-page/`). The sitemap is hand-maintained and CI fails on a page
+   it does not list.
 
 **`icon` must exist in Fumadocs' Lucide set.** It is not the full `lucide-react`
 export; `FileJson` for example resolves in the package but the build logs
@@ -104,7 +107,7 @@ with `basePath: '/docs'`. Next adds that prefix to everything **it** generates, 
 route, and `basePath` supplies the public prefix.
 
 English keeps the existing `/docs/<slug>/` URLs; Polish is materialized at
-`/docs/pl/<slug>/`. There is no locale middleware — GitHub Pages cannot run one.
+`/docs/pl/<slug>/`. There is no locale middleware: `web/serve.ts` runs none.
 The MDX renderer keeps ordinary Markdown links in the current page's language. Raw
 component props such as `<Card href>` bypass that resolver, so Polish cards must
 use `/pl/<slug>` (still without the `/docs` base path).
@@ -154,7 +157,7 @@ Note the schema is generated from *a* Mac: `enumDescriptions` are localized, and
 
 ## Styling
 
-The palette mirrors `web/app/globals.css` token-for-token so the landing page and
+The palette mirrors `web/src/styles.css` token-for-token so the landing page and
 the docs read as one site; the mapping onto Fumadocs' variables is at the top of
 `src/app/global.css`. **If you change a colour, change it in both files.**
 
@@ -200,12 +203,29 @@ files with no server at runtime.
 `web/out/docs`, and serves the merged tree with `web/serve.ts`, deployed on
 vexdock. There is no separate docs service and no reverse proxy.
 
-That means a docs change reaches production through the same artifact as a
-marketing change — and that `bun run build` failing here fails the whole site's
-deploy. `.github/workflows/ci-site.yml` runs the same builds on every PR, plus
-the checks that used to be server rules: every sitemap URL resolves to a real
-`index.html`, no internal link points at a URL Pages would redirect, and
-`robots.txt` still blocks the RSC payload twins.
+`web/serve.ts` serves files and nothing else: a slashed URL gets
+`<path>/index.html`, a bare directory 301s to its slashed form, anything
+missing gets `404.html`, and no header is set that a page could rely on.
+Anything that would be a server rule is a property of the built tree instead:
+
+- Every page is `<slug>/index.html`, so the slashed URL is the one that exists:
+  `docs/` sets Next's `trailingSlash: true`, `web/` gets subfolder indexes from
+  TanStack Start's prerender. Canonicals, the sitemap and internal links use the
+  slashed form; the bare form spends a redirect. Two exceptions: bare `/docs`,
+  which `serve.ts` serves from `docs/index.html` as the canonical docs home, and
+  `web/out/404.html`, prerendered from the `/404` route with
+  `autoSubfolderIndex: false` because `serve.ts` serves that exact filename.
+- `web/public/sitemap.xml` is hand-maintained; CI checks it both ways: every URL
+  resolves to a real `index.html`, and every `content/docs/*/*.mdx` is listed.
+- Next writes an RSC payload twin (`index.txt`, `__next._full.txt`) beside every
+  page holding its whole text. `serve.ts` sends no `X-Robots-Tag`, so
+  `web/public/robots.txt` disallows `*.txt$` and re-allows the `llms*.txt`
+  files. Keep that block, or replace it with a header `serve.ts` sends.
+
+A docs change reaches production through the same artifact as a marketing
+change, and `bun run build` failing here fails the whole site's deploy.
+`.github/workflows/ci-site.yml` runs the same builds on every PR plus the
+checks above.
 
 ## Style
 

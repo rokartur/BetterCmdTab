@@ -67,5 +67,15 @@ gh release create <tag> -R rokartur/BetterCmdTab \
   --title "BetterCmdTab <version>" --notes-file notes.md   # add --prerelease for betas
 ```
 
+## 6. After publishing: Homebrew takes care of itself
+
+Publishing fires `.github/workflows/sign-release.yml`, which attaches the
+BetterUpdater manifest the in-app updater verifies. Homebrew's BrewTestBot
+bumps both casks (`bettercmdtab`, `bettercmdtab@beta`) from their `livecheck`
+blocks, which read the version out of the DMG asset filename, not the tag, so
+the asset keeps the name `build_release.sh` gives it. Cask fixes land as
+template fixes in the upstream tap; a cask workflow in this repo would race
+BrewTestBot and need push rights on a third-party repository.
+
 **Complete when:** the GitHub release exists with the notarized artifacts
 attached and the notes match the release-changelog format.
