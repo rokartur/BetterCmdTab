@@ -47,6 +47,7 @@ enum SettingsAnchor {
     // Controls — how you drive the panel.
     static let keyboard = "controls.keyboard"
     static let letterJump = "controls.letterJump"
+    static let oneHandHints = "controls.oneHandHints"
     static let search = "controls.search"
     static let mouse = "controls.mouse"
     static let hoverActions = "controls.hoverActions"
@@ -121,6 +122,7 @@ enum SearchID {
     static let letterHints = "switcher.letterHints"
     static let quickJumpMappings = "switcher.quickJumpMappings"
     static let letterChainTimeout = "switcher.letterChainTimeout"
+    static let oneHandHints = "switcher.oneHandHints"
     static let fuzzy = "switcher.fuzzy"
     static let rankResults = "switcher.rankResults"
     static let launcher = "switcher.launcher"
@@ -424,6 +426,8 @@ enum SettingsCatalog {
              String(localized: "Custom app mappings"), ["letter", "mapping", "custom", "quick jump", "app", "skip", "exclude", "no letter", "hint"]),
         item(SearchID.letterChainTimeout, .controls, SettingsAnchor.letterJump, String(localized: "Controls"), String(localized: "Letter jump"),
              String(localized: "Letter chain timeout"), ["letter", "chain", "timeout", "reset", "jump", "delay", "prefix", "sequence", "expire"]),
+        item(SearchID.oneHandHints, .controls, SettingsAnchor.oneHandHints, String(localized: "Controls"), String(localized: "One-hand letter jump"),
+             String(localized: "Hints on the ⌘ side"), ["one hand", "single hand", "left", "right", "command", "trackpad", "letter", "hint", "jump"]),
         // Controls · Search
         item(SearchID.fuzzy, .controls, SettingsAnchor.search, String(localized: "Controls"), String(localized: "Search"),
              String(localized: "Type-to-filter search"), ["search", "filter", "fuzzy", "type"]),

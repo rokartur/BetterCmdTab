@@ -400,6 +400,7 @@ enum ConfigSchemaDocs {
         "letterChainTimeoutMs": ConfigSettingDoc(
             "integer", "How long a typed letter-jump prefix stays active before it expires (milliseconds).",
             range: Preferences.letterChainTimeoutRange),
+        "oneHandLetterHints": ConfigSettingDoc("boolean", "Draw hint letters only from the keyboard half on the side of the held ⌘."),
         "searchDismissMode": ConfigSettingDoc(
             "string", "Whether searching keeps the switcher open after the modifier is released.",
             values: ConfigValues(SearchDismissMode.self, \.displayName)),

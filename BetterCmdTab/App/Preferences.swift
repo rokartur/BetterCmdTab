@@ -1061,6 +1061,7 @@ final class Preferences: ObservableObject {
         static let hideFromScreenSharing = "Switcher.hideFromScreenSharing"
         static let animationsEnabled = "Switcher.animationsEnabled"
         static let vimNavigationEnabled = "Switcher.vimNavigationEnabled"
+        static let oneHandLetterHints = "Switcher.oneHandLetterHints"
         static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
         static let backtickReversesAppSwitching = "Switcher.backtickReversesAppSwitching"
         static let switcherDisplayMode = "Switcher.displayMode"
@@ -1590,6 +1591,15 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != vimNavigationEnabled else { return }
             UserDefaults.standard.set(vimNavigationEnabled, forKey: Keys.vimNavigationEnabled)
+        }
+    }
+
+    /// Hint letters come only from the keyboard half on the side of the held
+    /// trigger modifier, so the hand holding ⌘ reaches every hint (#198).
+    @Published var oneHandLetterHints: Bool {
+        didSet {
+            guard oldValue != oneHandLetterHints else { return }
+            UserDefaults.standard.set(oneHandLetterHints, forKey: Keys.oneHandLetterHints)
         }
     }
 
@@ -2577,6 +2587,7 @@ final class Preferences: ObservableObject {
         self.scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         self.clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
         self.vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
+        self.oneHandLetterHints = defaults.object(forKey: Keys.oneHandLetterHints) as? Bool ?? false
         self.shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true
         self.backtickReversesAppSwitching = defaults.object(forKey: Keys.backtickReversesAppSwitching) as? Bool ?? false
         self.cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
@@ -2734,6 +2745,7 @@ final class Preferences: ObservableObject {
         scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
         vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
+        oneHandLetterHints = defaults.object(forKey: Keys.oneHandLetterHints) as? Bool ?? false
         shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true
         backtickReversesAppSwitching = defaults.object(forKey: Keys.backtickReversesAppSwitching) as? Bool ?? false
         mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true

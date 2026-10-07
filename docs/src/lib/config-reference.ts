@@ -117,6 +117,7 @@ const sections: { title: string; keys: string[] }[] = [
       'quickJumpMappings',
       'letterHintExcludedBundleIDs',
       'letterChainTimeoutMs',
+      'oneHandLetterHints',
     ],
   },
   {
@@ -254,6 +255,7 @@ const defaults: Record<string, string> = {
   livePreviews: 'false',
   mouseClickSelectionEnabled: 'true',
   mouseHoverSelectionEnabled: 'true',
+  oneHandLetterHints: 'false',
   panelAppearance: '"system"',
   panelCornerRadius: '0',
   panelOpacity: '100',

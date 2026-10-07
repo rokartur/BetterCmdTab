@@ -5888,6 +5888,46 @@
         }
       }
     },
+    "Hints on the ⌘ side" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinweise auf der ⌘-Seite"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indicaciones del lado de ⌘"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indices du côté de ⌘"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpowiedzi po stronie ⌘"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подсказки со стороны ⌘"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按 ⌘ 所在侧显示提示"
+          }
+        }
+      }
+    },
     "Hide menu bar icon" : {
       "localizations" : {
         "de" : {
@@ -7486,6 +7526,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "左对齐"
+          }
+        }
+      }
+    },
+    "Left ⌘ shows only left-hand letters, right ⌘ only right-hand letters, so the hand holding ⌘ reaches every hint." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die linke ⌘-Taste zeigt nur Buchstaben der linken Hand, die rechte nur die der rechten, damit die Hand auf ⌘ jeden Hinweis erreicht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘ izquierda muestra solo letras de la mano izquierda y ⌘ derecha solo de la derecha, así la mano que sujeta ⌘ alcanza cada indicación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘ gauche n’affiche que des lettres de la main gauche, ⌘ droite que celles de la main droite, pour que la main qui tient ⌘ atteigne chaque indice."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lewy ⌘ pokazuje tylko litery lewej ręki, prawy ⌘ tylko prawej, więc ręka trzymająca ⌘ sięga każdej podpowiedzi."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Левая ⌘ показывает только буквы левой руки, правая ⌘ только правой, чтобы рука на ⌘ доставала до каждой подсказки."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住左 ⌘ 时只显示左手字母，按住右 ⌘ 时只显示右手字母，让按住 ⌘ 的手够得到每个提示。"
           }
         }
       }
@@ -9610,6 +9690,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每个应用显示一行，而不是每个窗口一行。"
+          }
+        }
+      }
+    },
+    "One-hand letter jump" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buchstabensprung mit einer Hand"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salto por letra con una mano"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saut par lettre à une main"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skok literą jedną ręką"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переход по буквам одной рукой"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单手字母跳转"
           }
         }
       }
