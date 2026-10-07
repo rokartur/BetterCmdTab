@@ -150,6 +150,7 @@ enum SearchID {
     static let pinnedApps = "switcher.pinnedApps"
     // Appearance
     static let displayMonitor = "switcher.displayMonitor"
+    static let verticalPosition = "appearance.verticalPosition"
     static let layout = "appearance.layout"
     static let size = "appearance.size"
     static let gridColumns = "appearance.gridColumns"
@@ -476,6 +477,8 @@ enum SettingsCatalog {
         // Appearance · Layout
         item(SearchID.displayMonitor, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Show switcher on"), ["display", "monitor", "screen", "multi monitor", "cursor", "main display", "active app", "active space"]),
+        item(SearchID.verticalPosition, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
+             String(localized: "Vertical position"), ["position", "vertical", "top", "center", "higher", "align", "placement"]),
         item(SearchID.layout, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Layout"), ["layout", "grid", "list", "preview"]),
         item(SearchID.size, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),

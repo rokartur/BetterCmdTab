@@ -236,6 +236,9 @@ enum ConfigSchemaDocs {
         "displayMode": ConfigSettingDoc(
             "string", "Which monitor the switcher opens on.",
             values: ConfigValues(SwitcherDisplayMode.self, \.displayName)),
+        "verticalPosition": ConfigSettingDoc(
+            "string", "Where the switcher sits vertically. top keeps its top edge still while search narrows the list.",
+            values: ConfigValues(SwitcherVerticalPosition.self, \.displayName)),
         "revealDelayMs": ConfigSettingDoc(
             "integer", "How long the shortcut must be held before the panel appears — a quicker tap switches without showing it (milliseconds).",
             range: Preferences.revealDelayRange),

@@ -42,7 +42,7 @@ const properties = schema.properties as Record<string, SchemaFragment>;
 const sections: { title: string; keys: string[] }[] = [
   {
     title: 'Display & timing',
-    keys: ['displayMode', 'revealDelayMs', 'titleRefreshIntervalMs'],
+    keys: ['displayMode', 'verticalPosition', 'revealDelayMs', 'titleRefreshIntervalMs'],
   },
   {
     title: 'Layout',
@@ -292,6 +292,7 @@ const defaults: Record<string, string> = {
   tabDrillEnabled: 'true',
   titleRefreshIntervalMs: '200',
   titleTruncationMode: '"tail"',
+  verticalPosition: '"center"',
   vimNavigationEnabled: 'false',
   windowDrillEnabled: 'true',
 };

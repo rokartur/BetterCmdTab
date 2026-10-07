@@ -1023,6 +1023,18 @@
       ],
       "type" : "string"
     },
+    "verticalPosition" : {
+      "description" : "Where the switcher sits vertically. top keeps its top edge still while search narrows the list.",
+      "enum" : [
+        "center",
+        "top"
+      ],
+      "enumDescriptions" : [
+        "Middle",
+        "Top"
+      ],
+      "type" : "string"
+    },
     "vimNavigationEnabled" : {
       "description" : "Navigate with h\/j\/k\/l as well as the arrow keys.",
       "type" : "boolean"
