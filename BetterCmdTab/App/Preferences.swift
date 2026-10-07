@@ -94,6 +94,21 @@ enum SwitcherDisplayMode: String, CaseIterable {
     }
 }
 
+/// Where the switcher panel sits vertically on its screen (#175).
+enum SwitcherVerticalPosition: String, CaseIterable {
+    case center
+    /// Top edge pinned near the top, so filtering the list grows and shrinks
+    /// the panel downward instead of moving it on every keystroke.
+    case top
+
+    var displayName: String {
+        switch self {
+        case .center: return String(localized: "Middle")
+        case .top:    return String(localized: "Top")
+        }
+    }
+}
+
 /// What keeps the switcher open once fuzzy-search has been activated with `/`.
 enum SearchDismissMode: String, CaseIterable {
     /// Keep holding the switcher modifier (⌘); releasing it commits the
@@ -1049,6 +1064,7 @@ final class Preferences: ObservableObject {
         static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
         static let backtickReversesAppSwitching = "Switcher.backtickReversesAppSwitching"
         static let switcherDisplayMode = "Switcher.displayMode"
+        static let verticalPosition = "Switcher.verticalPosition"
         static let previewTitleAlignment = "Switcher.previewTitleAlignment"
         static let titleTruncationMode = "Switcher.titleTruncationMode"
         static let boldSelectedLabel = "Switcher.boldSelectedLabel"
@@ -1067,6 +1083,13 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != switcherDisplayMode else { return }
             UserDefaults.standard.set(switcherDisplayMode.rawValue, forKey: Keys.switcherDisplayMode)
+        }
+    }
+
+    @Published var verticalPosition: SwitcherVerticalPosition {
+        didSet {
+            guard oldValue != verticalPosition else { return }
+            UserDefaults.standard.set(verticalPosition.rawValue, forKey: Keys.verticalPosition)
         }
     }
 
@@ -2463,6 +2486,8 @@ final class Preferences: ObservableObject {
         self.switcherLayoutMode = layoutRaw.flatMap(SwitcherLayoutMode.init(rawValue:)) ?? .gridView
         self.switcherDisplayMode = defaults.string(forKey: Keys.switcherDisplayMode)
             .flatMap(SwitcherDisplayMode.init(rawValue:)) ?? .mouseCursor
+        self.verticalPosition = defaults.string(forKey: Keys.verticalPosition)
+            .flatMap(SwitcherVerticalPosition.init(rawValue:)) ?? .center
 
         let sortRaw = defaults.string(forKey: Keys.sortOrder)
         self.sortOrder = sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
@@ -2645,6 +2670,8 @@ final class Preferences: ObservableObject {
         switcherLayoutMode = defaults.string(forKey: Keys.switcherLayoutMode).flatMap(SwitcherLayoutMode.init(rawValue:)) ?? .gridView
         switcherDisplayMode = defaults.string(forKey: Keys.switcherDisplayMode)
             .flatMap(SwitcherDisplayMode.init(rawValue:)) ?? .mouseCursor
+        verticalPosition = defaults.string(forKey: Keys.verticalPosition)
+            .flatMap(SwitcherVerticalPosition.init(rawValue:)) ?? .center
         sortOrder = defaults.string(forKey: Keys.sortOrder).flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
         revealDelayMs = Self.clampDelay(defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs)
         letterChainTimeoutMs = Self.clampLetterChainTimeout(defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs)

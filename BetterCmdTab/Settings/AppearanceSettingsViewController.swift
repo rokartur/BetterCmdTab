@@ -9,6 +9,8 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private let displayMonitorPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let displayModes: [SwitcherDisplayMode] = SwitcherDisplayMode.allCases
+    private let verticalPositionPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let verticalPositions: [SwitcherVerticalPosition] = SwitcherVerticalPosition.allCases
     private let selectionColors: [SwitcherSelectionColor] = SwitcherSelectionColor.allCases
     private var layoutRadio: SettingsRadioGroupView!
     private var appearanceRadio: SettingsRadioGroupView!
@@ -63,6 +65,11 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         addRow(to: layout, title: String(localized: "Show switcher on"),
                subtitle: String(localized: "Choose which monitor the switcher opens on when you have more than one display."),
                accessory: displayMonitorPopup, searchItemID: SearchID.displayMonitor)
+
+        configurePopup(verticalPositionPopup, titles: verticalPositions.map(\.displayName), action: #selector(verticalPositionChanged))
+        addRow(to: layout, title: String(localized: "Vertical position"),
+               subtitle: String(localized: "Top keeps the panel in place while search narrows the list."),
+               accessory: verticalPositionPopup, searchItemID: SearchID.verticalPosition)
 
         layoutRadio = makeLayoutRadio()
         addRow(to: layout, title: String(localized: "Layout"), accessory: layoutRadio, searchItemID: SearchID.layout)
@@ -425,6 +432,9 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         if let index = displayModes.firstIndex(of: prefs.switcherDisplayMode) {
             displayMonitorPopup.selectItem(at: index)
         }
+        if let index = verticalPositions.firstIndex(of: prefs.verticalPosition) {
+            verticalPositionPopup.selectItem(at: index)
+        }
         selectLayout(prefs.switcherLayoutMode)
         applyScale(prefs.panelScalePercent)
         selectAppearance(prefs.panelAppearance)
@@ -596,6 +606,12 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         let idx = displayMonitorPopup.indexOfSelectedItem
         guard displayModes.indices.contains(idx) else { return }
         Preferences.shared.switcherDisplayMode = displayModes[idx]
+    }
+
+    @objc private func verticalPositionChanged() {
+        let idx = verticalPositionPopup.indexOfSelectedItem
+        guard verticalPositions.indices.contains(idx) else { return }
+        Preferences.shared.verticalPosition = verticalPositions[idx]
     }
 
     private func selectTitleAlignment(_ alignment: PreviewTitleAlignment) {

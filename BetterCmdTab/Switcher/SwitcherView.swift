@@ -805,7 +805,7 @@ final class SwitcherView: NSView {
     }
 
     /// Slides the whole row block from where it was drawn a moment ago to where
-    /// this layout puts it. The panel resizes around its own center, so a strip
+    /// this layout puts it. A centered panel resizes around its own center, so a strip
     /// claiming height at the bottom lifts every row on screen — and because the
     /// measuring layout pass runs before the panel's frame animation starts, the
     /// rows would otherwise land in their final screen position in a single

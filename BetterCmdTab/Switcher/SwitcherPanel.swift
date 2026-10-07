@@ -219,10 +219,7 @@ final class SwitcherPanel: NSPanel {
             width: min(fitting.width, visible.width),
             height: min(fitting.height, visible.height)
         )
-        let origin = NSPoint(
-            x: visible.midX - size.width / 2,
-            y: visible.midY - size.height / 2
-        )
+        let origin = Self.origin(of: size, in: visible, position: Preferences.shared.verticalPosition)
         let newFrame = NSRect(origin: origin, size: size)
         if frame != newFrame {
             if resizeAnimates {
@@ -355,6 +352,19 @@ final class SwitcherPanel: NSPanel {
             width: cocoaRect.width,
             height: cocoaRect.height
         )
+    }
+
+    /// `.top` pins the top edge 20% down the visible frame (eye height, #175);
+    /// a panel too tall for that slides up rather than spilling off the bottom.
+    static func origin(of size: NSSize, in visible: NSRect, position: SwitcherVerticalPosition) -> NSPoint {
+        let x = visible.midX - size.width / 2
+        switch position {
+        case .center:
+            return NSPoint(x: x, y: visible.midY - size.height / 2)
+        case .top:
+            let top = visible.maxY - visible.height * 0.2
+            return NSPoint(x: x, y: max(visible.minY, top - size.height))
+        }
     }
 
     private func activeScreen() -> NSScreen {
