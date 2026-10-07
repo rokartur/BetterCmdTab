@@ -4,10 +4,7 @@ Thanks for taking the time to contribute. Issues and pull requests are both welc
 
 ## Ground rules
 
-- Keep the app feeling native. AppKit only, no SwiftUI, no Catalyst, no third-party UI frameworks.
-- No telemetry, analytics, or background network traffic. The only allowed network calls are GitHub Releases checks, and only when the user opts in.
-- Minimum deployment target stays at macOS 13.0. Newer-OS features must be gated with `if #available` and ship a graceful fallback.
-- Performance matters. Anything on the Cmd+Tab hot path needs to stay off the main thread or be measured.
+The rules for app code (platform, hot path, logging, strings, preferences, tests, commits) live in [CODING_STANDARDS.md](CODING_STANDARDS.md). Read it before changing anything under `BetterCmdTab/`.
 
 ## Project layout
 
@@ -45,12 +42,8 @@ Tests live under `BetterCmdTabTests/`. They cover pure logic — switcher metric
 
 ## Pull request checklist
 
-- The change builds clean with no new warnings.
+- The change follows [CODING_STANDARDS.md](CODING_STANDARDS.md), commit format included.
 - All existing tests still pass.
-- New behavior comes with at least one test if it has any pure-logic surface.
-- No commented-out code, no dead branches, no leftover `print` statements (use `os.Logger` via `Log.*`).
-- Commit messages follow `type: short summary` (e.g. `fix: …`, `feat: …`, `perf: …`, `refactor: …`, `docs: …`, `chore: …`). Wrap the body at ~72 chars and explain *why*, not *what*.
-- One logical change per PR. Split refactors out from behavior changes.
 
 ## Reporting bugs
 

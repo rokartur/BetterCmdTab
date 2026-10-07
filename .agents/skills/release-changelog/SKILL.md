@@ -6,13 +6,13 @@ description: Changelog generation for BetterCmdTab from a version or tag through
 # Release changelog
 
 Create end-user release notes from a base version through the latest commit.
-Return Markdown unless the user names an output file.
+The GitHub Release body is the project's only changelog. Return Markdown
+unless the user names an output file.
 
 ## 1. Fix the range and format
 
 Read `compose_release_notes_interactively` in `scripts/build_release.sh`. Its
-section names, heading levels, and order are canonical. Read the
-release/changelog rules in `AGENTS.md` for the audience and compare footer.
+section names, heading levels, and order are canonical.
 
 Use the requested base ref. Resolve a bare stable version first; only try its
 `v`-prefixed tag when reading a historical release without a bare ref. If no
