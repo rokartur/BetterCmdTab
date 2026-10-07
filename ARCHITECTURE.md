@@ -1,16 +1,13 @@
 # Architecture
 
 How the pieces under `BetterCmdTab/` fit together and the constraints a directory listing does
-not show. The folder names (`Input/`, `Catalog/`, `Switcher/`, `Windows/`, `System/`,
-`Settings/`) say what each file does; this file says what crosses between them.
+not show.
 
 ## Boot
 
 A menu-bar (`.accessory`) app. `App/AppDelegate.swift` wires everything at launch and owns the
-single `SwitcherController`, but the controller boots only after Accessibility is trusted:
-`AccessibilityWaiter` polls `AXIsProcessTrusted()` and then calls `bootController()`. The
-`Better*` SPM packages (`BetterSettings`, `BetterUpdater`, `BetterShortcuts`) are first-party,
-under `rokartur/*`.
+single `SwitcherController`, which `AccessibilityWaiter` boots only once Accessibility is
+trusted.
 
 ## The ⌘Tab hot path
 
@@ -21,14 +18,10 @@ on in `Windows/`:
   suppresses the native switcher. The tap goes deaf under **Secure Event Input** (a focused
   password field), so `Input/CarbonHotkeyTrigger` (`RegisterEventHotKey`) is the survivor
   trigger that still opens the panel there.
-- `Catalog/AppCatalog` enumerates apps and windows through the Accessibility API.
-  `Catalog/AppCatalogCache` keeps an incremental cache of that result, fed by AX observers and
-  MRU bumps, so the panel opens from cache instead of waiting on AX.
-- `Switcher/SwitcherController` is the state machine (selection, letter-jump, fuzzy search,
-  tab drill-in). `Switcher/SwitcherPanel` is a non-activating panel, so the frontmost app keeps
-  focus while the switcher is up.
-- `Windows/Activator` performs activate, raise, close, hide and quit; `MRUTracker` and
-  `WindowMRUTracker` order apps and windows by recency.
+- `Catalog/AppCatalogCache` is fed by AX observers and MRU bumps so the panel opens from cache
+  instead of waiting on `Catalog/AppCatalog`'s Accessibility enumeration.
+- `Switcher/SwitcherPanel` is a non-activating panel, so the frontmost app keeps focus while
+  the switcher is up.
 
 `System/PrivateAPIs.swift` holds every private CGS/SkyLight call in one file so review can
 see all of it at once; new private glue goes there.
@@ -37,9 +30,8 @@ see all of it at once; new private glue goes there.
 
 `App/Preferences.swift` is the `@MainActor` singleton (`Preferences.shared`) whose
 `@Published` properties persist to `UserDefaults` under `Switcher.*` keys. Hot-path consumers
-(`CatalogFilter`, `SwitcherController`) read a few of those keys (sort order, app exceptions,
-expand-tabs) **straight off `UserDefaults` off the main actor**, by key string, so the string
-is a shipped contract. The `add-preference` skill is the procedure for adding or changing one.
+(`CatalogFilter`, `SwitcherController`) read some of those keys **straight off `UserDefaults`
+off the main actor**, by key string.
 
 `App/SettingsPortability.swift` exports and imports the whole `Switcher.*` namespace as flat,
 prefix-free JSON. Import also accepts the legacy `.cmdtab` envelope (`schemaVersion`, UTI
