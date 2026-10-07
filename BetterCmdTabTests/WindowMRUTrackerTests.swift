@@ -168,7 +168,7 @@ struct WindowMRUTrackerTests {
     @Test("per-app run sort floats the app's MRU window to the run's front")
     func runSortFloatsMRUWindow() {
         let tracker = WindowMRUTracker()
-        let pid = NSRunningApplication.current.processIdentifier
+        let pid = NSRunningApplication.current.pid
         tracker.bump(pid: pid, wid: 30)
         tracker.bump(pid: pid, wid: 20) // 20 focused last
         // Scan order [10, 20, 30] → recency floats 20, unseen 10 sinks.

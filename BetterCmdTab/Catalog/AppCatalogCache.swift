@@ -404,7 +404,7 @@ final class AppCatalogCache {
             let output = DisjointWriteBuffer(buffer)
             DispatchQueue.concurrentPerform(iterations: count) { index in
                 let app = candidates[index]
-                let pid = app.processIdentifier
+                let pid = app.pid
                 output.set(WindowEnumerator.windows(
                     forPid: pid,
                     isRegularApp: app.activationPolicy == .regular,
@@ -422,9 +422,9 @@ final class AppCatalogCache {
             let app = candidates[index]
             let windows = windowsBuffer[index]
             if app.activationPolicy == .regular {
-                dict[app.processIdentifier] = AppCacheEntry(app: app, windows: windows)
+                dict[app.pid] = AppCacheEntry(app: app, windows: windows)
             } else if app.activationPolicy == .accessory, !windows.isEmpty {
-                dict[app.processIdentifier] = AppCacheEntry(app: app, windows: windows)
+                dict[app.pid] = AppCacheEntry(app: app, windows: windows)
             }
         }
         return dict
@@ -450,7 +450,7 @@ final class AppCatalogCache {
         for name in perAppNames {
             let obs = nc.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
                 guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-                let pid = app.processIdentifier
+                let pid = app.pid
                 MainActor.assumeIsolated {
                     self?.scheduleBumpApp(pid: pid)
                 }
@@ -459,7 +459,7 @@ final class AppCatalogCache {
         }
         let terminateObs = nc.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-            let pid = app.processIdentifier
+            let pid = app.pid
             MainActor.assumeIsolated {
                 guard let self else { return }
                 self.uninstallAXObserver(forPid: pid)
@@ -474,7 +474,7 @@ final class AppCatalogCache {
         observers.append(terminateObs)
         let launchObs = nc.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-            let pid = app.processIdentifier
+            let pid = app.pid
             let canHaveWindows = Self.canHaveSwitchableWindows(app)
             MainActor.assumeIsolated {
                 if canHaveWindows {
@@ -496,7 +496,7 @@ final class AppCatalogCache {
     private func installAXObserversForAllApps() {
         let pids = NSWorkspace.shared.runningApplications
             .filter(Self.canHaveSwitchableWindows)
-            .map(\.processIdentifier)
+            .map(\.pid)
         for pid in pids {
             installAXObserver(forPid: pid)
         }

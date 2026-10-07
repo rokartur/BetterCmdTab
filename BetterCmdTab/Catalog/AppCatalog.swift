@@ -28,8 +28,8 @@ enum AppCatalog {
     static func fastAppList(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil, windowedPids: Set<pid_t>? = nil) -> [NSRunningApplication] {
         let selfPid = getpid()
         let regulars = NSWorkspace.shared.runningApplications
-            .filter { $0.activationPolicy == .regular && $0.processIdentifier != selfPid }
-        let byPid = Dictionary(uniqueKeysWithValues: regulars.map { ($0.processIdentifier, $0) })
+            .filter { $0.activationPolicy == .regular && $0.pid != selfPid }
+        let byPid = Dictionary(regulars.map { ($0.pid, $0) }, uniquingKeysWith: { first, _ in first })
 
         var ordered: [NSRunningApplication] = []
         ordered.reserveCapacity(regulars.count)
@@ -40,7 +40,7 @@ enum AppCatalog {
                 seen.insert(pid)
             }
         }
-        for app in regulars where !seen.contains(app.processIdentifier) {
+        for app in regulars where !seen.contains(app.pid) {
             ordered.append(app)
         }
         return CatalogFilter.filteredApps(ordered, cfg ?? CatalogFilter.config(), windowedPids: windowedPids)
@@ -68,7 +68,7 @@ enum AppCatalog {
             let output = DisjointWriteBuffer(buffer)
             DispatchQueue.concurrentPerform(iterations: count) { i in
                 let app = candidates[i]
-                let pid = app.processIdentifier
+                let pid = app.pid
                 output.set(WindowEnumerator.windows(
                     forPid: pid,
                     isRegularApp: app.activationPolicy == .regular,
@@ -92,7 +92,7 @@ enum AppCatalog {
             }
         }
 
-        let byPid = Dictionary(uniqueKeysWithValues: enriched.map { ($0.app.processIdentifier, $0) })
+        let byPid = Dictionary(enriched.map { ($0.app.pid, $0) }, uniquingKeysWith: { first, _ in first })
 
         var ordered: [(app: NSRunningApplication, windows: [WindowInfo])] = []
         ordered.reserveCapacity(enriched.count)
@@ -103,7 +103,7 @@ enum AppCatalog {
                 seen.insert(pid)
             }
         }
-        for entry in enriched where !seen.contains(entry.app.processIdentifier) {
+        for entry in enriched where !seen.contains(entry.app.pid) {
             ordered.append(entry)
         }
 

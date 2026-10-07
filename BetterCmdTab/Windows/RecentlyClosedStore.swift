@@ -48,7 +48,7 @@ final class RecentlyClosedStore {
         // Seed with apps already running when we start.
         for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
             if let bundleID = app.bundleIdentifier, !bundleID.isEmpty {
-                knownRegularApps[app.processIdentifier] = (bundleID, app.localizedName ?? bundleID)
+                knownRegularApps[app.pid] = (bundleID, app.localizedName ?? bundleID)
             }
         }
 
@@ -59,7 +59,7 @@ final class RecentlyClosedStore {
                 guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                       app.activationPolicy == .regular,
                       let bundleID = app.bundleIdentifier, !bundleID.isEmpty else { return }
-                let pid = app.processIdentifier
+                let pid = app.pid
                 let appName = app.localizedName ?? bundleID
                 MainActor.assumeIsolated {
                     RecentlyClosedStore.shared.noteRegularApp(pid: pid, bundleID: bundleID, name: appName)
@@ -74,7 +74,7 @@ final class RecentlyClosedStore {
             queue: .main
         ) { note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-            let pid = app.processIdentifier
+            let pid = app.pid
             MainActor.assumeIsolated {
                 RecentlyClosedStore.shared.handleTermination(pid: pid)
             }

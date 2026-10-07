@@ -27,3 +27,10 @@ identifier_name:
   min_length: 1 # i/x/y/dx in hot-path loops and geometry math
   excluded:
     - SQLITE_TRANSIENT # keeps the C constant's name
+
+custom_rules:
+  running_app_pid:
+    regex: '\.processIdentifier\b'
+    excluded: 'BetterCmdTab/System/RunningApplicationPid\.swift'
+    message: "Read `.pid`: macOS 27 reports processIdentifier -1 for an app whose launcher execs another binary (#209)"
+    severity: error

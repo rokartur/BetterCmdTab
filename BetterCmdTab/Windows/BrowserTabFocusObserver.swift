@@ -68,7 +68,7 @@ final class BrowserTabFocusObserver {
         termObs = nc.addObserver(forName: NSWorkspace.didTerminateApplicationNotification,
                                  object: nil, queue: .main) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-            let pid = app.processIdentifier
+            let pid = app.pid
             MainActor.assumeIsolated {
                 self?.removeObserver(pid: pid)
                 // The window's tabs are gone with the app — but we don't know its
@@ -87,9 +87,9 @@ final class BrowserTabFocusObserver {
     private func seedFrontmost() {
         guard enabled,
               let front = NSWorkspace.shared.frontmostApplication,
-              front.processIdentifier != getpid(),
+              front.pid != getpid(),
               BrowserTabs.Family.from(bundleID: front.bundleIdentifier) != nil else { return }
-        handleChange(pid: front.processIdentifier)
+        handleChange(pid: front.pid)
     }
 
     private func stop() {
@@ -103,7 +103,7 @@ final class BrowserTabFocusObserver {
     }
 
     private func addObserver(for app: NSRunningApplication) {
-        let pid = app.processIdentifier
+        let pid = app.pid
         guard enabled,
               observers[pid] == nil, building[pid] == nil,
               pid != getpid(),

@@ -16,7 +16,7 @@ final class MRUTracker {
             guard
                 let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             else { return }
-            MainActor.assumeIsolated { self?.remove(app.processIdentifier) }
+            MainActor.assumeIsolated { self?.remove(app.pid) }
         }
         termObservers.append(termObs)
     }
@@ -36,18 +36,18 @@ final class MRUTracker {
     private func seedFromCurrent() {
         let selfPid = getpid()
         let candidates = NSWorkspace.shared.runningApplications.filter { app in
-            guard app.processIdentifier != selfPid else { return false }
+            guard app.pid != selfPid else { return false }
             return app.activationPolicy == .regular || app.activationPolicy == .accessory
         }
-        order = candidates.map { $0.processIdentifier }
-        if let front = NSWorkspace.shared.frontmostApplication?.processIdentifier, front != selfPid {
+        order = candidates.map { $0.pid }
+        if let front = NSWorkspace.shared.frontmostApplication?.pid, front != selfPid {
             bump(front)
         }
     }
 
     func syncFrontmost() {
         let selfPid = getpid()
-        guard let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+        guard let front = NSWorkspace.shared.frontmostApplication?.pid,
               front != selfPid else { return }
         if order.first != front {
             Log.mru.debug("syncFrontmost drift front=\(front, privacy: .public) was=\(self.order.first ?? -1, privacy: .public)")
