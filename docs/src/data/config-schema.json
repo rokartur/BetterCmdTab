@@ -192,7 +192,7 @@
       "type" : "boolean"
     },
     "experimentalSwipeTrigger" : {
-      "description" : "Three-finger trackpad swipe.",
+      "description" : "Three- or four-finger trackpad swipe.",
       "type" : "boolean"
     },
     "experimentalUnreadBadges" : {
@@ -979,8 +979,14 @@
       "description" : "Commit the swipe selection when the fingers lift.",
       "type" : "boolean"
     },
+    "swipeFingerCount" : {
+      "description" : "Fingers the swipe needs. 4 leaves three-finger drag free.",
+      "maximum" : 4,
+      "minimum" : 3,
+      "type" : "integer"
+    },
     "swipeMode" : {
-      "description" : "What the three-finger swipe does.",
+      "description" : "What the trackpad swipe does.",
       "enum" : [
         "openSwitcher",
         "switchSpaces",

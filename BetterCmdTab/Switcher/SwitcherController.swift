@@ -840,6 +840,7 @@ final class SwitcherController: SwitcherViewDelegate {
         swipeTrigger.setReverseDirection(Preferences.shared.swipeReverseDirection)
         swipeTrigger.setCommitOnRelease(Preferences.shared.swipeCommitOnRelease)
         swipeTrigger.setSensitivity(Preferences.shared.swipeSensitivity)
+        swipeTrigger.setFingerCount(Preferences.shared.swipeFingerCount)
         // Only "open switcher" scrubs continuously; the other modes fire once
         // per swipe (one Space jump / one app flip).
         swipeTrigger.setOneShot(Preferences.shared.swipeMode != .openSwitcher)
@@ -875,6 +876,10 @@ final class SwitcherController: SwitcherViewDelegate {
         Preferences.shared.$swipeSensitivity
             .receive(on: DispatchQueue.main)
             .sink { [weak self] level in self?.swipeTrigger.setSensitivity(level) }
+            .store(in: &cancellables)
+        Preferences.shared.$swipeFingerCount
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] count in self?.swipeTrigger.setFingerCount(count) }
             .store(in: &cancellables)
         Preferences.shared.$swipeMode
             .receive(on: DispatchQueue.main)

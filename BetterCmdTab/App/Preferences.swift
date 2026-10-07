@@ -857,6 +857,8 @@ final class Preferences: ObservableObject {
 
     static let defaultSwipeSensitivity = 5
     nonisolated static let swipeSensitivityRange: ClosedRange<Int> = 1...10
+    static let defaultSwipeFingerCount = 3
+    nonisolated static let swipeFingerCountRange: ClosedRange<Int> = 3...4
 
     /// 100 % is the native macOS Cmd+Tab size (`SwitcherMetrics.nativeScale`),
     /// so the panel ships matching the switcher it replaces.
@@ -956,6 +958,7 @@ final class Preferences: ObservableObject {
         static let swipeReverseDirection = "Switcher.swipeReverseDirection"
         static let swipeCommitOnRelease = "Switcher.swipeCommitOnRelease"
         static let swipeSensitivity = "Switcher.swipeSensitivity"
+        static let swipeFingerCount = "Switcher.swipeFingerCount"
         static let scrollToSwitch = "Switcher.scrollToSwitch"
         static let scrollReverseDirection = "Switcher.scrollReverseDirection"
         static let clickOutsideToDismiss = "Switcher.clickOutsideToDismiss"
@@ -1673,6 +1676,15 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Fingers that must be down to drive the swipe: 3 or 4. Four leaves
+    /// three-finger drag free to move windows (#155).
+    @Published var swipeFingerCount: Int {
+        didSet {
+            guard oldValue != swipeFingerCount else { return }
+            UserDefaults.standard.set(swipeFingerCount, forKey: Keys.swipeFingerCount)
+        }
+    }
+
     /// When true, committing to an app on another Space or in full screen jumps
     /// there instantly with no slide animation (private SkyLight Space APIs).
     /// Off by default — the animation is what macOS does out of the box.
@@ -2263,6 +2275,10 @@ final class Preferences: ObservableObject {
         min(swipeSensitivityRange.upperBound, max(swipeSensitivityRange.lowerBound, value))
     }
 
+    static func clampSwipeFingerCount(_ value: Int) -> Int {
+        min(swipeFingerCountRange.upperBound, max(swipeFingerCountRange.lowerBound, value))
+    }
+
     nonisolated static func clampPanelScalePercent(_ value: Int) -> Int {
         min(panelScalePercentRange.upperBound, max(panelScalePercentRange.lowerBound, value))
     }
@@ -2583,6 +2599,8 @@ final class Preferences: ObservableObject {
         self.swipeCommitOnRelease = defaults.object(forKey: Keys.swipeCommitOnRelease) as? Bool ?? false
         let sensitivity = defaults.object(forKey: Keys.swipeSensitivity) as? Int ?? Self.defaultSwipeSensitivity
         self.swipeSensitivity = Self.clampSwipeSensitivity(sensitivity)
+        let fingerCount = defaults.object(forKey: Keys.swipeFingerCount) as? Int ?? Self.defaultSwipeFingerCount
+        self.swipeFingerCount = Self.clampSwipeFingerCount(fingerCount)
         self.scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
         self.scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         self.clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
@@ -2741,6 +2759,7 @@ final class Preferences: ObservableObject {
         swipeReverseDirection = defaults.object(forKey: Keys.swipeReverseDirection) as? Bool ?? false
         swipeCommitOnRelease = defaults.object(forKey: Keys.swipeCommitOnRelease) as? Bool ?? false
         swipeSensitivity = Self.clampSwipeSensitivity(defaults.object(forKey: Keys.swipeSensitivity) as? Int ?? Self.defaultSwipeSensitivity)
+        swipeFingerCount = Self.clampSwipeFingerCount(defaults.object(forKey: Keys.swipeFingerCount) as? Int ?? Self.defaultSwipeFingerCount)
         scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
         scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true

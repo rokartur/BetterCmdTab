@@ -39,7 +39,7 @@ On first launch, grant **Accessibility** in System Settings → Privacy & Securi
 - Type a letter to jump, or press `/` to fuzzy-search windows and launch any installed app.
 - `` ⌘` `` cycles the front app's windows. The scroll wheel moves the selection.
 - Opens on the display you're working on. Can stay open after you release ⌘.
-- Three-finger swipe opens the switcher or switches Spaces, with optional haptics.
+- Three- or four-finger swipe opens the switcher or switches Spaces, with optional haptics.
 
 **Windows and tabs**
 

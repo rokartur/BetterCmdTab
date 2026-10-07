@@ -471,9 +471,12 @@ enum ConfigSchemaDocs {
         "hideFromScreenSharing": ConfigSettingDoc("boolean", "Keep the switcher panel out of screen recordings and shared screens."),
 
         // Experimental
-        "experimentalSwipeTrigger": ConfigSettingDoc("boolean", "Three-finger trackpad swipe."),
+        "experimentalSwipeTrigger": ConfigSettingDoc("boolean", "Three- or four-finger trackpad swipe."),
+        "swipeFingerCount": ConfigSettingDoc(
+            "integer", "Fingers the swipe needs. 4 leaves three-finger drag free.",
+            range: Preferences.swipeFingerCountRange),
         "swipeMode": ConfigSettingDoc(
-            "string", "What the three-finger swipe does.",
+            "string", "What the trackpad swipe does.",
             values: ConfigValues(SwipeMode.self, \.displayName)),
         "swipeReverseDirection": ConfigSettingDoc("boolean", "Reverse the swipe direction."),
         "swipeCommitOnRelease": ConfigSettingDoc("boolean", "Commit the swipe selection when the fingers lift."),

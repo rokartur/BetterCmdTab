@@ -171,6 +171,7 @@ const sections: { title: string; keys: string[] }[] = [
     title: 'Trackpad swipe',
     keys: [
       'experimentalSwipeTrigger',
+      'swipeFingerCount',
       'swipeMode',
       'swipeReverseDirection',
       'swipeCommitOnRelease',
@@ -294,6 +295,7 @@ const defaults: Record<string, string> = {
   stayOpenOnQuickTap: 'false',
   stayOpenOnRelease: 'false',
   swipeCommitOnRelease: 'false',
+  swipeFingerCount: '3',
   swipeMode: '"openSwitcher"',
   swipeReverseDirection: 'false',
   swipeSensitivity: '5',
