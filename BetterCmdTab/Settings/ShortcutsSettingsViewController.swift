@@ -20,6 +20,8 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     private let swipeSwitch = NSSwitch()
     private let swipeModePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let swipeModes: [SwipeMode] = SwipeMode.allCases
+    private let swipeFingersPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let swipeFingerCounts = Array(Preferences.swipeFingerCountRange)
     private let reverseSwitch = PreferenceSwitch(bind: \.swipeReverseDirection)
     private let commitSwitch = PreferenceSwitch(bind: \.swipeCommitOnRelease)
     private let sensitivitySlider = NSSlider()
@@ -126,9 +128,14 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Off by default. They may change or break."))
 
         configureSwitch(swipeSwitch, action: #selector(toggleSwipe(_:)))
-        addRow(to: swipe, title: String(localized: "Three-finger swipe"),
-               subtitle: String(localized: "Slide three fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed."),
+        addRow(to: swipe, title: String(localized: "Swipe gesture"),
+               subtitle: String(localized: "Slide three or four fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed."),
                accessory: swipeSwitch, searchItemID: SearchID.swipe)
+
+        configurePopup(swipeFingersPopup, titles: swipeFingerCounts.map(String.init), action: #selector(swipeFingersChanged))
+        addRow(to: swipe, title: String(localized: "Fingers"),
+               subtitle: String(localized: "Use four to keep three-finger drag for moving windows."),
+               accessory: swipeFingersPopup, searchItemID: SearchID.swipeFingers)
 
         configurePopup(swipeModePopup, titles: swipeModes.map(\.displayName), action: #selector(swipeModeChanged))
         addRow(to: swipe, title: String(localized: "Swipe action"),
@@ -184,6 +191,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         let prefs = Preferences.shared
         swipeSwitch.state = prefs.experimentalSwipeTrigger ? .on : .off
         if let index = swipeModes.firstIndex(of: prefs.swipeMode) { swipeModePopup.selectItem(at: index) }
+        if let index = swipeFingerCounts.firstIndex(of: prefs.swipeFingerCount) { swipeFingersPopup.selectItem(at: index) }
         reverseSwitch.sync()
         commitSwitch.sync()
         applySensitivity(prefs.swipeSensitivity)
@@ -289,6 +297,12 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         setSwipeSubOptionsEnabled(Preferences.shared.experimentalSwipeTrigger)
     }
 
+    @objc private func swipeFingersChanged() {
+        let idx = swipeFingersPopup.indexOfSelectedItem
+        guard swipeFingerCounts.indices.contains(idx) else { return }
+        Preferences.shared.swipeFingerCount = swipeFingerCounts[idx]
+    }
+
     @objc private func sensitivityChanged(_ sender: NSSlider) {
         Preferences.shared.swipeSensitivity = sender.integerValue
         sensitivityValueLabel.stringValue = "\(sender.integerValue)/\(Preferences.swipeSensitivityRange.upperBound)"
@@ -308,6 +322,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         let scrub = Preferences.shared.swipeMode == .openSwitcher
         let directional = Preferences.shared.swipeMode != .quickSwitch
         swipeModePopup.isEnabled = enabled
+        swipeFingersPopup.isEnabled = enabled
         reverseSwitch.isEnabled = enabled && directional
         commitSwitch.isEnabled = enabled && scrub
         sensitivitySlider.isEnabled = enabled && scrub

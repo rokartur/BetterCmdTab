@@ -11,7 +11,7 @@ import os
 /// background app), this works out of the box and regardless of which app is
 /// frontmost.
 ///
-/// The gesture is continuous: while three fingers stay down, horizontal travel
+/// The gesture is continuous: while three (or four) fingers stay down, horizontal travel
 /// is accumulated and emits one step per `MTGesture.stepDistance` moved, so a
 /// single slide can advance several apps. Direction is configurable.
 ///
@@ -66,6 +66,10 @@ final class SwipeTrigger {
 
     func setOneShot(_ oneShot: Bool) {
         MTGesture.setOneShot(oneShot)
+    }
+
+    func setFingerCount(_ count: Int) {
+        MTGesture.setFingerCount(count)
     }
 
     private func install() {
@@ -241,8 +245,8 @@ enum MTGesture {
         /// target a newer trigger session.
         var generation: UInt64 = 1
         var stepDistance = MTGesture.stepDistance(forLevel: defaultSensitivityLevel)
-        /// A three-finger gesture has begun and not yet fully lifted. Survives a
-        /// brief drop below three fingers so finger flicker does not end it.
+        /// A swipe gesture has begun and not yet fully lifted. Survives a brief
+        /// drop below `fingerCount` fingers so finger flicker does not end it.
         var active = false
         var tracking = false
         var lastX: Float = 0
@@ -250,6 +254,7 @@ enum MTGesture {
         var reverse = false
         var commitOnRelease = false
         var oneShot = false
+        var fingerCount = 3
         var fired = false
         /// Device the current gesture is latched to (`-1` = none).
         var latchedDevice: Int32 = -1
@@ -284,13 +289,18 @@ enum MTGesture {
         state.withLock { $0.oneShot = oneShot }
     }
 
+    static func setFingerCount(_ count: Int) {
+        state.withLock { $0.fingerCount = count }
+    }
+
     static func reset() {
         state.withLock { current in
             let config = (
                 current.stepDistance,
                 current.reverse,
                 current.commitOnRelease,
-                current.oneShot
+                current.oneShot,
+                current.fingerCount
             )
             var nextGeneration = current.generation &+ 1
             if nextGeneration == 0 { nextGeneration = 1 }
@@ -300,6 +310,7 @@ enum MTGesture {
             current.reverse = config.1
             current.commitOnRelease = config.2
             current.oneShot = config.3
+            current.fingerCount = config.4
         }
     }
 
@@ -318,7 +329,7 @@ enum MTGesture {
     ) -> Action {
         state.withLock { state in
             if state.latchedDevice != -1, device != state.latchedDevice {
-                guard contactCount >= 3,
+                guard contactCount >= state.fingerCount,
                       timestamp.isFinite,
                       timestamp - state.latchedAt > latchStaleWindow else {
                     return .none
@@ -333,7 +344,7 @@ enum MTGesture {
             // device takeover forever. Preserve the last valid frame time.
             if timestamp.isFinite { state.latchedAt = timestamp }
 
-            if contactCount >= 3, let averageX {
+            if contactCount >= state.fingerCount, let averageX {
                 // Reject before latching/storing `lastX`. In one-shot mode a
                 // NaN accumulator never crosses either threshold and otherwise
                 // remains poisoned until lift.
@@ -425,7 +436,7 @@ private func mtEmitCommit(generation: UInt64) {
 }
 
 /// `@convention(c)` contact-frame callback. Non-capturing, so it can be passed
-/// as a C function pointer. While three fingers stay down it accumulates
+/// as a C function pointer. While the set fingers stay down it accumulates
 /// horizontal travel and emits one step per `stepDistance` moved, so continuing
 /// to slide keeps advancing the selection. When all fingers lift it optionally
 /// commits the selection.

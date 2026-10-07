@@ -9,12 +9,14 @@ struct SwipeGestureTests {
     private func reset(
         sensitivity: Int = MTGesture.defaultSensitivityLevel,
         oneShot: Bool = false,
-        commitOnRelease: Bool = false
+        commitOnRelease: Bool = false,
+        fingerCount: Int = 3
     ) {
         MTGesture.setSensitivity(sensitivity)
         MTGesture.setReverse(false)
         MTGesture.setOneShot(oneShot)
         MTGesture.setCommitOnRelease(commitOnRelease)
+        MTGesture.setFingerCount(fingerCount)
         MTGesture.reset()
     }
 
@@ -28,6 +30,18 @@ struct SwipeGestureTests {
         #expect(anchor.steps == 0)
         #expect(moved.steps == 2)
         #expect(remainderOnly.steps == 0)
+    }
+
+    @Test("four-finger mode ignores a three-finger drag")
+    func fourFingerModeIgnoresThreeFingers() {
+        reset(sensitivity: 10, fingerCount: 4)
+        _ = MTGesture.consume(device: 1, contactCount: 3, averageX: 0, timestamp: 1)
+        let threeFingers = MTGesture.consume(device: 1, contactCount: 3, averageX: 0.05, timestamp: 1.01)
+        _ = MTGesture.consume(device: 1, contactCount: 4, averageX: 0, timestamp: 1.02)
+        let fourFingers = MTGesture.consume(device: 1, contactCount: 4, averageX: 0.05, timestamp: 1.03)
+
+        #expect(threeFingers.steps == 0)
+        #expect(fourFingers.steps == 2)
     }
 
     @Test("caps a malformed frame and discards its oversized remainder")

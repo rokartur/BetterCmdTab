@@ -98,6 +98,7 @@ enum SearchID {
     static let showAllWindows = "shortcuts.showAllWindows"
     static let keepAppsVisible = "shortcuts.keepAppsVisible"
     static let swipe = "experimental.swipe"
+    static let swipeFingers = "experimental.swipeFingers"
     static let swipeMode = "experimental.swipeMode"
     static let reverseSwipe = "experimental.reverseSwipe"
     static let switchOnRelease = "experimental.switchOnRelease"
@@ -362,7 +363,9 @@ enum SettingsCatalog {
              String(localized: "Keep apps visible"), ["exclude", "exception", "keep visible", "hide all", "finder"]),
         // Shortcuts · Trackpad swipe
         item(SearchID.swipe, .shortcuts, SettingsAnchor.swipe, String(localized: "Shortcuts"), String(localized: "Trackpad swipe"),
-             String(localized: "Three-finger swipe"), ["swipe", "trackpad", "gesture", "three finger", "experimental"]),
+             String(localized: "Swipe gesture"), ["swipe", "trackpad", "gesture", "three finger", "four finger", "experimental"]),
+        item(SearchID.swipeFingers, .shortcuts, SettingsAnchor.swipe, String(localized: "Shortcuts"), String(localized: "Trackpad swipe"),
+             String(localized: "Fingers"), ["fingers", "three finger", "four finger", "drag"]),
         item(SearchID.swipeMode, .shortcuts, SettingsAnchor.swipe, String(localized: "Shortcuts"), String(localized: "Trackpad swipe"),
              String(localized: "Swipe action"), ["swipe", "spaces", "switch spaces", "open switcher", "gesture action"]),
         item(SearchID.reverseSwipe, .shortcuts, SettingsAnchor.swipe, String(localized: "Shortcuts"), String(localized: "Trackpad swipe"),

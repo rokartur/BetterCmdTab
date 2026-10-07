@@ -4647,6 +4647,46 @@
         }
       }
     },
+    "Fingers" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finger"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dedos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doigts"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palce"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пальцы"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手指数"
+          }
+        }
+      }
+    },
     "Font" : {
       "localizations" : {
         "de" : {
@@ -14700,42 +14740,42 @@
         }
       }
     },
-    "Slide three fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed." : {
+    "Slide three or four fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Streiche mit drei Fingern waagerecht über das Trackpad. Liest das Trackpad direkt aus, sodass keine Systemeinstellung erforderlich ist."
+            "value" : "Streiche mit drei oder vier Fingern waagerecht über das Trackpad. Liest das Trackpad direkt aus, sodass keine Systemeinstellung erforderlich ist."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Desliza tres dedos horizontalmente por el trackpad. Lee el trackpad directamente, por lo que no se necesita ningún ajuste del sistema."
+            "value" : "Desliza tres o cuatro dedos horizontalmente por el trackpad. Lee el trackpad directamente, por lo que no se necesita ningún ajuste del sistema."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faites glisser trois doigts horizontalement sur le trackpad. Lit directement le trackpad, donc aucun réglage système n’est nécessaire."
+            "value" : "Faites glisser trois ou quatre doigts horizontalement sur le trackpad. Lit directement le trackpad, donc aucun réglage système n’est nécessaire."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przesuń trzema palcami w poziomie po gładziku. Odczytuje gładzik bezpośrednio, więc nie jest potrzebne żadne ustawienie systemowe."
+            "value" : "Przesuń trzema lub czterema palcami w poziomie po gładziku. Odczytuje gładzik bezpośrednio, więc nie jest potrzebne żadne ustawienie systemowe."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Проведите тремя пальцами по трекпаду по горизонтали. BetterCmdTab считывает жест напрямую, поэтому менять системные настройки не требуется."
+            "value" : "Проведите тремя или четырьмя пальцами по трекпаду по горизонтали. BetterCmdTab считывает жест напрямую, поэтому менять системные настройки не требуется."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在触控板上三指水平滑动。会直接读取触控板，因此无需系统设置。"
+            "value" : "在触控板上三指或四指水平滑动。会直接读取触控板，因此无需系统设置。"
           }
         }
       }
@@ -15176,6 +15216,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "滑动操作"
+          }
+        }
+      }
+    },
+    "Swipe gesture" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wischgeste"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesto de deslizamiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geste de balayage"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gest przesunięcia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Жест смахивания"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滑动手势"
           }
         }
       }
@@ -16057,46 +16137,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此设置文件使用了更新的格式（版本 %lld），当前版本的 BetterCmdTab 无法读取。请更新应用后重试。"
-          }
-        }
-      }
-    },
-    "Three-finger swipe" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streichen mit drei Fingern"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deslizamiento con tres dedos"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Balayage à trois doigts"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przesunięcie trzema palcami"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Жест тремя пальцами"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "三指滑动"
           }
         }
       }
@@ -17179,6 +17219,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新"
+          }
+        }
+      }
+    },
+    "Use four to keep three-finger drag for moving windows." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle vier, um das Ziehen mit drei Fingern zum Bewegen von Fenstern beizubehalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa cuatro para conservar el arrastre con tres dedos para mover ventanas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez quatre pour garder le glissement à trois doigts pour déplacer les fenêtres."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz cztery, aby zachować przeciąganie trzema palcami do przesuwania okien."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите четыре, чтобы перетаскивать окна тремя пальцами."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择四指可保留三指拖移来移动窗口。"
           }
         }
       }
