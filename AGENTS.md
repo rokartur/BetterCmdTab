@@ -163,6 +163,8 @@ Run the `BetterCmdTab Debug` scheme from Xcode. The app is `.accessory` — no D
 lives in the menu bar. On first launch grant **Accessibility** under System Settings →
 Privacy & Security → Accessibility, then quit/relaunch (or wait for `AccessibilityWaiter`
 to pick it up). Without that permission the switcher never boots and ⌘Tab does nothing.
+Quit it with `osascript -e 'quit app "BetterCmdTab Debug"'`. A signal (`pkill`, `kill`) skips
+`SymbolicHotkeyGuard`'s restore, so native ⌘Tab stays off until the app launches again.
 
 ## Conventions (from CONTRIBUTING.md)
 
