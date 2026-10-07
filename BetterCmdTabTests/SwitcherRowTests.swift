@@ -332,4 +332,26 @@ struct SwitcherRowTests {
         // The active tab survived the cap and is still marked active.
         #expect(rows.last?.browserTab?.isActive == true)
     }
+
+    private func tabRows(window: CGWindowID, _ titles: [String], active: Int) -> [SwitcherRow] {
+        let tabs = titles.map { BrowserTabInfo(title: $0, url: "https://\($0.lowercased()).test") }
+        return SwitcherRow(app: hostApp, window: axElement(), windowTitle: titles[active], isMinimized: false, cgWindowID: window)
+            .browserTabRows(tabs: tabs, activeIndex: active)
+    }
+
+    @Test("a tab at the same position with the same page in every window, like a Safari pinned tab, is listed once (#195)")
+    func mirroredTabListedOnce() {
+        let rows = tabRows(window: 1, ["Mail", "Jira", "Docs"], active: 2)
+            + tabRows(window: 2, ["Mail", "Jira", "News", "Docs"], active: 2)
+        let out = SwitcherRow.droppingMirroredTabs(rows)
+        #expect(out.map { "\($0.cgWindowID) \($0.windowTitle)" } == ["1 Mail", "1 Jira", "1 Docs", "2 News", "2 Docs"])
+    }
+
+    @Test("a window on its copy of a mirrored tab keeps that copy")
+    func activeMirroredCopyStays() {
+        let rows = tabRows(window: 1, ["Mail", "Jira", "Docs"], active: 2)
+            + tabRows(window: 2, ["Mail", "Jira", "News"], active: 1)
+        let out = SwitcherRow.droppingMirroredTabs(rows)
+        #expect(out.map { "\($0.cgWindowID) \($0.windowTitle)" } == ["1 Mail", "1 Docs", "2 Jira", "2 News"])
+    }
 }

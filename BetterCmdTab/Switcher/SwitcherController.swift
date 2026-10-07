@@ -3821,7 +3821,7 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Pref-free expansion: replace each collapsed browser-window row with one
-    /// row per tab from `browserTabsCache`. Shared by the always-on
+    /// row per tab from `browserTabsCache`, minus `droppingMirroredTabs`. Shared by the always-on
     /// `expandBrowserTabs` path and the transient search expansion. Pure (no AX);
     /// idempotent (already-expanded tab rows pass through untouched).
     /// `limit > 0` caps each window to its `SwitcherRow.visibleTabRange` slice
@@ -3850,7 +3850,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 )
             ))
         }
-        return out
+        return SwitcherRow.droppingMirroredTabs(out)
     }
 
     /// Whether the search filter should run over a transiently tab-expanded row
