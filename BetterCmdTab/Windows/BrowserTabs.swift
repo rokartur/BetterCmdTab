@@ -93,14 +93,16 @@ enum BrowserTabs {
     }
 
     enum Family {
-        case chromium  // Chrome, Brave, Edge, Vivaldi, Opera, Arc, Dia
+        case chromium  // Chrome, Brave, Edge, Vivaldi, Opera, Helium
+        // Arc and Dia keep the Chromium data dir but ship their own dictionaries:
+        // `active tab` without `active tab index`; Arc selects with `select`, Dia with `focus`.
+        case arc
+        case dia
         case safari    // Safari, Safari Technology Preview
 
         static func from(bundleID: String?) -> Family? {
             guard let id = bundleID?.lowercased() else { return nil }
-            // Chromium family: bundle IDs use a stable AppleScript dictionary
-            // identical to Chrome's. Arc and Dia (The Browser Company) also
-            // adopt the same dialect.
+            // These bundle IDs ship Chrome's AppleScript dictionary unchanged.
             let chromiumIDs: Set<String> = [
                 "com.google.chrome",
                 "com.google.chrome.canary",
@@ -117,11 +119,11 @@ enum BrowserTabs {
                 "com.vivaldi.vivaldi",
                 "com.operasoftware.opera",
                 "com.operasoftware.operadeveloper",
-                "company.thebrowser.browser",
-                "company.thebrowser.dia",
                 "net.imput.helium",
             ]
             if chromiumIDs.contains(id) { return .chromium }
+            if id == "company.thebrowser.browser" { return .arc }
+            if id == "company.thebrowser.dia" { return .dia }
             if id == "com.apple.safari" || id == "com.apple.safaritechnologypreview" { return .safari }
             return nil
         }
@@ -590,10 +592,22 @@ enum BrowserTabs {
         let appLit = appLiteral(bid)
         let attr: String = (family == .safari) ? "name" : "title"
         // A browser window's AX title reflects its active tab, so also capture the
-        // active tab's title per window for the caller to match AX windows by.
-        let activeExpr: String = (family == .safari)
-            ? "index of current tab of window i"
-            : "active tab index of window i"
+        // active tab's index per window for the caller to match AX windows by.
+        let setActiveIndex: String
+        switch family {
+        case .safari:
+            setActiveIndex = "set activeIndex to index of current tab of window i"
+        case .chromium:
+            setActiveIndex = "set activeIndex to active tab index of window i"
+        case .arc, .dia:
+            setActiveIndex = """
+                set activeID to id of active tab of window i
+                set tabIDs to id of tabs of window i
+                repeat with j from 1 to count of tabIDs
+                    if item j of tabIDs is activeID then set activeIndex to j
+                end repeat
+                """
+        }
         let source = """
         tell \(appLit)
             with timeout of 5 seconds
@@ -604,7 +618,7 @@ enum BrowserTabs {
                     set wTitle to (\(attr) of window i) as text
                     set activeIndex to 1
                     try
-                        set activeIndex to \(activeExpr)
+                        \(setActiveIndex)
                     end try
                     set boundsText to ""
                     try
@@ -695,14 +709,20 @@ enum BrowserTabs {
             switch family {
             case .chromium:
                 setTab = "set active tab index of \(windowExpr) to \(oneBased)"
+            case .arc:
+                setTab = "select tab \(oneBased) of \(windowExpr)"
+            case .dia:
+                setTab = "focus tab \(oneBased) of \(windowExpr)"
             case .safari:
                 setTab = "set current tab of \(windowExpr) to tab \(oneBased) of \(windowExpr)"
             }
+            // Dia's window `index` is read-only; its `focus` already brings the window forward.
+            let raiseWindow = family == .dia ? "" : "set index of \(windowExpr) to 1"
             return """
                     set tabCount to count of tabs of \(windowExpr)
                     if \(oneBased) > tabCount then return "false"
                     \(setTab)
-                    set index of \(windowExpr) to 1
+                    \(raiseWindow)
                     activate
                     return "true"
             """

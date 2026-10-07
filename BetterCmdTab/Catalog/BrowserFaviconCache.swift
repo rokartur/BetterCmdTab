@@ -67,7 +67,7 @@ enum BrowserFaviconCache {
             case .safari:
                 let root = safariDirectory(bundleID: bundleID, home: home)
                 loaded = loadSafariResult(urls: requests.map(\.url), databaseURL: root.appendingPathComponent("favicons.db"), iconsURL: root.appendingPathComponent("favicons"))
-            case .chromium:
+            case .chromium, .arc, .dia:
                 guard let root = chromiumDirectory(bundleID: bundleID, home: home) else { continue }
                 loaded = loadChromiumResult(urls: requests.map(\.url), dataDirectory: root)
             case nil:
