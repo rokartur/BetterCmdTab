@@ -483,7 +483,8 @@ final class HotkeyTap: @unchecked Sendable {
 
         guard let port = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
+            // Last in line so listen-only taps (KeyCastr, #139) see ⌘Tab before we swallow it.
+            place: .tailAppendEventTap,
             options: tapOptions,
             eventsOfInterest: keyMask,
             callback: callback,
