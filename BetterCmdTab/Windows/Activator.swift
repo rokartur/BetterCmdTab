@@ -637,8 +637,10 @@ enum Activator {
 
     @MainActor
     private static func bringToFront(_ app: NSRunningApplication) {
-        if let url = app.bundleURL {
-            openActivating(url, bundleID: app.bundleIdentifier)
+        // A bundleless process (Minecraft's java) reports its executable as bundleURL,
+        // and opening that runs it in Terminal (#204).
+        if let bundleID = app.bundleIdentifier, let url = app.bundleURL {
+            openActivating(url, bundleID: bundleID)
             return
         }
         activateProcess(app)
