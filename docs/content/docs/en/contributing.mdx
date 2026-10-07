@@ -51,11 +51,12 @@ xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
 ```
 
 Tests use **Swift Testing** (`import Testing`, `@Suite` / `@Test`), not XCTest. There
-are no `testXxx()` methods, so select a single case by its Swift function name:
+are no `testXxx()` methods, so select a single case by its Swift function name with `()`.
+Without the `()` the filter matches nothing and xcodebuild still reports `Test Succeeded`.
 
 ```bash
 xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
-  test -only-testing:BetterCmdTabTests/FuzzyMatchTests/noMatch
+  test '-only-testing:BetterCmdTabTests/FuzzyMatchTests/noMatch()'
 ```
 
 They cover **pure logic** — switcher metrics, row labels, catalog filtering, fuzzy

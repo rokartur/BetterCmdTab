@@ -52,11 +52,11 @@ xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
 
 Testy używają **Swift Testing** (`import Testing`, `@Suite` / `@Test`), a nie XCTest.
 Nie ma metod `testXxx()`, dlatego pojedynczy przypadek należy wskazać nazwą jego funkcji
-Swift:
+Swift z `()`. Bez `()` filtr nic nie dopasuje, a xcodebuild i tak zgłosi `Test Succeeded`.
 
 ```bash
 xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
-  test -only-testing:BetterCmdTabTests/FuzzyMatchTests/noMatch
+  test '-only-testing:BetterCmdTabTests/FuzzyMatchTests/noMatch()'
 ```
 
 Obejmują **czystą logikę** — metryki przełącznika, etykiety wierszy, filtrowanie

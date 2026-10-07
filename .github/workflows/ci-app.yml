@@ -1,0 +1,60 @@
+name: App CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "BetterCmdTab/**"
+      - "BetterCmdTabTests/**"
+      - "BetterCmdTab.xcodeproj/**"
+      - "docs/src/data/config-schema.json"
+      - ".github/workflows/ci-app.yml"
+  pull_request:
+    paths:
+      - "BetterCmdTab/**"
+      - "BetterCmdTabTests/**"
+      - "BetterCmdTab.xcodeproj/**"
+      - "docs/src/data/config-schema.json"
+      - ".github/workflows/ci-app.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit tests
+    # The Liquid Glass panel needs the macOS 26 SDK; macos-26 ships Xcode 26.x.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      # SwitcherReflowTests assert real glides, which macOS skips under Reduce Motion.
+      - name: Turn off Reduce Motion
+        run: |
+          echo "before: $(defaults read com.apple.universalaccess reduceMotion 2>&1)"
+          defaults write com.apple.universalaccess reduceMotion -bool false
+          echo "after: $(defaults read com.apple.universalaccess reduceMotion)"
+
+      # The tests run inside the app (TEST_HOST), so the host must be signed for
+      # the bundle to load. Ad-hoc signing works without the team's certificate.
+      - name: Test
+        # GitHub's default bash has no pipefail, so a failing xcodebuild would
+        # pass through xcbeautify as success.
+        shell: bash -eo pipefail {0}
+        run: |
+          xcodebuild -project BetterCmdTab.xcodeproj -scheme "BetterCmdTab Debug" \
+            -destination 'platform=macOS' -resultBundlePath TestResults.xcresult \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            test | xcbeautify --renderer github-actions
+
+      - name: Upload results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: TestResults.xcresult

@@ -146,10 +146,8 @@ Two things are *not* in the schema and are maintained by hand in
 - **`defaults`** — the value shown in the Default column, transcribed from
   `reloadFromDefaults()`.
 
-A key missing from both still renders: it lands in an **"Other"** section with an
-unknown default. That is deliberate — a new preference shows up as visibly
-unsorted instead of silently vanishing. If you see "Other" on the built page,
-something needs grouping.
+`bun run build` fails while a schema key is missing from `sections`, or a key
+outside the Legacy section is missing from `defaults`. The error names the keys.
 
 Note the schema is generated from *a* Mac: `enumDescriptions` are localized, and
 `commitSoundName`'s allowed values come from that machine's
@@ -184,7 +182,6 @@ Worth checking by eye on the built output:
 - **Anchors resolve.** Section anchors are slugified (`Display & timing` →
   `#display-timing`, one dash), and reference rows anchor on the *key name*
   (`#revealDelayMs`). Prefer linking the key — it survives a section rename.
-- **No "Other" section** appeared in the config reference.
 - **Search works.** It is a static index (`out/api/search`) built at compile time,
   not a live endpoint.
 

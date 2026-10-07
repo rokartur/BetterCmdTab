@@ -7,8 +7,9 @@ Gotchas no file in the repo confesses:
   running app whose ⌘Tab does nothing is missing that grant.
 - Quit the app with `osascript -e 'quit app "BetterCmdTab Debug"'`. A signal (`pkill`, `kill`)
   skips `SymbolicHotkeyGuard`'s restore, so native ⌘Tab stays off until the app launches again.
-- Swift Testing cases are selected by bare function name
-  (`-only-testing:BetterCmdTabTests/FuzzyMatchTests/noMatch`); there is no `test` prefix.
+- Swift Testing cases are selected by function name with `()`
+  (`-only-testing:BetterCmdTabTests/FuzzyMatchTests/noMatch()`). The bare name matches
+  nothing and xcodebuild still reports `Test Succeeded`.
 - Building needs the macOS 26 SDK: the Liquid Glass panel compiles against `NSGlassEffectView`
   with no `#if`, and `if #available` falls back to `NSVisualEffectView` on macOS 13 to 15.
 

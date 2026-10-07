@@ -14,9 +14,8 @@ import type { Locale } from '@/lib/i18n';
  *   cp ~/.config/bettercmdtab/schema.json docs/src/data/config-schema.json
  *
  * Only two things live here rather than in the schema: the section a key belongs
- * to and its default value, neither of which the app emits. A key missing from
- * both maps still renders — it lands in "Other" with an unknown default, so a
- * newly added preference is visibly unsorted instead of silently dropped.
+ * to and its default value, neither of which the app emits. The build fails
+ * while a schema key is missing from either (Legacy keys need no default).
  */
 
 export type SchemaFragment = {
@@ -61,6 +60,8 @@ const sections: { title: string; keys: string[] }[] = [
       'panelOpacity',
       'panelCornerRadius',
       'backdropMaterial',
+      'selectionColor',
+      'selectionColorHex',
       'animationsEnabled',
       'fontScale',
       'fontFace',
@@ -92,6 +93,7 @@ const sections: { title: string; keys: string[] }[] = [
       'recentlyClosedLimit',
       'pinnedBundleIDs',
       'hideAllExcludedBundleIDs',
+      'windowTitleExclusions',
     ],
   },
   {
@@ -255,6 +257,7 @@ const defaults: Record<string, string> = {
   livePreviews: 'false',
   mouseClickSelectionEnabled: 'true',
   mouseHoverSelectionEnabled: 'true',
+  nextScopedShortcutID: '0',
   oneHandLetterHints: 'false',
   panelAppearance: '"system"',
   panelCornerRadius: '0',
@@ -270,6 +273,9 @@ const defaults: Record<string, string> = {
   searchDismissMode: '"holdModifier"',
   searchExpandsBrowserTabs: 'false',
   searchIncludesLaunchableApps: 'true',
+  selectionColor: '"transparent"',
+  // Unset by default; '' renders as a dash.
+  selectionColorHex: '',
   shiftTapStepsBackward: 'true',
   showApplicationNames: 'true',
   showBrowserIconOnTabs: 'false',
@@ -297,6 +303,7 @@ const defaults: Record<string, string> = {
   verticalPosition: '"center"',
   vimNavigationEnabled: 'false',
   windowDrillEnabled: 'true',
+  windowTitleExclusions: '{}',
 };
 
 export type ConfigKey = {
@@ -347,26 +354,31 @@ const key = (name: string): ConfigKey => ({
 });
 
 export function configSections(): ConfigSection[] {
+  assertEveryKeyDocumented();
+  return sections
+    .map((section) => ({
+      ...section,
+      translationKey: sectionTranslationKeys[section.title],
+      keys: section.keys.filter((name) => name in properties).map(key),
+    }))
+    .filter((section) => section.keys.length > 0);
+}
+
+// Throws during `next build`, so CI fails instead of the page shipping a key
+// with no section or no default.
+function assertEveryKeyDocumented() {
   const placed = new Set([...sections.flatMap((s) => s.keys), ...objectKeys, '$schema']);
-  const orphans = Object.keys(properties)
-    .filter((name) => !placed.has(name))
-    .sort();
-
-  const grouped: ConfigSection[] = sections.map((section) => ({
-    ...section,
-    translationKey: sectionTranslationKeys[section.title] ?? 'other',
-    keys: section.keys.filter((name) => name in properties).map(key),
-  }));
-
-  if (orphans.length > 0) {
-    grouped.push({
-      title: 'Other',
-      translationKey: 'other',
-      keys: orphans.map(key),
-    });
-  }
-
-  return grouped.filter((section) => section.keys.length > 0);
+  const ungrouped = Object.keys(properties).filter((name) => !placed.has(name));
+  const withoutDefault = sections
+    .filter((section) => section.title !== 'Legacy')
+    .flatMap((section) => section.keys)
+    .filter((name) => name in properties && !(name in defaults));
+  if (ungrouped.length === 0 && withoutDefault.length === 0) return;
+  throw new Error(
+    `config-reference.ts is out of date with config-schema.json. ` +
+      `Add to \`sections\`: ${ungrouped.join(', ') || 'none'}. ` +
+      `Add to \`defaults\`: ${withoutDefault.join(', ') || 'none'}.`,
+  );
 }
 
 export function objectKey(name: string): ConfigKey {
