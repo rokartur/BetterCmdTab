@@ -33,6 +33,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # SwitcherReflowTests assert real glides, which macOS skips under Reduce Motion.
+      - name: Turn off Reduce Motion
+        run: |
+          echo "before: $(defaults read com.apple.universalaccess reduceMotion 2>&1)"
+          defaults write com.apple.universalaccess reduceMotion -bool false
+          echo "after: $(defaults read com.apple.universalaccess reduceMotion)"
+
       # The tests run inside the app (TEST_HOST), so the host must be signed for
       # the bundle to load. Ad-hoc signing works without the team's certificate.
       - name: Test
