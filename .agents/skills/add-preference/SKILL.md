@@ -67,7 +67,23 @@ search should find it. All labels use
 `String(localized:)` — then follow the `localize-strings` skill for the
 catalog entries.
 
-## 6. Verify
+## 6. Config reference docs
+
+`docs/src/data/config-schema.json` is generated; never edit it by hand. After
+launching the new build once, copy it from the app (English system, see
+`docs/CONTRIBUTING.md`):
+
+```bash
+cp ~/.config/bettercmdtab/schema.json docs/src/data/config-schema.json
+```
+
+Then add the key to `sections` and its `reloadFromDefaults()` value to
+`defaults` in `docs/src/lib/config-reference.ts`.
+
+**Complete when:** `ConfigSchemaDocsTests` passes and `cd docs && bun run build`
+passes; the build fails and names any key missing from either map.
+
+## 7. Verify
 
 New pure-logic behavior gets a Swift Testing test. Then run the suites the
 contract touches:

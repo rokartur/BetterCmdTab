@@ -65,11 +65,11 @@ if an installed copy is running, ask before quitting it, record its executable
 path and running state, and restore that exact copy afterward. A declined quit
 makes runtime verification `BLOCKED`.
 
-Launch the bundle executable directly with isolated preferences and config.
-Keep its unique state for restarts and crash recovery. At the first launch of a
-verification session, an existing `state-path` means the prior run needs
-[recovery](RECOVERY.md). An intentional restart in the current session reuses
-the recorded state and skips this initializer.
+Launch the bundle executable directly with its own XDG config. UserDefaults cannot
+be redirected: the witness reads and writes the user's real `$BUNDLE_ID` domain
+(`CFFIXED_USER_HOME` does not move it). So snapshot that domain once, and restore
+it in step 4. At the first launch of a verification session, an existing
+`state-path` means the prior run needs [recovery](RECOVERY.md).
 
 ```bash
 test ! -e "$VERIFY_ROOT/state-path" || {
@@ -80,11 +80,20 @@ STATE="$(mktemp -d "$VERIFY_ROOT/state.XXXXXX")"
 printf '%s\n' "$STATE" >"$VERIFY_ROOT/state-path"
 printf '%s\n' "$EXEC" >"$VERIFY_ROOT/executable-path"
 printf '%s\n' "$BUNDLE_ID" >"$VERIFY_ROOT/bundle-id"
-mkdir -p "$STATE/home" "$STATE/xdg"
+mkdir -p "$STATE/xdg"
+defaults export "$BUNDLE_ID" "$STATE/user-defaults.plist"
+```
 
-CFFIXED_USER_HOME="$STATE/home" \
+Launch, and relaunch after an intentional restart, with the same line. Set each
+setting the claim needs as a launch argument in plist syntax (`'<true/>'`,
+`'<integer>1500</integer>'`, `'<string>x</string>'`); a bare `YES` arrives as a string and
+every `as? Bool` read ignores it. Keep `hideFromScreenSharing` off, or the panel
+is missing from every capture.
+
+```bash
 XDG_CONFIG_HOME="$STATE/xdg" \
 "$EXEC" -GitHubUpdater.checkInterval manual \
+  -Switcher.hideFromScreenSharing '<false/>' \
   >"$VERIFY_ROOT/app.stdout.log" 2>&1 &
 echo $! >"$VERIFY_ROOT/app.pid"
 ```
@@ -102,8 +111,8 @@ state and belongs in the report. Without approval, return `BLOCKED`; preserve
 TCC as-is.
 
 **Complete when:** the recorded PID resolves to `EXEC` and is the sole
-BetterCmdTab process, the intended surface is drivable, verification state is
-outside the user's defaults and XDG config, and any TCC change was approved.
+BetterCmdTab process, the intended surface is drivable, the user's defaults are
+snapshotted and the XDG config is isolated, and any TCC change was approved.
 
 ## 3. Drive the changed seam
 
@@ -115,7 +124,7 @@ Swift function is a test, not a witness.
 | --- | --- | --- |
 | `App/`, `System/` | Fresh launch, reopen, menu action, or relevant permission transition. Open the status menu with System Events `click menu bar item 1 of menu bar 1` of the app process, backgrounded with `&` since the click blocks until the menu closes (an `.accessory` app has no `menu bar 2`) | Window/menu/lifecycle state and filtered unified-log lines |
 | `Input/`, `Switcher/` | Hold and send the actual configured chord with System Events; use a real password field for Secure Event Input and ask the user for a real trackpad gesture | Cropped panel capture plus the selected/cancelled app or window outcome |
-| `Settings/`, `Preferences` | Reopen Settings, operate the control, restart with the same isolated state, then exercise its downstream behavior | Restored control state and the changed live behavior |
+| `Settings/`, `Preferences` | Reopen Settings, operate the control, restart with the same launch line, then exercise its downstream behavior | Restored control state and the changed live behavior |
 | `Catalog/`, `Windows/` | Prepare named real apps/windows, open the switcher, then select or act on one | Visible rows and resulting frontmost app/window state |
 | `ConfigFile`, import/export | Seed `$STATE/xdg/bettercmdtab/config.json` or use the real import/export UI | File contents and the live setting/behavior after reload |
 | updater/About | Use the manual UI action against a safe target | UI result and relevant unified-log lines |
@@ -181,8 +190,9 @@ removing state. After a clean quit, use the validated cleanup block in recovery
 step 3, then restore the approved installed app path.
 
 **Complete when:** each reported step has reviewed evidence, the witness PID is
-gone after AppKit quit or recovery, state metadata is removed, native ⌘Tab
-works, and the installed app has its original running/stopped state.
+gone after AppKit quit or recovery, the user's defaults are restored, state
+metadata is removed, native ⌘Tab works, and the installed app has its original
+running/stopped state.
 
 ## 5. Report the verdict
 

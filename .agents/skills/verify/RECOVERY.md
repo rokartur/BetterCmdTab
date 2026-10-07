@@ -43,7 +43,6 @@ Disable both switcher triggers for this launch so startup restores the native
 symbolic hotkeys without re-disabling them after Accessibility becomes ready.
 
 ```bash
-CFFIXED_USER_HOME="$STATE/home" \
 XDG_CONFIG_HOME="$STATE/xdg" \
 "$EXEC" \
   -GitHubUpdater.checkInterval manual \
@@ -78,10 +77,15 @@ recovery.
 ## 3. Quit and clear recovery state
 
 Request AppKit termination for `RECOVERY_PID` with the exact-PID command in
-`SKILL.md`, wait for it to disappear, then remove only the validated generated
-state:
+`SKILL.md` and wait for it to disappear. Then put back the user's defaults
+(`defaults import` merges, so delete the domain first) and remove only the
+validated generated state:
 
 ```bash
+if test -f "$STATE/user-defaults.plist"; then
+  defaults delete "$BUNDLE_ID"
+  defaults import "$BUNDLE_ID" "$STATE/user-defaults.plist"
+fi
 rm -rf "$STATE"
 rm -f \
   "$VERIFY_ROOT/state-path" \
@@ -92,6 +96,6 @@ rm -f \
 
 Restore the exact installed app only when it was running before recovery.
 
-**Complete when:** native ⌘Tab worked before restoration, the recovery process
-and metadata are gone, and the installed app has its original running/stopped
-state.
+**Complete when:** native ⌘Tab worked before restoration, the user's defaults
+match the snapshot, the recovery process and metadata are gone, and the
+installed app has its original running/stopped state.

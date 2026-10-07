@@ -71,10 +71,6 @@
       "legacy": {
         "title": "Przestarzałe",
         "blurb": "Zastąpione klucze — zawsze ustawiaj zamiennik wskazany w opisie. Tylko panelSize jest migrowany, a następnie usuwany; currentSpaceOnly, scopedShortcutScopes, experimentalBrowserTabMRU, experimentalInstantSpaceSwitch, experimentalBrowserTabPreviews i experimentalLivePreviews nadal są zapisywane przy każdej zmianie, aby starsze wersje korzystające z tego samego pliku zachowały spójność, więc licz się z ich obecnością w pliku. excludedBundleIDs i experimentalUnreadBadges są odczytywane jako wartości zapasowe tylko przy starcie i nigdy nie są usuwane."
-      },
-      "other": {
-        "title": "Inne",
-        "blurb": "Klucze obecne w schemacie, ale jeszcze nieprzypisane do sekcji dokumentacji."
       }
     }
   }
