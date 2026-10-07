@@ -141,7 +141,7 @@ enum CatalogFilter {
         }
         var filtered = titleFiltered.indices.compactMap { kept[$0] ? titleFiltered[$0] : nil }
         if cfg.sortOrder != .mru {
-            filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.appName }, pid: { $0.pid })
+            filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.appName }, bundleID: { $0.bundleIdentifier }, pid: { $0.pid })
         }
         filtered = pinnedToFront(filtered, cfg.pinned)
         if cfg.spaceScope != .allSpaces {
@@ -629,7 +629,7 @@ enum CatalogFilter {
             )
         }
         if cfg.sortOrder != .mru {
-            filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.localizedName ?? "" }, pid: { $0.pid })
+            filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.localizedName ?? "" }, bundleID: { $0.bundleIdentifier }, pid: { $0.pid })
         }
         guard !cfg.pinned.isEmpty else { return filtered }
         return stablePartition(filtered) { app in
@@ -645,7 +645,10 @@ enum CatalogFilter {
     /// ascending (older process first). Both are stable on the incoming offset,
     /// so equal keys keep their order — that preserves each app's window
     /// grouping/status ordering.
-    static func applySortOrder<T>(_ items: [T], _ order: SwitcherSortOrder, name: (T) -> String, pid: (T) -> pid_t?) -> [T] {
+    static func applySortOrder<T>(
+        _ items: [T], _ order: SwitcherSortOrder,
+        name: (T) -> String, bundleID: (T) -> String?, pid: (T) -> pid_t?
+    ) -> [T] {
         switch order {
         case .mru, .mruWindows:
             return items
@@ -653,7 +656,27 @@ enum CatalogFilter {
             return sortedStably(items) { name($0).lowercased() }
         case .launchOrder:
             return sortedStably(items) { Int(pid($0) ?? pid_t.max) }
+        case .dock:
+            return sortedByDock(items, dockBundleIDs: dockBundleIDs(), bundleID: bundleID, pid: pid)
         }
+    }
+
+    /// Kept Dock apps in Dock order, then everyone else by pid: the Dock appends
+    /// running apps it does not keep in launch order.
+    static func sortedByDock<T>(
+        _ items: [T], dockBundleIDs: [String],
+        bundleID: (T) -> String?, pid: (T) -> pid_t?
+    ) -> [T] {
+        sortedStably(items) { item in
+            if let id = bundleID(item), let index = dockBundleIDs.firstIndex(of: id) { return index }
+            return dockBundleIDs.count + Int(pid(item) ?? pid_t.max)
+        }
+    }
+
+    /// Finder always leads the Dock and is absent from `persistent-apps`.
+    static func dockBundleIDs() -> [String] {
+        let tiles = UserDefaults(suiteName: "com.apple.dock")?.array(forKey: "persistent-apps") as? [[String: Any]] ?? []
+        return ["com.apple.finder"] + tiles.compactMap { ($0["tile-data"] as? [String: Any])?["bundle-identifier"] as? String }
     }
 
     /// Stable sort: decorate with the original offset and tie-break on it so

@@ -247,7 +247,7 @@ struct CatalogFilterTests {
     @Test("mru sort returns input unchanged")
     func mruSortIsIdentity() {
         let items = [(name: "z", pid: pid_t(9)), (name: "a", pid: pid_t(1))]
-        let result = CatalogFilter.applySortOrder(items, .mru, name: { $0.name }, pid: { $0.pid })
+        let result = CatalogFilter.applySortOrder(items, .mru, name: { $0.name }, bundleID: { _ in nil }, pid: { $0.pid })
         #expect(result.map(\.pid) == [9, 1])
     }
 
@@ -256,22 +256,34 @@ struct CatalogFilterTests {
         // The flat window sort is applied in SwitcherController from
         // WindowMRUTracker, not here — applySortOrder leaves the input as-is.
         let items = [(name: "z", pid: pid_t(9)), (name: "a", pid: pid_t(1))]
-        let result = CatalogFilter.applySortOrder(items, .mruWindows, name: { $0.name }, pid: { $0.pid })
+        let result = CatalogFilter.applySortOrder(items, .mruWindows, name: { $0.name }, bundleID: { _ in nil }, pid: { $0.pid })
         #expect(result.map(\.pid) == [9, 1])
     }
 
     @Test("alphabetical sort orders by name, case-insensitive")
     func alphabeticalSort() {
         let items = [(name: "Banana", pid: pid_t(3)), (name: "apple", pid: pid_t(1)), (name: "Cherry", pid: pid_t(2))]
-        let result = CatalogFilter.applySortOrder(items, .alphabetical, name: { $0.name }, pid: { $0.pid })
+        let result = CatalogFilter.applySortOrder(items, .alphabetical, name: { $0.name }, bundleID: { _ in nil }, pid: { $0.pid })
         #expect(result.map(\.name) == ["apple", "Banana", "Cherry"])
     }
 
     @Test("launch-order sort orders by pid ascending")
     func launchOrderSort() {
         let items = [(name: "a", pid: pid_t(3)), (name: "b", pid: pid_t(1)), (name: "c", pid: pid_t(2))]
-        let result = CatalogFilter.applySortOrder(items, .launchOrder, name: { $0.name }, pid: { $0.pid })
+        let result = CatalogFilter.applySortOrder(items, .launchOrder, name: { $0.name }, bundleID: { _ in nil }, pid: { $0.pid })
         #expect(result.map(\.pid) == [1, 2, 3])
+    }
+
+    @Test("dock sort puts kept apps in Dock order, then the rest by pid, keeping an app's rows together")
+    func dockSort() {
+        let items = [
+            (id: "late", pid: pid_t(9)), (id: "mail", pid: pid_t(5)), (id: "early", pid: pid_t(2)),
+            (id: "finder", pid: pid_t(7)), (id: "mail", pid: pid_t(5)),
+        ]
+        let result = CatalogFilter.sortedByDock(
+            items, dockBundleIDs: ["finder", "mail", "notRunning"], bundleID: { $0.id }, pid: { $0.pid }
+        )
+        #expect(result.map(\.id) == ["finder", "mail", "mail", "early", "late"])
     }
 
     // MARK: - phantom-window filtering

@@ -812,13 +812,15 @@
               "mru",
               "mruWindows",
               "alphabetical",
-              "launchOrder"
+              "launchOrder",
+              "dock"
             ],
             "enumDescriptions" : [
               "Most recent",
               "Most recent (windows)",
               "Alphabetical",
-              "Launch order"
+              "Launch order",
+              "Dock order"
             ],
             "type" : "string"
           },
@@ -931,13 +933,15 @@
         "mru",
         "mruWindows",
         "alphabetical",
-        "launchOrder"
+        "launchOrder",
+        "dock"
       ],
       "enumDescriptions" : [
         "Most recent",
         "Most recent (windows)",
         "Alphabetical",
-        "Launch order"
+        "Launch order",
+        "Dock order"
       ],
       "type" : "string"
     },

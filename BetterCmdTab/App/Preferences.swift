@@ -283,6 +283,8 @@ enum SwitcherSortOrder: String, CaseIterable {
     case alphabetical
     /// By launch order — oldest running process first.
     case launchOrder
+    /// Finder, then the Dock's kept apps, then the rest by launch order (#178).
+    case dock
 
     var displayName: String {
         switch self {
@@ -290,6 +292,7 @@ enum SwitcherSortOrder: String, CaseIterable {
         case .mruWindows: return String(localized: "Most recent (windows)")
         case .alphabetical: return String(localized: "Alphabetical")
         case .launchOrder: return String(localized: "Launch order")
+        case .dock: return String(localized: "Dock order")
         }
     }
 
@@ -301,7 +304,7 @@ enum SwitcherSortOrder: String, CaseIterable {
     /// Exhaustive on purpose: a new sort case must consciously pick a side.
     var anchorsPrimedOnFrontmost: Bool {
         switch self {
-        case .alphabetical, .launchOrder: return true
+        case .alphabetical, .launchOrder, .dock: return true
         case .mru, .mruWindows: return false
         }
     }

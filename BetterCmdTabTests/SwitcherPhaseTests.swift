@@ -522,6 +522,7 @@ struct PrimedStartAnchorTests {
     @Test func gate_onlyStableSortsAnchor() {
         #expect(SwitcherSortOrder.alphabetical.anchorsPrimedOnFrontmost)
         #expect(SwitcherSortOrder.launchOrder.anchorsPrimedOnFrontmost)
+        #expect(SwitcherSortOrder.dock.anchorsPrimedOnFrontmost)
         #expect(!SwitcherSortOrder.mru.anchorsPrimedOnFrontmost)
         #expect(!SwitcherSortOrder.mruWindows.anchorsPrimedOnFrontmost)
     }
