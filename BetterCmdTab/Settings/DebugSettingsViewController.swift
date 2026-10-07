@@ -65,7 +65,7 @@ final class DebugSettingsViewController: SettingsTabViewController {
         relauncher.executableURL = URL(fileURLWithPath: "/bin/sh")
         relauncher.arguments = [
             "-c", "while kill -0 \"$1\" 2>/dev/null; do sleep 0.1; done; open \"$2\"",
-            "sh", String(ProcessInfo.processInfo.processIdentifier), Bundle.main.bundlePath,
+            "sh", String(getpid()), Bundle.main.bundlePath,
         ]
         do {
             try relauncher.run()

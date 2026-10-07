@@ -78,7 +78,7 @@ final class DockBadgeReader {
     nonisolated private static func readDockBadges() -> [String: String] {
         guard let dockPid = NSRunningApplication
             .runningApplications(withBundleIdentifier: "com.apple.dock")
-            .first?.processIdentifier else { return [:] }
+            .first?.pid else { return [:] }
 
         let axDock = AXUIElementCreateApplication(dockPid)
         // Timeouts are per-element — one set on `axDock` does not carry to its

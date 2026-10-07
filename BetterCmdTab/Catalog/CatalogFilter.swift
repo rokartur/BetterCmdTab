@@ -173,7 +173,7 @@ enum CatalogFilter {
             }
             // Same rule as AppCatalogCache's windowless rows: regular apps only.
             guard let app = row.app, app.activationPolicy == .regular,
-                  appsWithARow.insert(app.processIdentifier).inserted else { continue }
+                  appsWithARow.insert(app.pid).inserted else { continue }
             result.append(SwitcherRow(app: app, window: nil, windowTitle: "", isMinimized: false))
         }
         return result
@@ -624,12 +624,12 @@ enum CatalogFilter {
                 isPlaceholder: false,
                 isMinimized: false,
                 appHidden: app.isHidden,
-                hasWindow: windowedPids?.contains(app.processIdentifier) ?? true,
+                hasWindow: windowedPids?.contains(app.pid) ?? true,
                 cfg
             )
         }
         if cfg.sortOrder != .mru {
-            filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.localizedName ?? "" }, pid: { $0.processIdentifier })
+            filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.localizedName ?? "" }, pid: { $0.pid })
         }
         guard !cfg.pinned.isEmpty else { return filtered }
         return stablePartition(filtered) { app in

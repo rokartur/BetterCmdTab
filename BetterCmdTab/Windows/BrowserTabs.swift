@@ -505,7 +505,7 @@ enum BrowserTabs {
         // Fallback: force the row's window frontmost and read `window 1`. `as
         // text` joins with the current delimiter (default ""), so pin it to LF
         // for unambiguous parsing even when a title contains commas.
-        raiseInBrowser(window, pid: app.processIdentifier)
+        raiseInBrowser(window, pid: app.pid)
         let source = """
         tell \(appLit)
             with timeout of 3 seconds
@@ -769,7 +769,7 @@ enum BrowserTabs {
         }
 
         // Fallback: raise the row's window frontmost, operate on `window 1`.
-        raiseInBrowser(window, pid: app.processIdentifier)
+        raiseInBrowser(window, pid: app.pid)
         let source = """
         tell \(appLit)
             with timeout of 3 seconds
@@ -848,7 +848,7 @@ enum BrowserTabs {
         }
 
         // Fallback: raise the row's window frontmost, operate on `window 1`.
-        raiseInBrowser(window, pid: app.processIdentifier)
+        raiseInBrowser(window, pid: app.pid)
         let source = """
         tell \(appLit)
             with timeout of 3 seconds

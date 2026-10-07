@@ -515,7 +515,7 @@ final class SwitcherController: SwitcherViewDelegate {
             object: nil,
             queue: .main
         ) { [weak self] note in
-            let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.pid
             MainActor.assumeIsolated {
                 guard let self, let pid else { return }
                 self.handleAppTerminated(pid: pid)
@@ -533,7 +533,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 object: nil,
                 queue: .main
             ) { [weak self] note in
-                let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+                let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.pid
                 MainActor.assumeIsolated {
                     guard let self, let pid else { return }
                     self.handleAppHiddenChanged(pid: pid)
@@ -560,7 +560,7 @@ final class SwitcherController: SwitcherViewDelegate {
             object: nil,
             queue: .main
         ) { [weak self] note in
-            let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.pid
             MainActor.assumeIsolated {
                 guard let self else { return }
                 if let pid, pid != selfPid {
@@ -1205,7 +1205,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // suppression flip; the main thread cannot tolerate the stall on
             // every app activation and Space change. Until the result lands,
             // the previous suppression state stays in effect.
-            let pid = front?.processIdentifier ?? -1
+            let pid = front?.pid ?? -1
             let gen = triggerSuppressionGen
             DispatchQueue.global(qos: .userInteractive).async {
                 let fullscreen = Self.focusedWindowIsFullscreen(pid: pid)
@@ -2102,8 +2102,8 @@ final class SwitcherController: SwitcherViewDelegate {
         let selfPid = getpid()
         // The frontmost app at trigger time (we're accessory, so it's the user's
         // real app) — needed for the current-app scope.
-        if let front = NSWorkspace.shared.frontmostApplication, front.processIdentifier != selfPid {
-            scopeFrontPid = front.processIdentifier
+        if let front = NSWorkspace.shared.frontmostApplication, front.pid != selfPid {
+            scopeFrontPid = front.pid
         } else {
             scopeFrontPid = nil
         }
@@ -2522,7 +2522,7 @@ final class SwitcherController: SwitcherViewDelegate {
             mru.syncFrontmost()
             let selfPid = getpid()
             guard let front = NSWorkspace.shared.frontmostApplication,
-                  front.processIdentifier != selfPid else { return }
+                  front.pid != selfPid else { return }
             // Promote the truly-current window of the front app to MRU[0]
             // before reveal() freezes the snapshot. Catches manual clicks the
             // user made between Cmd+` chords that our own activations did not
@@ -2530,11 +2530,11 @@ final class SwitcherController: SwitcherViewDelegate {
             // app — never block the main run loop here): the bump is not consumed
             // synchronously below (the snapshot is sorted later, on the reveal
             // timer), so it can land asynchronously and still order this chord.
-            handleFocusChange(pid: front.processIdentifier)
+            handleFocusChange(pid: front.pid)
             resolveActiveOptions(for: .switchWindows)
             switchSessionKind = .windowSwitching
             windowsOnlyMode = true
-            windowsOnlyPid = front.processIdentifier
+            windowsOnlyPid = front.pid
             windowsOnlyPrimedDelta = delta
             primedApps = [front]
             primedIndex = 0
@@ -2586,7 +2586,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// frontmost app was filtered out of the primed list.
     private func primedAnchor(for sort: SwitcherSortOrder) -> Int? {
         guard sort.anchorsPrimedOnFrontmost, let front = mru.order.first else { return nil }
-        return primedApps.firstIndex { $0.processIdentifier == front }
+        return primedApps.firstIndex { $0.pid == front }
     }
 
     private func advance(by delta: Int, wrap: Bool) {
@@ -3016,8 +3016,8 @@ final class SwitcherController: SwitcherViewDelegate {
         prefetchedTarget = nil
         let selfPid = getpid()
         guard let front = NSWorkspace.shared.frontmostApplication,
-              front.processIdentifier != selfPid else { return }
-        let pid = front.processIdentifier
+              front.pid != selfPid else { return }
+        let pid = front.pid
         let need = captureNeed
         focusedWindowCaptureGen &+= 1
         let gen = focusedWindowCaptureGen
@@ -3075,7 +3075,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // before `panel.present()` activates us (which it does so the server
         // renders the glass backdrop active). Ignore us as the "previous" app.
         let front = NSWorkspace.shared.frontmostApplication
-        previousFrontmostApp = (front?.processIdentifier == getpid()) ? nil : front
+        previousFrontmostApp = (front?.pid == getpid()) ? nil : front
         // Capture the user's current window for window-management chords, which
         // act on the window focused when the switcher opened (not the highlighted
         // row), for the whole open session. Prefer what `prefetchOpenFocusedWindow()`
@@ -3096,7 +3096,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // The user's app, us excluded — `previousFrontmostApp` above already
         // applied that filter. Our own panel/settings windows say nothing about
         // which display the user was working on.
-        let userPid = previousFrontmostApp?.processIdentifier
+        let userPid = previousFrontmostApp?.pid
         // Adopt the prefetched screen only if the live mode still wants the signal
         // it was captured from: the display mode (or, rarely, the separate-Spaces
         // setting behind it) can change during the primed delay, and a screen
@@ -3161,7 +3161,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let snapshotApps = primedApps
         let targetIdx = primedIndex
         let targetPid = snapshotApps.indices.contains(targetIdx)
-            ? snapshotApps[targetIdx].processIdentifier : nil
+            ? snapshotApps[targetIdx].pid : nil
 
         // Scoped-shortcut open: narrow BEFORE the applications-only collapse —
         // matching `applyFullSnapshot` — so each app's representative row is
@@ -3949,7 +3949,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // Skip a window whose cache entry is still fresh (unless forced); fall
             // through when it's missing or older than the TTL so tab add/close shows.
             if !force, let cached = browserTabsCache[key], now - cached.fetchedAt < Self.browserTabsCacheTTL { continue }
-            byApp[app.processIdentifier, default: (app, [])].wins.append(
+            byApp[app.pid, default: (app, [])].wins.append(
                 Target(window: window, title: row.windowTitle, key: key)
             )
         }
@@ -4172,7 +4172,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// scope with no eligible app — makes commit() fall back or no-op.
     private func primedAppTargetRow(in rows: [SwitcherRow], scope: SpaceScope) -> SwitcherRow? {
         guard let app = eligiblePrimedApp(in: rows, scope: scope) else { return nil }
-        let pid = app.processIdentifier
+        let pid = app.pid
         let requiresWindow = scope == .allSpaces
         return Self.primedTargetIndex(
             count: rows.count,
@@ -4208,7 +4208,7 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         let anchorPid = effective.sortOrder.anchorsPrimedOnFrontmost ? mru.order.first : nil
         return Self.eligiblePrimedIndex(
-            primedPids: primedApps.map(\.processIdentifier),
+            primedPids: primedApps.map(\.pid),
             eligiblePids: Set(rows.compactMap(\.pid)),
             step: primedStepDelta,
             anchorPid: anchorPid
@@ -4368,7 +4368,7 @@ final class SwitcherController: SwitcherViewDelegate {
                     // first seconds). A narrowed scope with a scanned cache and
                     // no eligible app stays a no-op.
                     let app = primedApps[primedIndex]
-                    mru.bump(app.processIdentifier)
+                    mru.bump(app.pid)
                     pendingActivation = { Activator.activateApp(app, completion: finishDismiss) }
                 }
             }
@@ -4786,7 +4786,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// "Modifications to the layout engine must not be performed from a
     /// background thread."
     private static func isOwnProcess(_ app: NSRunningApplication) -> Bool {
-        app.processIdentifier == NSRunningApplication.current.processIdentifier
+        app.pid == NSRunningApplication.current.pid
     }
 
     nonisolated private static func fetchTabsBlocking(app: NSRunningApplication, window: AXUIElement, title: String, isBrowser: Bool, prefetchedTabs: [AXUIElement] = []) -> DrillFetch {
@@ -5437,7 +5437,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 windowTitle: "",
                 isMinimized: false
             )
-            let idx = inactiveInsertionIndex(forPid: placeholder.app.processIdentifier, in: result)
+            let idx = inactiveInsertionIndex(forPid: placeholder.app.pid, in: result)
             result.insert(row, at: idx)
         }
         // Drop tombstones whose windows the cache no longer reports — the

@@ -136,7 +136,7 @@ final class DockBadgeObserver {
         let token = buildGeneration
         guard let pid = NSRunningApplication
             .runningApplications(withBundleIdentifier: Self.dockBundleID)
-            .first?.processIdentifier else {
+            .first?.pid else {
             Log.priv.error("DockBadgeObserver: Dock process not found; live badge refresh off this session")
             return
         }

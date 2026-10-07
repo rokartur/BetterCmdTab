@@ -150,7 +150,7 @@ struct SwitcherRowTests {
             windowTitle: "",
             isMinimized: false
         )
-        #expect(row.pid == hostApp.processIdentifier)
+        #expect(row.pid == hostApp.pid)
     }
 
     @Test("appName mirrors localizedName")

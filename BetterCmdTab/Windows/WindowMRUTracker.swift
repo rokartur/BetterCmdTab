@@ -38,7 +38,7 @@ final class WindowMRUTracker {
             queue: .main
         ) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-            let pid = app.processIdentifier
+            let pid = app.pid
             MainActor.assumeIsolated {
                 guard let self else { return }
                 // Confirmed-dead purge: the app is gone, so every window we

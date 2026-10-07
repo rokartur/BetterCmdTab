@@ -111,7 +111,7 @@ struct CatalogFilterTests {
         let filtered = CatalogFilter.filterExcludedWindowTitles([pip, pip], ["com.apple.finder": ["picture-in-picture"]])
         #expect(filtered.count == 1)
         #expect(filtered[0].window == nil)
-        #expect(filtered[0].pid == finder.processIdentifier)
+        #expect(filtered[0].pid == finder.pid)
     }
 
     @Test("config() reads title exclusions from their own key, cleaned and folded")
@@ -161,7 +161,7 @@ struct CatalogFilterTests {
     @Test("app-level filter matches the row filter once window state is known")
     func filteredAppsWindowState() {
         let app = NSRunningApplication.current
-        let pid = app.processIdentifier
+        let pid = app.pid
         let cfg = config(showWindowless: false)
         // Window state known, app windowless → dropped, same as the panel.
         #expect(CatalogFilter.filteredApps([app], cfg, windowedPids: []).isEmpty)

@@ -253,7 +253,7 @@ struct SwitcherRow {
     }
 
     /// `nil` for launchable rows (no process yet).
-    var pid: pid_t? { app?.processIdentifier }
+    var pid: pid_t? { app?.pid }
 
     /// Value identity of what a row stands for, stable across catalog refreshes
     /// and filtering. The switcher view follows it to recognize a row it already
@@ -270,7 +270,7 @@ struct SwitcherRow {
     var identity: Identity {
         switch subject {
         case .running(let app):
-            let pid = app.processIdentifier
+            let pid = app.pid
             if let tab = browserTab { return .browserTab(pid, cgWindowID, tab.index) }
             return cgWindowID == 0 ? .app(pid) : .window(pid, cgWindowID)
         case .launchable(let installed):

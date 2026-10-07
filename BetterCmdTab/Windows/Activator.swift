@@ -255,7 +255,7 @@ enum Activator {
         if app.isHidden {
             app.unhide()
         }
-        let pid = app.processIdentifier
+        let pid = app.pid
         activationQueue.async {
             guard isCurrentActivation(gen) else {
                 DispatchQueue.main.async { completion() }
@@ -432,7 +432,7 @@ enum Activator {
         generation gen: UInt64,
         completion: @escaping @MainActor @Sendable () -> Void
     ) {
-        let pid = app.processIdentifier
+        let pid = app.pid
         activateProcess(app)
 
         let applyFocus: @Sendable () -> Void = {
@@ -462,7 +462,7 @@ enum Activator {
         // so we never yank focus the user may have since moved elsewhere.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             guard isCurrentActivation(gen),
-                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
+                  NSWorkspace.shared.frontmostApplication?.pid == pid else { return }
             let reassert: @Sendable () -> Void = {
                 guard isCurrentActivation(gen) else { return }
                 AXUIElementPerformAction(window, kAXRaiseAction as CFString)
@@ -492,7 +492,7 @@ enum Activator {
             if focusSettled(targetWid: wid, focusedWid: focusedWid, sameElement: sameElement) { return }
             DispatchQueue.main.async {
                 guard isCurrentActivation(generation),
-                      NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
+                      NSWorkspace.shared.frontmostApplication?.pid == pid else { return }
                 activationQueue.async {
                     guard isCurrentActivation(generation) else { return }
                     AXUIElementPerformAction(window, kAXRaiseAction as CFString)
@@ -569,7 +569,7 @@ enum Activator {
         generation gen: UInt64,
         completion: @escaping @MainActor @Sendable () -> Void
     ) {
-        let pid = app.processIdentifier
+        let pid = app.pid
         activateProcess(app)
         let apply: @Sendable () -> Void = {
             defer { DispatchQueue.main.async { completion() } }
@@ -784,7 +784,7 @@ enum Activator {
         // on the main thread. Cross-process AX stays off-main so a slow target
         // never stalls our UI. GCD is used for both paths so every poll remains
         // on the executor appropriate for that window.
-        let queue = app.processIdentifier == getpid()
+        let queue = app.pid == getpid()
             ? DispatchQueue.main
             : DispatchQueue.global(qos: .userInitiated)
         queue.async {
@@ -925,7 +925,7 @@ enum Activator {
         }
         // Our own window must mutate on the main thread (window-management
         // constraint, same as close/minimize); other apps stay off-main.
-        if app.processIdentifier == getpid() {
+        if app.pid == getpid() {
             DispatchQueue.main.async(execute: apply)
         } else {
             DispatchQueue.global(qos: .userInitiated).async(execute: apply)
@@ -946,7 +946,7 @@ enum Activator {
             let target: CFBoolean = shouldEnterFullscreen ? kCFBooleanTrue : kCFBooleanFalse
             _ = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, target)
         }
-        if app.processIdentifier == getpid() {
+        if app.pid == getpid() {
             DispatchQueue.main.async(execute: apply)
         } else {
             DispatchQueue.global(qos: .userInitiated).async(execute: apply)
@@ -983,7 +983,7 @@ enum Activator {
         let excluded = Set(UserDefaults.standard.stringArray(forKey: "Switcher.hideAllExcludedBundleIDs") ?? [])
         let selfPid = getpid()
         let frontApp = NSWorkspace.shared.frontmostApplication
-        let frontPid = frontApp?.processIdentifier
+        let frontPid = frontApp?.pid
         // Remember the hide-time frontmost app so `showAllApps()` can raise it back
         // on top (the window the user hid everything from). Skip self; otherwise
         // record it even if it's in the keep-visible set — it stays the app the
@@ -992,26 +992,26 @@ enum Activator {
         // belonging to a different process can't be raised by mistake. Always
         // assign (value or nil) so a stale entry from a previous hide can't be reused.
         if let frontApp, frontApp.activationPolicy == .regular,
-           frontApp.processIdentifier != selfPid,
+           frontApp.pid != selfPid,
            let bid = frontApp.bundleIdentifier {
-            lastHideFrontmost.withLock { $0 = (frontApp.processIdentifier, bid) }
+            lastHideFrontmost.withLock { $0 = (frontApp.pid, bid) }
         } else {
             lastHideFrontmost.withLock { $0 = nil }
         }
         let running = NSWorkspace.shared.runningApplications
         let targets = running.filter { app in
             app.activationPolicy == .regular
-                && app.processIdentifier != selfPid
+                && app.pid != selfPid
                 && app.bundleIdentifier != finderBundleID
                 && !app.isHidden
                 && !(app.bundleIdentifier.map(excluded.contains) ?? false)
         }
         // frontmost hidden last (its hide is the only visible transition).
-        for app in targets.sorted(by: { ($1.processIdentifier == frontPid ? 1 : 0) > ($0.processIdentifier == frontPid ? 1 : 0) }) {
+        for app in targets.sorted(by: { ($1.pid == frontPid ? 1 : 0) > ($0.pid == frontPid ? 1 : 0) }) {
             app.hide()
         }
         if !excluded.contains(finderBundleID),
-           let finderPid = running.first(where: { $0.bundleIdentifier == finderBundleID })?.processIdentifier {
+           let finderPid = running.first(where: { $0.bundleIdentifier == finderBundleID })?.pid {
             DispatchQueue.global(qos: .userInitiated).async {
                 let minimized = minimizeFinderWindows(pid: finderPid)
                 // Union, not assign: a second hide-all before any show-all only
@@ -1032,18 +1032,18 @@ enum Activator {
     static func showAllApps() {
         let running = NSWorkspace.shared.runningApplications
         let runningIDs = running.map {
-            (pid: $0.processIdentifier, bundleID: $0.bundleIdentifier, terminated: $0.isTerminated)
+            (pid: $0.pid, bundleID: $0.bundleIdentifier, terminated: $0.isTerminated)
         }
         let remembered = lastHideFrontmost.withLock { value -> (pid: pid_t, bundleID: String?)? in
             defer { value = nil }
             return value
         }
         let targetPid = showAllRaisePid(remembered: remembered, running: runningIDs)
-        let raiseTarget = targetPid.flatMap { pid in running.first { $0.processIdentifier == pid } }
+        let raiseTarget = targetPid.flatMap { pid in running.first { $0.pid == pid } }
         // Unhide everything except the raise target first, so the target's
         // activation below is the final, on-top transition (no focus thrash).
         for app in running
-        where app.activationPolicy == .regular && app.isHidden && app.processIdentifier != targetPid {
+        where app.activationPolicy == .regular && app.isHidden && app.pid != targetPid {
             app.unhide()
         }
         // Restore only what hide-all minimized, and consume the record so a later
@@ -1053,7 +1053,7 @@ enum Activator {
             return ids
         }
         if !ourMinimized.isEmpty,
-           let finderPid = running.first(where: { $0.bundleIdentifier == finderBundleID })?.processIdentifier {
+           let finderPid = running.first(where: { $0.bundleIdentifier == finderBundleID })?.pid {
             DispatchQueue.global(qos: .userInitiated).async {
                 restoreFinderWindows(pid: finderPid, ids: ourMinimized)
             }
@@ -1133,7 +1133,7 @@ enum Activator {
         if app.bundleIdentifier == finderBundleID {
             return
         }
-        let pid = app.processIdentifier
+        let pid = app.pid
         guard pid > 0 else { return }
         kill(pid, SIGKILL)
     }
@@ -1147,7 +1147,7 @@ enum Activator {
     /// Nil if there's no frontmost app, it's us, or it has no focused window.
     static func frontmostFocusedWindow() -> AXUIElement? {
         guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
-        return focusedWindow(pid: app.processIdentifier)
+        return focusedWindow(pid: app.pid)
     }
 
     /// Focused window of `pid` via AX. A short messaging timeout keeps a wedged

@@ -713,7 +713,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         var apps: [NSRunningApplication] = []
         for app in NSWorkspace.shared.runningApplications
         where !app.isTerminated && app.activationPolicy == .regular {
-            let identity = app.bundleIdentifier ?? "pid.\(app.processIdentifier)"
+            let identity = app.bundleIdentifier ?? "pid.\(app.pid)"
             guard seen.insert(identity).inserted, app.localizedName?.isEmpty == false else { continue }
             apps.append(app)
             if apps.count == 3 { break }
