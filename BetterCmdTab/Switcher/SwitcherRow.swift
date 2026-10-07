@@ -202,6 +202,22 @@ struct SwitcherRow {
         return start..<(start + limit)
     }
 
+    /// Lists a tab once when several windows of one browser show it at the same index (Safari repeats
+    /// pinned tabs in every window, #195). An active copy always stays: it stands for its window.
+    static func droppingMirroredTabs(_ rows: [SwitcherRow]) -> [SwitcherRow] {
+        // Title too: one URL in two Chrome profiles can be two accounts (Gmail).
+        struct Copy: Hashable { let pid: pid_t?; let index: Int; let url: String; let title: String }
+        func copy(_ row: SwitcherRow) -> Copy? {
+            guard let tab = row.browserTab, !tab.url.isEmpty else { return nil }
+            return Copy(pid: row.pid, index: tab.index, url: tab.url, title: row.windowTitle)
+        }
+        var listed = Set(rows.compactMap { $0.browserTab?.isActive == true ? copy($0) : nil })
+        return rows.filter { row in
+            guard row.browserTab?.isActive == false, let copy = copy(row) else { return true }
+            return listed.insert(copy).inserted
+        }
+    }
+
     func browserTabRows(tabTitles: [String]) -> [SwitcherRow] {
         browserTabRows(
             tabs: tabTitles.map { BrowserTabInfo(title: $0, url: "") },
