@@ -270,7 +270,7 @@ final class HotkeyTap: @unchecked Sendable {
     /// bound key suppresses letter-jumping (same as the old hardcoded W/M/H/Q).
     /// `.quit` escalates to force-quit when Option is held (preserved behavior).
     /// Pushed from main via `setPanelKeyBindings`, derived from BetterShortcuts.
-    enum PanelActionKey { case close, minimize, hide, quit, fullscreen }
+    enum PanelActionKey { case close, minimize, hide, quit, fullscreen, left, right, up, down }
     /// Populated entirely from BetterShortcuts at launch via
     /// `SwitcherController.pushPanelKeyBindings` (and on every shortcut change) —
     /// BetterShortcuts' `panelClose/Minimize/Hide/Quit` are the single source of
@@ -1508,6 +1508,10 @@ final class HotkeyTap: @unchecked Sendable {
                                 case .hide: deliver(.hideApp)
                                 case .quit: deliver(optionHeld ? .forceQuitApp : .quitApp)
                                 case .fullscreen: deliver(.fullscreen)
+                                case .left: deliver(.spatialLeft)
+                                case .right: deliver(.spatialRight)
+                                case .up: deliver(.prevRow)
+                                case .down: deliver(.nextRow)
                                 }
                                 return nil
                             }

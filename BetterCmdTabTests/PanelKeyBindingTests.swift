@@ -16,7 +16,14 @@ struct PanelKeyBindingTests {
         // recorders in the "In-panel keys" card.
         #expect(names("apps").contains("panelSearch@apps"))
         #expect(names("apps").contains("panelTabDrill@apps"))
-        #expect(names("apps").count == 7)
+        #expect(names("apps").count == 11)
+    }
+
+    @Test func customArrowKeys_shipUnbound() {
+        // A default would claim that key in-panel for every existing user.
+        let arrows: [BetterShortcuts.Name] = [.panelLeft(for: "apps"), .panelRight(for: "apps"), .panelUp(for: "apps"), .panelDown(for: "apps")]
+        #expect(arrows.allSatisfy { $0.defaultShortcut == nil })
+        #expect(Set(arrows.map(\.rawValue)).isSubset(of: Set(names("apps"))))
     }
 
     @Test func panelKeyNames_areScopedPerProfile() {

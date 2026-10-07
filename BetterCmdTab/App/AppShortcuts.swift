@@ -78,6 +78,12 @@ extension BetterShortcuts.Name {
     static func panelSearch(for key: String) -> Self { Self("panelSearch@\(key)", default: .init(.slash, modifiers: .command)) }
     static func panelTabDrill(for key: String) -> Self { Self("panelTabDrill@\(key)", default: .init(.backslash, modifiers: .command)) }
 
+    /// Extra keys that move the selection like the arrows (e.g. [ ] - =). Unbound by default.
+    static func panelLeft(for key: String) -> Self { Self("panelLeft@\(key)") }
+    static func panelRight(for key: String) -> Self { Self("panelRight@\(key)") }
+    static func panelUp(for key: String) -> Self { Self("panelUp@\(key)") }
+    static func panelDown(for key: String) -> Self { Self("panelDown@\(key)") }
+
     /// The per-profile in-panel action-key names for the profile with `storageKey`,
     /// paired with a stable title — drives the recorder rows and the keycode maps.
     static func profilePanelKeys(for storageKey: String) -> [(name: Self, title: String)] {
@@ -89,6 +95,10 @@ extension BetterShortcuts.Name {
             (panelFullscreen(for: storageKey), String(localized: "Full screen")),
             (panelSearch(for: storageKey), String(localized: "Open search")),
             (panelTabDrill(for: storageKey), String(localized: "Peek tabs")),
+            (panelLeft(for: storageKey), String(localized: "Move selection left")),
+            (panelRight(for: storageKey), String(localized: "Move selection right")),
+            (panelUp(for: storageKey), String(localized: "Move selection up")),
+            (panelDown(for: storageKey), String(localized: "Move selection down")),
         ]
     }
 
@@ -191,6 +201,10 @@ extension BetterShortcuts.Name: @retroactive CaseIterable {
                 case "panelFullscreen": return String(localized: "Full screen")
                 case "panelSearch": return String(localized: "Open search")
                 case "panelTabDrill": return String(localized: "Peek tabs")
+                case "panelLeft": return String(localized: "Move selection left")
+                case "panelRight": return String(localized: "Move selection right")
+                case "panelUp": return String(localized: "Move selection up")
+                case "panelDown": return String(localized: "Move selection down")
                 default: break
                 }
             }

@@ -70,7 +70,7 @@ struct ChordSpec: Equatable {
     var kind: Kind
 }
 
-/// A rebindable in-panel action key (W/M/H/Q/F), as a keycode + the action it
+/// A rebindable in-panel action key (W/M/H/Q/F, custom arrows), as a keycode + the action it
 /// performs. Built from the BetterShortcuts bindings at the call site.
 struct PanelActionSpec: Equatable {
     var keyCode: UInt32
@@ -175,7 +175,7 @@ private let kcVimK: UInt32 = 40
 ///   - searchActive / tabDrillActive: the current in-panel mode, which decides
 ///     whether the letter keys are letter-jump or search input, and whether the
 ///     arrows step the selection or the tab strip.
-///   - panelActions: the rebindable in-panel action keys (W/M/H/Q/F).
+///   - panelActions: the rebindable in-panel action keys (W/M/H/Q/F, custom arrows).
 ///   - searchKeyCode / tabDrillKeyCode: the rebindable search and tab-drill keys
 ///     (#169), defaulting to the shipped `/` and `\`. `nil` when the user cleared
 ///     that recorder, which disables the key here too.

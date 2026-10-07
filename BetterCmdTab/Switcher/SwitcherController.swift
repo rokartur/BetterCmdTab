@@ -1065,6 +1065,10 @@ final class SwitcherController: SwitcherViewDelegate {
             (.panelHide(for: key), .hide),
             (.panelQuit(for: key), .quit),
             (.panelFullscreen(for: key), .fullscreen),
+            (.panelLeft(for: key), .left),
+            (.panelRight(for: key), .right),
+            (.panelUp(for: key), .up),
+            (.panelDown(for: key), .down),
         ]
         for (name, action) in pairs {
             guard let shortcut = BetterShortcuts.getShortcut(for: name) else { continue }
@@ -1340,7 +1344,7 @@ final class SwitcherController: SwitcherViewDelegate {
         applyOverridePlan(plan)
     }
 
-    /// The rebindable in-panel action keys (W/M/H/Q/F), in the pure plan's terms.
+    /// The rebindable in-panel action keys (W/M/H/Q/F, custom arrows), in the pure plan's terms.
     /// Same source as `pushPanelKeyBindings` — only the keycode matters in-panel.
     private func panelActionSpecs() -> [PanelActionSpec] {
         let key = activeTarget.storageKey
@@ -1350,6 +1354,10 @@ final class SwitcherController: SwitcherViewDelegate {
             (.panelHide(for: key), .hide),
             (.panelQuit(for: key), .quit),
             (.panelFullscreen(for: key), .fullscreen),
+            (.panelLeft(for: key), .navLeft),
+            (.panelRight(for: key), .navRight),
+            (.panelUp(for: key), .navUp),
+            (.panelDown(for: key), .navDown),
         ]
         var specs: [PanelActionSpec] = []
         for (name, action) in pairs {
