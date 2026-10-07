@@ -341,7 +341,7 @@ enum SettingsCatalog {
              String(localized: "Scoped shortcuts"), ["scope", "scoped", "all windows", "current app", "minimized", "this space", "filtered switcher"]),
         item(SearchID.panelKeys, .profiles, SettingsAnchor.switching, String(localized: "Profiles"), String(localized: "In-panel keys"),
              String(localized: "Action keys while switching"),
-             ["panel keys", "rebind", "close", "minimize", "hide", "quit", "wmhq", "in-panel", "search key", "slash", "tab drill", "peek tabs", "backslash"]),
+             ["panel keys", "rebind", "close", "minimize", "hide", "quit", "wmhq", "in-panel", "search key", "slash", "tab drill", "peek tabs", "backslash", "arrows", "navigation", "move selection"]),
 
         // Shortcuts · Direct activation
         item(SearchID.directActivation, .shortcuts, SettingsAnchor.directActivation, String(localized: "Shortcuts"), String(localized: "Direct activation"),
