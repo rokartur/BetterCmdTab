@@ -209,7 +209,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image?.isTemplate = true
         }
         item.menu = statusMenu.menu
-        statusMenu.statusButton = item.button
         statusItem = item
     }
 
