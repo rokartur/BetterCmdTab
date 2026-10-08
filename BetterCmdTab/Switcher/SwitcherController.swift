@@ -93,6 +93,8 @@ final class SwitcherController: SwitcherViewDelegate {
     private let shelfMouse = WindowShelfMouse()
     private let stack: SwitcherStackView
     private var shelfHoverGrace: (timer: Timer, index: Int, pid: pid_t?)?
+    /// Screen point of the last hover over the switcher, so the grace waits only for a pointer heading down.
+    private var lastHoverPoint: NSPoint?
     /// The highlighted app's window list, so stepping through the switcher
     /// re-reads the catalog only when the app changes.
     private var selectedAppWindowsMemo: (pid: pid_t, windows: [SwitcherRow])?
@@ -2248,15 +2250,28 @@ final class SwitcherController: SwitcherViewDelegate {
     func switcherViewDidHover(index: Int) {
         guard phase == .visible else { return }
         lastVisibleActivity = Date() // #16: mouse steering keeps the panel alive
+        // Screen coordinates: a re-listed shelf resizes the panel, which moves window coordinates.
+        let point = NSEvent.mouseLocation
+        let headsForShelf = Self.pointerHeadsForShelf(from: lastHoverPoint, to: point)
+        lastHoverPoint = point
         guard rows.indices.contains(index), index != self.index else {
             cancelShelfHoverGrace()
             return
         }
-        if !shelf.isHidden {
+        if !shelf.isHidden, headsForShelf {
             armShelfHoverGrace(for: index)
             return
         }
         selectHoveredRow(index)
+    }
+
+    /// Down at least as steeply as sideways (screen y grows upward). A sideways
+    /// scan of the apps selects at once; only a pointer that may be on its way
+    /// to the shelf waits out the grace. Pure.
+    nonisolated static func pointerHeadsForShelf(from previous: NSPoint?, to point: NSPoint) -> Bool {
+        guard let previous else { return false }
+        let drop = previous.y - point.y
+        return drop > 0 && drop >= abs(point.x - previous.x)
     }
 
     private static let shelfHoverGraceInterval: TimeInterval = 0.15
@@ -4744,6 +4759,7 @@ final class SwitcherController: SwitcherViewDelegate {
         shelf.isHidden = true
         selectedAppWindowsMemo = nil
         cancelShelfHoverGrace()
+        lastHoverPoint = nil
     }
 
     /// The rows were rebuilt, so the catalog may hold new windows: re-read them.
