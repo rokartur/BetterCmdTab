@@ -4804,7 +4804,8 @@ final class SwitcherController: SwitcherViewDelegate {
         // and a windowless app has nothing to list.
         guard row.browserTab == nil, row.window != nil, let pid = row.pid else { return [] }
         if let memo = selectedAppWindowsMemo, memo.pid == pid { return memo.windows }
-        let windows = cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
+        // Tombstones: the cache lists a just-closed window until its AX close lands.
+        let windows = filterClosedTombstones(cache.rows(orderedBy: mru.order, filter: activeFilterConfig))
             .filter { $0.pid == pid && $0.window != nil }
         let ordered = windowMRU.sortRows(windows, forPid: pid)
         selectedAppWindowsMemo = (pid, ordered)
