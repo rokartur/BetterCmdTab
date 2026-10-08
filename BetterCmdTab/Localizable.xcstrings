@@ -922,6 +922,46 @@
         }
       }
     },
+    "Also show the shelf when the highlighted app has only one window." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt die Fensterablage auch, wenn die markierte App nur ein Fenster hat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra también la bandeja cuando la app resaltada tiene una sola ventana."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche aussi l'étagère quand l'app en surbrillance n'a qu'une fenêtre."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje półkę także wtedy, gdy zaznaczona aplikacja ma tylko jedno okno."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать полку, даже если у выбранного приложения только одно окно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高亮的应用只有一个窗口时也显示窗口栏。"
+          }
+        }
+      }
+    },
     "Also stay open after a quick tap" : {
       "localizations" : {
         "de" : {
@@ -14376,6 +14416,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在网格和预览布局中，于图标下方显示每个窗口标题。"
+          }
+        }
+      }
+    },
+    "Show for a single window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei einem einzelnen Fenster anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar con una sola ventana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher pour une seule fenêtre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż przy jednym oknie"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать при одном окне"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单个窗口时也显示"
           }
         }
       }

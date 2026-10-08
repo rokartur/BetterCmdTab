@@ -4819,7 +4819,8 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         guard let layoutMode = effective.windowShelf.layoutMode else { return hide() }
         let windows = windowDrillActive ? drillWindowRows : windowsOfSelectedApp()
-        guard !windows.isEmpty else { return hide() }
+        let minimumWindows = Preferences.shared.windowShelfSingleWindow ? 1 : 2
+        guard windows.count >= minimumWindows else { return hide() }
         // Every tile is the same app, so tiles carry window titles and nothing else.
         var shelfEffective = effective
         shelfEffective.showApplicationNames = false

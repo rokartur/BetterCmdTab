@@ -84,6 +84,7 @@ const sections: { title: string; keys: string[] }[] = [
       'applicationsOnly',
       'windowDrillEnabled',
       'windowShelf',
+      'windowShelfSingleWindow',
       'handoffPlacement',
       'showMinimizedWindows',
       'showHiddenApps',
@@ -309,6 +310,7 @@ const defaults: Record<string, string> = {
   vimNavigationEnabled: 'false',
   windowDrillEnabled: 'true',
   windowShelf: '"off"',
+  windowShelfSingleWindow: 'false',
   windowTitleExclusions: '{}',
 };
 
