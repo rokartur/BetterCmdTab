@@ -251,6 +251,20 @@
       "description" : "Keep the grid on one row, shrinking the icons to fit, instead of wrapping. Ignored while gridMaxColumns caps the columns.",
       "type" : "boolean"
     },
+    "handoffPlacement" : {
+      "description" : "Show the Dock's Handoff suggestion (a page open on another device) as a tile, first or last. Off by default. Unstable: it reads an undocumented Dock item.",
+      "enum" : [
+        "off",
+        "first",
+        "last"
+      ],
+      "enumDescriptions" : [
+        "Off",
+        "First",
+        "Last"
+      ],
+      "type" : "string"
+    },
     "hapticOnCommit" : {
       "description" : "Tap the trackpad when the switcher commits a selection.",
       "type" : "boolean"

@@ -55,18 +55,18 @@ struct DockBadgeScanLatchTests {
         let latch = DockBadgeScanLatch()
         #expect(latch.begin() == true)    // owner of the scan
         #expect(latch.begin() == false)   // poll tick while the scan is blocked
-        latch.end(["com.apple.mail": "3"])
+        latch.end(DockSnapshot(badges: ["com.apple.mail": "3"]))
         #expect(latch.begin() == true)    // next tick scans again
     }
 
     @Test("a refused tick reads the last completed result")
     func refusedTickGetsLastResult() {
         let latch = DockBadgeScanLatch()
-        #expect(latch.lastResult().isEmpty) // cold start: nothing scanned yet
+        #expect(latch.lastResult() == DockSnapshot()) // cold start: nothing scanned yet
         #expect(latch.begin() == true)
-        latch.end(["com.apple.mail": "3"])  // first scan completes
+        latch.end(DockSnapshot(badges: ["com.apple.mail": "3"]))  // first scan completes
         #expect(latch.begin() == true)      // second scan starts…
         #expect(latch.begin() == false)     // …and a tick during it is refused
-        #expect(latch.lastResult() == ["com.apple.mail": "3"])
+        #expect(latch.lastResult().badges == ["com.apple.mail": "3"])
     }
 }

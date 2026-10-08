@@ -50,11 +50,13 @@ enum RowLabels {
         let appName: String
         let windowTitle: String
         let bundleID: String?
+        let takesLetter: Bool
 
-        init(appName: String, windowTitle: String, bundleID: String? = nil) {
+        init(appName: String, windowTitle: String, bundleID: String? = nil, takesLetter: Bool = true) {
             self.appName = appName
             self.windowTitle = windowTitle
             self.bundleID = bundleID
+            self.takesLetter = takesLetter
         }
     }
 
@@ -63,13 +65,17 @@ enum RowLabels {
         let excluded = excludedStore.withLock { $0 }
         let offHand = offHandStore.withLock { $0 }
         return labels(
-            forInputs: rows.map {
-                Input(appName: $0.appName, windowTitle: $0.windowTitle, bundleID: $0.bundleIdentifier)
-            },
+            forInputs: rows.map(input(for:)),
             customMappings: mappings,
             excludedBundleIDs: excluded,
             offHandLetters: offHand
         )
+    }
+
+    /// A Handoff row takes no letter, so the running app it shares a bundle ID with
+    /// keeps its one-letter hint or custom letter.
+    static func input(for row: SwitcherRow) -> Input {
+        Input(appName: row.appName, windowTitle: row.windowTitle, bundleID: row.bundleIdentifier, takesLetter: row.handoff == nil)
     }
 
     static func labels(
@@ -91,7 +97,7 @@ enum RowLabels {
         // windows of the same app keep ordinary dynamic labels, avoiding a
         // prefix chain that would delay the one-letter app jump.
         var customIndexByBundleID: [String: Int] = [:]
-        for (index, row) in rows.enumerated() {
+        for (index, row) in rows.enumerated() where row.takesLetter {
             guard let bundleID = row.bundleID,
                   customMappings[bundleID] != nil,
                   customIndexByBundleID[bundleID] == nil else { continue }
@@ -115,7 +121,8 @@ enum RowLabels {
                 }
             }
         }
-        let skipIndices = customIndices.union(excludedIndices)
+        let noLetterIndices = rows.indices.filter { !rows[$0].takesLetter }
+        let skipIndices = customIndices.union(excludedIndices).union(noLetterIndices)
 
         var firstLetterCount: [Character: Int] = [:]
         var firstLetters = [Character?](repeating: nil, count: rows.count)

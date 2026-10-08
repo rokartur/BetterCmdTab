@@ -325,7 +325,32 @@ enum Activator {
             )
         case .recentlyClosed(let entry):
             reopen(entry, completion: completion)
+        case .handoff(let suggestion):
+            assertionFailure("Handoff rows commit through SwitcherController.activation(for:)")
+            _ = openHandoff(suggestion)
+            completion()
         }
+    }
+
+    /// Press the Dock's Handoff item, which opens the suggestion on this Mac. The
+    /// suggestion is forgotten whatever the result, so a ⌘Tab within the 1 s scan
+    /// throttle never shows a used or dead tile again.
+    @MainActor
+    static func openHandoff(_ suggestion: HandoffSuggestion) -> AXError {
+        beginActivation()
+        let result = AXUIElementPerformAction(suggestion.element, kAXPressAction as CFString)
+        DockBadgeReader.shared.dropHandoff()
+        if result == .cannotComplete {
+            Log.activator.info("Handoff press timed out for \(suggestion.bundleID, privacy: .public)")
+        } else if result != .success {
+            Log.activator.error("Handoff press failed for \(suggestion.bundleID, privacy: .public): AXError \(result.rawValue)")
+        }
+        return result
+    }
+
+    /// A timeout means the Dock was busy, not that the press was lost.
+    static func handoffPressOpened(_ result: AXError) -> Bool {
+        result == .success || result == .cannotComplete
     }
 
     /// Launch a not-yet-running app discovered by `InstalledAppsIndex`.

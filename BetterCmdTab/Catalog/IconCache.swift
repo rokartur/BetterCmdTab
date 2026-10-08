@@ -79,7 +79,7 @@ enum IconCache {
             cache.setObject(flat, forKey: key, cost: bytesPerImage)
             return flat
         }
-        // No pid → launchable or recently-closed. Key by bundle ID so a
+        // No pid → launchable, recently-closed or Handoff. Key by bundle ID so a
         // search session that lists the same apps on every keystroke reads
         // from memory instead of round-tripping `NSWorkspace`.
         guard let bundleID = row.bundleIdentifier, !bundleID.isEmpty else { return row.icon }

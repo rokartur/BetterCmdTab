@@ -305,6 +305,11 @@ struct PreferencesEnumTests {
         #expect(WindowShelf.grid.layoutMode == .gridView)
         #expect(WindowShelf.previews.layoutMode == .windowPreview)
     }
+
+    @Test("Handoff placement raw values are the config contract")
+    func handoffPlacementRawValues() {
+        #expect(HandoffPlacement.allCases.map(\.rawValue) == ["off", "first", "last"])
+    }
 }
 
 @Suite("BetterShortcuts integration")

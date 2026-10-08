@@ -333,6 +333,9 @@ enum ConfigSchemaDocs {
         "windowShelf": ConfigSettingDoc(
             "string", "While \"applications only\" is on, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
             values: ConfigValues(WindowShelf.self, \.displayName)),
+        "handoffPlacement": ConfigSettingDoc(
+            "string", "Show the Dock's Handoff suggestion (a page open on another device) as a tile, first or last. Off by default. Unstable: it reads an undocumented Dock item.",
+            values: ConfigValues(HandoffPlacement.self, \.displayName)),
         "showUnreadBadges": ConfigSettingDoc("boolean", "Show each app's Dock unread badge on its entry."),
         "experimentalUnreadBadges": ConfigSettingDoc(
             "boolean", "Legacy unread-badge flag, read once to seed showUnreadBadges. Edit showUnreadBadges instead."),

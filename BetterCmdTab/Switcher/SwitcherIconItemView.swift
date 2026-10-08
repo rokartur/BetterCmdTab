@@ -22,6 +22,17 @@ protocol SwitcherItemViewProtocol: NSView {
 }
 
 extension SwitcherItemViewProtocol {
+    /// A Handoff tile reads as one element, "Helium from Mac Studio"; other rows keep
+    /// their labels as separate elements. Pooled views flip back on reuse.
+    func applyHandoffAccessibility(_ row: SwitcherRow) {
+        let label = row.handoffAccessibilityLabel
+        // `configure` runs on every tile per refresh; skip the AX writes unless this tile is or was Handoff.
+        guard label != nil || isAccessibilityElement() else { return }
+        setAccessibilityElement(label != nil)
+        setAccessibilityRole(label == nil ? nil : .staticText)
+        setAccessibilityLabel(label)
+    }
+
     /// Fill and rim for a tile's selection plate.
     ///
     /// Tinted (#185): translucent enough that the panel backdrop still shows
@@ -303,8 +314,8 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
             secondaryLine = isDialog ? "" : Self.secondaryText(for: row, showTitle: true)
         } else {
             // One compact line: drop the app-name line. The surviving label is the
-            // window title when titles are shown, otherwise the app name; dialog rows
-            // keep their own title.
+            // window title when titles are shown, otherwise the app name (plus the
+            // device on a Handoff tile); dialog rows keep their own title.
             nameLabel.stringValue = ""
             nameLabel.isHidden = true
             if isDialog {
@@ -319,7 +330,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
                     ? Self.secondaryText(for: row, showTitle: true)
                     : row.windowTitleText
             } else {
-                secondaryLine = row.appName
+                secondaryLine = row.handoffAccessibilityLabel ?? row.appName
             }
         }
 
@@ -332,10 +343,13 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
         }
 
         imageView.image = isDialog ? SystemSettingsIcon.image : IconCache.icon(for: row)
+        // A Handoff app has no window here yet, so its icon is dimmed.
+        imageView.alphaValue = row.handoff == nil ? 1 : 0.75
+        applyHandoffAccessibility(row)
         usesCompactTabIcon = row.browserTab != nil
 
         // Dock badge. Empty map when the feature is off.
-        let badge = (row.isPlaceholder || isDialog) ? nil : DockBadgeReader.shared.badge(forBundleID: row.bundleIdentifier)
+        let badge = (row.isPlaceholder || isDialog || row.handoff != nil) ? nil : DockBadgeReader.shared.badge(forBundleID: row.bundleIdentifier)
         if let badge {
             badgeLabel.stringValue = badge
             badgePill.isHidden = false
@@ -367,7 +381,7 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     private static func indicators(for row: SwitcherRow) -> [SwitcherIndicator] {
         if row.isLaunchable { return [.launch] }
         if row.isRecentlyClosed { return [.reopen] }
-        if row.isPlaceholder { return [] }
+        if row.isPlaceholder || row.handoff != nil { return [] }
         var result: [SwitcherIndicator] = []
         if let pid = row.pid, AudioActivityMonitor.shared.isPlaying(pid) { result.append(.audio) }
         if row.isHidden { result.append(.hidden) }
@@ -378,11 +392,12 @@ final class SwitcherIconItemView: NSView, SwitcherItemViewProtocol {
     }
 
     /// `showTitle == false` blanks the window-title text (the "Window title under
-    /// icon" preference) while leaving launch/reopen cues — which aren't window
+    /// icon" preference) while leaving launch/reopen/Handoff cues — which aren't window
     /// titles — intact so those rows still read clearly.
     private static func secondaryText(for row: SwitcherRow, showTitle: Bool) -> String {
         if row.isLaunchable { return String(localized: "Launch") }
         if row.isRecentlyClosed { return (showTitle && !row.windowTitle.isEmpty) ? row.windowTitle : String(localized: "Reopen") }
+        if let handoffSubtitle = row.handoffSubtitle { return handoffSubtitle }
         if row.isPlaceholder || row.window == nil { return "" }
         return showTitle ? row.windowTitle : ""
     }
