@@ -4617,13 +4617,23 @@ final class SwitcherController: SwitcherViewDelegate {
         Activator.activateProcess(app)
     }
 
+    /// The window drill's highlighted window, else the highlighted row.
     private var visibleActionTarget: SwitcherRow? {
         guard phase == .visible, rows.indices.contains(index) else { return nil }
+        let row: SwitcherRow
+        if windowDrillActive {
+            guard drillWindowRows.indices.contains(tabIndex) else { return nil }
+            row = drillWindowRows[tabIndex]
+        } else {
+            // A tab drill lists tabs, not windows, so window actions stay off there.
+            guard !tabDrillActive else { return nil }
+            row = rows[index]
+        }
         // System permission/consent windows can't be acted on from the switcher
         // (close/quit/minimize/hide) — the user must enter them and click
         // Deny / Open Settings themselves.
-        guard !rows[index].isSystemDialog else { return nil }
-        return rows[index]
+        guard !row.isSystemDialog else { return nil }
+        return row
     }
 
     /// Full-screen minimization is a multi-stage AX operation. Refresh only
@@ -4701,10 +4711,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// refresh until `handleAppTerminated` fires; a safety timeout un-suppresses
     /// the app if the quit was vetoed (e.g. an unsaved-changes dialog).
     private func quitVisibleTarget(force: Bool) {
-        guard phase == .visible, rows.indices.contains(index) else { return }
-        let row = rows[index]
-        guard !row.isSystemDialog else { return }
-        guard let pid = row.pid else { return }
+        guard let row = visibleActionTarget, let pid = row.pid else { return }
+        exitTabDrill()
         // Record an app-level entry (no document) so a quit app can be relaunched
         // from recently-closed search. Regular apps only — system dialog hosts
         // shouldn't be reopenable.
@@ -4753,14 +4761,39 @@ final class SwitcherController: SwitcherViewDelegate {
         let candidates = windowsOfSelectedApp()
         // A one-window drill would pick what picking the app already does.
         guard candidates.count >= 2, let anchor = rows[index].window else { return false }
-        drillWindowRows = candidates
-        applyDrill(
-            titles: candidates.map { DrillRouting.stripTitle(windowTitle: $0.windowTitle, appName: $0.appName) },
-            liveTabs: candidates.compactMap(\.window),
-            backend: .appWindows,
-            window: anchor
-        )
+        showWindowDrill(candidates, anchor: anchor)
         return true
+    }
+
+    private func showWindowDrill(_ windows: [SwitcherRow], anchor: AXUIElement, selectedIndex: Int = 0) {
+        drillWindowRows = windows
+        applyDrill(
+            titles: windows.map { DrillRouting.stripTitle(windowTitle: $0.windowTitle, appName: $0.appName) },
+            liveTabs: windows.compactMap(\.window),
+            backend: .appWindows,
+            window: anchor,
+            selectedIndex: selectedIndex
+        )
+    }
+
+    /// Closes the drill's highlighted window and keeps the drill on the rest.
+    private func closeDrilledWindow() {
+        guard let row = visibleActionTarget, let closed = row.window else { return }
+        recordClosedTombstone(for: row)
+        Activator.closeWindow(row)
+        if row.isFullscreen {
+            cancel()
+            return
+        }
+        selectedAppWindowsMemo = nil
+        let remaining = drillWindowRows.filter { $0.window.map { !CFEqual($0, closed) } ?? true }
+        // commitTab requires the app row to still show `drillWindow`, so closing that one ends the drill.
+        if let anchor = drillWindow, !CFEqual(anchor, closed), remaining.count >= 2 {
+            showWindowDrill(remaining, anchor: anchor, selectedIndex: min(tabIndex, remaining.count - 1))
+        } else {
+            exitTabDrill()
+        }
+        scheduleVisibleRefresh(after: 0.25)
     }
 
     /// The highlighted app's windows: warm cache, the panel's filter, window-MRU order.
@@ -4806,6 +4839,14 @@ final class SwitcherController: SwitcherViewDelegate {
     /// The rows were rebuilt, so the catalog may hold new windows: re-read them.
     private func relistWindowShelf() {
         selectedAppWindowsMemo = nil
+        if windowDrillActive {
+            // Same windows in the same order (the strip's titles are index-aligned), fresh state such as minimized.
+            let fresh = windowsOfSelectedApp()
+            drillWindowRows = drillWindowRows.map { drilled in
+                guard let window = drilled.window else { return drilled }
+                return fresh.first { $0.window.map { CFEqual($0, window) } ?? false } ?? drilled
+            }
+        }
         updateWindowShelf()
     }
 
@@ -5274,10 +5315,11 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func performCloseAction() {
-        guard phase == .visible, rows.indices.contains(index) else { return }
-        let row = rows[index]
-        // Permission/consent windows aren't closable from the switcher.
-        guard !row.isSystemDialog else { return }
+        if windowDrillActive {
+            closeDrilledWindow()
+            return
+        }
+        guard let row = visibleActionTarget else { return }
         // Close only applies to a real window of a running app — launchable
         // search rows have nothing to close.
         guard let closedApp = row.app, let closedPid = row.pid else { return }

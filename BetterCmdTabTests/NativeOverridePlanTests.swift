@@ -298,6 +298,23 @@ struct NativeOverridePlanTests {
         #expect(!plan.carbonChords.contains { $0.kind == .letterJump })
     }
 
+    @Test func drillMode_actionKeysFire_customMoveKeysStepTheDrill() {
+        let plan = computeNativeOverridePlan(trigger: Self.native(), secureInputActive: true,
+                                             panelOpen: true, holdModifierDown: true,
+                                             tabDrillActive: true,
+                                             panelActions: Self.panelActions + [
+                                                 PanelActionSpec(keyCode: 33, action: .navLeft),
+                                                 PanelActionSpec(keyCode: 30, action: .navDown),
+                                             ])
+        #expect(Self.has(plan, 13, .close))
+        #expect(Self.has(plan, 46, .minimize))
+        #expect(Self.has(plan, 12, .quit))
+        #expect(Self.has(plan, 33, .tabPrev))
+        #expect(Self.has(plan, 30, .tabNext))
+        #expect(Self.has(plan, 126, .tabPrev))
+        #expect(Self.has(plan, 125, .tabNext))
+    }
+
     // MARK: Determinism (supports idempotent apply)
 
     @Test func planIsDeterministic() {

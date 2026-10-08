@@ -853,6 +853,21 @@ final class HotkeyTap: @unchecked Sendable {
         }
     }
 
+    /// A drill steps its strip or shelf, so the move keys step the drill.
+    static func panelActionEvent(_ action: PanelActionKey, optionHeld: Bool, drilled: Bool) -> Event {
+        switch action {
+        case .close: .closeWindow
+        case .minimize: .minimizeWindow
+        case .hide: .hideApp
+        case .quit: optionHeld ? .forceQuitApp : .quitApp
+        case .fullscreen: .fullscreen
+        case .left: drilled ? .tabPrev : .spatialLeft
+        case .right: drilled ? .tabNext : .spatialRight
+        case .up: drilled ? .tabPrev : .prevRow
+        case .down: drilled ? .tabNext : .nextRow
+        }
+    }
+
     /// The home-row motion keys vim navigation claims (h/j/k/l). While vim nav is
     /// on these are reserved from letter-jump hint generation so a shown hint is
     /// always typeable — otherwise `RowLabels` could hand out a `j`/`k`/`l` hint
@@ -1254,8 +1269,11 @@ final class HotkeyTap: @unchecked Sendable {
                    let ch = translate(keyCode: keyCode, shift: shiftHeld, option: optionHeld), ch == "\\" {
                     deliver(.exitTabDrill); return nil
                 }
+                if let action = panelKeyMap.withLock({ $0[keyCode] }) {
+                    deliver(Self.panelActionEvent(action, optionHeld: optionHeld, drilled: true)); return nil
+                }
                 // Any other key while drilled is swallowed so it doesn't
-                // accidentally fire app-level actions (Q/W/M/H, letter jump).
+                // accidentally fire letter jump.
                 return nil
             }
             // "Ignore shortcuts" exception: while idle, let the trigger chord
@@ -1503,17 +1521,7 @@ final class HotkeyTap: @unchecked Sendable {
                             // removes the key from this map and frees the letter
                             // for the opener.
                             if let action = panelKeyMap.withLock({ $0[keyCode] }) {
-                                switch action {
-                                case .close: deliver(.closeWindow)
-                                case .minimize: deliver(.minimizeWindow)
-                                case .hide: deliver(.hideApp)
-                                case .quit: deliver(optionHeld ? .forceQuitApp : .quitApp)
-                                case .fullscreen: deliver(.fullscreen)
-                                case .left: deliver(.spatialLeft)
-                                case .right: deliver(.spatialRight)
-                                case .up: deliver(.prevRow)
-                                case .down: deliver(.nextRow)
-                                }
+                                deliver(Self.panelActionEvent(action, optionHeld: optionHeld, drilled: false))
                                 return nil
                             }
                             // Layout-aware `/` and `\` chords: on layouts where
