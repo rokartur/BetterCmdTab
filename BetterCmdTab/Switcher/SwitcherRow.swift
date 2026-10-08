@@ -15,17 +15,19 @@ struct BrowserTabRef {
 struct SwitcherRow {
     /// What a row stands for. Most rows are a running app/window; search mode
     /// can also surface not-yet-running apps (`.launchable`) so they can be
-    /// launched straight from the switcher.
+    /// launched straight from the switcher, and the Dock's Handoff suggestion
+    /// (`.handoff`) opens a page from another device.
     enum Subject {
         case running(NSRunningApplication)
         case launchable(InstalledApp)
         case recentlyClosed(RecentEntry)
+        case handoff(HandoffSuggestion)
     }
 
     let subject: Subject
     let window: AXUIElement?
     /// WindowServer id of `window`, propagated from `WindowInfo`. 0 for rows with
-    /// no window (placeholder / launchable / recently-closed). Lets MRU sorting
+    /// no window (placeholder / launchable / recently-closed / Handoff). Lets MRU sorting
     /// avoid re-resolving the id via `_AXUIElementGetWindow` on every reorder.
     let cgWindowID: CGWindowID
     let windowTitle: String
@@ -140,8 +142,25 @@ struct SwitcherRow {
         self.isTabSibling = false
     }
 
+    /// The Dock's Handoff suggestion, opened from the switcher. The device model, when
+    /// known, is the title.
+    init(handoff suggestion: HandoffSuggestion) {
+        self.subject = .handoff(suggestion)
+        self.window = nil
+        self.cgWindowID = 0
+        self.windowTitle = suggestion.deviceName ?? ""
+        self.isMinimized = false
+        self.isFullscreen = false
+        self.isPlaceholder = false
+        self.suppressNoWindowGlyph = false
+        self.tabs = []
+        self.tabWindows = []
+        self.browserTab = nil
+        self.isTabSibling = false
+    }
+
     /// A copy of this row with an updated window title, used for in-place title
-    /// refresh while the panel is open. No-op for non-window (launchable/recent)
+    /// refresh while the panel is open. No-op for non-window (launchable/recent/Handoff)
     /// subjects since they carry no live window title.
     func withWindowTitle(_ newTitle: String) -> SwitcherRow {
         guard case .running(let app) = subject else { return self }
@@ -247,7 +266,7 @@ struct SwitcherRow {
     /// window-tab siblings or an in-content `AXTabs` group.
     var hasTabs: Bool { tabWindows.count > 1 || tabs.count > 1 }
 
-    /// The backing running application, or `nil` for a launchable/recent row.
+    /// The backing running application, or `nil` for a launchable/recent/Handoff row.
     var app: NSRunningApplication? {
         if case .running(let app) = subject { return app }
         return nil
@@ -268,7 +287,25 @@ struct SwitcherRow {
         return nil
     }
 
-    /// `nil` for launchable rows (no process yet).
+    var handoff: HandoffSuggestion? {
+        if case .handoff(let suggestion) = subject { return suggestion }
+        return nil
+    }
+
+    /// "from Mac Studio", the line under a Handoff row's app name.
+    var handoffSubtitle: String? {
+        guard let handoff else { return nil }
+        return handoff.deviceName.map { String(localized: "from \($0)") } ?? String(localized: "from another device")
+    }
+
+    /// "Helium from Mac Studio", what VoiceOver reads for a Handoff row.
+    var handoffAccessibilityLabel: String? {
+        guard let handoff else { return nil }
+        return handoff.deviceName.map { String(localized: "\(appName) from \($0)") }
+            ?? String(localized: "\(appName) from another device")
+    }
+
+    /// `nil` for launchable, recently-closed and Handoff rows (no process).
     var pid: pid_t? { app?.pid }
 
     /// Value identity of what a row stands for, stable across catalog refreshes
@@ -281,6 +318,7 @@ struct SwitcherRow {
         case app(pid_t)
         case launchable(String)
         case recentlyClosed(String, String)
+        case handoff(String)
     }
 
     var identity: Identity {
@@ -293,6 +331,8 @@ struct SwitcherRow {
             return .launchable(installed.bundleID)
         case .recentlyClosed(let entry):
             return .recentlyClosed(entry.bundleID, entry.title)
+        case .handoff(let suggestion):
+            return .handoff(suggestion.bundleID)
         }
     }
 
@@ -301,6 +341,7 @@ struct SwitcherRow {
         case .running(let app): return app.localizedName ?? ""
         case .launchable(let installed): return installed.name
         case .recentlyClosed(let entry): return entry.appName
+        case .handoff(let suggestion): return suggestion.appName
         }
     }
 
@@ -311,6 +352,8 @@ struct SwitcherRow {
         case .recentlyClosed(let entry):
             guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: entry.bundleID) else { return nil }
             return NSWorkspace.shared.icon(forFile: url.path)
+        case .handoff(let suggestion):
+            return NSWorkspace.shared.icon(forFile: suggestion.appURL.path)
         }
     }
 
@@ -319,6 +362,7 @@ struct SwitcherRow {
         case .running(let app): return app.bundleIdentifier
         case .launchable(let installed): return installed.bundleID
         case .recentlyClosed(let entry): return entry.bundleID
+        case .handoff(let suggestion): return suggestion.bundleID
         }
     }
 
@@ -352,13 +396,15 @@ struct SwitcherRow {
         if case .recentlyClosed(let entry) = subject {
             return entry.title.isEmpty ? appName : entry.title
         }
+        if let handoffSubtitle { return handoffSubtitle }
         if window == nil { return appName }
         return windowTitle.isEmpty ? appName : windowTitle
     }
 
     /// The window-title portion only — falls back to `appName` when the window title
     /// is empty (e.g. PWAs whose AX title is blank). Used by the "Show application
-    /// names" = off path. Windowless rows and placeholders still return "".
+    /// names" = off path. Windowless rows and placeholders return "", except a
+    /// Handoff row, which returns its subtitle.
     var windowTitleText: String {
         if isPlaceholder { return "" }
         // Mirror `displayTitle`'s fallback: a recently-closed entry with a blank
@@ -368,6 +414,7 @@ struct SwitcherRow {
         if case .recentlyClosed(let entry) = subject {
             return entry.title.isEmpty ? appName : entry.title
         }
+        if let handoffSubtitle { return handoffSubtitle }
         if window == nil { return "" }
         return windowTitle.isEmpty ? appName : windowTitle
     }

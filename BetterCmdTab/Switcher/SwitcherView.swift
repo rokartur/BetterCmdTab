@@ -55,6 +55,13 @@ final class SwitcherView: NSView {
     private let emptyIcon = NSImageView()
     private let emptyTitle = NSTextField(labelWithString: "")
     private var itemViews: [SwitcherItemViewProtocol] = []
+    /// Sets the Handoff row apart from the running apps next to it.
+    private let handoffDivider: NSBox = {
+        let box = NSBox()
+        box.boxType = .separator
+        box.isHidden = true
+        return box
+    }()
     /// Keep the common reveal working set warm, but do not retain an extreme
     /// one-off row count (hundreds of browser tabs/windows) for process life.
     private static let idleItemPoolLimit = 64
@@ -151,6 +158,7 @@ final class SwitcherView: NSView {
         // the subtree layer-backed — without a layer the glide silently no-ops.
         listContainer.wantsLayer = true
         contentContainer.addSubview(listContainer)
+        listContainer.addSubview(handoffDivider)
         searchBar.isHidden = true
         contentContainer.addSubview(searchBar)
         tabStrip.isHidden = true
@@ -877,6 +885,9 @@ final class SwitcherView: NSView {
         let animates = reflowAnimates
         reflowOrigins = nil
         reflowAnimates = false
+        let divider = Self.handoffDividerFrame(handoffIndex: rows.firstIndex { $0.handoff != nil }, frames: frames)
+        handoffDivider.isHidden = divider == nil
+        if let divider { handoffDivider.frame = divider }
         guard animates else {
             for (index, rect) in frames.enumerated()
             where index < itemViews.count && itemViews[index].frame != rect {
@@ -904,6 +915,24 @@ final class SwitcherView: NSView {
             }
         }
         CATransaction.commit()
+    }
+
+    /// A 1 pt line in the gap between the Handoff row and its neighbor: vertical when
+    /// they share a row, horizontal when they share a column, none when the grid
+    /// wraps between them. Pure.
+    nonisolated static func handoffDividerFrame(handoffIndex: Int?, frames: [NSRect]) -> NSRect? {
+        guard let handoffIndex, frames.count > 1, frames.indices.contains(handoffIndex) else { return nil }
+        let handoff = frames[handoffIndex]
+        let neighbor = frames[handoffIndex == 0 ? 1 : handoffIndex - 1]
+        if abs(handoff.midY - neighbor.midY) < 1 {
+            let gapMid = handoff.minX >= neighbor.maxX ? (neighbor.maxX + handoff.minX) / 2 : (handoff.maxX + neighbor.minX) / 2
+            return NSRect(x: gapMid - 0.5, y: handoff.minY + handoff.height * 0.15, width: 1, height: handoff.height * 0.7)
+        }
+        if abs(handoff.midX - neighbor.midX) < 1 {
+            let gapMid = handoff.minY >= neighbor.maxY ? (neighbor.maxY + handoff.minY) / 2 : (handoff.maxY + neighbor.minY) / 2
+            return NSRect(x: handoff.minX, y: gapMid - 0.5, width: handoff.width, height: 1)
+        }
+        return nil
     }
 
     private struct ListLayout {
