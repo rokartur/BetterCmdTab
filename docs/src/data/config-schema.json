@@ -1099,6 +1099,10 @@
       ],
       "type" : "string"
     },
+    "windowShelfSingleWindow" : {
+      "description" : "Show the window shelf for an app with only one window.",
+      "type" : "boolean"
+    },
     "windowTitleExclusions" : {
       "description" : "Per-app window title fragments, keyed by bundle ID. A window whose title contains any fragment (case- and accent-insensitive) is left out of the switcher; the app's other windows stay.",
       "type" : "object"

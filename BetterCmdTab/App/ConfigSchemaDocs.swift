@@ -333,6 +333,7 @@ enum ConfigSchemaDocs {
         "windowShelf": ConfigSettingDoc(
             "string", "While \"applications only\" is on, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
             values: ConfigValues(WindowShelf.self, \.displayName)),
+        "windowShelfSingleWindow": ConfigSettingDoc("boolean", "Show the window shelf for an app with only one window."),
         "handoffPlacement": ConfigSettingDoc(
             "string", "Show the Dock's Handoff suggestion (a page open on another device) as a tile, first or last. Off by default. Unstable: it reads an undocumented Dock item.",
             values: ConfigValues(HandoffPlacement.self, \.displayName)),

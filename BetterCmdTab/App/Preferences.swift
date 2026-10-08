@@ -1039,6 +1039,7 @@ final class Preferences: ObservableObject {
         static let tabDrillEnabled = "Switcher.tabDrillEnabled"
         static let windowDrillEnabled = "Switcher.windowDrillEnabled"
         static let windowShelf = "Switcher.windowShelf"
+        static let windowShelfSingleWindow = "Switcher.windowShelfSingleWindow"
         static let handoffPlacement = "Switcher.handoffPlacement"
         /// Expand native-system-tab windows (Finder, Terminal, TextEdit, …) into
         /// one switcher row per tab instead of a single collapsed window row.
@@ -1822,6 +1823,14 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != windowShelf else { return }
             UserDefaults.standard.set(windowShelf.rawValue, forKey: Keys.windowShelf)
+        }
+    }
+
+    /// Off by default: a one-window shelf only repeats what picking the app does.
+    @Published var windowShelfSingleWindow: Bool {
+        didSet {
+            guard oldValue != windowShelfSingleWindow else { return }
+            UserDefaults.standard.set(windowShelfSingleWindow, forKey: Keys.windowShelfSingleWindow)
         }
     }
 
@@ -2676,6 +2685,7 @@ final class Preferences: ObservableObject {
         self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
         self.windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         self.windowShelf = defaults.string(forKey: Keys.windowShelf).flatMap(WindowShelf.init(rawValue:)) ?? .off
+        self.windowShelfSingleWindow = defaults.object(forKey: Keys.windowShelfSingleWindow) as? Bool ?? false
         self.handoffPlacement = defaults.string(forKey: Keys.handoffPlacement).flatMap(HandoffPlacement.init(rawValue:)) ?? .off
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
@@ -2839,6 +2849,7 @@ final class Preferences: ObservableObject {
         tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
         windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         windowShelf = defaults.string(forKey: Keys.windowShelf).flatMap(WindowShelf.init(rawValue:)) ?? .off
+        windowShelfSingleWindow = defaults.object(forKey: Keys.windowShelfSingleWindow) as? Bool ?? false
         handoffPlacement = defaults.string(forKey: Keys.handoffPlacement).flatMap(HandoffPlacement.init(rawValue:)) ?? .off
         expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false

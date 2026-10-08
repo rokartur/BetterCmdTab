@@ -266,12 +266,23 @@ func computeNativeOverridePlan(
         if tabDrillActive {
             chords.append(ChordSpec(keyCode: kcLeft, modifiers: mod, kind: .tabPrev))
             chords.append(ChordSpec(keyCode: kcRight, modifiers: mod, kind: .tabNext))
+            chords.append(ChordSpec(keyCode: kcUp, modifiers: mod, kind: .tabPrev))
+            chords.append(ChordSpec(keyCode: kcDown, modifiers: mod, kind: .tabNext))
             chords.append(ChordSpec(keyCode: kcReturn, modifiers: mod, kind: .commitTab))
             chords.append(ChordSpec(keyCode: kcKeypadEnter, modifiers: mod, kind: .commitTab))
             if let tabDrillKeyCode {
                 chords.append(ChordSpec(keyCode: tabDrillKeyCode, modifiers: mod, kind: .exitTabDrill))
             }
             chords.append(ChordSpec(keyCode: kcEscape, modifiers: mod, kind: .exitTabDrill))
+            // Same as the tap: action keys fire in a drill, and the move keys step it.
+            for action in panelActions {
+                let kind: ChordSpec.Kind = switch action.action {
+                case .navLeft, .navUp: .tabPrev
+                case .navRight, .navDown: .tabNext
+                default: action.action
+                }
+                chords.append(ChordSpec(keyCode: action.keyCode, modifiers: mod, kind: kind))
+            }
         } else {
             chords.append(ChordSpec(keyCode: kcReturn, modifiers: mod, kind: .commit))
             chords.append(ChordSpec(keyCode: kcKeypadEnter, modifiers: mod, kind: .commit))

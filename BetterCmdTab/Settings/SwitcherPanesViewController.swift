@@ -58,6 +58,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
     private let windowShelfPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let windowShelves: [WindowShelf] = WindowShelf.allCases
+    private let windowShelfSingleWindowSwitch = PreferenceSwitch(bind: \.windowShelfSingleWindow)
     private let handoffPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let handoffPlacements: [HandoffPlacement] = HandoffPlacement.allCases
     private let instantSpaceRowSwitch = PreferenceSwitch(bind: \.instantSpaceSwitch)
@@ -314,6 +315,9 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         addRow(to: section, title: String(localized: "Show windows under the switcher"),
                subtitle: String(localized: "In applications-only mode, the highlighted app's windows appear in their own block under the switcher. Press \\ to move into it, or point and click."),
                accessory: windowShelfPopup, searchItemID: SearchID.windowShelf)
+        addRow(to: section, title: String(localized: "Show for a single window"),
+               subtitle: String(localized: "Also show the shelf when the highlighted app has only one window."),
+               accessory: windowShelfSingleWindowSwitch, searchItemID: SearchID.windowShelfSingleWindow)
     }
 
     private func buildHandoffSection() {
@@ -447,6 +451,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         instantSpaceRowSwitch.sync()
         selectSortOrder(prefs.sortOrder)
         if let index = windowShelves.firstIndex(of: prefs.windowShelf) { windowShelfPopup.selectItem(at: index) }
+        windowShelfSingleWindowSwitch.sync()
         if let index = handoffPlacements.firstIndex(of: prefs.handoffPlacement) { handoffPopup.selectItem(at: index) }
         recentlyClosedSwitch.state = prefs.showRecentlyClosed ? .on : .off
         applyRecentlyClosedLimit(prefs.recentlyClosedLimit)

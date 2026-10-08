@@ -120,6 +120,7 @@ enum SearchID {
     static let recentlyClosedLimit = "switcher.recentlyClosedLimit"
     static let windowDrill = "switcher.windowDrill"
     static let windowShelf = "switcher.windowShelf"
+    static let windowShelfSingleWindow = "switcher.windowShelfSingleWindow"
     static let handoffPlacement = "switcher.handoffPlacement"
     static let quickSwitchDelay = "appearance.quickSwitchDelay"
     static let titleRefreshInterval = "switcher.titleRefreshInterval"
@@ -400,6 +401,9 @@ enum SettingsCatalog {
         item(SearchID.windowShelf, .switcher, SettingsAnchor.windowShelf, String(localized: "Switcher"), String(localized: "Window shelf"),
              String(localized: "Show windows under the switcher"),
              ["windows", "shelf", "hyperswitch", "previews", "grid", "list", "applications only", "app windows", "group by app"]),
+        item(SearchID.windowShelfSingleWindow, .switcher, SettingsAnchor.windowShelf, String(localized: "Switcher"), String(localized: "Window shelf"),
+             String(localized: "Show for a single window"),
+             ["windows", "shelf", "single window", "one window"]),
         item(SearchID.handoffPlacement, .switcher, SettingsAnchor.handoff, String(localized: "Switcher"), String(localized: "Handoff"),
              String(localized: "Show Handoff from other devices"),
              ["handoff", "continuity", "iphone", "ipad", "mac", "other device", "safari"]),
