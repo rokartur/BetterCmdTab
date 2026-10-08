@@ -43,6 +43,7 @@ enum SettingsAnchor {
     static let swipe = "shortcuts.swipe"
     // Switcher — what the panel lists.
     static let contents = "switcher.contents"
+    static let windowShelf = "switcher.windowShelf"
     static let timing = "switcher.timing"
     // Controls — how you drive the panel.
     static let keyboard = "controls.keyboard"
@@ -117,6 +118,7 @@ enum SearchID {
     static let showRecentlyClosed = "switcher.showRecentlyClosed"
     static let recentlyClosedLimit = "switcher.recentlyClosedLimit"
     static let windowDrill = "switcher.windowDrill"
+    static let windowShelf = "switcher.windowShelf"
     static let quickSwitchDelay = "appearance.quickSwitchDelay"
     static let titleRefreshInterval = "switcher.titleRefreshInterval"
     // Controls
@@ -393,6 +395,9 @@ enum SettingsCatalog {
         item(SearchID.windowDrill, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
              String(localized: "Peek windows with ↓"),
              ["windows", "window", "drill", "peek", "down arrow", "applications only", "app windows", "expose"]),
+        item(SearchID.windowShelf, .switcher, SettingsAnchor.windowShelf, String(localized: "Switcher"), String(localized: "Window shelf"),
+             String(localized: "Show windows under the switcher"),
+             ["windows", "shelf", "hyperswitch", "previews", "grid", "list", "applications only", "app windows", "group by app"]),
         item(SearchID.showBadges, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),
              String(localized: "Show unread badges"), ["badge", "unread", "dock badge", "count"]),
         item(SearchID.spaceScope, .switcher, SettingsAnchor.contents, String(localized: "Switcher"), String(localized: "Contents"),

@@ -39,6 +39,9 @@ final class SwitcherView: NSView {
     /// outline off along with it. Zero on the pre-26 fallback, which draws no such line.
     private let glassEdgeBleed: CGFloat
     private let allowsWindowCapture: Bool
+    /// Off for the window shelf (#211): its tiles are windows the drill commits,
+    /// and the hover dots act on the switcher's own rows.
+    private let showsHoverActions: Bool
     private let contentContainer = NSView()
     /// Backdrop pair layered under the content on Liquid Glass: a light frost, then a dim.
     private let haze = NSVisualEffectView()
@@ -77,8 +80,9 @@ final class SwitcherView: NSView {
         self.init(frame: frameRect, allowsWindowCapture: true)
     }
 
-    init(frame frameRect: NSRect, allowsWindowCapture: Bool) {
+    init(frame frameRect: NSRect, allowsWindowCapture: Bool, showsHoverActions: Bool = true) {
         self.allowsWindowCapture = allowsWindowCapture
+        self.showsHoverActions = showsHoverActions
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
             // `.regular` is frosted: it blurs the backdrop away into a flat slab, so the
@@ -296,18 +300,18 @@ final class SwitcherView: NSView {
             return
         }
         guard metrics.layoutMode == .windowPreview else {
-            WindowThumbnailCache.shared.onReady = nil
+            WindowThumbnailCache.shared.setReadyHandler(nil, for: self)
             stopLivePreviewTimer()
             return
         }
         WindowThumbnailCache.shared.ensurePermission()
-        WindowThumbnailCache.shared.onReady = { [weak self] key in
+        WindowThumbnailCache.shared.setReadyHandler({ [weak self] key in
             guard let self else { return }
             for view in self.itemViews {
                 guard let preview = view as? SwitcherPreviewItemView, preview.thumbnailKey == key else { continue }
                 preview.setThumbnail(WindowThumbnailCache.shared.image(for: key), for: key)
             }
-        }
+        }, for: self)
         syncLivePreviewTimer()
     }
 
@@ -337,7 +341,8 @@ final class SwitcherView: NSView {
     }
 
     private func livePreviewTick() {
-        guard window?.isVisible == true, metrics.layoutMode == .windowPreview else {
+        // A hidden window shelf (#211) stops here; its next `configure` restarts the timer.
+        guard window?.isVisible == true, !isHiddenOrHasHiddenAncestor, metrics.layoutMode == .windowPreview else {
             stopLivePreviewTimer()
             return
         }
@@ -400,7 +405,7 @@ final class SwitcherView: NSView {
         emptyIcon.isHidden = true
         emptyTitle.isHidden = true
         if allowsWindowCapture {
-            WindowThumbnailCache.shared.onReady = nil
+            WindowThumbnailCache.shared.setReadyHandler(nil, for: self)
             WindowThumbnailCache.shared.releaseCaptureMetadata()
         }
     }
@@ -515,7 +520,9 @@ final class SwitcherView: NSView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        return frame.contains(point) ? self : nil
+        // A hidden window shelf (#211) keeps its last frame over the switcher.
+        guard !isHidden, frame.contains(point) else { return nil }
+        return self
     }
 
     override func updateTrackingAreas() {
@@ -542,12 +549,12 @@ final class SwitcherView: NSView {
             return
         }
         let idx = indexAtWindowPoint(event.locationInWindow)
-        setHoveredIndex(idx ?? -1)
+        if showsHoverActions { setHoveredIndex(idx ?? -1) }
         if let idx {
             // Hover-select moves the selection to the row under the pointer; the
             // user can turn it off so the mouse can't change the selection by
-            // accident (issue #47). The visual hover + action dots still track
-            // the pointer either way.
+            // accident (issue #47). The visual hover and action dots, where shown,
+            // still track the pointer either way.
             if Preferences.shared.mouseHoverSelectionEnabled {
                 delegate?.switcherViewDidHover(index: idx)
             }

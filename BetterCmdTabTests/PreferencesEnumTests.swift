@@ -296,6 +296,15 @@ struct PreferencesEnumTests {
         #expect(AppException(dictionary: ["hide": "always"]) == nil)
         #expect(AppException(dictionary: ["bundleID": ""]) == nil)
     }
+
+    @Test("window shelf values pick the shelf's layout, off picks none")
+    func windowShelfLayouts() {
+        #expect(WindowShelf.allCases.map(\.rawValue) == ["off", "list", "grid", "previews"])
+        #expect(WindowShelf.off.layoutMode == nil)
+        #expect(WindowShelf.list.layoutMode == .list)
+        #expect(WindowShelf.grid.layoutMode == .gridView)
+        #expect(WindowShelf.previews.layoutMode == .windowPreview)
+    }
 }
 
 @Suite("BetterShortcuts integration")

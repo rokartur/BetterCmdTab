@@ -1234,10 +1234,11 @@ final class HotkeyTap: @unchecked Sendable {
                 if keyCode == Self.escKey {
                     deliver(.exitTabDrill); return nil
                 }
-                if keyCode == Self.leftArrow {
+                // ↑/↓ step every drill too, so the window shelf's List (#211) reads top to bottom.
+                if keyCode == Self.leftArrow || keyCode == Self.upArrow {
                     deliver(.tabPrev); return nil
                 }
-                if keyCode == Self.rightArrow {
+                if keyCode == Self.rightArrow || keyCode == Self.downArrow {
                     deliver(.tabNext); return nil
                 }
                 if keyCode == Self.returnKey || keyCode == Self.keypadEnterKey || keyCode == Self.spaceKey {

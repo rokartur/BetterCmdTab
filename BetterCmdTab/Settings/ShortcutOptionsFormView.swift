@@ -81,6 +81,15 @@ final class ShortcutOptionsFormView: NSView {
         addBoolRow(to: behavior, title: String(localized: "Expand browser tabs as windows"), current: override.expandBrowserTabsAsWindows) { [weak self] in self?.override.expandBrowserTabsAsWindows = $0; self?.persist() }
         addCard(behavior)
 
+        // MARK: Window shelf (#211), unstable like its global setting
+        let windowShelf = SettingsSectionView(title: String(localized: "Window shelf"))
+        windowShelf.addContent(SettingsRowView(icon: "flask.fill", title: String(localized: "These features are unstable"),
+                                               subtitle: String(localized: "Off by default. They may change or break.")))
+        addEnumRow(to: windowShelf, title: String(localized: "Show windows under the switcher"),
+                   subtitle: String(localized: "In applications-only mode, the highlighted app's windows appear in their own block under the switcher. Press \\ to move into it, or point and click."),
+                   options: WindowShelf.allCases, display: { $0.displayName }, current: override.windowShelf) { [weak self] in self?.override.windowShelf = $0; self?.persist() }
+        addCard(windowShelf)
+
         // MARK: Appearance
         let appearance = SettingsSectionView(title: String(localized: "Appearance"))
         addEnumRow(to: appearance, title: String(localized: "Layout"), options: [.gridView, .list, .windowPreview] as [SwitcherLayoutMode], display: { $0.displayName }, current: override.layoutMode) { [weak self] in self?.override.layoutMode = $0; self?.persist() }

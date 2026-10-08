@@ -36,17 +36,20 @@ struct EffectiveSettings {
     let panelOpacity: Int
     let panelCornerRadius: Int
     let backdropMaterial: BackdropMaterial
-    let showWindowTitleLabel: Bool
+    // `var` so the window shelf (#211) can override them: showWindowTitleLabel,
+    // showApplicationNames, showUnreadBadges, letterHintsEnabled.
+    var showWindowTitleLabel: Bool
     let previewTitleAlignment: PreviewTitleAlignment
     let titleTruncationMode: TitleTruncationMode
     let boldSelectedLabel: Bool
-    let showApplicationNames: Bool
+    var showApplicationNames: Bool
     let showWindowStatusIcons: Bool
-    let showUnreadBadges: Bool
-    let letterHintsEnabled: Bool
+    var showUnreadBadges: Bool
+    var letterHintsEnabled: Bool
     // Behavioral values applied on the main-actor reveal path (the rest ride
     // `CatalogFilter.Config` into the off-main catalog filter).
     let applicationsOnly: Bool
+    let windowShelf: WindowShelf
     let expandBrowserTabsAsWindows: Bool
     let sortOrder: SwitcherSortOrder
     let stayOpenOnRelease: Bool
@@ -93,6 +96,7 @@ extension Preferences {
             showUnreadBadges: override.showUnreadBadges ?? showUnreadBadges,
             letterHintsEnabled: override.letterHintsEnabled ?? letterHintsEnabled,
             applicationsOnly: override.applicationsOnly ?? applicationsOnly,
+            windowShelf: override.windowShelf ?? windowShelf,
             expandBrowserTabsAsWindows: override.expandBrowserTabsAsWindows ?? expandBrowserTabsAsWindows,
             sortOrder: override.sortOrder ?? sortOrder,
             stayOpenOnRelease: override.stayOpenOnRelease ?? stayOpenOnRelease,

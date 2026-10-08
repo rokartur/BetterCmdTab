@@ -26,4 +26,24 @@ struct SwitcherPanelPositionTests {
         let origin = SwitcherPanel.origin(of: NSSize(width: 400, height: 950), in: visible, position: .top)
         #expect(origin.y == visible.minY)
     }
+
+    @Test("middle keeps the switcher centered while the shelf hangs below it")
+    func middleHangsShelfBelowSwitcher() {
+        let alone = SwitcherPanel.origin(of: NSSize(width: 400, height: 300), in: visible, position: .center)
+        let withShelf = SwitcherPanel.origin(of: NSSize(width: 400, height: 500), in: visible, position: .center, hanging: 200)
+        #expect(withShelf.y + 500 == alone.y + 300)
+    }
+
+    @Test("middle slides a shelf that would cross the bottom back up")
+    func middleClampsShelfToBottom() {
+        let origin = SwitcherPanel.origin(of: NSSize(width: 400, height: 900), in: visible, position: .center, hanging: 600)
+        #expect(origin.y == visible.minY)
+    }
+
+    @Test("top keeps its top edge whether or not a shelf hangs below")
+    func topIgnoresHanging() {
+        let alone = SwitcherPanel.origin(of: NSSize(width: 400, height: 300), in: visible, position: .top)
+        let withShelf = SwitcherPanel.origin(of: NSSize(width: 400, height: 500), in: visible, position: .top, hanging: 200)
+        #expect(withShelf.y + 500 == alone.y + 300)
+    }
 }
