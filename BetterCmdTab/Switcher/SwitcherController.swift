@@ -83,8 +83,9 @@ final class SwitcherController: SwitcherViewDelegate {
     private let tabMRU = BrowserTabMRUTracker()
     private lazy var tabFocusObserver = BrowserTabFocusObserver(tracker: tabMRU)
     private let cache = AppCatalogCache()
-    /// Live-refreshes Dock badges (unread counts) while the panel is open. Armed
-    /// only between reveal and close, so it costs nothing when the switcher is shut.
+    /// Live-refreshes Dock badges (unread counts) and the Handoff row while the
+    /// panel is open. Armed only between reveal and close, so it costs nothing when
+    /// the switcher is shut.
     private let dockBadgeObserver = DockBadgeObserver()
     private let panel = SwitcherPanel()
     private let view: SwitcherView
@@ -3389,6 +3390,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // "No open windows" empty state instead of flashing away (#31). This
         // also covers a scoped open whose filter matches nothing.
 
+        placeHandoffRow()
         syncActiveQuickJumpLetters()
         let sessionScreen = resolveSessionScreen()
         panel.targetScreen = sessionScreen
@@ -3398,7 +3400,7 @@ final class SwitcherController: SwitcherViewDelegate {
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
         cache.setPanelVisible(true)
-        dockBadgeObserver.start(enabled: effective.showUnreadBadges)
+        dockBadgeObserver.start(enabled: readsDock)
         // Inline browser-tab mode: start scanning the visible browser windows'
         // tabs now so the rows expand as soon as Apple Events answers. Self-
         // guards on the pref; a no-op on the cold (placeholder) branch since
@@ -3430,26 +3432,45 @@ final class SwitcherController: SwitcherViewDelegate {
         if primedByHeldChord, holdReleaseAlreadyMissed() { handleModifierRelease() }
     }
 
-    /// Audio-playing pids (CoreAudio) and Dock unread badges (the Dock's AX
-    /// tree) both come from synchronous system queries that don't belong on the
-    /// reveal critical path. Run them on a background queue and repaint the
-    /// indicators when they land: the panel shows instantly with the previous
-    /// snapshot (or no indicators on a cold first reveal) and patches the rest
-    /// in within a few ms.
+    /// Audio-playing pids (CoreAudio) and the Dock's unread badges and Handoff
+    /// item (the Dock's AX tree) all come from synchronous system queries that
+    /// don't belong on the reveal critical path. Run them on a background queue
+    /// and repaint when they land: the panel shows instantly with the previous
+    /// snapshot (or nothing on a cold first reveal) and patches the rest in
+    /// within a few ms.
     private func refreshAuxiliaryIndicators() {
         let wantsBadges = effective.showUnreadBadges
-        if !wantsBadges { DockBadgeReader.shared.clear() }
-        let scanBadges = wantsBadges && DockBadgeReader.shared.shouldRefresh()
+        let wantsDock = readsDock
+        if !wantsDock { DockBadgeReader.shared.clear() } else if !wantsBadges { DockBadgeReader.shared.clearBadges() }
+        let scanDock = wantsDock && DockBadgeReader.shared.shouldRefresh()
+        let installedAppURLs = handoffInstalledAppURLs()
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
             let pids = AudioActivityMonitor.snapshot()
-            let badges = scanBadges ? DockBadgeReader.snapshot() : nil
+            let dock = scanDock ? DockBadgeReader.snapshot(installedAppURLs: installedAppURLs) : nil
             DispatchQueue.main.async {
                 AudioActivityMonitor.shared.apply(pids)
-                if let badges { DockBadgeReader.shared.apply(badges) }
+                // A scan landing after a Handoff commit would bring back the item `openHandoff` dropped.
                 guard let self, self.phase == .visible else { return }
+                if let dock { DockBadgeReader.shared.apply(dock, keepBadges: wantsBadges) }
                 self.refreshDisplay()
             }
         }
+    }
+
+    private var handoffEnabled: Bool { Preferences.shared.handoffPlacement != .off }
+
+    /// The Dock scan serves unread badges and, on an unscoped panel, the Handoff row.
+    private var readsDock: Bool {
+        effective.showUnreadBadges || (activeScope == nil && handoffEnabled)
+    }
+
+    /// Installed apps by display name for resolving a Handoff app missing from the
+    /// Dock. Only an empty index is built here: a ~150-bundle rescan every 120 s of
+    /// switching costs more than missing an app installed since.
+    private func handoffInstalledAppURLs() -> [String: URL] {
+        guard handoffEnabled else { return [:] }
+        if InstalledAppsIndex.shared.urlsByName.isEmpty { InstalledAppsIndex.shared.ensureFresh() }
+        return InstalledAppsIndex.shared.urlsByName
     }
 
     private func revealWindowsOnly(pid: pid_t) {
@@ -3722,10 +3743,10 @@ final class SwitcherController: SwitcherViewDelegate {
             // real rows, the user/window-server just closed the last window —
             // dismiss the panel. refreshDisplay still appends recently-closed
             // rows, so those remain reopenable from the empty panel — and a
-            // panel showing only reopen rows IS the empty state, so it must
+            // panel showing only reopen or Handoff rows IS the empty state, so it must
             // not count as "had real rows" and self-cancel on the next
             // empty refresh.
-            if rows.allSatisfy({ $0.isPlaceholder || $0.isRecentlyClosed }) {
+            if rows.allSatisfy({ $0.isPlaceholder || $0.isRecentlyClosed || $0.handoff != nil }) {
                 baseRows = []
                 baseLabels = []
                 refreshDisplay(anchorPid: anchorPid)
@@ -3877,22 +3898,24 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
-    /// A Dock badge changed while the panel is open (signalled by
-    /// `DockBadgeObserver`, already debounced). Re-read the badge map off-main —
+    /// A Dock badge or the Handoff item changed while the panel is open (signalled
+    /// by `DockBadgeObserver`, already debounced). Re-read the Dock off-main —
     /// the read AX-scrapes the Dock tree — then repaint: the item views pull the
     /// fresh count from `DockBadgeReader.shared.badge(forBundleID:)` on each
-    /// `configure`, so no row-model change is needed. Generation- and
+    /// `configure`, and `refreshDisplay` re-places the Handoff row. Generation- and
     /// visibility-guarded so a scan landing after the panel closed is dropped.
     private func scheduleVisibleBadgeRefresh() {
-        guard phase == .visible, effective.showUnreadBadges else { return }
+        guard phase == .visible, readsDock else { return }
+        let wantsBadges = effective.showUnreadBadges
         let gen = revealGeneration
+        let installedAppURLs = handoffInstalledAppURLs()
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-            let badges = DockBadgeReader.snapshot()
+            let dock = DockBadgeReader.snapshot(installedAppURLs: installedAppURLs)
             DispatchQueue.main.async {
                 guard let self, gen == self.revealGeneration, self.phase == .visible else { return }
-                // Only repaint when a badge actually changed — the live poll calls
+                // Only repaint when something actually changed — the live poll calls
                 // this on an interval, so an unchanged scan must not re-render rows.
-                if DockBadgeReader.shared.apply(badges) {
+                if DockBadgeReader.shared.apply(dock, keepBadges: wantsBadges) {
                     self.refreshDisplay()
                 }
             }
@@ -4367,8 +4390,9 @@ final class SwitcherController: SwitcherViewDelegate {
     /// tracker so the next ⌘Tab returns here. A browser-tab row selects its tab via
     /// Apple Events (it's not a real window) and bumps only the app + tab MRU — all
     /// of a window's tab rows share one CGWindowID, so the window MRU would be the
-    /// wrong granularity. Any other row raises its window. Shared by the visible and
-    /// primed commit paths so a fast tap and a held-open panel agree.
+    /// wrong granularity. A Handoff row presses the Dock item, re-activating the
+    /// previous app if the press fails; any other row raises its window. Shared by
+    /// the visible and primed commit paths so a fast tap and a held-open panel agree.
     private func activation(
         for row: SwitcherRow,
         instantSpace: Bool,
@@ -4381,6 +4405,23 @@ final class SwitcherController: SwitcherViewDelegate {
             let parentTitle = bt.parentTitle
             return {
                 BrowserTabs.commitTab(at: tabIndex, in: app, window: window, title: parentTitle)
+                completion()
+            }
+        }
+        if let suggestion = row.handoff {
+            // A failed press leaves us frontmost (the reveal activated us), so hand focus back.
+            let previous = previousFrontmostApp
+            return {
+                let result = Activator.openHandoff(suggestion)
+                if !Activator.handoffPressOpened(result), let previous, !previous.isTerminated {
+                    Activator.activateProcess(previous)
+                }
+                if result == .cannotComplete {
+                    // A timed-out press the Dock never acted on leaves us frontmost with no window.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        if NSApp.isActive, let previous, !previous.isTerminated { Activator.activateProcess(previous) }
+                    }
+                }
                 completion()
             }
         }
@@ -5456,11 +5497,11 @@ final class SwitcherController: SwitcherViewDelegate {
                 }
                 if fresh.isEmpty {
                     // Mirror applyFullSnapshot (#31): a panel already in the
-                    // empty state (placeholder or reopen rows only) stays up —
+                    // empty state (placeholder, reopen or Handoff rows only) stays up —
                     // e.g. a window-action key on a reopen row schedules this
                     // refresh, which resolves empty. Real rows emptying means
                     // the last window closed — dismiss.
-                    if self.rows.allSatisfy({ $0.isPlaceholder || $0.isRecentlyClosed }) {
+                    if self.rows.allSatisfy({ $0.isPlaceholder || $0.isRecentlyClosed || $0.handoff != nil }) {
                         self.baseRows = []
                         self.baseLabels = []
                         self.refreshDisplay()
@@ -5702,6 +5743,14 @@ final class SwitcherController: SwitcherViewDelegate {
         return indexMatch ?? activeTab ?? firstWindowRow
     }
 
+    /// A row with no process (recently closed, launchable, Handoff) has no window or
+    /// pid to follow, so it is found again by identity when rows are inserted above
+    /// it. Pure.
+    nonisolated static func windowlessSelectionIndex(in rows: [SwitcherRow], selected: SwitcherRow) -> Int? {
+        guard selected.pid == nil else { return nil }
+        return rows.firstIndex { $0.identity == selected.identity }
+    }
+
     private func selectionKey() -> (pid_t, String, Bool)? {
         guard rows.indices.contains(index), let pid = rows[index].pid else { return nil }
         return (pid, rows[index].windowTitle, rows[index].window != nil)
@@ -5772,6 +5821,81 @@ final class SwitcherController: SwitcherViewDelegate {
             result.append(SwitcherRow(recentlyClosed: entry))
         }
         return result
+    }
+
+    /// The Dock's Handoff suggestion as a row, from the last Dock scan. None when the
+    /// feature is off, in window-only mode or a scoped panel, or for an app the user
+    /// always hides.
+    private func handoffRow() -> SwitcherRow? {
+        guard handoffEnabled, !windowsOnlyMode, activeScope == nil,
+              let suggestion = DockBadgeReader.shared.handoff else { return nil }
+        let hidden = Preferences.shared.appExceptions.first(where: { $0.bundleID == suggestion.bundleID })?.hide == .always
+        return hidden ? nil : SwitcherRow(handoff: suggestion)
+    }
+
+    /// Put a `first` Handoff row on top of the rows a reveal just built from `baseRows`.
+    /// The selection stays on its row, so it still starts on the previous app. A `last`
+    /// row waits for `refreshDisplay`, which places it after the recently closed rows.
+    private func placeHandoffRow() {
+        guard Preferences.shared.handoffPlacement == .first else { return }
+        let placed = Self.placingHandoff(handoffRow(), in: rows, index: index, placement: .first)
+        guard placed.rows.count != rows.count else { return }
+        rows = placed.rows
+        index = placed.index
+        labels = RowLabels.labels(for: rows)
+    }
+
+    /// `rows` with `handoff` placed per `placement`, and `index` moved so it still
+    /// points at the same row. No other rows means no Handoff row either, so a quick
+    /// tap on an empty panel never opens a page from another device. Pure.
+    nonisolated static func placingHandoff(
+        _ handoff: SwitcherRow?,
+        in rows: [SwitcherRow],
+        index: Int,
+        placement: HandoffPlacement
+    ) -> (rows: [SwitcherRow], index: Int) {
+        guard let handoff, !rows.isEmpty else { return (rows, index) }
+        switch placement {
+        case .off: return (rows, index)
+        case .first: return ([handoff] + rows, index + 1)
+        case .last: return (rows + [handoff], index)
+        }
+    }
+
+    /// The rows outside search: running rows, then recently closed rows, then the
+    /// Handoff row per `placement`. Pure.
+    nonisolated static func combinedRows(
+        base: [SwitcherRow],
+        recentlyClosed: [SwitcherRow],
+        handoff: SwitcherRow?,
+        placement: HandoffPlacement
+    ) -> [SwitcherRow] {
+        placingHandoff(handoff, in: base + recentlyClosed, index: 0, placement: placement).rows
+    }
+
+    /// The search rows after the running and launchable matches: the recently closed
+    /// matches plus the Handoff row when its app name or device matches, best-first
+    /// when `rankBest`. Pure.
+    nonisolated static func searchTail(
+        closed: [SwitcherRow],
+        handoff: SwitcherRow?,
+        foldedQuery: String,
+        preparedQuery: FuzzyMatch.PreparedQuery,
+        rankBest: Bool
+    ) -> [SwitcherRow] {
+        var tail = closed
+        if let handoff,
+           FuzzyMatch.matchesFolded(foldedQuery: foldedQuery, foldedAppName: FuzzyMatch.fold(handoff.appName),
+                                    foldedWindowTitle: FuzzyMatch.fold(handoff.windowTitle)) {
+            tail.append(handoff)
+        }
+        guard rankBest else { return tail }
+        let scores = tail.map {
+            FuzzyMatch.scoreFolded(preparedQuery: preparedQuery, foldedAppName: FuzzyMatch.fold($0.appName), foldedWindowTitle: FuzzyMatch.fold($0.windowTitle)) ?? Int.min
+        }
+        return tail.indices.sorted {
+            scores[$0] != scores[$1] ? scores[$0] > scores[$1] : $0 < $1
+        }.map { tail[$0] }
     }
 
     /// Rebuild the folded-string cache for the current `baseRows` if it went
@@ -5909,16 +6033,14 @@ final class SwitcherController: SwitcherViewDelegate {
                     newLabels.append("")
                 }
             }
-            var closed = recentlyClosedRows(forSearchQuery: searchQuery, alreadyShown: Set(newRows.compactMap { $0.bundleIdentifier }))
-            if rankBest {
-                let scores = closed.map {
-                    FuzzyMatch.scoreFolded(preparedQuery: preparedQuery, foldedAppName: FuzzyMatch.fold($0.appName), foldedWindowTitle: FuzzyMatch.fold($0.windowTitle)) ?? Int.min
-                }
-                closed = closed.indices.sorted {
-                    scores[$0] != scores[$1] ? scores[$0] > scores[$1] : $0 < $1
-                }.map { closed[$0] }
-            }
-            for row in closed {
+            let tail = Self.searchTail(
+                closed: recentlyClosedRows(forSearchQuery: searchQuery, alreadyShown: Set(newRows.compactMap { $0.bundleIdentifier })),
+                handoff: handoffRow(),
+                foldedQuery: foldedQuery,
+                preparedQuery: preparedQuery,
+                rankBest: rankBest
+            )
+            for row in tail {
                 newRows.append(row)
                 newLabels.append("")
             }
@@ -5926,14 +6048,16 @@ final class SwitcherController: SwitcherViewDelegate {
             labels = newLabels
         } else {
             // Non-search: the displayed set is the running rows plus recently
-            // closed entries. Labels are computed over the whole set so closed
-            // apps get their own type-to-jump letter, exactly like running rows.
-            var combined = baseRows
-            combined.append(contentsOf: recentlyClosedRows(
-                forSearchQuery: nil,
-                alreadyShown: Set(baseRows.compactMap { $0.bundleIdentifier })
-            ))
-            // Reuse `baseLabels` when nothing was appended to keep labels stable.
+            // closed entries and the Handoff row. Labels are computed over the whole
+            // set so closed apps get their own type-to-jump letter, exactly like
+            // running rows; the Handoff row gets none.
+            let combined = Self.combinedRows(
+                base: baseRows,
+                recentlyClosed: recentlyClosedRows(forSearchQuery: nil, alreadyShown: Set(baseRows.compactMap { $0.bundleIdentifier })),
+                handoff: handoffRow(),
+                placement: Preferences.shared.handoffPlacement
+            )
+            // Reuse `baseLabels` when nothing was added to keep labels stable.
             let combinedLabels = combined.count == baseRows.count ? baseLabels : RowLabels.labels(for: combined)
 
             if !letterBuffer.isEmpty {
@@ -5956,6 +6080,9 @@ final class SwitcherController: SwitcherViewDelegate {
             index = 0
         } else if let selectedRow,
                   let restored = Self.windowSelectionIndex(in: rows, selected: selectedRow) {
+            index = restored
+        } else if let selectedRow,
+                  let restored = Self.windowlessSelectionIndex(in: rows, selected: selectedRow) {
             index = restored
         } else if let key, let restored = rows.firstIndex(where: { keyMatches($0, key) }) {
             index = restored

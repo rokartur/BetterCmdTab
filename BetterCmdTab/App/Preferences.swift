@@ -136,6 +136,21 @@ enum WindowShelf: String, CaseIterable {
     }
 }
 
+/// Where the Dock's Handoff suggestion (a page open on another device) shows in the switcher.
+enum HandoffPlacement: String, CaseIterable {
+    case off
+    case first
+    case last
+
+    var displayName: String {
+        switch self {
+        case .off:   return String(localized: "Off")
+        case .first: return String(localized: "First")
+        case .last:  return String(localized: "Last")
+        }
+    }
+}
+
 /// What keeps the switcher open once fuzzy-search has been activated with `/`.
 enum SearchDismissMode: String, CaseIterable {
     /// Keep holding the switcher modifier (⌘); releasing it commits the
@@ -1024,6 +1039,7 @@ final class Preferences: ObservableObject {
         static let tabDrillEnabled = "Switcher.tabDrillEnabled"
         static let windowDrillEnabled = "Switcher.windowDrillEnabled"
         static let windowShelf = "Switcher.windowShelf"
+        static let handoffPlacement = "Switcher.handoffPlacement"
         /// Expand native-system-tab windows (Finder, Terminal, TextEdit, …) into
         /// one switcher row per tab instead of a single collapsed window row.
         /// Default off — the collapsed row + `\` peek is the default.
@@ -1806,6 +1822,14 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != windowShelf else { return }
             UserDefaults.standard.set(windowShelf.rawValue, forKey: Keys.windowShelf)
+        }
+    }
+
+    /// Off by default: it reads an undocumented Dock item (`AXHandoffDockItem`).
+    @Published var handoffPlacement: HandoffPlacement {
+        didSet {
+            guard oldValue != handoffPlacement else { return }
+            UserDefaults.standard.set(handoffPlacement.rawValue, forKey: Keys.handoffPlacement)
         }
     }
 
@@ -2652,6 +2676,7 @@ final class Preferences: ObservableObject {
         self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
         self.windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         self.windowShelf = defaults.string(forKey: Keys.windowShelf).flatMap(WindowShelf.init(rawValue:)) ?? .off
+        self.handoffPlacement = defaults.string(forKey: Keys.handoffPlacement).flatMap(HandoffPlacement.init(rawValue:)) ?? .off
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         self.browserTabRowLimit = Self.clampBrowserTabRowLimit(defaults.object(forKey: Keys.browserTabRowLimit) as? Int ?? 0)
@@ -2814,6 +2839,7 @@ final class Preferences: ObservableObject {
         tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
         windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
         windowShelf = defaults.string(forKey: Keys.windowShelf).flatMap(WindowShelf.init(rawValue:)) ?? .off
+        handoffPlacement = defaults.string(forKey: Keys.handoffPlacement).flatMap(HandoffPlacement.init(rawValue:)) ?? .off
         expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         browserTabRowLimit = defaults.object(forKey: Keys.browserTabRowLimit) as? Int ?? 0

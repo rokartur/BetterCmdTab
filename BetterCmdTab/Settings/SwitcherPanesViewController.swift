@@ -58,6 +58,8 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
     private let windowShelfPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let windowShelves: [WindowShelf] = WindowShelf.allCases
+    private let handoffPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let handoffPlacements: [HandoffPlacement] = HandoffPlacement.allCases
     private let instantSpaceRowSwitch = PreferenceSwitch(bind: \.instantSpaceSwitch)
 
     private let windowDrillSwitch = PreferenceSwitch(bind: \.windowDrillEnabled)
@@ -128,6 +130,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
             addGlobalDefaultNote()
             buildContentsSection()
             buildWindowShelfSection()
+            buildHandoffSection()
             buildTimingSection()
         case .controls:
             addGlobalDefaultNote()
@@ -313,6 +316,17 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                accessory: windowShelfPopup, searchItemID: SearchID.windowShelf)
     }
 
+    private func buildHandoffSection() {
+        let section = addSection(title: String(localized: "Handoff"), anchor: SettingsAnchor.handoff)
+        addRow(to: section, icon: "flask.fill",
+               title: String(localized: "These features are unstable"),
+               subtitle: String(localized: "Off by default. They may change or break."))
+        configurePopup(handoffPopup, titles: handoffPlacements.map(\.displayName), action: #selector(handoffPlacementChanged))
+        addRow(to: section, title: String(localized: "Show Handoff from other devices"),
+               subtitle: String(localized: "A page or document open on your other Apple devices shows as a tile. Select it to open it on this Mac."),
+               accessory: handoffPopup, searchItemID: SearchID.handoffPlacement)
+    }
+
     private func buildOneHandHintsSection() {
         let oneHand = addSection(title: String(localized: "One-hand letter jump"), anchor: SettingsAnchor.oneHandHints)
         addRow(to: oneHand, icon: "flask.fill",
@@ -433,6 +447,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         instantSpaceRowSwitch.sync()
         selectSortOrder(prefs.sortOrder)
         if let index = windowShelves.firstIndex(of: prefs.windowShelf) { windowShelfPopup.selectItem(at: index) }
+        if let index = handoffPlacements.firstIndex(of: prefs.handoffPlacement) { handoffPopup.selectItem(at: index) }
         recentlyClosedSwitch.state = prefs.showRecentlyClosed ? .on : .off
         applyRecentlyClosedLimit(prefs.recentlyClosedLimit)
         recentlyClosedLimitField.isEnabled = prefs.showRecentlyClosed
@@ -884,6 +899,12 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         let idx = windowShelfPopup.indexOfSelectedItem
         guard windowShelves.indices.contains(idx) else { return }
         Preferences.shared.windowShelf = windowShelves[idx]
+    }
+
+    @objc private func handoffPlacementChanged() {
+        let idx = handoffPopup.indexOfSelectedItem
+        guard handoffPlacements.indices.contains(idx) else { return }
+        Preferences.shared.handoffPlacement = handoffPlacements[idx]
     }
 
     private func selectSortOrder(_ order: SwitcherSortOrder) {

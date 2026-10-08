@@ -237,25 +237,25 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         // "Window title under icon" preference: when off, keep the app icon but
         // drop the title text so the tile is just the thumbnail + icon. Browser
         // tabs always show their tab title (the only thing distinguishing
-        // sibling tabs). Otherwise the title is gated by "Show window title". When
-        // app names are shown they prefix the title ("App — Title", #125); when
-        // hidden, windowTitleText keeps a windowless/launch row from re-surfacing
-        // the app name as its title.
+        // sibling tabs) and a Handoff tile its device. Otherwise the title is
+        // gated by "Show window title". When app names are shown they prefix the
+        // title ("App — Title", #125); when hidden, windowTitleText keeps a
+        // windowless/launch row from re-surfacing the app name as its title.
         let previewTitle = row.previewTitleSlot(showAppNames: effective.showApplicationNames)
-        nameLabel.stringValue = (effective.showWindowTitleLabel || row.browserTab != nil) ? previewTitle : ""
+        nameLabel.stringValue = (effective.showWindowTitleLabel || row.browserTab != nil || row.handoff != nil) ? previewTitle : ""
 
         // Dock/notification count badge — shown beside the title, never over the
-        // thumbnail. Suppressed for placeholder/dialog rows and for browser-tab
+        // thumbnail. Suppressed for placeholder/dialog/Handoff rows and for browser-tab
         // rows (the count is per-app, so it would repeat identically on every tab).
-        let badge = (row.isPlaceholder || isDialog || row.browserTab != nil)
+        let badge = (row.isPlaceholder || isDialog || row.browserTab != nil || row.handoff != nil)
             ? nil
             : DockBadgeReader.shared.badge(forBundleID: row.bundleIdentifier)
         badgeLabel.stringValue = badge ?? ""
         badgePill.isHidden = (badge == nil)
 
         // Resolve the window id and ask for (or reuse) its live thumbnail. Rows
-        // without a real window (windowless apps, launchables, recents) keep the
-        // app icon as their preview.
+        // without a real window (windowless apps, launchables, recents, Handoff) keep
+        // the app icon as their preview.
         //
         // Prefer the CGWindowID captured at enumeration time: a live resolve off
         // the cache-fed AX element returns 0 once the app invalidated it
@@ -284,6 +284,11 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
             imageView.image = icon
         }
         applyImageScaling()
+        // A Handoff app has no window here yet, so its icons are dimmed.
+        let iconAlpha: CGFloat = row.handoff == nil ? 1 : 0.75
+        imageView.alphaValue = iconAlpha
+        iconView.alphaValue = iconAlpha
+        applyHandoffAccessibility(row)
 
         // Hover action buttons apply to a real window of a running app.
         actionsAvailable = !isDialog && row.app != nil && row.window != nil

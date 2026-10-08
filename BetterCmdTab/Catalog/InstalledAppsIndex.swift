@@ -24,11 +24,15 @@ struct InstalledApp: Sendable, Hashable {
 /// Catalog of installed apps, used by the switcher's search mode to offer
 /// not-yet-running apps for launching. Built off-main and refreshed lazily so
 /// it never blocks a reveal; matches exclude apps that are already running.
+/// Also resolves the Dock's Handoff app by display name (`urlsByName`).
 @MainActor
 final class InstalledAppsIndex {
     static let shared = InstalledAppsIndex()
 
     private var apps: [InstalledApp] = []
+    /// Display name → bundle URL. Resolves the Dock's Handoff item, which names its
+    /// app only by display name.
+    private(set) var urlsByName: [String: URL] = [:]
     private var building = false
     private var lastBuilt: Date?
     /// Rebuild if the cache is older than this — picks up newly installed apps
@@ -45,13 +49,30 @@ final class InstalledAppsIndex {
         building = true
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let scanned = Self.scan()
+            let urlsByName = Self.urlsByName(scanned, home: NSHomeDirectory())
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.apps = scanned
+                self.urlsByName = urlsByName
                 self.building = false
                 self.lastBuilt = Date()
             }
         }
+    }
+
+    /// Display name → bundle URL. On a name clash an app outside `home` wins, since a
+    /// bundle in the user-writable `~/Applications` could pose as a system app;
+    /// otherwise the first app wins. Pure.
+    nonisolated static func urlsByName(_ apps: [InstalledApp], home: String) -> [String: URL] {
+        let homePrefix = home + "/"
+        var result: [String: URL] = [:]
+        for app in apps {
+            if let kept = result[app.name] {
+                guard kept.path.hasPrefix(homePrefix), !app.url.path.hasPrefix(homePrefix) else { continue }
+            }
+            result[app.name] = app.url
+        }
+        return result
     }
 
     /// Fuzzy-matched installed apps not already running, in scan order, capped

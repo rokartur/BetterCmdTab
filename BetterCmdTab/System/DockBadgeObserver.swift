@@ -20,17 +20,18 @@ struct BadgeRefreshLatch {
     mutating func disarm() { scheduled = false }
 }
 
-/// Live-refreshes app Dock badges (unread/notification counts) **while the
-/// switcher panel is open**. Without it, badges only snapshot once at reveal, so
-/// a count that ticks up while the user holds ⌘Tab open stays stale until the
-/// panel is reopened.
+/// Live-refreshes app Dock badges (unread/notification counts) and the Handoff
+/// suggestion **while the switcher panel is open**. Without it, badges only
+/// snapshot once at reveal, so a count that ticks up while the user holds ⌘Tab
+/// open stays stale until the panel is reopened.
 ///
 /// Zero idle cost: it does work only between `start()` (panel shown) and `stop()`
 /// (panel closed). There is no dependable "badge changed" AX notification — the
 /// Dock does not reliably post one when an `AXStatusLabel` changes — so a pure
 /// event-driven approach misses changes. Two mechanisms, both panel-open-only:
-///   1. A poll (`pollIntervalSeconds`) that re-reads badges while the panel is
-///      visible — the reliable floor that always catches a change within one tick.
+///   1. A poll (`pollIntervalSeconds`) that re-reads badges and the Handoff item
+///      while the panel is visible — the reliable floor that always catches a
+///      change within one tick.
 ///   2. An AX observer on the Dock tree (app element + item `AXList` + each item)
 ///      as a bonus fast-path: if the Dock *does* post a notification it refreshes
 ///      instantly; when it stays silent it simply costs nothing.
@@ -42,8 +43,8 @@ struct BadgeRefreshLatch {
 /// off-main, mirroring `AppCatalogCache`'s observer machinery.
 @MainActor
 final class DockBadgeObserver {
-    /// Called on the main actor when the Dock badges may have changed (debounced).
-    /// The owner re-reads `DockBadgeReader.snapshot()` off-main and repaints.
+    /// Called on the main actor when the Dock badges or Handoff item may have changed
+    /// (debounced). The owner re-reads `DockBadgeReader.snapshot` off-main and repaints.
     var onBadgesChanged: (() -> Void)?
 
     private var observer: AXObserver?
@@ -82,7 +83,8 @@ final class DockBadgeObserver {
     // MARK: - Lifecycle
 
     /// Arm the observer (no-op if `enabled` is false or already armed). `enabled`
-    /// tracks the `showUnreadBadges` preference so a disabled feature does nothing.
+    /// is true when the reveal reads the Dock (unread badges or the Handoff row), so
+    /// a disabled feature does nothing.
     func start(enabled: Bool) {
         guard enabled, !isArmed else { return }
         isArmed = true

@@ -16,6 +16,8 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
     private let reopenIcon = NSImageView()
     private let badgePill = NSView()
     private let badgeLabel = NSTextField(labelWithString: "")
+    /// "Open", right-aligned on a Handoff row.
+    private let openLabel = NSTextField(labelWithString: String(localized: "Open"))
 
     private var metrics: SwitcherMetrics = .baseline
     private var usesCompactTabIcon = false
@@ -96,6 +98,9 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         titleLabel.isEditable = false
         titleLabel.isSelectable = false
         addSubview(titleLabel)
+
+        openLabel.isHidden = true
+        addSubview(openLabel)
 
         badgePill.wantsLayer = true
         badgePill.layer?.cornerCurve = .continuous
@@ -249,6 +254,13 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
             }
         }
         imageView.image = isDialog ? SystemSettingsIcon.image : IconCache.icon(for: row)
+        // A Handoff app has no window here yet, so its icon is dimmed.
+        imageView.alphaValue = row.handoff == nil ? 1 : 0.75
+        applyHandoffAccessibility(row)
+        if openLabel.isHidden != (row.handoff == nil) {
+            openLabel.isHidden = row.handoff == nil
+            needsLayout = true
+        }
         let compactTabIcon = row.browserTab != nil
         if usesCompactTabIcon != compactTabIcon {
             usesCompactTabIcon = compactTabIcon
@@ -284,7 +296,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
             needsLayout = true
         }
         // Dock badge; empty map when the feature is off.
-        let badge = (row.isPlaceholder || isDialog) ? nil : DockBadgeReader.shared.badge(forBundleID: row.bundleIdentifier)
+        let badge = (row.isPlaceholder || isDialog || row.handoff != nil) ? nil : DockBadgeReader.shared.badge(forBundleID: row.bundleIdentifier)
         let badgeChanged = badgePill.isHidden == (badge != nil) || badgeLabel.stringValue != (badge ?? "")
         badgeLabel.stringValue = badge ?? ""
         badgePill.isHidden = (badge == nil)
@@ -311,6 +323,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         let font = SwitcherFont.font(ofSize: metrics.fontSize, weight: .regular, design: effective.fontFace)
         appNameLabel.font = font
         titleLabel.font = font
+        openLabel.font = font
         badgeLabel.font = NSFont.systemFont(ofSize: max(9, metrics.fontSize - 2), weight: .bold)
         letterLabel.font = NSFont.monospacedSystemFont(ofSize: metrics.letterFontSize, weight: .semibold)
         highlight.layer?.cornerRadius = metrics.highlightCornerRadius
@@ -327,6 +340,7 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
         // the selection color — white over systemYellow is unreadable.
         appNameLabel.textColor = isSelected ? onFillLabel : .labelColor
         titleLabel.textColor = isSelected ? onFillLabel.withAlphaComponent(0.9) : .labelColor
+        openLabel.textColor = isSelected ? onFillLabel.withAlphaComponent(0.9) : .secondaryLabelColor
         // Same for every glyph over that plate; unselected rows keep their
         // semantic color.
         for (indicator, iv) in indicatorViews {
@@ -455,6 +469,12 @@ final class SwitcherItemView: NSView, SwitcherItemViewProtocol {
             rightLimit = bounds.width - m.horizontalInset
         } else {
             rightLimit = statusRightEdge - m.interGap + statusGap
+        }
+
+        if !openLabel.isHidden {
+            let width = ceil(openLabel.intrinsicContentSize.width)
+            openLabel.frame = NSRect(x: rightLimit - width, y: labelY, width: width, height: labelH)
+            rightLimit -= width + m.interGap
         }
 
         if !badgePill.isHidden {
