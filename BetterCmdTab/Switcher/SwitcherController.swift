@@ -88,6 +88,14 @@ final class SwitcherController: SwitcherViewDelegate {
     private let dockBadgeObserver = DockBadgeObserver()
     private let panel = SwitcherPanel()
     private let view: SwitcherView
+    /// Window shelf (#211): the highlighted app's windows, under the switcher.
+    private let shelf = SwitcherView(frame: .zero, allowsWindowCapture: true, showsHoverActions: false)
+    private let shelfMouse = WindowShelfMouse()
+    private let stack: SwitcherStackView
+    private var shelfHoverGrace: (timer: Timer, index: Int, pid: pid_t?)?
+    /// The highlighted app's window list, so stepping through the switcher
+    /// re-reads the catalog only when the app changes.
+    private var selectedAppWindowsMemo: (pid: pid_t, windows: [SwitcherRow])?
 
     private var _phase: Phase = .idle
     private var switchSessionKind: SwitchSessionKind = .none
@@ -478,8 +486,11 @@ final class SwitcherController: SwitcherViewDelegate {
 
     init() {
         view = SwitcherView(frame: .zero)
-        panel.contentView = view
+        stack = SwitcherStackView(switcher: view, shelf: shelf)
+        panel.contentView = stack
         view.delegate = self
+        shelfMouse.controller = self
+        shelf.delegate = shelfMouse
         let resignKeyObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didResignKeyNotification,
             object: panel,
@@ -1843,7 +1854,7 @@ final class SwitcherController: SwitcherViewDelegate {
         _phase = .idle
         cache.setPanelVisible(false)
         panel.dismiss()
-        view.releaseIdleResources()
+        releaseIdleViews()
         rows.removeAll()
         baseRows.removeAll()
         baseLabels.removeAll()
@@ -2237,12 +2248,56 @@ final class SwitcherController: SwitcherViewDelegate {
     func switcherViewDidHover(index: Int) {
         guard phase == .visible else { return }
         lastVisibleActivity = Date() // #16: mouse steering keeps the panel alive
-        guard rows.indices.contains(index), index != self.index else { return }
+        guard rows.indices.contains(index), index != self.index else {
+            cancelShelfHoverGrace()
+            return
+        }
+        if !shelf.isHidden {
+            armShelfHoverGrace(for: index)
+            return
+        }
+        selectHoveredRow(index)
+    }
+
+    private static let shelfHoverGraceInterval: TimeInterval = 0.15
+
+    /// #211: the pointer crosses other apps' rows on its way down to the shelf;
+    /// selecting each would re-list the shelf from under it.
+    private func armShelfHoverGrace(for index: Int) {
+        let pid = rows[index].pid
+        if let pending = shelfHoverGrace, pending.timer.isValid, pending.index == index, pending.pid == pid { return }
+        cancelShelfHoverGrace()
+        let generation = revealGeneration
+        let timer = Timer(timeInterval: Self.shelfHoverGraceInterval, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.selectHoveredRowIfPointerStayed(index: index, pid: pid, generation: generation) }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        shelfHoverGrace = (timer, index, pid)
+    }
+
+    private func cancelShelfHoverGrace() {
+        shelfHoverGrace?.timer.invalidate()
+        shelfHoverGrace = nil
+    }
+
+    /// A refresh during the grace can reorder `rows`: prefer the hovered index, else the same app.
+    private func selectHoveredRowIfPointerStayed(index: Int, pid: pid_t?, generation: UInt64) {
+        shelfHoverGrace = nil
+        guard revealGeneration == generation, phase == .visible,
+              view.bounds.contains(view.convert(panel.mouseLocationOutsideOfEventStream, from: nil)) else { return }
+        if rows.indices.contains(index), rows[index].pid == pid {
+            selectHoveredRow(index)
+        } else if let pid, let moved = rows.firstIndex(where: { $0.pid == pid }) {
+            selectHoveredRow(moved)
+        }
+    }
+
+    private func selectHoveredRow(_ index: Int) {
         // Moving the selection off the drilled-in row drops drill mode — the
         // strip belongs to the previous row's tabs.
         if tabDrillActive { exitTabDrill() }
         self.index = index
-        view.setSelectedIndex(index)
+        showSelection()
         schedulePrefetchForCurrentSelection()
     }
 
@@ -2260,7 +2315,7 @@ final class SwitcherController: SwitcherViewDelegate {
     func switcherViewDidInvokeAction(_ action: RowAction, atIndex index: Int) {
         guard phase == .visible, rows.indices.contains(index) else { return }
         self.index = index
-        view.setSelectedIndex(index)
+        showSelection()
         // The user is now interacting with the mouse: detach from the held
         // modifier so releasing ⌘ no longer commits (which would switch to the
         // app instead of running the clicked action). Commit stays available via
@@ -2319,7 +2374,8 @@ final class SwitcherController: SwitcherViewDelegate {
             // Native ⌘Tab parity (#80): ↓ peeks the selected app's windows, but
             // only where it was a redundant linear wrap — list and multi-row
             // grids keep their vertical navigation.
-            if DrillRouting.downArrowOpensWindowDrill(layoutMode: currentMetrics.layoutMode, rowsPerColumn: view.rowsPerColumn, searchActive: searchActive, tabDrillActive: tabDrillActive),
+            if Preferences.shared.windowDrillEnabled,
+               DrillRouting.downArrowOpensWindowDrill(layoutMode: currentMetrics.layoutMode, rowsPerColumn: view.rowsPerColumn, searchActive: searchActive, tabDrillActive: tabDrillActive),
                enterWindowDrillIfEligible() {
                 break
             }
@@ -2372,7 +2428,15 @@ final class SwitcherController: SwitcherViewDelegate {
             // would. `.visible` gates out a click racing a commit's `vanish()`
             // across the tap-thread → main hop.
             guard phase == .visible else { return }
-            view.handleClick(atWindowPoint: point)
+            if !shelf.isHidden, shelf.bounds.contains(shelf.convert(point, from: nil)) {
+                shelf.handleClick(atWindowPoint: point)
+            } else if view.bounds.contains(view.convert(point, from: nil)) {
+                view.handleClick(atWindowPoint: point)
+            } else if Preferences.shared.clickOutsideToDismiss {
+                // The gap and the clear sides around the narrower block (#211) are
+                // inside the panel frame the tap hit-tests, but outside the glass.
+                cancel()
+            }
         case .toggleSearch:
             toggleSearch()
         case .searchInput(let ch):
@@ -2645,7 +2709,7 @@ final class SwitcherController: SwitcherViewDelegate {
         } else {
             index = max(0, min(rows.count - 1, index + delta))
         }
-        view.setSelectedIndex(index)
+        showSelection()
         schedulePrefetchForCurrentSelection()
     }
 
@@ -2654,7 +2718,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let rpc = max(1, view.rowsPerColumn)
         let candidate = index + delta * rpc
         index = max(0, min(rows.count - 1, candidate))
-        view.setSelectedIndex(index)
+        showSelection()
     }
 
     /// In icon-dock mode with 2+ rows, Up/Down picks the tile in the
@@ -2668,7 +2732,7 @@ final class SwitcherController: SwitcherViewDelegate {
            view.rowsPerColumn > 1 {
             if let newIndex = view.neighboringRowIndex(from: index, direction: delta, wrap: true) {
                 index = newIndex
-                view.setSelectedIndex(index)
+                showSelection()
             }
             return
         }
@@ -2707,7 +2771,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let itemsInCol = max(1, lastInColExclusive - firstInCol)
         let newRow = ((currentRow + delta) % itemsInCol + itemsInCol) % itemsInCol
         index = firstInCol + newRow
-        view.setSelectedIndex(index)
+        showSelection()
     }
 
     /// Move horizontally between list-mode columns with wrap. The row offset
@@ -2724,7 +2788,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let itemsInNewCol = max(1, lastInNewColExclusive - firstInNewCol)
         let newRow = min(currentRow, itemsInNewCol - 1)
         index = firstInNewCol + newRow
-        view.setSelectedIndex(index)
+        showSelection()
     }
 
     /// Arm the `.primed` liveness watchdog (see `primedWatchdog`). A classic
@@ -3315,6 +3379,7 @@ final class SwitcherController: SwitcherViewDelegate {
         panel.targetScreen = sessionScreen
         currentMetrics = makeMetrics()
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
+        relistWindowShelf()
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
         cache.setPanelVisible(true)
@@ -3416,6 +3481,7 @@ final class SwitcherController: SwitcherViewDelegate {
         panel.targetScreen = sessionScreen
         currentMetrics = makeMetrics()
         view.configure(rows: rows, labels: displayLabels, selectedIndex: index, metrics: currentMetrics, effective: effective, highlightPrefix: letterBuffer)
+        relistWindowShelf()
         panel.present(opacity: effective.panelOpacity)
         phase = .visible
         cache.setPanelVisible(true)
@@ -4326,7 +4392,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let finishDismiss: @MainActor @Sendable () -> Void = { [weak self] in
             guard let self, self.revealGeneration == commitGeneration, self.phase == .idle else { return }
             self.panel.dismiss()
-            self.view.releaseIdleResources()
+            self.releaseIdleViews()
         }
         var pendingActivation: (() -> Void)? = nil
 
@@ -4477,7 +4543,7 @@ final class SwitcherController: SwitcherViewDelegate {
         openTargetScreen = nil
         prefetchedTarget = nil
         visibleSince = nil
-        view.releaseIdleResources()
+        releaseIdleViews()
         // Dismissing without picking: undo the self-activation `present()` did for
         // the glass backdrop and put the user back in the app they came from.
         restorePreviousFrontmostApp()
@@ -4620,6 +4686,130 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    // MARK: - Window drill and shelf
+
+    /// Window drill (#80): the app's windows in the strip, or in the shelf (#211)
+    /// when it is on. Warm cache only, no AX walk. False when ineligible.
+    @discardableResult
+    private func enterWindowDrillIfEligible() -> Bool {
+        guard Preferences.shared.windowDrillEnabled || effective.windowShelf != .off, phase == .visible else { return false }
+        cancelShelfHoverGrace()
+        let candidates = windowsOfSelectedApp()
+        // A one-window drill would pick what picking the app already does.
+        guard candidates.count >= 2, let anchor = rows[index].window else { return false }
+        drillWindowRows = candidates
+        applyDrill(
+            titles: candidates.map { DrillRouting.stripTitle(windowTitle: $0.windowTitle, appName: $0.appName) },
+            liveTabs: candidates.compactMap(\.window),
+            backend: .appWindows,
+            window: anchor
+        )
+        return true
+    }
+
+    /// The highlighted app's windows: warm cache, the panel's filter, window-MRU order.
+    private func windowsOfSelectedApp() -> [SwitcherRow] {
+        guard applicationsCollapseActive, rows.indices.contains(index) else { return [] }
+        let row = rows[index]
+        // An inline browser-tab row is already a leaf (mirrors enterTabDrill),
+        // and a windowless app has nothing to list.
+        guard row.browserTab == nil, row.window != nil, let pid = row.pid else { return [] }
+        if let memo = selectedAppWindowsMemo, memo.pid == pid { return memo.windows }
+        let windows = cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
+            .filter { $0.pid == pid && $0.window != nil }
+        let ordered = windowMRU.sortRows(windows, forPid: pid)
+        selectedAppWindowsMemo = (pid, ordered)
+        return ordered
+    }
+
+    private var windowDrillActive: Bool { tabDrillActive && tabDrillBackend == .appWindows }
+
+    /// A window drill the shelf (#211) shows keeps the strip shut. A shelf hidden
+    /// for lack of room leaves the strip as the drill's only view.
+    private var tabStripContents: [TabStripItem]? {
+        if windowDrillActive && !shelf.isHidden { return nil }
+        if tabDrillActive { return tabStripItems }
+        return tabDrillHint.map { [TabStripItem(title: $0, faviconKey: nil)] }
+    }
+
+    private func showSelection() {
+        cancelShelfHoverGrace() // a keyboard step outranks a hover still in its grace
+        view.setSelectedIndex(index)
+        if updateWindowShelf() { panel.present(opacity: effective.panelOpacity) }
+    }
+
+    private func releaseIdleViews() {
+        view.releaseIdleResources()
+        shelf.releaseIdleResources()
+        shelf.isHidden = true
+        selectedAppWindowsMemo = nil
+        cancelShelfHoverGrace()
+    }
+
+    /// The rows were rebuilt, so the catalog may hold new windows: re-read them.
+    private func relistWindowShelf() {
+        selectedAppWindowsMemo = nil
+        updateWindowShelf()
+    }
+
+    /// Shows the highlighted app's windows in the shelf (the open window drill's rows when there is one). True when its size changed.
+    @discardableResult
+    private func updateWindowShelf() -> Bool {
+        let sizeBefore = shelf.isHidden ? nil : shelf.intrinsicContentSize
+        func hide() -> Bool {
+            shelf.isHidden = true
+            return sizeBefore != nil
+        }
+        guard let layoutMode = effective.windowShelf.layoutMode else { return hide() }
+        let windows = windowDrillActive ? drillWindowRows : windowsOfSelectedApp()
+        guard !windows.isEmpty else { return hide() }
+        // Every tile is the same app, so tiles carry window titles and nothing else.
+        var shelfEffective = effective
+        shelfEffective.showApplicationNames = false
+        shelfEffective.showWindowTitleLabel = true
+        shelfEffective.letterHintsEnabled = false
+        shelfEffective.showUnreadBadges = false
+        let metrics = SwitcherMetrics.forScale(
+            SwitcherMetrics.scale(forPercent: effective.panelScalePercent),
+            layoutMode: layoutMode,
+            fontScale: effective.fontScale.multiplier,
+            letterHints: shelfEffective.letterHintsEnabled,
+            showAppNames: shelfEffective.showApplicationNames,
+            showWindowTitles: shelfEffective.showWindowTitleLabel
+        )
+        shelf.configure(rows: windows, labels: [], selectedIndex: windowDrillActive ? tabIndex : -1,
+                        metrics: metrics, effective: shelfEffective)
+        shelf.isHidden = false
+        // Past the room, the panel would slide or clamp and the switcher row would move.
+        // `.top` hangs from 20% down the screen (#175), so it has the other 80%.
+        let visible = panel.activeScreen().visibleFrame
+        let room = Preferences.shared.verticalPosition == .top ? visible.height * 0.8 : visible.height
+        guard stack.fittingSize.height <= room else { return hide() }
+        stack.needsLayout = true
+        return shelf.intrinsicContentSize != sizeBefore
+    }
+
+    fileprivate func hoverShelfWindow(at shelfIndex: Int) {
+        cancelShelfHoverGrace()
+        lastVisibleActivity = Date() // #16: mouse steering keeps the panel alive
+        guard selectShelfWindow(at: shelfIndex) else { return }
+        shelf.setSelectedIndex(tabIndex)
+    }
+
+    /// `commit()` picks the drilled window; a one-window shelf has no drill, and its window is the app's.
+    fileprivate func commitShelfWindow(at shelfIndex: Int) {
+        guard phase == .visible else { return }
+        _ = selectShelfWindow(at: shelfIndex)
+        commit()
+    }
+
+    private func selectShelfWindow(at shelfIndex: Int) -> Bool {
+        guard phase == .visible, windowDrillActive || enterWindowDrillIfEligible(),
+              drillWindowRows.indices.contains(shelfIndex) else { return false }
+        tabIndex = shelfIndex
+        return true
+    }
+
     // MARK: - Browser tab drill-in
 
     /// Drill into the highlighted row's tab group. Two backends:
@@ -4631,39 +4821,6 @@ final class SwitcherController: SwitcherViewDelegate {
     ///   group.
     /// Both run off-main; the strip appears once titles land. Silently
     /// no-ops if no tabs are found.
-    /// Window drill-down (#80): in applications-only mode, open the strip UI
-    /// with the selected app's catalogued windows. Everything is sourced from
-    /// the warm cache and window-MRU order (exactly like `pickWindowsOnlyTarget`)
-    /// on the keypress — no AX walk, nothing added to the reveal path. Returns
-    /// false when ineligible so the caller can fall through to its old action.
-    @discardableResult
-    private func enterWindowDrillIfEligible() -> Bool {
-        // Cheap gates first — the candidate build below is the only real work,
-        // and this runs on every ↓ / `\` keypress.
-        guard Preferences.shared.windowDrillEnabled,
-              applicationsCollapseActive,
-              phase == .visible, rows.indices.contains(index) else { return false }
-        let row = rows[index]
-        // An inline browser-tab row is already a leaf (mirrors enterTabDrill),
-        // and a windowless app has nothing to list.
-        guard row.browserTab == nil, let pid = row.pid, let anchor = row.window else { return false }
-        // Warm cache ONLY, same filter config as the visible list so the strip
-        // agrees with the panel on minimized/Space-scope windows.
-        var candidates = cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
-            .filter { $0.pid == pid && $0.window != nil }
-        // A 1-window strip is useless: committing it equals committing the row.
-        guard candidates.count >= 2 else { return false }
-        candidates = windowMRU.sortRows(candidates, forPid: pid)
-        drillWindowRows = candidates
-        applyDrill(
-            titles: candidates.map { DrillRouting.stripTitle(windowTitle: $0.windowTitle, appName: $0.appName) },
-            liveTabs: candidates.compactMap(\.window),
-            backend: .appWindows,
-            window: anchor
-        )
-        return true
-    }
-
     private func enterTabDrill() {
         guard Preferences.shared.tabDrillEnabled else { return }
         guard phase == .visible, rows.indices.contains(index) else { return }
@@ -4715,7 +4872,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // A window drill (#80) opened while this fetch was in flight owns
                 // the strip — a late tab result must not overwrite it (the strip
                 // would show tabs while `drillWindowRows` stays populated).
-                guard !(self.tabDrillActive && self.tabDrillBackend == .appWindows) else { return }
+                guard !self.windowDrillActive else { return }
                 guard self.rows.indices.contains(self.index),
                       let currentWindow = self.rows[self.index].window,
                       CFEqual(currentWindow, window) else { return }
@@ -4929,6 +5086,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let count = tabTitles.count
         tabIndex = ((tabIndex + delta) % count + count) % count
         view.setTabStripSelectedIndex(tabIndex)
+        if windowDrillActive { shelf.setSelectedIndex(tabIndex) }
     }
 
     private func commitTab() {
@@ -4978,7 +5136,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let finishDismiss: @MainActor @Sendable () -> Void = { [weak self] in
             guard let self, self.revealGeneration == commitGeneration, self.phase == .idle else { return }
             self.panel.dismiss()
-            self.view.releaseIdleResources()
+            self.releaseIdleViews()
         }
         phase = .idle
         cache.setPanelVisible(false)
@@ -5800,9 +5958,10 @@ final class SwitcherController: SwitcherViewDelegate {
             highlightPrefix: searchActive ? "" : letterBuffer,
             searchActive: searchActive,
             searchQuery: searchQuery,
-            tabStripItems: tabDrillActive ? tabStripItems : tabDrillHint.map { [TabStripItem(title: $0, faviconKey: nil)] },
+            tabStripItems: tabStripContents,
             tabStripSelectedIndex: tabIndex
         )
+        relistWindowShelf()
         panel.present(opacity: effective.panelOpacity)
     }
 
@@ -5855,9 +6014,9 @@ final class SwitcherController: SwitcherViewDelegate {
             searchExpandsTabs: Preferences.shared.searchExpandsBrowserTabs)
     }
 
-    /// Build the panel metrics from the current reveal's effective settings.
-    /// Single funnel so the `browserTabsExpanded` rule lives in exactly one
-    /// place. Screen-independent by design — see `SwitcherMetrics.scale(forPercent:)`.
+    /// Build the switcher's metrics from the current reveal's effective settings
+    /// (the window shelf builds its own). Single funnel so the `browserTabsExpanded`
+    /// rule lives in exactly one place. Screen-independent by design — see `SwitcherMetrics.scale(forPercent:)`.
     private func makeMetrics() -> SwitcherMetrics {
         SwitcherMetrics.forScale(
             SwitcherMetrics.scale(forPercent: effective.panelScalePercent),
@@ -6009,4 +6168,17 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         commit()
     }
+}
+
+/// Mouse on the window shelf (#211): a tile is a window of the highlighted
+/// app, so hover and click steer the window drill, not the app list.
+@MainActor
+private final class WindowShelfMouse: SwitcherViewDelegate {
+    weak var controller: SwitcherController?
+
+    func switcherViewDidHover(index: Int) { controller?.hoverShelfWindow(at: index) }
+    func switcherViewDidClick(index: Int) { controller?.commitShelfWindow(at: index) }
+    func switcherViewDidInvokeAction(_ action: RowAction, atIndex index: Int) {}
+    func switcherViewDidSelectTab(_ index: Int) {}
+    func switcherViewDidHoverTab(_ index: Int) {}
 }

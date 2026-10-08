@@ -37,7 +37,7 @@ struct ThumbnailRequestGate {
 /// Captures a still image of a window by its `CGWindowID` and caches it keyed
 /// by that id. Capture is asynchronous and off the reveal critical path: the
 /// preview tile shows the app icon as a placeholder and swaps in the thumbnail
-/// via `onReady` once it lands.
+/// via the view's ready handler once it lands.
 ///
 /// Storage is a deterministic LRU (`ThumbnailLRU`), not `NSCache`: NSCache
 /// evicts "for reasons of its own" — memory pressure, background-app purges —
@@ -54,10 +54,12 @@ struct ThumbnailRequestGate {
 final class WindowThumbnailCache {
     static let shared = WindowThumbnailCache()
 
-    /// Invoked on the main actor when a requested thumbnail finishes capturing,
-    /// so the view can repaint just the matching tile. The argument is the
-    /// `CGWindowID` whose image is now in the cache.
-    var onReady: ((CGWindowID) -> Void)?
+    /// Per-view repaint hooks (the switcher and its window shelf, #211), called on main when a thumbnail lands.
+    private var readyHandlers: [ObjectIdentifier: (CGWindowID) -> Void] = [:]
+
+    func setReadyHandler(_ handler: ((CGWindowID) -> Void)?, for owner: AnyObject) {
+        readyHandlers[ObjectIdentifier(owner)] = handler
+    }
 
     // Preview mode rarely surfaces more than ~24 windows at once; cap at 32 so
     // the cache holds a generous working set without retaining stale captures
@@ -84,7 +86,7 @@ final class WindowThumbnailCache {
     /// How long a captured frame is reused before a reveal triggers a silent
     /// background recapture. Reopening the switcher within this window shows the
     /// last frame instantly (no app-icon flash); past it the stale frame still
-    /// shows immediately while a fresh capture swaps in via `onReady`.
+    /// shows immediately while a fresh capture swaps in via the ready handlers.
     private let refreshTTL: TimeInterval = 2.0
 
     private init() {
@@ -110,7 +112,7 @@ final class WindowThumbnailCache {
     /// it instantly with no flash) and when a capture is already in flight.
     /// Otherwise it (re)captures in the background; the
     /// existing frame — or the caller's app-icon placeholder when there is none
-    /// yet — stays on screen until the new one lands via `onReady`.
+    /// yet — stays on screen until the new one lands via the ready handlers.
     /// `pixelHeight` is the target raster height so the capture stays crisp on
     /// Retina without over-allocating.
     func request(wid: CGWindowID, pixelHeight: CGFloat) {
@@ -177,7 +179,7 @@ final class WindowThumbnailCache {
                 }
                 return
             }
-            guard onReady != nil else { return }
+            guard !readyHandlers.isEmpty else { return }
             let hasAccess = CGPreflightScreenCaptureAccess()
             if !hasAccess {
                 permissionRetryRequests[wid] = pixelHeight
@@ -192,7 +194,7 @@ final class WindowThumbnailCache {
                 try? await Task.sleep(nanoseconds: 550_000_000)
                 guard let self, self.staticRetryGeneration == generation,
                       self.staticRetryKeys.contains(wid) else { return }
-                guard self.onReady != nil else {
+                guard !self.readyHandlers.isEmpty else {
                     self.staticRetryKeys.remove(wid)
                     return
                 }
@@ -210,7 +212,7 @@ final class WindowThumbnailCache {
         liveFailureAt.removeValue(forKey: wid)
         let cost = Int(image.size.width * image.size.height * 4)
         cache.set(image, cost: cost, capturedAt: Date(), for: wid)
-        onReady?(wid)
+        for handler in readyHandlers.values { handler(wid) }
     }
 
     /// Drop every cached thumbnail (memory-pressure handler). Not called on
@@ -257,7 +259,7 @@ final class WindowThumbnailCache {
     }
 
     private func retryPermissionFailures() {
-        guard onReady != nil else {
+        guard !readyHandlers.isEmpty else {
             permissionRetryRequests.removeAll()
             return
         }

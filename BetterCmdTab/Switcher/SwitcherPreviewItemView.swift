@@ -26,7 +26,7 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
 
     /// Window whose captured frame this tile shows, or nil for tiles that stay
     /// on their app icon (no real window, or a browser tab that isn't the
-    /// active one). Also the `onReady`/live-tick handle for late captures.
+    /// active one). Also the ready handler / live-tick handle for late captures.
     private(set) var thumbnailKey: CGWindowID?
     private var usesCompactTabIcon = false
     /// The app icon shown while no thumbnail is available — kept so a thumbnail
@@ -299,8 +299,8 @@ final class SwitcherPreviewItemView: NSView, SwitcherItemViewProtocol {
         needsLayout = true
     }
 
-    /// Swap in a freshly captured thumbnail (called from the view's `onReady`
-    /// hook). Ignores stale callbacks for a tile that has since been reused for
+    /// Swap in a freshly captured thumbnail (called from the view's ready
+    /// handler). Ignores stale callbacks for a tile that has since been reused for
     /// a different window.
     func setThumbnail(_ image: NSImage?, for wid: CGWindowID) {
         guard wid == thumbnailKey else { return }

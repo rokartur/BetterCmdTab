@@ -56,6 +56,8 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let recentlyClosedLimitField = NSTextField()
     private let sortOrderPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
+    private let windowShelfPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let windowShelves: [WindowShelf] = WindowShelf.allCases
     private let instantSpaceRowSwitch = PreferenceSwitch(bind: \.instantSpaceSwitch)
 
     private let windowDrillSwitch = PreferenceSwitch(bind: \.windowDrillEnabled)
@@ -125,6 +127,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         case .switcher:
             addGlobalDefaultNote()
             buildContentsSection()
+            buildWindowShelfSection()
             buildTimingSection()
         case .controls:
             addGlobalDefaultNote()
@@ -299,6 +302,17 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                accessory: letterTimeoutStack, searchItemID: SearchID.letterChainTimeout)
     }
 
+    private func buildWindowShelfSection() {
+        let section = addSection(title: String(localized: "Window shelf"), anchor: SettingsAnchor.windowShelf)
+        addRow(to: section, icon: "flask.fill",
+               title: String(localized: "These features are unstable"),
+               subtitle: String(localized: "Off by default. They may change or break."))
+        configurePopup(windowShelfPopup, titles: windowShelves.map(\.displayName), action: #selector(windowShelfChanged))
+        addRow(to: section, title: String(localized: "Show windows under the switcher"),
+               subtitle: String(localized: "In applications-only mode, the highlighted app's windows appear in their own block under the switcher. Press \\ to move into it, or point and click."),
+               accessory: windowShelfPopup, searchItemID: SearchID.windowShelf)
+    }
+
     private func buildOneHandHintsSection() {
         let oneHand = addSection(title: String(localized: "One-hand letter jump"), anchor: SettingsAnchor.oneHandHints)
         addRow(to: oneHand, icon: "flask.fill",
@@ -418,6 +432,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         if let index = spaceScopes.firstIndex(of: prefs.spaceScope) { spaceScopePopup.selectItem(at: index) }
         instantSpaceRowSwitch.sync()
         selectSortOrder(prefs.sortOrder)
+        if let index = windowShelves.firstIndex(of: prefs.windowShelf) { windowShelfPopup.selectItem(at: index) }
         recentlyClosedSwitch.state = prefs.showRecentlyClosed ? .on : .off
         applyRecentlyClosedLimit(prefs.recentlyClosedLimit)
         recentlyClosedLimitField.isEnabled = prefs.showRecentlyClosed
@@ -863,6 +878,12 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         let idx = sortOrderPopup.indexOfSelectedItem
         guard sortOrders.indices.contains(idx) else { return }
         Preferences.shared.sortOrder = sortOrders[idx]
+    }
+
+    @objc private func windowShelfChanged() {
+        let idx = windowShelfPopup.indexOfSelectedItem
+        guard windowShelves.indices.contains(idx) else { return }
+        Preferences.shared.windowShelf = windowShelves[idx]
     }
 
     private func selectSortOrder(_ order: SwitcherSortOrder) {

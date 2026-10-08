@@ -182,7 +182,7 @@ enum ConfigSchemaDocs {
     /// bespoke schema below.
     private static let overrideFields = [
         "showMinimized", "showHidden", "showWindowless", "sortOrder", "applicationsOnly",
-        "expandBrowserTabsAsWindows", "stayOpenOnRelease", "stayOpenOnQuickTap",
+        "windowShelf", "expandBrowserTabsAsWindows", "stayOpenOnRelease", "stayOpenOnQuickTap",
         "layoutMode", "panelScalePercent", "panelAppearance", "fontScale", "fontFace",
         "gridMaxColumns", "listWidthPercent", "panelOpacity", "panelCornerRadius",
         "backdropMaterial", "showWindowTitleLabel", "previewTitleAlignment",
@@ -330,6 +330,9 @@ enum ConfigSchemaDocs {
         "showWindowlessApps": ConfigSettingDoc("boolean", "Include running apps that have no open window."),
         "applicationsOnly": ConfigSettingDoc("boolean", "Show one entry per app instead of one per window."),
         "windowDrillEnabled": ConfigSettingDoc("boolean", "Peek the highlighted app's windows with ↓ while \"applications only\" is on."),
+        "windowShelf": ConfigSettingDoc(
+            "string", "While \"applications only\" is on, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
+            values: ConfigValues(WindowShelf.self, \.displayName)),
         "showUnreadBadges": ConfigSettingDoc("boolean", "Show each app's Dock unread badge on its entry."),
         "experimentalUnreadBadges": ConfigSettingDoc(
             "boolean", "Legacy unread-badge flag, read once to seed showUnreadBadges. Edit showUnreadBadges instead."),

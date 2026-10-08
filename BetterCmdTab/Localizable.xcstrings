@@ -6689,6 +6689,46 @@
         }
       }
     },
+    "In applications-only mode, the highlighted app's windows appear in their own block under the switcher. Press \\ to move into it, or point and click." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Nur-Apps-Modus erscheinen die Fenster der markierten App in einem eigenen Block unter dem Umschalter. Mit \\ wechselst du hinein, oder zeige und klicke."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En el modo de solo aplicaciones, las ventanas de la app resaltada aparecen en su propio bloque bajo el selector. Pulsa \\ para entrar en él, o señala y haz clic."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En mode applications uniquement, les fenêtres de l'app en surbrillance apparaissent dans leur propre bloc sous le sélecteur. Appuyez sur \\ pour y entrer, ou pointez et cliquez."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W trybie tylko aplikacje okna podświetlonej aplikacji pojawiają się we własnym bloku pod przełącznikiem. Naciśnij \\, aby do niego przejść, albo wskaż i kliknij."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В режиме «Только приложения» окна выделенного приложения показываются отдельным блоком под переключателем. Нажмите \\, чтобы перейти в него, или наведите и щёлкните."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在仅应用模式下，高亮应用的窗口会显示在切换器下方的独立区块中。按 \\ 进入该区块，或用鼠标指向并点击。"
+          }
+        }
+      }
+    },
     "In full screen" : {
       "localizations" : {
         "de" : {
@@ -14420,6 +14460,46 @@
         }
       }
     },
+    "Show windows under the switcher" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster unter dem Umschalter anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar ventanas bajo el selector"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les fenêtres sous le sélecteur"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż okna pod przełącznikiem"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать окна под переключателем"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在切换器下方显示窗口"
+          }
+        }
+      }
+    },
     "Shrink the icons to keep every window on one line instead of starting a second row." : {
       "localizations" : {
         "de" : {
@@ -17859,6 +17939,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "列表布局相对于自动宽度的比例——调低可在大屏幕上收窄面板。"
+          }
+        }
+      }
+    },
+    "Window shelf" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fensterablage"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandeja de ventanas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Étagère de fenêtres"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Półka okien"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Полка окон"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "窗口栏"
           }
         }
       }

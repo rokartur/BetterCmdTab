@@ -878,6 +878,22 @@
               "End"
             ],
             "type" : "string"
+          },
+          "windowShelf" : {
+            "description" : "Override: While \"applications only\" is on, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
+            "enum" : [
+              "off",
+              "list",
+              "grid",
+              "previews"
+            ],
+            "enumDescriptions" : [
+              "Off",
+              "List",
+              "Grid View",
+              "Previews"
+            ],
+            "type" : "string"
           }
         },
         "required" : [
@@ -1052,6 +1068,22 @@
     "windowDrillEnabled" : {
       "description" : "Peek the highlighted app's windows with ↓ while \"applications only\" is on.",
       "type" : "boolean"
+    },
+    "windowShelf" : {
+      "description" : "While \"applications only\" is on, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
+      "enum" : [
+        "off",
+        "list",
+        "grid",
+        "previews"
+      ],
+      "enumDescriptions" : [
+        "Off",
+        "List",
+        "Grid View",
+        "Previews"
+      ],
+      "type" : "string"
     },
     "windowTitleExclusions" : {
       "description" : "Per-app window title fragments, keyed by bundle ID. A window whose title contains any fragment (case- and accent-insensitive) is left out of the switcher; the app's other windows stay.",

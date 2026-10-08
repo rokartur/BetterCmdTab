@@ -109,6 +109,33 @@ enum SwitcherVerticalPosition: String, CaseIterable {
     }
 }
 
+/// Window shelf (#211): in applications-only mode, the highlighted app's
+/// windows sit in their own glass block under the switcher, HyperSwitch style.
+enum WindowShelf: String, CaseIterable {
+    case off
+    case list
+    case grid
+    case previews
+
+    var displayName: String {
+        switch self {
+        case .off:      return String(localized: "Off")
+        case .list:     return String(localized: "List")
+        case .grid:     return String(localized: "Grid View")
+        case .previews: return String(localized: "Previews")
+        }
+    }
+
+    var layoutMode: SwitcherLayoutMode? {
+        switch self {
+        case .off:      return nil
+        case .list:     return .list
+        case .grid:     return .gridView
+        case .previews: return .windowPreview
+        }
+    }
+}
+
 /// What keeps the switcher open once fuzzy-search has been activated with `/`.
 enum SearchDismissMode: String, CaseIterable {
     /// Keep holding the switcher modifier (⌘); releasing it commits the
@@ -481,6 +508,7 @@ struct ShortcutOverride: Equatable, Sendable {
     var showWindowless: Bool?
     var sortOrder: SwitcherSortOrder?
     var applicationsOnly: Bool?
+    var windowShelf: WindowShelf?
     var expandBrowserTabsAsWindows: Bool?
     var stayOpenOnRelease: Bool?
     var stayOpenOnQuickTap: Bool?
@@ -516,7 +544,7 @@ struct ShortcutOverride: Equatable, Sendable {
     var isEmpty: Bool {
         spaceScope == .inherit && showMinimized == nil && showHidden == nil
             && showWindowless == nil && sortOrder == nil && applicationsOnly == nil
-            && expandBrowserTabsAsWindows == nil && stayOpenOnRelease == nil
+            && windowShelf == nil && expandBrowserTabsAsWindows == nil && stayOpenOnRelease == nil
             && stayOpenOnQuickTap == nil
             && layoutMode == nil && panelScalePercent == nil && panelAppearance == nil
             && fontScale == nil && fontFace == nil
@@ -543,6 +571,7 @@ struct ShortcutOverride: Equatable, Sendable {
         put("showWindowless", showWindowless)
         if let sortOrder { d["sortOrder"] = sortOrder.rawValue }
         put("applicationsOnly", applicationsOnly)
+        if let windowShelf { d["windowShelf"] = windowShelf.rawValue }
         put("expandBrowserTabsAsWindows", expandBrowserTabsAsWindows)
         put("stayOpenOnRelease", stayOpenOnRelease)
         put("stayOpenOnQuickTap", stayOpenOnQuickTap)
@@ -573,7 +602,7 @@ struct ShortcutOverride: Equatable, Sendable {
     private static let knownKeys: Set<String> = [
         "target",
         "spaceScope", "showMinimized", "showHidden", "showWindowless", "sortOrder",
-        "applicationsOnly", "expandBrowserTabsAsWindows", "stayOpenOnRelease",
+        "applicationsOnly", "windowShelf", "expandBrowserTabsAsWindows", "stayOpenOnRelease",
         "stayOpenOnQuickTap", "layoutMode", "panelSize", "panelScalePercent",
         "panelAppearance", "fontScale", "fontFace",
         "gridMaxColumns", "listWidthPercent", "panelOpacity", "panelCornerRadius", "backdropMaterial",
@@ -594,6 +623,7 @@ struct ShortcutOverride: Equatable, Sendable {
         showWindowless = bool("showWindowless")
         sortOrder = dictionary["sortOrder"].flatMap(SwitcherSortOrder.init(rawValue:))
         applicationsOnly = bool("applicationsOnly")
+        windowShelf = dictionary["windowShelf"].flatMap(WindowShelf.init(rawValue:))
         expandBrowserTabsAsWindows = bool("expandBrowserTabsAsWindows")
         stayOpenOnRelease = bool("stayOpenOnRelease")
         stayOpenOnQuickTap = bool("stayOpenOnQuickTap")
@@ -993,6 +1023,7 @@ final class Preferences: ObservableObject {
         /// touched the old toggle, gets the peek on by default now.
         static let tabDrillEnabled = "Switcher.tabDrillEnabled"
         static let windowDrillEnabled = "Switcher.windowDrillEnabled"
+        static let windowShelf = "Switcher.windowShelf"
         /// Expand native-system-tab windows (Finder, Terminal, TextEdit, …) into
         /// one switcher row per tab instead of a single collapsed window row.
         /// Default off — the collapsed row + `\` peek is the default.
@@ -1761,12 +1792,20 @@ final class Preferences: ObservableObject {
     }
 
     /// Window drill-down (#80): in applications-only mode, `↓` or `\` on an app
-    /// with several windows opens the strip UI listing that app's windows —
-    /// native ⌘Tab parity. Cache-sourced and keypress-driven. Default on.
+    /// with several windows lists them in the strip. Default on. With the window
+    /// shelf on, `\` drills into the shelf even while this is off.
     @Published var windowDrillEnabled: Bool {
         didSet {
             guard oldValue != windowDrillEnabled else { return }
             UserDefaults.standard.set(windowDrillEnabled, forKey: Keys.windowDrillEnabled)
+        }
+    }
+
+    /// Window shelf (#211). Off by default: it adds a second block to the panel.
+    @Published var windowShelf: WindowShelf {
+        didSet {
+            guard oldValue != windowShelf else { return }
+            UserDefaults.standard.set(windowShelf.rawValue, forKey: Keys.windowShelf)
         }
     }
 
@@ -2612,6 +2651,7 @@ final class Preferences: ObservableObject {
         self.instantSpaceSwitch = Self.stored(.instantSpaceSwitch, defaults)
         self.tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
         self.windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
+        self.windowShelf = defaults.string(forKey: Keys.windowShelf).flatMap(WindowShelf.init(rawValue:)) ?? .off
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         self.browserTabRowLimit = Self.clampBrowserTabRowLimit(defaults.object(forKey: Keys.browserTabRowLimit) as? Int ?? 0)
@@ -2773,6 +2813,7 @@ final class Preferences: ObservableObject {
         instantSpaceSwitch = Self.stored(.instantSpaceSwitch, defaults)
         tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true
         windowDrillEnabled = defaults.object(forKey: Keys.windowDrillEnabled) as? Bool ?? true
+        windowShelf = defaults.string(forKey: Keys.windowShelf).flatMap(WindowShelf.init(rawValue:)) ?? .off
         expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
         browserTabRowLimit = defaults.object(forKey: Keys.browserTabRowLimit) as? Int ?? 0
