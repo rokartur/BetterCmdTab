@@ -20,3 +20,17 @@ Read before editing:
   `Switcher/`, `Windows/`, `App/Preferences.swift` or `App/ConfigFile.swift`.
 - `docs/CONTRIBUTING.md` before touching `web/` or `docs/`.
 - `CONTRIBUTING.md` for build and test commands and the PR process.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `rokartur/BetterCmdTab` via `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `GLOSSARY.md` and `docs/adr/`. See `docs/agents/domain.md`.
