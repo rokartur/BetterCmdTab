@@ -63,6 +63,7 @@ enum SettingsAnchor {
     static let appearanceLayout = "appearance.layoutSection"
     static let appearanceLabels = "appearance.labels"
     static let appearancePanel = "appearance.panel"
+    static let appearanceFade = "appearance.fade"
     // Privacy
     static let permissions = "privacy.permissions"
     static let screenSharing = "privacy.screenSharing"
@@ -177,6 +178,8 @@ enum SearchID {
     static let opacity = "appearance.opacity"
     static let cornerRadius = "appearance.cornerRadius"
     static let animations = "appearance.animations"
+    static let fadeIn = "appearance.fadeIn"
+    static let fadeOut = "appearance.fadeOut"
     static let livePreviews = "appearance.livePreviews"
     static let preview = "appearance.preview"
     // Privacy
@@ -544,6 +547,10 @@ enum SettingsCatalog {
              String(localized: "Live window previews"), ["live", "preview", "previews", "thumbnail", "thumbnails", "refresh", "video"]),
         item(SearchID.preview, .appearance, SettingsAnchor.appearancePanel, String(localized: "Appearance"), String(localized: "Panel"),
              String(localized: "Preview"), ["preview", "sample", "test", "live"]),
+        item(SearchID.fadeIn, .appearance, SettingsAnchor.appearanceFade, String(localized: "Appearance"), String(localized: "Fade"),
+             String(localized: "Fade in"), ["fade", "fading", "animation", "dissolve", "open", "appear", "duration"]),
+        item(SearchID.fadeOut, .appearance, SettingsAnchor.appearanceFade, String(localized: "Appearance"), String(localized: "Fade"),
+             String(localized: "Fade out"), ["fade", "fading", "animation", "dissolve", "close", "disappear", "duration"]),
 
         // Privacy · Permissions
         item(SearchID.accessibility, .privacy, SettingsAnchor.permissions, String(localized: "Privacy"), String(localized: "Permissions"),

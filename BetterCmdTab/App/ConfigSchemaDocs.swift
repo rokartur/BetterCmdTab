@@ -289,7 +289,14 @@ enum ConfigSchemaDocs {
         "animationsEnabled": ConfigSettingDoc(
             "boolean",
             "Glide the panel, the tiles and the tab strip between states. "
-                + "Off, or with macOS Reduce Motion on, every change is a hard cut."),
+                + "Off, or with macOS Reduce Motion on, every glide is a hard cut; "
+                + "the open and close fade has its own settings."),
+        "fadeInDurationMs": ConfigSettingDoc(
+            "integer", "How long the panel fades in when it opens (milliseconds). 0 = no fade.",
+            range: Preferences.fadeDurationRange),
+        "fadeOutDurationMs": ConfigSettingDoc(
+            "integer", "How long the panel fades out when it closes (milliseconds). 0 = no fade.",
+            range: Preferences.fadeDurationRange),
         "fontScale": ConfigSettingDoc(
             "string", "Size of the name/title text, independent of the panel scale.",
             values: ConfigValues(SwitcherFontScale.self, \.displayName)),

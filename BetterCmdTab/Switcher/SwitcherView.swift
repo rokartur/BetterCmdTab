@@ -854,8 +854,10 @@ final class SwitcherView: NSView {
         // The panel exists from launch on, so its mere presence proves nothing:
         // the reveal reconfigures rows over a layout that has never run, and
         // gliding from that would fly the grid in from the window corner.
-        guard window?.isVisible == true, !isHidden, !rows.isEmpty, !incoming.isEmpty,
-              SwitcherMotion.isEnabled else { return }
+        // A reveal during the last session's fade-out still has that session's rows laid out.
+        // Not `isPresented`: the Settings preview panel is never presented and still glides.
+        guard window?.isVisible == true, (window as? SwitcherPanel)?.isFadingOut != true,
+              !isHidden, !rows.isEmpty, !incoming.isEmpty, SwitcherMotion.isEnabled else { return }
         // Cheap first: every cycle step reconfigures the same rows at the same
         // size, and that path stays a handful of integer comparisons with
         // nothing allocated.

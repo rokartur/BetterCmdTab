@@ -1851,8 +1851,7 @@ final class SwitcherController: SwitcherViewDelegate {
         focusedWindowCaptureGen &+= 1
         _phase = .idle
         cache.setPanelVisible(false)
-        panel.dismiss()
-        releaseIdleViews()
+        panel.dismiss { [weak self] in self?.releaseIdleViews() }
         rows.removeAll()
         baseRows.removeAll()
         baseLabels.removeAll()
@@ -4447,8 +4446,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let commitGeneration = revealGeneration
         let finishDismiss: @MainActor @Sendable () -> Void = { [weak self] in
             guard let self, self.revealGeneration == commitGeneration, self.phase == .idle else { return }
-            self.panel.dismiss()
-            self.releaseIdleViews()
+            self.panel.dismiss { [weak self] in self?.releaseIdleViews() }
         }
         var pendingActivation: (() -> Void)? = nil
 
@@ -4567,7 +4565,7 @@ final class SwitcherController: SwitcherViewDelegate {
         phase = .idle
         cache.setPanelVisible(false)
         dockBadgeObserver.stop()
-        panel.dismiss()
+        panel.dismiss { [weak self] in self?.releaseIdleViews() }
         primedApps = []
         rows = []
         baseRows = []
@@ -4599,7 +4597,6 @@ final class SwitcherController: SwitcherViewDelegate {
         openTargetScreen = nil
         prefetchedTarget = nil
         visibleSince = nil
-        releaseIdleViews()
         // Dismissing without picking: undo the self-activation `present()` did for
         // the glass backdrop and put the user back in the app they came from.
         restorePreviousFrontmostApp()
@@ -5235,8 +5232,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let commitGeneration = revealGeneration
         let finishDismiss: @MainActor @Sendable () -> Void = { [weak self] in
             guard let self, self.revealGeneration == commitGeneration, self.phase == .idle else { return }
-            self.panel.dismiss()
-            self.releaseIdleViews()
+            self.panel.dismiss { [weak self] in self?.releaseIdleViews() }
         }
         phase = .idle
         cache.setPanelVisible(false)

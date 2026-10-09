@@ -35,6 +35,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private let radiusSlider = NSSlider()
     private let radiusValueLabel = NSTextField(labelWithString: "")
     private let animationsSwitch = PreferenceSwitch(bind: \.animationsEnabled)
+    private let fadeInSlider = NSSlider()
+    private let fadeInValueField = NSTextField()
+    private let fadeOutSlider = NSSlider()
+    private let fadeOutValueField = NSTextField()
     private let previewButton = NSButton()
 
     private var cancellables = Set<AnyCancellable>()
@@ -237,6 +241,28 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         addRow(to: panel, title: String(localized: "Preview"),
                accessory: previewButton, searchItemID: SearchID.preview)
 
+        let fade = addSection(title: String(localized: "Fade"), anchor: SettingsAnchor.appearanceFade)
+        addRow(to: fade, icon: "flask.fill",
+               title: String(localized: "These features are unstable"),
+               subtitle: String(localized: "Off by default. They may change or break."))
+        let fadeInTitle = String(localized: "Fade in")
+        let fadeInStack = makeValueSlider(fadeInSlider, field: fadeInValueField,
+                                          range: Preferences.fadeDurationRange, unit: "ms",
+                                          label: fadeInTitle,
+                                          sliderAction: #selector(fadeInChanged(_:)),
+                                          fieldAction: #selector(fadeInValueCommitted(_:)))
+        addRow(to: fade, title: fadeInTitle,
+               subtitle: String(localized: "How long the panel fades in when the switcher opens. 0 shows it instantly."),
+               accessory: fadeInStack, searchItemID: SearchID.fadeIn)
+        let fadeOutTitle = String(localized: "Fade out")
+        let fadeOutStack = makeValueSlider(fadeOutSlider, field: fadeOutValueField,
+                                           range: Preferences.fadeDurationRange, unit: "ms",
+                                           label: fadeOutTitle,
+                                           sliderAction: #selector(fadeOutChanged(_:)),
+                                           fieldAction: #selector(fadeOutValueCommitted(_:)))
+        addRow(to: fade, title: fadeOutTitle,
+               subtitle: String(localized: "How long the panel fades out when the switcher closes. 0 hides it instantly."),
+               accessory: fadeOutStack, searchItemID: SearchID.fadeOut)
         // What the switcher lists and when it appears lives under the Switcher
         // tab; browser tab previews sit with the other browser-tab rows under
         // Tabs.
@@ -395,6 +421,14 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.animationsSwitch.sync() }
             .store(in: &cancellables)
+        prefs.$fadeInDurationMs
+            .receive(on: DispatchQueue.main)
+            .sink { [fadeInSlider, fadeInValueField] in Self.applyFade($0, slider: fadeInSlider, field: fadeInValueField) }
+            .store(in: &cancellables)
+        prefs.$fadeOutDurationMs
+            .receive(on: DispatchQueue.main)
+            .sink { [fadeOutSlider, fadeOutValueField] in Self.applyFade($0, slider: fadeOutSlider, field: fadeOutValueField) }
+            .store(in: &cancellables)
         prefs.$selectionColor
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.selectSelectionColor($0) }
@@ -452,6 +486,8 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         statusIconsSwitch.sync()
         animationsSwitch.sync()
         applyOpacity(prefs.panelOpacity)
+        Self.applyFade(prefs.fadeInDurationMs, slider: fadeInSlider, field: fadeInValueField)
+        Self.applyFade(prefs.fadeOutDurationMs, slider: fadeOutSlider, field: fadeOutValueField)
         applyRadius(prefs.panelCornerRadius)
         selectSelectionColor(prefs.selectionColor)
         refreshCustomSwatch()
@@ -657,6 +693,30 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         applyOpacity(clamped)
     }
 
+    @objc private func fadeInChanged(_ sender: NSSlider) {
+        Preferences.shared.fadeInDurationMs = sender.integerValue
+    }
+
+    @objc private func fadeInValueCommitted(_ sender: NSTextField) {
+        commitFade(sender, to: \.fadeInDurationMs)
+    }
+
+    @objc private func fadeOutChanged(_ sender: NSSlider) {
+        Preferences.shared.fadeOutDurationMs = sender.integerValue
+    }
+
+    @objc private func fadeOutValueCommitted(_ sender: NSTextField) {
+        commitFade(sender, to: \.fadeOutDurationMs)
+    }
+
+    private func commitFade(_ field: NSTextField, to keyPath: ReferenceWritableKeyPath<Preferences, Int>) {
+        guard let value = committedInteger(from: field) else {
+            field.stringValue = String(Preferences.shared[keyPath: keyPath])
+            return
+        }
+        Preferences.shared[keyPath: keyPath] = Preferences.clampFadeDuration(value)
+    }
+
     @objc private func radiusChanged(_ sender: NSSlider) {
         Preferences.shared.panelCornerRadius = sender.integerValue
         radiusValueLabel.stringValue = Self.radiusDisplay(sender.integerValue)
@@ -671,6 +731,12 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         if opacitySlider.integerValue != value { opacitySlider.integerValue = value }
         let text = String(value)
         if opacityValueField.stringValue != text { opacityValueField.stringValue = text }
+    }
+
+    private static func applyFade(_ value: Int, slider: NSSlider, field: NSTextField) {
+        if slider.integerValue != value { slider.integerValue = value }
+        let text = String(value)
+        if field.stringValue != text { field.stringValue = text }
     }
 
     private func applyScale(_ value: Int) {
@@ -689,28 +755,41 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             hidePreview()
             return
         }
-        if previewPanel == nil {
-            let previewView = SwitcherView(frame: .zero, allowsWindowCapture: false)
-            let panel = SwitcherPanel()
-            panel.contentView = previewView
-            panel.ignoresMouseEvents = true
-            previewPanel = panel
-            self.previewView = previewView
-            previewRows = makePreviewRows()
-        }
+        let previewView = SwitcherView(frame: .zero, allowsWindowCapture: false)
+        let panel = SwitcherPanel()
+        panel.contentView = previewView
+        panel.ignoresMouseEvents = true
+        previewPanel = panel
+        self.previewView = previewView
+        previewRows = makePreviewRows()
         renderPreview()
-        previewPanel?.orderFrontRegardless()
+        // renderPreview set the panel opacity; fade up to it like the switcher does (#208).
+        let opacity = panel.alphaValue
+        panel.alphaValue = 0
+        panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = TimeInterval(Preferences.shared.fadeInDurationMs) / 1000
+            panel.animator().alphaValue = opacity
+        }
         previewButton.title = String(localized: "Hide Preview")
     }
 
     private func hidePreview() {
-        previewPanel?.orderOut(nil)
-        previewPanel?.targetScreen = nil
-        previewView?.releaseIdleResources()
-        previewPanel = nil
-        previewView = nil
-        previewRows.removeAll(keepingCapacity: false)
         previewButton.title = String(localized: "Show Preview")
+        guard let panel = previewPanel, let previewView else { return }
+        previewPanel = nil
+        self.previewView = nil
+        previewRows.removeAll(keepingCapacity: false)
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = TimeInterval(Preferences.shared.fadeOutDurationMs) / 1000
+            panel.animator().alphaValue = 0
+        }, completionHandler: {
+            MainActor.assumeIsolated {
+                panel.orderOut(nil)
+                panel.targetScreen = nil
+                previewView.releaseIdleResources()
+            }
+        })
     }
 
     private func schedulePreviewRefresh() {
