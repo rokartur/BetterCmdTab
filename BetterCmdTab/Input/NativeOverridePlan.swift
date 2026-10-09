@@ -59,8 +59,8 @@ struct ChordSpec: Equatable {
         case commit, escape
         case toggleSearch, searchBackspace
         case enterTabDrill, exitTabDrill, tabPrev, tabNext, commitTab
-        /// Generic alphanumeric key. The apply site resolves the keycode to a
-        /// character for the current layout and emits letter-jump / search input.
+        /// Generic alphanumeric key. The apply site reads it as a jump letter with hints on,
+        /// else (and for search input) as the active layout's character (#184).
         case letterJump, searchChar
         /// In-panel action keys (rebindable W/M/H/Q/F).
         case close, minimize, hide, quit, fullscreen
@@ -77,17 +77,17 @@ struct PanelActionSpec: Equatable {
     var action: ChordSpec.Kind
 }
 
-/// Drops the actions whose key types a visible custom quick-jump letter, so the
+/// Drops the actions whose key jumps to a visible custom quick-jump letter, so the
 /// letter-jump chord on that key wins, as in the tap.
 func actionsYieldingToQuickJump(
     _ actions: [PanelActionSpec],
     letters quickJumpLetters: Set<Character>,
-    typedBy character: (UInt32) -> Character?
+    jumpingTo jumpCharacter: (UInt32) -> Character?
 ) -> [PanelActionSpec] {
     guard !quickJumpLetters.isEmpty else { return actions }
     return actions.filter { action in
-        guard let typed = character(action.keyCode) else { return true }
-        return !quickJumpLetters.contains(Character(typed.lowercased()))
+        guard let letter = jumpCharacter(action.keyCode) else { return true }
+        return !quickJumpLetters.contains(Character(letter.lowercased()))
     }
 }
 

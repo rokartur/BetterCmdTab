@@ -191,6 +191,7 @@ final class HotkeyTap: @unchecked Sendable {
     private let triggerHandFlag = OSAllocatedUnfairLock<KeyboardHand>(initialState: .left)
     private let shiftWasHeld = OSAllocatedUnfairLock<Bool>(initialState: false)
     private let layoutData = OSAllocatedUnfairLock<Data?>(initialState: nil)
+    private let latinLayoutData = OSAllocatedUnfairLock<Data?>(initialState: nil)
     /// When true the tap consumes every keyDown (blocking system shortcuts) and
     /// forwards it to `onRecordingKeyDown`. Set while a shortcut recorder is
     /// capturing — required because system-reserved chords like ⌘Tab never reach
@@ -404,7 +405,7 @@ final class HotkeyTap: @unchecked Sendable {
     /// kVK_ANSI_Slash / kVK_ANSI_Backslash — the shipped defaults for the search
     /// and tab-drill keys. Kept only to recognise an *unrebound* binding: while a
     /// key still sits on its default keycode the tap also matches it by the
-    /// character it types, so `/` and `\` work on layouts that park them behind
+    /// character it reads as (#184), so `/` and `\` work on layouts that park them behind
     /// ⇧/⌥ (issue #141). A rebound key was recorded on the user's own layout, so
     /// its keycode is authoritative and the character fallback would only make
     /// the replaced key keep firing.
@@ -413,7 +414,7 @@ final class HotkeyTap: @unchecked Sendable {
 
     /// Letters reserved from letter-jump because they drive an in-panel action.
     /// Recomputed from the live `panelKeyMap` bindings plus the search and
-    /// tab-drill keys, all translated to the current layout — so it tracks
+    /// tab-drill keys, each read as its jump letter — so it tracks
     /// whatever the user assigns in the in-panel keys section instead of a
     /// hardcoded W/M/H/Q. The same set is mirrored to `RowLabels` via
     /// `onReservedLettersChanged` so hint generation and letter-jump stay in
@@ -798,8 +799,8 @@ final class HotkeyTap: @unchecked Sendable {
     }
 
     /// Enable/disable type-to-search routing (letter hints off + fuzzy on).
-    /// Consulted on the tap thread; written from main when either preference
-    /// changes.
+    /// Consulted on the tap thread; written from main wherever `SwitcherController` sets
+    /// `effective` (hints can be a per-shortcut override) and when fuzzy search changes.
     func setTypeToSearchEnabled(_ value: Bool) {
         typeToSearchFlag.withLock { $0 = value }
     }
@@ -917,19 +918,19 @@ final class HotkeyTap: @unchecked Sendable {
 
     /// Re-derive the reserved-letter set from the current bindings (each bound
     /// keycode — close/minimize/hide/quit/full-screen plus search and tab-drill —
-    /// translated to the active layout), then store it and notify
+    /// read as its jump letter, see `jumpCharacter(keyCode:)`), then store it and notify
     /// `onReservedLettersChanged`. Called on every binding push and whenever the
     /// keyboard layout changes, so reserved letters always match what the user
-    /// actually assigned. The defaults translate to `/` and `\`, which are not
-    /// letters and so reserve nothing; binding search to a letter key does reserve
-    /// it, keeping hint generation from handing out a letter the tap would eat.
+    /// actually assigned. On US the defaults read as `/` and `\`, which are not letters
+    /// and so reserve nothing; a search key that reads as a letter (bound to one, or
+    /// Dvorak's z) reserves it, so hint generation never hands out a letter the tap eats.
     @MainActor
     private func recomputeReservedLetters() {
         let map = panelKeyMap.withLock { $0 }
         let special = specialKeys.withLock { $0 }
         var collected: Set<Character> = []
         for keyCode in map.keys + [special.search, special.tabDrill] where keyCode >= 0 {
-            guard let ch = translate(keyCode: keyCode) else { continue }
+            guard let ch = jumpCharacter(keyCode: keyCode) else { continue }
             let lower = Character(ch.lowercased())
             if lower.isLetter { collected.insert(lower) }
         }
@@ -971,6 +972,7 @@ final class HotkeyTap: @unchecked Sendable {
         // keep the previous cache (possibly nil) rather than clearing it.
         guard let data = KeyboardLayout.currentOrFallbackLayoutData() else { return }
         layoutData.withLock { $0 = data }
+        latinLayoutData.withLock { $0 = KeyboardLayout.asciiCapableLayoutData() }
         // Reserved letters are layout-dependent (a bound keycode maps to a
         // different letter per layout) — re-derive them on every layout change.
         recomputeReservedLetters()
@@ -989,10 +991,11 @@ final class HotkeyTap: @unchecked Sendable {
     /// binding's), not as a `UInt16`: any process holding Accessibility can post
     /// a synthetic event with an out-of-range keycode, and this runs on the tap
     /// thread on every keystroke. Narrowing here makes that a `nil` instead of a
-    /// trap that would take the app down mid-⌘Tab.
-    private func translate(keyCode: Int64, shift: Bool = false, option: Bool = false) -> Character? {
+    /// trap that would take the app down mid-⌘Tab. `latin` reads the ASCII-capable
+    /// layout instead of the active one (#184).
+    private func translate(keyCode: Int64, shift: Bool = false, option: Bool = false, latin: Bool = false) -> Character? {
         guard let virtualKey = UInt16(exactly: keyCode) else { return nil }
-        let snapshot = layoutData.withLock { $0 }
+        let snapshot = (latin ? latinLayoutData : layoutData).withLock { $0 }
         guard let data = snapshot else { return nil }
         return data.withUnsafeBytes { raw -> Character? in
             guard let base = raw.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return nil }
@@ -1015,6 +1018,13 @@ final class HotkeyTap: @unchecked Sendable {
             guard status == noErr, actualLen > 0 else { return nil }
             guard let scalar = Unicode.Scalar(chars[0]) else { return nil }
             return Character(scalar)
+        }
+    }
+
+    /// `translate(keyCode:)` as a jump reads it, see `KeyboardLayout.jumpCharacter(typed:latin:)`.
+    private func jumpCharacter(keyCode: Int64) -> Character? {
+        KeyboardLayout.jumpCharacter(typed: translate(keyCode: keyCode)) {
+            translate(keyCode: keyCode, latin: true)
         }
     }
 
@@ -1472,21 +1482,19 @@ final class HotkeyTap: @unchecked Sendable {
                             // hint generation never assigns them as letter-jump
                             // hints the tap would silently swallow here.
                             //
-                            // `translate` is needed only by the vim check, a visible
-                            // custom quick-jump hint and the type-to-search opener,
-                            // so it is computed only when one of those runs. With
-                            // none of them, a bound action key (⌘W/⌘M/⌘H/⌘Q/⌘F)
+                            // The jump character is needed only by the vim check, a
+                            // visible custom quick-jump hint and the letter jump, so
+                            // it is computed only when one of those runs. With none
+                            // of them, a bound action key (⌘W/⌘M/⌘H/⌘Q/⌘F)
                             // short-circuits in `panelKeyMap` without a translate.
-                            // The resolved character is reused by the branches
-                            // below, so a keystroke is translated at most once.
                             let vimOn = vimNavigationFlag.withLock { $0 }
-                            var typed: Character? = vimOn ? translate(keyCode: keyCode) : nil
+                            var jumpChar: Character? = vimOn ? jumpCharacter(keyCode: keyCode) : nil
                             if vimOn,
                                Self.onlyTriggerModifiersHeld(
                                    flags,
                                    heldTriggerModifiers: (appModHeld ? cfg.appModifier : [])
                                        .union(windowModHeld ? cfg.windowModifier : [])),
-                               let ch = typed,
+                               let ch = jumpChar,
                                let vimEvent = Self.vimNavigationEvent(for: Character(ch.lowercased())) {
                                 deliver(vimEvent)
                                 return nil
@@ -1500,9 +1508,9 @@ final class HotkeyTap: @unchecked Sendable {
                             // remain available by the helper's contract.
                             let activeQuickJumps = activeQuickJumpLetters.withLock { $0 }
                             if !activeQuickJumps.isEmpty {
-                                if typed == nil { typed = translate(keyCode: keyCode) }
+                                if jumpChar == nil { jumpChar = jumpCharacter(keyCode: keyCode) }
                                 if let letter = Self.prioritizedQuickJumpLetter(
-                                    for: typed,
+                                    for: jumpChar,
                                     activeLetters: activeQuickJumps,
                                     optionHeld: optionHeld,
                                     controlHeld: controlHeld
@@ -1548,21 +1556,19 @@ final class HotkeyTap: @unchecked Sendable {
                             // is a capital). Only the first keystroke routes here —
                             // `enterSearch` then sets search mode, after which the
                             // `isSearchingNow()` branch handles all input.
-                            if typeToSearchFlag.withLock({ $0 }), !optionHeld, !controlHeld {
-                                if typed == nil { typed = translate(keyCode: keyCode) }
-                                if let ch = typed,
-                                   let lower = Self.typeToSearchLetter(for: ch) {
-                                    deliver(.letterInput(lower))
-                                    return nil
-                                }
+                            // A query types the active layout; otherwise the key reads as its jump letter (#184).
+                            let typeToSearch = typeToSearchFlag.withLock { $0 }
+                            let keyChar = typeToSearch
+                                ? translate(keyCode: keyCode)
+                                : (jumpChar ?? jumpCharacter(keyCode: keyCode))
+                            if typeToSearch, !optionHeld, !controlHeld,
+                               let ch = keyChar, let lower = Self.typeToSearchLetter(for: ch) {
+                                deliver(.letterInput(lower))
+                                return nil
                             }
-                            if let letter = typed ?? translate(keyCode: keyCode) {
-                                // Layout-agnostic drill-in / search triggers:
-                                // regardless of where `\` and `/` live on the
-                                // physical keyboard (US, Polish, ISO/JIS), any
-                                // key that types them fires the panel action —
-                                // while that action is still on its default
-                                // keycode (see `defaultSearchKey`).
+                            if let letter = keyChar {
+                                // Layout-agnostic `\` / `/` triggers while unrebound (see `defaultSearchKey`): a key
+                                // reading as them fires the action; with type-to-search off Hebrew Q (types /) reads q (#184).
                                 if letter == "\\", special.tabDrill == Self.defaultTabDrillKey {
                                     deliver(.enterTabDrill)
                                     return nil

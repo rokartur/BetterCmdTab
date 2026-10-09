@@ -945,14 +945,9 @@ final class SwitcherController: SwitcherViewDelegate {
             .sink { [weak self] enabled in self?.hotkey.setShiftTapStepsBackward(enabled) }
             .store(in: &cancellables)
 
-        // Type-to-search routing depends on two prefs (letter hints off + fuzzy
-        // search on), so re-derive and re-push on either change. With it on, the
-        // tap routes letters — including the reserved action keys — into search.
+        // Hints can be a per-shortcut override, so the type-to-search flag re-pushes
+        // wherever `effective` is set; fuzzy search re-pushes here.
         syncTypeToSearchEnabled()
-        Preferences.shared.$letterHintsEnabled
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.syncTypeToSearchEnabled() }
-            .store(in: &cancellables)
         Preferences.shared.$fuzzySearchEnabled
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncTypeToSearchEnabled() }
@@ -1354,7 +1349,7 @@ final class SwitcherController: SwitcherViewDelegate {
             searchActive: searchActive,
             tabDrillActive: tabDrillActive,
             panelActions: actionsYieldingToQuickJump(panelActionSpecs(), letters: activeQuickJumpLetters) {
-                KeyboardLayout.character(for: $0)
+                KeyboardLayout.jumpCharacter(for: $0)
             },
             vimNavigationEnabled: Preferences.shared.vimNavigationEnabled,
             searchKeyCode: Self.panelKeyCode(.panelSearch(for: activeTarget.storageKey)),
@@ -2063,6 +2058,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // resolves the global config/appearance, not the last shortcut's.
                 activeFilterConfig = nil
                 effective = .defaults
+                syncTypeToSearchEnabled()
                 // Restore the apps profile's in-panel action keys (#5) on close, so
                 // an open path that bypasses `resolveActiveOptions` (the experimental
                 // gesture trigger, which opens the apps switcher) uses the right
@@ -2099,6 +2095,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let override = Preferences.shared.override(for: target)
         activeFilterConfig = override.isEmpty ? nil : CatalogFilter.overlay(CatalogFilter.config(), override)
         effective = Preferences.shared.effectiveSettings(for: override)
+        syncTypeToSearchEnabled()
         activeTarget = target
         // Apply this profile's in-panel action keys (#5) for the reveal; the
         // change-guard skips the tap write when the map is unchanged.
@@ -2487,9 +2484,12 @@ final class SwitcherController: SwitcherViewDelegate {
         case .letterInput(let ch):
             handleLetter(ch)
         case .letterInputKey(let keyCode):
-            // Secure-input Carbon path: resolve the keycode for the current
-            // layout, matching the tap's plain letter-jump (lowercased).
-            if let ch = KeyboardLayout.character(for: keyCode) {
+            // Secure-input Carbon path: with hints off the key only feeds search, so it reads the
+            // active layout; otherwise it jumps by its Latin letter (#184).
+            let ch = effective.letterHintsEnabled
+                ? KeyboardLayout.jumpCharacter(for: keyCode)
+                : KeyboardLayout.character(for: keyCode)
+            if let ch {
                 handleLetter(Character(ch.lowercased()))
             }
         case .searchInputKey(let keyCode):
@@ -6182,11 +6182,11 @@ final class SwitcherController: SwitcherViewDelegate {
 
     // MARK: - Fuzzy search
 
-    /// Push the derived type-to-search flag (letter hints off + fuzzy on) to the
-    /// tap. Called on setup and whenever either preference changes.
+    /// Push the derived type-to-search flag (this reveal's letter hints off + fuzzy
+    /// on) to the tap, so it routes letters the way `handleLetter` reads them.
     private func syncTypeToSearchEnabled() {
         hotkey.setTypeToSearchEnabled(
-            !Preferences.shared.letterHintsEnabled && Preferences.shared.fuzzySearchEnabled
+            !effective.letterHintsEnabled && Preferences.shared.fuzzySearchEnabled
         )
     }
 
