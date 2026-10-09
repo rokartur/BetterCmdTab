@@ -60,9 +60,8 @@ xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
 ```
 
 Obejmują **czystą logikę** — metryki przełącznika, etykiety wierszy, filtrowanie
-katalogu, dopasowanie rozmyte, analizę aktualizacji, wybór materiału panelu i przenośność
-ustawień — oraz niewielki zestaw osadzony w AppKit (`TabStripWindowingTests`,
-`SwitcherReflowTests`), który wymaga działającego WindowServer i wyłączonej opcji
+katalogu, dopasowanie rozmyte, analizę aktualizacji i przenośność
+ustawień — oraz niewielki zestaw osadzony w AppKit (`TabStripWindowingTests`), który wymaga działającego WindowServer i wyłączonej opcji
 Ogranicz ruch w macOS. Reszta UI jest sprawdzana ręcznie: przełącznik potrzebuje
 uprawnienia Dostępność, dlatego ten obszar nie działa w środowisku bez interfejsu
 graficznego i nie należy do testów jednostkowych.

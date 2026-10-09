@@ -38,7 +38,7 @@ You need the macOS 26 SDK: the Liquid Glass panel compiles against `NSGlassEffec
 xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' test
 ```
 
-Tests live under `BetterCmdTabTests/`. They cover pure logic — switcher metrics, row labelling, updater parsing, Liquid Glass selection — plus a small AppKit-hosted set (`TabStripWindowingTests`, `SwitcherReflowTests`) that needs a live WindowServer and macOS Reduce Motion off. The rest of the UI is verified manually because the switcher needs Accessibility permissions.
+Tests live under `BetterCmdTabTests/`. They cover pure logic — switcher metrics, row labelling, updater parsing — plus a small AppKit-hosted set (`TabStripWindowingTests`) that needs a live WindowServer and macOS Reduce Motion off. The rest of the UI is verified manually because the switcher needs Accessibility permissions.
 
 ## Pull request checklist
 
