@@ -144,6 +144,23 @@ enum BrowserTabs {
         "application id \"\(escape(bundleID))\""
     }
 
+    /// Frames one window's tabs as `title FS url`, US-separated. Called outside the `tell`, because
+    /// inside it every `count`/`item` is an Apple Event (41 Safari tabs: 0.95 s against 0.28 s).
+    private static let framedTabsHandler = """
+    on framedTabs(tabTitles, tabURLs)
+        set tc to count of tabTitles
+        set hasURLs to (count of tabURLs) is tc
+        set out to ""
+        repeat with j from 1 to tc
+            set tabURL to ""
+            if hasURLs then set tabURL to (item j of tabURLs) as text
+            set out to out & ((item j of tabTitles) as text) & (ASCII character 28) & tabURL
+            if j < tc then set out to out & (ASCII character 31)
+        end repeat
+        return out
+    end framedTabs
+    """
+
     /// Force the row's window to be the browser's frontmost window so the
     /// subsequent `window 1` scripts target it. Synchronous AX call, runs on
     /// the caller's queue. Does NOT activate the process — keeps the panel
@@ -468,23 +485,20 @@ enum BrowserTabs {
                         end ignoring
                     end repeat
                     if matchCount is 1 then
-                        set tabText to ""
-                        set tc to count of tabs of window matchIdx
-                        repeat with j from 1 to tc
-                            set tabTitle to (\(attr) of tab j of window matchIdx) as text
-                            set tabURL to ""
-                            try
-                                set tabURL to (URL of tab j of window matchIdx) as text
-                            end try
-                            set tabText to tabText & tabTitle & (ASCII character 28) & tabURL
-                            if j < tc then set tabText to tabText & (ASCII character 31)
-                        end repeat
+                        set tabTitles to \(attr) of every tab of window matchIdx
+                        set tabURLs to {}
+                        try
+                            set tabURLs to URL of every tab of window matchIdx
+                        end try
+                        set tabText to my framedTabs(tabTitles, tabURLs)
                         return "MATCH" & (ASCII character 29) & tabText
                     else
                         return "FALLBACK"
                     end if
                 end timeout
             end tell
+
+            \(framedTabsHandler)
             """
             if let raw = runScript(matchSource) {
                 if raw == "NOWINDOWS" { return .tabs([]) }
@@ -510,20 +524,16 @@ enum BrowserTabs {
         tell \(appLit)
             with timeout of 3 seconds
                 if (count of windows) = 0 then return ""
-                set tabText to ""
-                set tc to count of tabs of window 1
-                repeat with j from 1 to tc
-                    set tabTitle to (\(attr) of tab j of window 1) as text
-                    set tabURL to ""
-                    try
-                        set tabURL to (URL of tab j of window 1) as text
-                    end try
-                    set tabText to tabText & tabTitle & (ASCII character 28) & tabURL
-                    if j < tc then set tabText to tabText & (ASCII character 31)
-                end repeat
+                set tabTitles to \(attr) of every tab of window 1
+                set tabURLs to {}
+                try
+                    set tabURLs to URL of every tab of window 1
+                end try
+                return my framedTabs(tabTitles, tabURLs)
             end timeout
         end tell
-        return tabText
+
+        \(framedTabsHandler)
         """
         guard let raw = runScript(source) else {
             Log.activator.error("BrowserTabs: tabTitles \(bid) failed (permission/timeout?)")
@@ -625,23 +635,20 @@ enum BrowserTabs {
                         set wBounds to bounds of window i
                         set boundsText to ((item 1 of wBounds) as text) & " " & ((item 2 of wBounds) as text) & " " & ((item 3 of wBounds) as text) & " " & ((item 4 of wBounds) as text)
                     end try
-                    set tabText to ""
-                    set tc to count of tabs of window i
-                    repeat with j from 1 to tc
-                        set tabTitle to (\(attr) of tab j of window i) as text
-                        set tabURL to ""
-                        try
-                            set tabURL to (URL of tab j of window i) as text
-                        end try
-                        set tabText to tabText & tabTitle & (ASCII character 28) & tabURL
-                        if j < tc then set tabText to tabText & (ASCII character 31)
-                    end repeat
+                    set tabTitles to \(attr) of every tab of window i
+                    set tabURLs to {}
+                    try
+                        set tabURLs to URL of every tab of window i
+                    end try
+                    set tabText to my framedTabs(tabTitles, tabURLs)
                     set outText to outText & wTitle & (ASCII character 30) & (activeIndex as text) & (ASCII character 30) & tabText & (ASCII character 30) & boundsText
                     if i < wc then set outText to outText & (ASCII character 29)
                 end repeat
                 return outText
             end timeout
         end tell
+
+        \(framedTabsHandler)
         """
         guard let raw = runScript(source) else {
             Log.activator.error("BrowserTabs: allWindowTabs \(bid) failed (permission/timeout?)")
