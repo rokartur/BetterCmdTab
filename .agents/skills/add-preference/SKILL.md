@@ -90,7 +90,7 @@ contract touches:
 
 ```bash
 xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' test \
-  -only-testing:BetterCmdTabTests/PreferencesEnumTests \
+  -only-testing:BetterCmdTabTests/PreferencesMigrationTests \
   -only-testing:BetterCmdTabTests/SettingsPortabilityTests \
   -only-testing:BetterCmdTabTests/LocalizationCatalogTests
 ```
