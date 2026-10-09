@@ -36,7 +36,11 @@ enum KeyboardLayout {
     static func character(for keyCode: some BinaryInteger) -> Character? {
         guard let virtualKey = UInt16(exactly: keyCode) else { return nil }
         ensureLoaded()
-        guard let data = layoutData.withLock({ $0 }) else { return nil }
+        return translate(virtualKey, in: layoutData.withLock { $0 })
+    }
+
+    private static func translate(_ virtualKey: UInt16, in layout: Data?) -> Character? {
+        guard let data = layout else { return nil }
         return data.withUnsafeBytes { raw -> Character? in
             guard let base = raw.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return nil }
             var deadKeyState: UInt32 = 0
@@ -95,13 +99,18 @@ enum KeyboardLayout {
         }
         // Typical for IMEs without kTISPropertyUnicodeKeyLayoutData — fall back
         // to the most recently used ASCII-capable keyboard layout.
-        if let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue(),
-           let data = layoutData(from: src) {
+        if let data = asciiCapableLayoutData() {
             Log.hotkey.info("Current input source has no Unicode layout data — using ASCII-capable fallback")
             return data
         }
         Log.hotkey.warning("No Unicode layout data on current or ASCII-capable input source")
         return nil
+    }
+
+    /// The most recently used ASCII-capable keyboard layout, the current one when it is ASCII-capable.
+    private static func asciiCapableLayoutData() -> Data? {
+        guard let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue() else { return nil }
+        return layoutData(from: src)
     }
 
     private static func layoutData(from source: TISInputSource) -> Data? {
