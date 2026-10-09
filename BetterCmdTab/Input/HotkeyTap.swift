@@ -1028,6 +1028,19 @@ final class HotkeyTap: @unchecked Sendable {
         }
     }
 
+    /// While unrebound, `/` and `\` also fire by the character a key types (#141), but only where the
+    /// ASCII-capable layout types it too, so Hebrew Q (types /) is not a second search key (#242).
+    private func defaultPanelKeyEvent(typed: Character, keyCode: Int64, shift: Bool, option: Bool,
+                                      special: SpecialPanelKeys) -> Event? {
+        let event: Event
+        switch typed {
+        case "/" where special.search == Self.defaultSearchKey: event = .toggleSearch
+        case "\\" where special.tabDrill == Self.defaultTabDrillKey: event = .enterTabDrill
+        default: return nil
+        }
+        return translate(keyCode: keyCode, shift: shift, option: option, latin: true) == typed ? event : nil
+    }
+
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             // Accessibility revoked is the common disable cause, and it's the one
@@ -1383,13 +1396,9 @@ final class HotkeyTap: @unchecked Sendable {
                         if let ch = translate(keyCode: keyCode, shift: shiftHeld, option: optionHeld),
                            let scalar = ch.unicodeScalars.first,
                            scalar.value >= 0x20, scalar.value != 0x7F {
-                            if ch == "/", special.search == Self.defaultSearchKey {
-                                deliver(.toggleSearch); return nil
-                            }
-                            if ch == "\\", special.tabDrill == Self.defaultTabDrillKey {
-                                deliver(.enterTabDrill); return nil
-                            }
-                            deliver(.searchInput(ch))
+                            deliver(defaultPanelKeyEvent(typed: ch, keyCode: keyCode, shift: shiftHeld,
+                                                         option: optionHeld, special: special)
+                                    ?? .searchInput(ch))
                             return nil
                         }
                         break
@@ -1540,13 +1549,10 @@ final class HotkeyTap: @unchecked Sendable {
                             // and the bare-translate check below. Only while the
                             // key is unrebound — see `defaultSearchKey`.
                             if shiftHeld || optionHeld,
-                               let ch = translate(keyCode: keyCode, shift: shiftHeld, option: optionHeld) {
-                                if ch == "/", special.search == Self.defaultSearchKey {
-                                    deliver(.toggleSearch); return nil
-                                }
-                                if ch == "\\", special.tabDrill == Self.defaultTabDrillKey {
-                                    deliver(.enterTabDrill); return nil
-                                }
+                               let ch = translate(keyCode: keyCode, shift: shiftHeld, option: optionHeld),
+                               let event = defaultPanelKeyEvent(typed: ch, keyCode: keyCode, shift: shiftHeld,
+                                                                option: optionHeld, special: special) {
+                                deliver(event); return nil
                             }
                             // Type-to-search opener: route every unbound letter and
                             // digit into the query instead of letter-jump, so a
@@ -1567,15 +1573,9 @@ final class HotkeyTap: @unchecked Sendable {
                                 return nil
                             }
                             if let letter = keyChar {
-                                // Layout-agnostic `\` / `/` triggers while unrebound (see `defaultSearchKey`): a key
-                                // reading as them fires the action; with type-to-search off Hebrew Q (types /) reads q (#184).
-                                if letter == "\\", special.tabDrill == Self.defaultTabDrillKey {
-                                    deliver(.enterTabDrill)
-                                    return nil
-                                }
-                                if letter == "/", special.search == Self.defaultSearchKey {
-                                    deliver(.toggleSearch)
-                                    return nil
+                                if let event = defaultPanelKeyEvent(typed: letter, keyCode: keyCode, shift: false,
+                                                                    option: false, special: special) {
+                                    deliver(event); return nil
                                 }
                                 let lower = Character(letter.lowercased())
                                 if lower.isLetter,

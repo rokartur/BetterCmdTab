@@ -59,7 +59,7 @@ struct ChordSpec: Equatable {
         case commit, escape
         case toggleSearch, searchBackspace
         case enterTabDrill, exitTabDrill, tabPrev, tabNext, commitTab
-        /// Generic alphanumeric key. The apply site reads it as a jump letter with hints on,
+        /// Generic character key. The apply site reads it as a jump letter with hints on,
         /// else (and for search input) as the active layout's character (#184).
         case letterJump, searchChar
         /// In-panel action keys (rebindable W/M/H/Q/F).
@@ -100,24 +100,18 @@ struct NativeOverridePlan: Equatable {
     var carbonChords: [ChordSpec]
 }
 
-/// Physical-position virtual keycodes for the letters and digits — the candidate
-/// keys for letter-jump (normal mode) and fuzzy-search input. They are layout
-/// independent (the keycode is the physical key); the produced character is
-/// resolved per layout at the apply site, and non-matching keys are harmlessly
-/// ignored downstream.
-private let alphanumericKeyCodes: [UInt32] = [
+/// Physical-position virtual keycodes of the character keys, the candidates for letter-jump and
+/// fuzzy-search input. The character each types is resolved per layout at the apply site, and a
+/// key that types nothing usable is ignored there. The US punctuation keys are listed because
+/// other layouts put letters on them (AZERTY m on 41, Dvorak s/w/v on 41/43/47, #242). Excludes
+/// Grave (50, the window chord) and Space (49, Spotlight's ⌘Space). Slash and Backslash are
+/// listed: the search and tab-drill chords are appended first, so the first-wins dedupe drops
+/// them here while they hold their defaults, and hands them back once rebound (#169).
+private let characterKeyCodes: [UInt32] = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, // A S D F H G Z X C V B Q W E R Y T
     31, 32, 34, 35, 37, 38, 40, 45, 46,                       // O U I P L J K N M
     18, 19, 20, 21, 22, 23, 25, 26, 28, 29,                   // 1 2 3 4 6 5 9 7 8 0
-]
-
-/// Extra printable punctuation keycodes accepted as fuzzy-search input. Excludes
-/// Grave (50, the window chord) and Space (49, would collide with Spotlight's
-/// ⌘Space). Slash and Backslash are listed: the search and tab-drill chords are
-/// appended first, so the first-wins dedupe drops them here while they hold their
-/// defaults, and hands them back as ordinary query characters once rebound (#169).
-private let searchPunctuationKeyCodes: [UInt32] = [
-    24, 27, 30, 33, 39, 41, 43, 47, 42, 44, // = - ] [ ' ; , . \ /
+    24, 27, 30, 33, 39, 41, 43, 47, 42, 44,                   // = - ] [ ' ; , . \ /
 ]
 
 /// kVK_ISO_Section (10) and kVK_ANSI_Grave (50) are both "the key above Tab":
@@ -304,7 +298,7 @@ func computeNativeOverridePlan(
 
             if searchActive {
                 chords.append(ChordSpec(keyCode: kcDelete, modifiers: mod, kind: .searchBackspace))
-                for kc in alphanumericKeyCodes + searchPunctuationKeyCodes {
+                for kc in characterKeyCodes {
                     chords.append(ChordSpec(keyCode: kc, modifiers: mod, kind: .searchChar))
                 }
             } else {
@@ -325,7 +319,7 @@ func computeNativeOverridePlan(
                 for action in panelActions {
                     chords.append(ChordSpec(keyCode: action.keyCode, modifiers: mod, kind: action.action))
                 }
-                for kc in alphanumericKeyCodes {
+                for kc in characterKeyCodes {
                     chords.append(ChordSpec(keyCode: kc, modifiers: mod, kind: .letterJump))
                 }
             }

@@ -200,6 +200,14 @@ struct NativeOverridePlanTests {
         #expect(!Self.has(plan, 1, .letterJump, Self.cmd))
     }
 
+    @Test("letters on US punctuation keys jump: AZERTY m (41), Dvorak w (43), v (47) (#242)",
+          arguments: [41, 43, 47] as [UInt32])
+    func normalMode_letterJumpCoversPunctuationKeys(_ keyCode: UInt32) {
+        let plan = computeNativeOverridePlan(trigger: Self.native(), secureInputActive: true,
+                                             panelOpen: true, holdModifierDown: true)
+        #expect(Self.kinds(plan, keyCode) == [.letterJump])
+    }
+
     // MARK: In-panel — vim navigation parity
 
     @Test func vimEnabled_registersHJKLAsNavAndWinsOverActionsAndLetterJump() {
@@ -463,15 +471,15 @@ struct NativeOverridePlanTests {
 
     @Test func reboundSearchAndDrillKeys_replaceSlashAndBackslash() {
         // Search on `-` (27), drill on `=` (24): the plan follows the binding and
-        // the shipped `/` and `\` keycodes lose their panel meaning entirely.
+        // the shipped `/` and `\` keycodes become plain character keys.
         let plan = computeNativeOverridePlan(trigger: Self.native(), secureInputActive: true,
                                              panelOpen: true, holdModifierDown: true,
                                              panelActions: Self.panelActions,
                                              searchKeyCode: 27, tabDrillKeyCode: 24)
         #expect(Self.has(plan, 27, .toggleSearch))
         #expect(Self.has(plan, 24, .enterTabDrill))
-        #expect(Self.kinds(plan, 44).isEmpty)
-        #expect(Self.kinds(plan, 42).isEmpty)
+        #expect(Self.kinds(plan, 44) == [.letterJump])
+        #expect(Self.kinds(plan, 42) == [.letterJump])
     }
 
     @Test func searchAndDrillOnTheSameKey_drills_matchingTheTap() {
@@ -487,7 +495,7 @@ struct NativeOverridePlanTests {
     }
 
     @Test func reboundSearchKey_isNeverTypedIntoTheQuery() {
-        // Both replacements sit in `searchPunctuationKeyCodes`; first-wins dedupe
+        // Both replacements sit in `characterKeyCodes`; first-wins dedupe
         // must keep them as mode toggles instead of query characters.
         let plan = computeNativeOverridePlan(trigger: Self.native(), secureInputActive: true,
                                              panelOpen: true, holdModifierDown: true,

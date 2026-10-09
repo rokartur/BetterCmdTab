@@ -1578,7 +1578,7 @@ final class SwitcherController: SwitcherViewDelegate {
         case .tabPrev: return .tabPrev
         case .tabNext: return .tabNext
         case .commitTab: return .commitTab
-        // The pure plan has no layout context, so it tags alphanumeric chords by
+        // The pure plan has no layout context, so it tags character chords by
         // keycode; resolve to a character at dispatch (`handle(_:)`).
         case .letterJump: return .letterInputKey(keyCode)
         case .searchChar: return .searchInputKey(keyCode)
@@ -2483,11 +2483,11 @@ final class SwitcherController: SwitcherViewDelegate {
         case .letterInput(let ch):
             handleLetter(ch)
         case .letterInputKey(let keyCode):
-            // Secure-input Carbon path: with hints off the key only feeds search, so it reads the
-            // active layout; otherwise it jumps by its Latin letter (#184).
+            // Secure-input Carbon path, read as the tap reads it: with hints off the key types the
+            // active layout's letter or digit into a query (#242), else it jumps by its Latin letter (#184).
             let ch = effective.letterHintsEnabled
                 ? KeyboardLayout.jumpCharacter(for: keyCode)
-                : KeyboardLayout.character(for: keyCode)
+                : KeyboardLayout.character(for: keyCode).flatMap(HotkeyTap.typeToSearchLetter)
             if let ch {
                 handleLetter(Character(ch.lowercased()))
             }
