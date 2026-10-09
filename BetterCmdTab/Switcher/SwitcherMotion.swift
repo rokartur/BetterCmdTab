@@ -1,7 +1,7 @@
 import AppKit
 
-/// The one curve every switcher animation runs on, and the single gate that
-/// turns them all into hard cuts.
+/// The one curve every switcher glide runs on, and the single gate that turns
+/// them all into hard cuts. The open/close fade (#208) has its own durations.
 ///
 /// The three motions are not independent: the panel resizes while the row block
 /// glides to compensate for that resize (`SwitcherView.glideListContainer`), so

@@ -8,7 +8,7 @@
       "type" : "string"
     },
     "animationsEnabled" : {
-      "description" : "Glide the panel, the tiles and the tab strip between states. Off, or with macOS Reduce Motion on, every change is a hard cut.",
+      "description" : "Glide the panel, the tiles and the tab strip between states. Off, or with macOS Reduce Motion on, every glide is a hard cut; the open and close fade has its own settings.",
       "type" : "boolean"
     },
     "appExceptions" : {
@@ -198,6 +198,18 @@
     "experimentalUnreadBadges" : {
       "description" : "Legacy unread-badge flag, read once to seed showUnreadBadges. Edit showUnreadBadges instead.",
       "type" : "boolean"
+    },
+    "fadeInDurationMs" : {
+      "description" : "How long the panel fades in when it opens (milliseconds). 0 = no fade.",
+      "maximum" : 500,
+      "minimum" : 0,
+      "type" : "integer"
+    },
+    "fadeOutDurationMs" : {
+      "description" : "How long the panel fades out when it closes (milliseconds). 0 = no fade.",
+      "maximum" : 500,
+      "minimum" : 0,
+      "type" : "integer"
     },
     "fontFace" : {
       "description" : "Typeface used for names and titles.",

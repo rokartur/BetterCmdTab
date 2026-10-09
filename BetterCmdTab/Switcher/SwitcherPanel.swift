@@ -20,10 +20,8 @@ final class SwitcherPanel: NSPanel {
     ]
 
     private var prefCancellable: AnyCancellable?
-    /// True between `present()` and `dismiss()`. `resignKey()` keys off this
-    /// (not `isVisible`) for its glass-dim suppression: the boot prewarm orders
-    /// the panel in off-screen via `orderFrontRegardless()` without presenting,
-    /// so `isVisible` would read true before the first real presentation.
+    /// True between `present()` and a hide. `resignKey()` reads this and `isFadingOut`, not
+    /// `isVisible`: the boot prewarm orders the panel in off-screen without presenting.
     private var isPresented = false
 
     /// The screen the owning controller resolved for this open session. Set
@@ -156,11 +154,9 @@ final class SwitcherPanel: NSPanel {
     /// `didResignKey` observer in SwitcherController still reclaims key on
     /// the next runloop so internal NSWindow state self-heals.
     override func resignKey() {
-        // `isPresented` (not just ordered-in): after a commit `vanish()`es the
-        // panel it stays ordered until the AX focus writes settle — re-keying
-        // then would re-activate this app and yank focus from the very window
-        // the commit is activating.
-        guard isVisible, isPresented else {
+        // A running fade-out swallows too, so its glass doesn't dim. Past it, pass through:
+        // re-keying a dismissed or vanished panel would yank focus from the commit's target.
+        guard isVisible, isPresented || isFadingOut else {
             super.resignKey()
             return
         }
@@ -192,14 +188,16 @@ final class SwitcherPanel: NSPanel {
         // can glide; a first reveal (or a re-reveal from the off-screen park)
         // must land at its final size in one frame. Captured before the un-park
         // below undoes the evidence.
-        let resizeAnimates = isVisible && parkedFrame == nil && !content.isHidden
-            && SwitcherMotion.isEnabled
+        let wasPresented = isPresented
+        let onScreen = isVisible && parkedFrame == nil && !content.isHidden
+        let resizeAnimates = wasPresented && onScreen && SwitcherMotion.isEnabled
+        let fadeIn = wasPresented ? 0 : TimeInterval(Preferences.shared.fadeInDurationMs) / 1000
         isPresented = true
+        hideAfterFadeOut = nil
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        // Undo the off-screen park before the frame comparison below, so an
-        // unchanged layout still skips `setFrame`. Alpha is still zero here and
-        // is restored in this same transaction — the move never shows.
+        // Un-park before the frame comparison so an unchanged layout still skips
+        // `setFrame`; alpha is 0 here, so the move never shows.
         if let parkedFrame {
             setFrameOrigin(parkedFrame.origin)
             self.parkedFrame = nil
@@ -233,14 +231,13 @@ final class SwitcherPanel: NSPanel {
                 setFrame(newFrame, display: true)
             }
         }
-        // Restore opacity that `dismiss()` zeroed to mask the glass-layer
-        // teardown ghost, and un-hide the content `dismiss()` hid to drop the
-        // glass sample. Reset before ordering on screen so the first frame is
-        // shown at the user's chosen opacity (no fade — `animationBehavior` is
-        // `.none`).
+        // Undo a hide's zeroed alpha and hidden content before ordering front (#208).
         content.isHidden = false
-        alphaValue = CGFloat(opacity) / 100
-        // `vanish()` turned mouse events off for its invisible linger window.
+        let alpha = CGFloat(opacity) / 100
+        if !wasPresented, fadeIn == 0 { alphaValue = alpha }
+        // An on-screen panel here is mid-fade-out: fade back in from its current alpha.
+        if fadeIn > 0, !onScreen { alphaValue = 0 }
+        // A hide turned mouse events off for its fade-out or ordered linger.
         ignoresMouseEvents = false
         // After a long hidden stretch, don't trust cached layer contents —
         // WindowServer may have purged them, which would show as see-through
@@ -276,6 +273,12 @@ final class SwitcherPanel: NSPanel {
             }
         }
         CATransaction.commit()
+        if fadeIn > 0 {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = fadeIn
+                animator().alphaValue = alpha
+            }
+        }
         // `newFrame`, not `frame`: mid-animation the window is still catching up,
         // and the hit region has to describe where the panel is landing.
         onFrameDidChange?(Self.cgGlobalFrame(from: newFrame))
@@ -289,54 +292,74 @@ final class SwitcherPanel: NSPanel {
         }
     }
 
-    /// Hide the panel. `NSGlassEffectView` / `NSVisualEffectView` is a
-    /// window-server-hosted layer that samples a live blur of whatever app
-    /// sits behind the panel. A plain `orderOut(nil)` removes the host window
-    /// immediately, but the server tears down that out-of-process glass layer
-    /// a frame or two later — compositing its last sampled backdrop (a
-    /// "cutout" of the app behind us) as a ghost artifact after we've already
-    /// vanished. Zeroing `alphaValue` in the same transaction as `orderOut`
-    /// makes any such residual frame fully transparent; `present()` restores
-    /// it. No fade plays because `animationBehavior` is `.none` and implicit
-    /// actions are disabled here.
-    func dismiss() {
+    /// Hide the panel after its fade-out (#208), then run `cleanup`.
+    func dismiss(then cleanup: @escaping () -> Void) {
         isPresented = false
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        alphaValue = 0
-        // Hiding the content view tears the glass/visual-effect layer out of the
-        // compositor in the same transaction as `orderOut`, so the window server
-        // has no last-sampled backdrop left to flash as a ghost after we vanish.
-        // `present()` un-hides it.
-        contentView?.isHidden = true
-        park()
-        orderOut(nil)
+        ignoresMouseEvents = true
         targetScreen = nil
-        CATransaction.commit()
-        lastOnScreenAt = Date.timeIntervalSinceReferenceDate
         onFrameDidChange?(nil)
+        fadeOut { [weak self] in
+            guard let self else { return }
+            self.hide(orderingOut: true)
+            self.lastOnScreenAt = Date.timeIntervalSinceReferenceDate
+            cleanup()
+        }
     }
 
-    /// Instant visual hide at commit time. The real `orderOut` (`dismiss()`)
-    /// deliberately waits for the activation's off-main AX focus writes, but the
-    /// user must not watch the panel linger while a busy target app runs those
-    /// calls into their timeouts. Same transaction shape as `dismiss()` minus
-    /// the order-out — the window stays ordered, so WindowServer focus routing
-    /// is unchanged; `ignoresMouseEvents` keeps the invisible panel from
-    /// swallowing clicks until `dismiss()` lands. `present()` restores both.
+    /// Commit-time hide that keeps the window ordered: `dismiss()` waits for the
+    /// activation's AX focus writes, and `ignoresMouseEvents` lets clicks through until then.
     func vanish() {
         isPresented = false
+        ignoresMouseEvents = true
+        onFrameDidChange?(nil)
+        fadeOut { [weak self] in self?.hide(orderingOut: false) }
+    }
+
+    /// The hide the running fade-out ends with; nil when none is running.
+    /// `present()` clears it, which is what cancels a fade-out.
+    private var hideAfterFadeOut: (() -> Void)?
+    var isFadingOut: Bool { hideAfterFadeOut != nil }
+    /// An interrupted fade still calls its completion, at the end of the
+    /// runloop turn: a later fade-out's hide must not run on that call.
+    private var fadeOutGeneration = 0
+
+    private func fadeOut(then hide: @escaping () -> Void) {
+        // `dismiss()` after `vanish()`: the running fade ends with the order-out.
+        if hideAfterFadeOut != nil {
+            hideAfterFadeOut = hide
+            return
+        }
+        let duration = TimeInterval(Preferences.shared.fadeOutDurationMs) / 1000
+        guard duration > 0, isVisible, alphaValue > 0 else { return hide() }
+        fadeOutGeneration &+= 1
+        let generation = fadeOutGeneration
+        hideAfterFadeOut = hide
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = duration
+            animator().alphaValue = 0
+        }, completionHandler: { [weak self] in
+            MainActor.assumeIsolated { self?.endFadeOut(generation) }
+        })
+    }
+
+    private func endFadeOut(_ generation: Int) {
+        guard generation == fadeOutGeneration, let hide = hideAfterFadeOut else { return }
+        hideAfterFadeOut = nil
+        hide()
+    }
+
+    private func hide(orderingOut: Bool) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         alphaValue = 0
+        // The server tears the out-of-process glass layer down a frame after us; zero alpha and
+        // drop it now so its last sampled backdrop can't ghost over the app behind.
         contentView?.isHidden = true
-        // The window stays ordered until `dismiss()`, so an alpha-immune
-        // server-side glass residue would otherwise sit over the app we're
-        // activating for the whole AX focus handoff (#146).
+        // A window `vanish()` leaves ordered would otherwise keep an alpha-immune
+        // server-side glass residue over the app we're activating (#146).
         park()
+        if orderingOut { orderOut(nil) }
         CATransaction.commit()
-        ignoresMouseEvents = true
-        onFrameDidChange?(nil)
     }
 
     /// Convert a Cocoa global rect (bottom-left origin, y-up) to the CGEvent

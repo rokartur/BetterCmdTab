@@ -920,6 +920,7 @@ final class Preferences: ObservableObject {
     /// square corners (#129); above `0` the user pins an explicit radius in
     /// points.
     nonisolated static let panelCornerRadiusRange: ClosedRange<Int> = -1...40
+    nonisolated static let fadeDurationRange: ClosedRange<Int> = 0...500
 
     /// Grid layout column cap. `0` = automatic (width-driven); above that the
     /// user pins an explicit count. Bounded so a hand-edited/corrupted import
@@ -1111,6 +1112,8 @@ final class Preferences: ObservableObject {
         static let hoverShowForceQuit = "Switcher.hoverShowForceQuit"
         static let hideFromScreenSharing = "Switcher.hideFromScreenSharing"
         static let animationsEnabled = "Switcher.animationsEnabled"
+        static let fadeInDurationMs = "Switcher.fadeInDurationMs"
+        static let fadeOutDurationMs = "Switcher.fadeOutDurationMs"
         static let vimNavigationEnabled = "Switcher.vimNavigationEnabled"
         static let oneHandLetterHints = "Switcher.oneHandLetterHints"
         static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
@@ -2309,6 +2312,26 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Panel fade on open, in ms (#208). 0 = shown in one frame.
+    @Published var fadeInDurationMs: Int {
+        didSet {
+            let clamped = Self.clampFadeDuration(fadeInDurationMs)
+            if clamped != fadeInDurationMs { fadeInDurationMs = clamped; return }
+            guard oldValue != fadeInDurationMs else { return }
+            UserDefaults.standard.set(fadeInDurationMs, forKey: Keys.fadeInDurationMs)
+        }
+    }
+
+    /// Panel fade on close, in ms (#208). 0 = hidden in one frame.
+    @Published var fadeOutDurationMs: Int {
+        didSet {
+            let clamped = Self.clampFadeDuration(fadeOutDurationMs)
+            if clamped != fadeOutDurationMs { fadeOutDurationMs = clamped; return }
+            guard oldValue != fadeOutDurationMs else { return }
+            UserDefaults.standard.set(fadeOutDurationMs, forKey: Keys.fadeOutDurationMs)
+        }
+    }
+
     static func clampDelay(_ value: Int) -> Int {
         min(revealDelayRange.upperBound, max(revealDelayRange.lowerBound, value))
     }
@@ -2472,6 +2495,10 @@ final class Preferences: ObservableObject {
 
     static func clampCornerRadius(_ value: Int) -> Int {
         min(panelCornerRadiusRange.upperBound, max(panelCornerRadiusRange.lowerBound, value))
+    }
+
+    static func clampFadeDuration(_ value: Int) -> Int {
+        min(fadeDurationRange.upperBound, max(fadeDurationRange.lowerBound, value))
     }
 
     static func clampGridColumns(_ value: Int) -> Int {
@@ -2758,6 +2785,8 @@ final class Preferences: ObservableObject {
         self.hoverShowForceQuit = defaults.object(forKey: Keys.hoverShowForceQuit) as? Bool ?? false
         self.hideFromScreenSharing = defaults.object(forKey: Keys.hideFromScreenSharing) as? Bool ?? false
         self.animationsEnabled = defaults.object(forKey: Keys.animationsEnabled) as? Bool ?? true
+        self.fadeInDurationMs = Self.clampFadeDuration(defaults.object(forKey: Keys.fadeInDurationMs) as? Int ?? 0)
+        self.fadeOutDurationMs = Self.clampFadeDuration(defaults.object(forKey: Keys.fadeOutDurationMs) as? Int ?? 0)
     }
 
     /// Re-read every preference from `UserDefaults` into the published
@@ -2898,5 +2927,7 @@ final class Preferences: ObservableObject {
         hoverShowForceQuit = defaults.object(forKey: Keys.hoverShowForceQuit) as? Bool ?? false
         hideFromScreenSharing = defaults.object(forKey: Keys.hideFromScreenSharing) as? Bool ?? false
         animationsEnabled = defaults.object(forKey: Keys.animationsEnabled) as? Bool ?? true
+        fadeInDurationMs = Self.clampFadeDuration(defaults.object(forKey: Keys.fadeInDurationMs) as? Int ?? 0)
+        fadeOutDurationMs = Self.clampFadeDuration(defaults.object(forKey: Keys.fadeOutDurationMs) as? Int ?? 0)
     }
 }
