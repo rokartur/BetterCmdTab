@@ -3,7 +3,7 @@ import AppKit
 /// No disclosure: everything is on screen at once. Owned by
 /// `AppsSettingsViewController`, laid out inside a `SettingsSectionView` card.
 @MainActor
-final class AppRuleRowView: NSView {
+final class AppRuleRowView: NSView, NSTokenFieldDelegate {
 
     let bundleID: String
 
@@ -78,8 +78,7 @@ final class AppRuleRowView: NSView {
         titleTokens.placeholderString = String(localized: "Add title fragments…")
         titleTokens.objectValue = windowTitleContains
         titleTokens.tokenizingCharacterSet = CharacterSet(charactersIn: ",\n")
-        titleTokens.target = self
-        titleTokens.action = #selector(titleTokensChanged)
+        titleTokens.delegate = self
         titleTokens.translatesAutoresizingMaskIntoConstraints = false
         titleTokens.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
@@ -183,15 +182,17 @@ final class AppRuleRowView: NSView {
         notifyChange()
     }
 
-    @objc private func titleTokensChanged() {
+    // NSTokenField sends no action on Return, comma or window close, so save on every edit.
+    func controlTextDidChange(_ obj: Notification) {
         let raw: [String]
         if let tokens = titleTokens.objectValue as? [String] {
             raw = tokens
         } else {
             raw = titleTokens.stringValue.components(separatedBy: titleTokens.tokenizingCharacterSet)
         }
-        windowTitleContains = CatalogFilter.cleanedTitleFragments(raw)
-        titleTokens.objectValue = windowTitleContains
+        let cleaned = CatalogFilter.cleanedTitleFragments(raw)
+        guard cleaned != windowTitleContains else { return }
+        windowTitleContains = cleaned
         notifyChange()
     }
 
