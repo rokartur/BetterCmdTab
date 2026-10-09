@@ -8,6 +8,8 @@ import os
 /// and normally read only on the main run loop. A lock keeps the C callback safe
 /// even if a future AX implementation invokes it from a different run loop.
 private let axCatalogPanelVisible = OSAllocatedUnfairLock<Bool>(initialState: false)
+/// Pids whose window titles changed since the last `rescanAppsWithChangedTitles`, global for the same reason.
+private let axTitleChangedPids = OSAllocatedUnfairLock<Set<pid_t>>(initialState: [])
 
 @MainActor
 final class AppCatalogCache {
@@ -85,10 +87,10 @@ final class AppCatalogCache {
     ///
     /// `kAXTitleChangedNotification` is the noisiest AX notification (browsers,
     /// terminals, editors fire it constantly), so it is handled specially: its
-    /// callback does nothing unless the panel is currently visible (see
+    /// callback only records the pid unless the panel is currently visible (see
     /// `handleAXNotification`). That keeps titles live *while the user is looking
-    /// at the switcher* without the idle window-scan churn that made it not worth
-    /// subscribing to before — the gate, not the subscription, was the cost.
+    /// at the switcher*, and `rescanAppsWithChangedTitles` catches up the rest
+    /// on open, without the idle window-scan churn of scanning on every change.
     nonisolated private static let axNotifications: [String] = [
         kAXWindowCreatedNotification as String,
         kAXUIElementDestroyedNotification as String,
@@ -155,11 +157,21 @@ final class AppCatalogCache {
 
     func setPanelVisible(_ visible: Bool) {
         // Gates title-change handling: while the panel is hidden, title churn
-        // (browsers/terminals fire it constantly) is ignored, so there is no
+        // (browsers/terminals fire it constantly) is only noted, so there is no
         // idle scan cost; while visible, titles are kept live (see
         // `handleAXNotification` / `kAXTitleChangedNotification`).
         panelVisible = visible
         axCatalogPanelVisible.withLock { $0 = visible }
+    }
+
+    /// Re-scans the apps whose titles changed since the last call, so an opening
+    /// switcher shows current titles instead of the ones from the app's last activation.
+    func rescanAppsWithChangedTitles() {
+        let pids = axTitleChangedPids.withLock { pids in
+            defer { pids.removeAll() }
+            return pids
+        }
+        bumpApps(pids: pids)
     }
 
     func retryFailedAXObservers() {
@@ -569,9 +581,10 @@ final class AppCatalogCache {
                 kind = .focus
             } else if CFEqual(notification, kAXTitleChangedNotification as CFString) {
                 // Title churn is by far the loudest notification; while the panel
-                // is hidden it changes nothing on screen, so drop it here before
-                // even a main-queue hop. (Read on the main run loop, where this
-                // callback fires, so the flag is never torn.)
+                // is hidden it changes nothing on screen, so only note the pid for
+                // the next open and skip even a main-queue hop. (Read on the main
+                // run loop, where this callback fires, so the flag is never torn.)
+                axTitleChangedPids.withLock { [elemPid] in _ = $0.insert(elemPid) }
                 if !axCatalogPanelVisible.withLock({ $0 }) { return }
                 kind = .title
             } else {

@@ -2941,6 +2941,9 @@ final class SwitcherController: SwitcherViewDelegate {
         // tap-vs-hold delay, so reveal() doesn't stall its critical path on a
         // synchronous AX read (up to 0.25s when the frontmost app is busy).
         prefetchOpenFocusedWindow()
+        // Titles that changed while the panel was hidden were only noted; re-scan
+        // those apps in the same delay so the rows and the window shelf open current.
+        cache.rescanAppsWithChangedTitles()
         // Inline browser-tab mode: warm the per-window tab cache during the same
         // hold delay so the first reveal expands straight to tabs instead of
         // showing windows that flicker into tabs after the Apple Events round-trip.
