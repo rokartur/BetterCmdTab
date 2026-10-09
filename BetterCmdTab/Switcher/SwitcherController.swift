@@ -2941,6 +2941,9 @@ final class SwitcherController: SwitcherViewDelegate {
         // tap-vs-hold delay, so reveal() doesn't stall its critical path on a
         // synchronous AX read (up to 0.25s when the frontmost app is busy).
         prefetchOpenFocusedWindow()
+        // Titles that changed while the panel was hidden were only noted; re-scan
+        // those apps in the same delay so the rows and the window shelf open current.
+        cache.rescanAppsWithChangedTitles()
         // Inline browser-tab mode: warm the per-window tab cache during the same
         // hold delay so the first reveal expands straight to tabs instead of
         // showing windows that flicker into tabs after the Apple Events round-trip.
@@ -3138,7 +3141,10 @@ final class SwitcherController: SwitcherViewDelegate {
                 // the reveal path nothing. Skipped once the session is over
                 // (`.idle`): the commit already bumped its target, and a late
                 // stale anchor must not outrank it.
-                if wid != 0, self.phase != .idle { self.windowMRU.bump(pid: pid, wid: wid) }
+                if wid != 0, self.phase != .idle {
+                    self.windowMRU.bump(pid: pid, wid: wid)
+                    self.recaptureLeavingWindow(wid)
+                }
                 // `.primed` only: reveal() consumes + nils this and flips to
                 // `.visible`, so a landing after reveal (or after a cancel to
                 // `.idle`) is unwanted and must be dropped — otherwise it would
@@ -3150,6 +3156,13 @@ final class SwitcherController: SwitcherViewDelegate {
                 self.prefetchedTarget = target.flatMap { self.screen(for: $0) }.map { (need, $0) }
             }
         }
+    }
+
+    /// The window being left is the likeliest to have changed since its last frame, so
+    /// skip the 2 s reuse and start now, overlapping the reveal delay (#145).
+    private func recaptureLeavingWindow(_ wid: CGWindowID) {
+        guard effective.layoutMode == .windowPreview else { return }
+        WindowThumbnailCache.shared.refresh(wid: wid, pixelHeight: currentMetrics.previewThumbHeight * panel.backingScaleFactor)
     }
 
     private func reveal() {
@@ -3232,7 +3245,10 @@ final class SwitcherController: SwitcherViewDelegate {
                     guard let self, gen == self.focusedWindowCaptureGen else { return }
                     // Same MRU self-heal as the primed prefetch (#85) — this
                     // branch serves gesture/scoped opens, which skip it.
-                    if wid != 0, self.phase != .idle { self.windowMRU.bump(pid: pid, wid: wid) }
+                    if wid != 0, self.phase != .idle {
+                        self.windowMRU.bump(pid: pid, wid: wid)
+                        self.recaptureLeavingWindow(wid)
+                    }
                     // Ahead of the window-capture guard on purpose: which display
                     // the app occupies is still the right answer even if something
                     // else claimed `openFocusedWindow` first, and this applies its
