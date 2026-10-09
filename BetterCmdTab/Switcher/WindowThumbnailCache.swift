@@ -119,6 +119,11 @@ final class WindowThumbnailCache {
         beginRequest(wid: wid, pixelHeight: pixelHeight, maxAge: refreshTTL, isLive: false)
     }
 
+    /// `request` without the `refreshTTL` reuse: captures unless one is already in flight.
+    func refresh(wid: CGWindowID, pixelHeight: CGFloat) {
+        beginRequest(wid: wid, pixelHeight: pixelHeight, maxAge: 0, isLive: false)
+    }
+
     /// Request the next one-shot live frame. ScreenCaptureKit only; the legacy
     /// CG fallback captures at native resolution and downsizes on the CPU, which
     /// is acceptable once per reveal but not on a 10 Hz path.
