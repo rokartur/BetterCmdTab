@@ -4521,8 +4521,8 @@ final class SwitcherController: SwitcherViewDelegate {
         dockBadgeObserver.stop()
         // Keep the panel ordered until external AX focus writes finish; ordering
         // it out first lets WindowServer route focus back to the wrong window.
-        // `vanish()` hides it visually right now so a busy target's AX timeouts
-        // never show as a lingering panel; `finishDismiss` does the real orderOut.
+        // `vanish()` hides it visually now (or fades it out, #208) so a busy target's AX
+        // timeouts never show as a lingering panel; `finishDismiss` does the real orderOut.
         if let pendingActivation {
             CommitFeedback.play()
             panel.vanish()

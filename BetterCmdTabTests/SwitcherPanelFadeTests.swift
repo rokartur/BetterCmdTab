@@ -48,11 +48,13 @@ struct SwitcherPanelFadeTests {
         #expect(released)
     }
 
-    @Test func aPresentDuringTheFadeOutFadesBackInAndKeepsTheViews() async throws {
+    // Fade-in 0 sets alpha directly, which must also cancel the running fade-out.
+    @Test(arguments: [0, 100])
+    func aPresentDuringTheFadeOutShowsThePanelAgainAndKeepsTheViews(fadeIn: Int) async throws {
         let panel = presentedPanel()
         defer { panel.orderOut(nil) }
         var released = false
-        withFade(in: 100, out: 100) {
+        withFade(in: fadeIn, out: 100) {
             panel.dismiss { released = true }
             panel.present()
         }
@@ -60,6 +62,14 @@ struct SwitcherPanelFadeTests {
         #expect(panel.isVisible)
         #expect(panel.alphaValue == 1)
         #expect(!released)
+    }
+
+    @Test func aPanelThatWasNeverShownHidesWithoutAFade() {
+        let panel = makePanel()
+        defer { panel.orderOut(nil) }
+        var released = false
+        withFade(out: 200) { panel.dismiss { released = true } }
+        #expect(released)
     }
 
     @Test func aDismissDuringTheVanishFadeEndsWithIt() async throws {

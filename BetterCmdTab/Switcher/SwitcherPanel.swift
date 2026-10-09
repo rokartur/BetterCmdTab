@@ -330,7 +330,7 @@ final class SwitcherPanel: NSPanel {
             return
         }
         let duration = TimeInterval(Preferences.shared.fadeOutDurationMs) / 1000
-        guard duration > 0, alphaValue > 0 else { return hide() }
+        guard duration > 0, isVisible, alphaValue > 0 else { return hide() }
         fadeOutGeneration &+= 1
         let generation = fadeOutGeneration
         hideAfterFadeOut = hide
