@@ -6,23 +6,24 @@ enum KeyboardHand {
     case left, right
 }
 
-/// Shared keycode → character translation for the current keyboard layout.
+/// Shared keycode → character translation for the current and ASCII-capable keyboard layouts.
 ///
 /// `HotkeyTap` does its own translation on the tap thread from a private cache;
-/// this is a separate, thread-safe utility for the *other* consumer — the
+/// this is a separate, main-thread utility for the *other* consumer — the
 /// secure-input Carbon-chord dispatch in `SwitcherController`, which resolves a
 /// fired chord's keycode into the same letter/search character the tap would
 /// have produced. The ~15 lines of `UCKeyTranslate` glue are intentionally
 /// duplicated rather than shared out of `HotkeyTap`, to keep the hot-path tap
 /// untouched (its cache is read on its own thread under its own lock); only
-/// the cold-path layout *loading* is shared via
-/// `currentOrFallbackLayoutData()`.
+/// the cold-path layout *loading* and the pure `jumpCharacter(typed:latin:)`
+/// rule are shared.
 ///
-/// The layout snapshot is loaded lazily and refreshed on the system
+/// Both snapshots (active and ASCII-capable layout) are loaded lazily and refreshed on the system
 /// input-source-changed notification, so a mid-session layout switch stays
 /// correct.
 enum KeyboardLayout {
     private static let layoutData = OSAllocatedUnfairLock<Data?>(initialState: nil)
+    private static let latinLayoutData = OSAllocatedUnfairLock<Data?>(initialState: nil)
     private static let observerInstalled = OSAllocatedUnfairLock<Bool>(initialState: false)
 
     /// The character that `keyCode` produces with no modifiers on the current
@@ -36,7 +37,28 @@ enum KeyboardLayout {
     static func character(for keyCode: some BinaryInteger) -> Character? {
         guard let virtualKey = UInt16(exactly: keyCode) else { return nil }
         ensureLoaded()
-        guard let data = layoutData.withLock({ $0 }) else { return nil }
+        return translate(virtualKey, in: layoutData.withLock { $0 })
+    }
+
+    /// `character(for:)` as a letter jump reads it, see `jumpCharacter(typed:latin:)`.
+    static func jumpCharacter(for keyCode: some BinaryInteger) -> Character? {
+        guard let virtualKey = UInt16(exactly: keyCode) else { return nil }
+        ensureLoaded()
+        return jumpCharacter(typed: translate(virtualKey, in: layoutData.withLock { $0 })) {
+            translate(virtualKey, in: latinLayoutData.withLock { $0 })
+        }
+    }
+
+    /// Hints are a–z. The active layout wins where it types an ASCII letter (Kabyle-AZERTY a on the US Q key);
+    /// elsewhere (Cyrillic ф, Hebrew /) a jump reads `latin`, the ASCII-capable layout's key, if an ASCII letter (#184).
+    static func jumpCharacter(typed: Character?, latin: () -> Character?) -> Character? {
+        if let typed, typed.isASCII, typed.isLetter { return typed }
+        guard let latin = latin(), latin.isASCII, latin.isLetter else { return typed }
+        return latin
+    }
+
+    private static func translate(_ virtualKey: UInt16, in layout: Data?) -> Character? {
+        guard let data = layout else { return nil }
         return data.withUnsafeBytes { raw -> Character? in
             guard let base = raw.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return nil }
             var deadKeyState: UInt32 = 0
@@ -60,11 +82,11 @@ enum KeyboardLayout {
         }
     }
 
-    /// The a–z letters the current layout puts under `hand`, by touch-typing key position.
+    /// The a–z jump letters under `hand`, by touch-typing key position.
     static func letters(under hand: KeyboardHand) -> Set<Character> {
         var letters = Set<Character>()
         for keyCode in hand == .left ? leftHandKeyCodes : rightHandKeyCodes {
-            guard let ch = character(for: keyCode), ch.isASCII, ch.isLetter else { continue }
+            guard let ch = jumpCharacter(for: keyCode), ch.isASCII, ch.isLetter else { continue }
             letters.insert(Character(ch.lowercased()))
         }
         return letters
@@ -82,10 +104,11 @@ enum KeyboardLayout {
         kVK_ANSI_N, kVK_ANSI_M, kVK_ANSI_Comma, kVK_ANSI_Period, kVK_ANSI_Slash,
     ]
 
-    /// Re-read the current keyboard layout. Safe to call from any thread.
+    /// Re-read the current and ASCII-capable keyboard layouts. Main thread only: Text Input Source APIs.
     static func reload() {
         guard let data = currentOrFallbackLayoutData() else { return }
         layoutData.withLock { $0 = data }
+        latinLayoutData.withLock { $0 = asciiCapableLayoutData() }
     }
 
     static func currentOrFallbackLayoutData() -> Data? {
@@ -95,13 +118,18 @@ enum KeyboardLayout {
         }
         // Typical for IMEs without kTISPropertyUnicodeKeyLayoutData — fall back
         // to the most recently used ASCII-capable keyboard layout.
-        if let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue(),
-           let data = layoutData(from: src) {
+        if let data = asciiCapableLayoutData() {
             Log.hotkey.info("Current input source has no Unicode layout data — using ASCII-capable fallback")
             return data
         }
         Log.hotkey.warning("No Unicode layout data on current or ASCII-capable input source")
         return nil
+    }
+
+    /// The most recently used ASCII-capable keyboard layout, the current one when it is ASCII-capable.
+    static func asciiCapableLayoutData() -> Data? {
+        guard let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue() else { return nil }
+        return layoutData(from: src)
     }
 
     private static func layoutData(from source: TISInputSource) -> Data? {

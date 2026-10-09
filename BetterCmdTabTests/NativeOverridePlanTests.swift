@@ -235,8 +235,8 @@ struct NativeOverridePlanTests {
     }
 
     @Test func visibleQuickJumpLetter_yieldsSameKeyActionToLetterJump() {
-        let typed: [UInt32: Character] = [13: "w", 46: "m", 4: "H", 12: "q", 3: "f"]
-        let actions = actionsYieldingToQuickJump(Self.panelActions, letters: ["h"]) { typed[$0] }
+        let jumpLetters: [UInt32: Character] = [13: "w", 46: "m", 4: "H", 12: "q", 3: "f"]
+        let actions = actionsYieldingToQuickJump(Self.panelActions, letters: ["h"]) { jumpLetters[$0] }
         #expect(actions == Self.panelActions.filter { $0.action != .hide })
         let plan = computeNativeOverridePlan(trigger: Self.native(), secureInputActive: true,
                                              panelOpen: true, holdModifierDown: true,
