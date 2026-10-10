@@ -23,26 +23,30 @@ struct DisjointWriteBuffer<Element>: @unchecked Sendable {
 
 enum AppCatalog {
     /// `filter` lets a per-shortcut override (#74) replace the global filter;
-    /// `nil` (the default) reads the global config, keeping existing callers
-    /// byte-identical.
-    static func fastAppList(orderedBy mru: [pid_t], filter cfg: CatalogFilter.Config? = nil, windowedPids: Set<pid_t>? = nil) -> [NSRunningApplication] {
-        let selfPid = getpid()
-        let regulars = NSWorkspace.shared.runningApplications
-            .filter { $0.activationPolicy == .regular && $0.pid != selfPid }
-        let byPid = Dictionary(regulars.map { ($0.pid, $0) }, uniquingKeysWith: { first, _ in first })
+    /// `nil` (the default) reads the global config. `regularApps` is the warm
+    /// cache's map (see `AppCatalogCache.regularApps`); `nil` reads every running
+    /// app's policy live. Apps outside `mru` follow in pid order, as in `AppCatalogCache.rows`.
+    static func fastAppList(orderedBy mru: [pid_t], regularApps: [pid_t: NSRunningApplication]?, filter cfg: CatalogFilter.Config? = nil, windowedPids: Set<pid_t>? = nil) -> [NSRunningApplication] {
+        var byPid = regularApps ?? Dictionary(
+            NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }.map { ($0.pid, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        // A just-launched front app has no cache entry until its first bump lands;
+        // without it a quick tap skips the previous app.
+        if regularApps != nil, let front = mru.first, byPid[front] == nil,
+           let app = NSRunningApplication(processIdentifier: front), app.activationPolicy == .regular {
+            byPid[front] = app
+        }
+        byPid[getpid()] = nil
 
         var ordered: [NSRunningApplication] = []
-        ordered.reserveCapacity(regulars.count)
-        var seen = Set<pid_t>()
+        ordered.reserveCapacity(byPid.count)
         for pid in mru {
-            if let app = byPid[pid] {
+            if let app = byPid.removeValue(forKey: pid) {
                 ordered.append(app)
-                seen.insert(pid)
             }
         }
-        for app in regulars where !seen.contains(app.pid) {
-            ordered.append(app)
-        }
+        ordered += byPid.sorted { $0.key < $1.key }.map(\.value)
         return CatalogFilter.filteredApps(ordered, cfg ?? CatalogFilter.config(), windowedPids: windowedPids)
     }
 

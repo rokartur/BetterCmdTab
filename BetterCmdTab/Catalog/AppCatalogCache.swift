@@ -16,6 +16,7 @@ final class AppCatalogCache {
     struct AppCacheEntry {
         let app: NSRunningApplication
         let windows: [WindowInfo]
+        let isRegular: Bool
     }
 
     /// One pid's result from the off-main snapshot pass: the windows plus the
@@ -216,6 +217,13 @@ final class AppCatalogCache {
         return pids
     }
 
+    /// Regular apps by pid, `nil` until the first full scan lands. `activationPolicy`
+    /// or `pid` on a live app is a LaunchServices XPC call, paid per running app on every switcher open.
+    func regularApps() -> [pid_t: NSRunningApplication]? {
+        guard hasCompletedFullScan else { return nil }
+        return entries.compactMapValues { $0.isRegular ? $0.app : nil }
+    }
+
     /// `filter` lets a per-shortcut override (#74) replace the global filter for
     /// this reveal; `nil` (the default) reads the global config, so every existing
     /// caller and every no-override reveal stays byte-identical.
@@ -255,7 +263,7 @@ final class AppCatalogCache {
         result.reserveCapacity(ordered.count * 2)
         for entry in ordered {
             if entry.windows.isEmpty {
-                if entry.app.activationPolicy == .regular {
+                if entry.isRegular {
                     result.append(SwitcherRow(
                         app: entry.app,
                         window: nil,
@@ -434,9 +442,9 @@ final class AppCatalogCache {
             let app = candidates[index]
             let windows = windowsBuffer[index]
             if app.activationPolicy == .regular {
-                dict[app.pid] = AppCacheEntry(app: app, windows: windows)
+                dict[app.pid] = AppCacheEntry(app: app, windows: windows, isRegular: true)
             } else if app.activationPolicy == .accessory, !windows.isEmpty {
-                dict[app.pid] = AppCacheEntry(app: app, windows: windows)
+                dict[app.pid] = AppCacheEntry(app: app, windows: windows, isRegular: false)
             }
         }
         return dict
@@ -781,10 +789,10 @@ final class AppCatalogCache {
                     if let app = appsSnapshot[pid], (self.pidWriteGeneration[pid] ?? 0) <= gen {
                         self.pidWriteGeneration[pid] = gen
                         if planSnapshot[index].isRegular {
-                            self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows)
+                            self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows, isRegular: true)
                             self.pidCoverage[pid] = (scan.expected, scan.uncoverable)
                         } else if accessorySnapshot.contains(pid), !scan.windows.isEmpty {
-                            self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows)
+                            self.entries[pid] = AppCacheEntry(app: app, windows: scan.windows, isRegular: false)
                             self.pidCoverage[pid] = (scan.expected, scan.uncoverable)
                         } else {
                             self.entries.removeValue(forKey: pid)
