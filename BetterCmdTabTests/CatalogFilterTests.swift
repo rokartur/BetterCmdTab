@@ -83,6 +83,25 @@ struct CatalogFilterTests {
         }
     }
 
+    // MARK: - AppCatalog.fastAppList
+
+    @Test("primed list from the cache: MRU first, then by pid, never BetterCmdTab itself")
+    func fastAppListFromCache() throws {
+        let others = NSWorkspace.shared.runningApplications.filter { $0 != .current }
+        try #require(others.count >= 3)
+        let (a, b, c) = (others[0], others[1], others[2])
+        let cached: [pid_t: NSRunningApplication] = [getpid(): .current, 30: a, 10: b, 20: c]
+        let list = AppCatalog.fastAppList(orderedBy: [20, getpid(), 99], regularApps: cached, filter: config())
+        #expect(list == [c, b, a])
+    }
+
+    @Test("a just-launched front app missing from the cache still leads the primed list")
+    func fastAppListKeepsUncachedFront() throws {
+        let front = try #require(NSWorkspace.shared.runningApplications.first { $0.activationPolicy == .regular && $0 != .current })
+        let list = AppCatalog.fastAppList(orderedBy: [front.pid], regularApps: [:], filter: config())
+        #expect(list == [front])
+    }
+
     // MARK: - pinnedToFront (used by filteredRows and the .mruWindows re-pin)
 
     /// A launchable row carries an arbitrary bundle id with `isPlaceholder == false`,
