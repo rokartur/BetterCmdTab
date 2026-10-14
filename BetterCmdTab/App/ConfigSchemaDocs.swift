@@ -427,6 +427,8 @@ enum ConfigSchemaDocs {
         "stayOpenOnQuickTap": ConfigSettingDoc("boolean", "Also keep it open after a quick tap of the shortcut."),
         "shiftTapStepsBackward": ConfigSettingDoc("boolean", "Tap Shift while switching to step backwards."),
         "backtickReversesAppSwitching": ConfigSettingDoc("boolean", "Use the window-switch shortcut (⌘`) to step backwards through apps."),
+        "alwaysUseEnglishKeyboard": ConfigSettingDoc(
+            "boolean", "Use English (US) keys for shortcuts and search in the switcher, regardless of the active input language."),
         "vimNavigationEnabled": ConfigSettingDoc("boolean", "Navigate with h/j/k/l as well as the arrow keys."),
 
         // Mouse

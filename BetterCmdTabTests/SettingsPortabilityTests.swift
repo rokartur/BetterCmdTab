@@ -13,6 +13,33 @@ import Testing
 @Suite("Settings portability", .serialized)
 struct SettingsPortabilityTests {
 
+    @Test("English keyboard mapping defaults off and survives export/import")
+    func englishKeyboardPreference() throws {
+        let prefs = Preferences.shared
+        let key = "Switcher.alwaysUseEnglishKeyboard"
+        let raw = UserDefaults.standard.object(forKey: key)
+        defer {
+            if let raw { UserDefaults.standard.set(raw, forKey: key) }
+            else { UserDefaults.standard.removeObject(forKey: key) }
+            prefs.reloadFromDefaults()
+            KeyboardLayout.reload()
+        }
+        UserDefaults.standard.removeObject(forKey: key)
+        prefs.reloadFromDefaults()
+        #expect(!prefs.alwaysUseEnglishKeyboard)
+        let originalLayout = KeyboardLayout.currentOrFallbackLayoutData()
+        prefs.alwaysUseEnglishKeyboard = true
+        let exported = try Preferences.exportedJSONData()
+        #expect(KeyboardLayout.currentOrFallbackLayoutData() == KeyboardLayout.englishLayoutData())
+        #expect(KeyboardLayout.asciiCapableLayoutData() == KeyboardLayout.englishLayoutData())
+        KeyboardLayout.reload()
+        #expect(KeyboardLayout.character(for: 12) == "q")
+        prefs.alwaysUseEnglishKeyboard = false
+        #expect(KeyboardLayout.currentOrFallbackLayoutData() == originalLayout)
+        try prefs.importSettings(from: exported)
+        #expect(prefs.alwaysUseEnglishKeyboard)
+    }
+
     /// A legacy `.cmdtab` envelope at the given schema version.
     private func envelope(_ values: [String: Any], version: Int? = nil) -> Data {
         let schemaVersion = version ?? Preferences.exportSchemaVersion

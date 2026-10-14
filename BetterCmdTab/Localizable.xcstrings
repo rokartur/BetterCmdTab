@@ -1,6 +1,88 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Always use English keyboard mapping" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer englische Tastaturbelegung verwenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar siempre la distribución de teclado inglesa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours utiliser la disposition de clavier anglaise"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawsze używaj angielskiego układu klawiatury"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всегда использовать английскую раскладку клавиатуры"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始终使用英语键盘布局"
+          }
+        }
+      }
+    },
+    "Use English (US) keys for shortcuts and search in the switcher, regardless of your input language." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Englische Tastenbelegung (USA) für Tastenkürzel und Suche im Umschalter verwenden, unabhängig von der Eingabesprache."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa la distribución inglesa (EE. UU.) para los atajos y la búsqueda en el selector, independientemente del idioma de entrada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser la disposition anglaise (États-Unis) pour les raccourcis et la recherche dans le sélecteur, quelle que soit la langue de saisie."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używaj układu angielskiego (USA) do skrótów i wyszukiwania w przełączniku, niezależnie od języka wprowadzania."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать английскую раскладку (США) для сочетаний клавиш и поиска в переключателе независимо от языка ввода."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无论当前输入语言是什么，都在切换器中使用英语（美国）键盘布局进行快捷键操作和搜索。"
+          }
+        }
+      }
+    },
     " Add App…" : {
       "localizations" : {
         "de" : {

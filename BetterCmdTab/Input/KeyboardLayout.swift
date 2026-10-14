@@ -57,7 +57,7 @@ enum KeyboardLayout {
         return latin
     }
 
-    private static func translate(_ virtualKey: UInt16, in layout: Data?) -> Character? {
+    static func translate(_ virtualKey: UInt16, in layout: Data?, modifiers: UInt32 = 0) -> Character? {
         guard let data = layout else { return nil }
         return data.withUnsafeBytes { raw -> Character? in
             guard let base = raw.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return nil }
@@ -69,7 +69,7 @@ enum KeyboardLayout {
                 base,
                 virtualKey,
                 UInt16(kUCKeyActionDown),
-                0,
+                modifiers,
                 UInt32(LMGetKbdType()),
                 UInt32(kUCKeyTranslateNoDeadKeysMask),
                 &deadKeyState,
@@ -111,7 +111,18 @@ enum KeyboardLayout {
         latinLayoutData.withLock { $0 = asciiCapableLayoutData() }
     }
 
+    /// Include disabled sources: US need not be in the user's Input Sources list.
+    static func englishLayoutData() -> Data? {
+        let filter = [kTISPropertyInputSourceID as String: "com.apple.keylayout.US"] as CFDictionary
+        guard let sources = TISCreateInputSourceList(filter, true)?.takeRetainedValue() as? [TISInputSource],
+              let source = sources.first else { return nil }
+        return layoutData(from: source)
+    }
+
     static func currentOrFallbackLayoutData() -> Data? {
+        if UserDefaults.standard.bool(forKey: "Switcher.alwaysUseEnglishKeyboard") {
+            return englishLayoutData()
+        }
         if let src = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
            let data = layoutData(from: src) {
             return data
@@ -128,6 +139,9 @@ enum KeyboardLayout {
 
     /// The most recently used ASCII-capable keyboard layout, the current one when it is ASCII-capable.
     static func asciiCapableLayoutData() -> Data? {
+        if UserDefaults.standard.bool(forKey: "Switcher.alwaysUseEnglishKeyboard") {
+            return englishLayoutData()
+        }
         guard let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue() else { return nil }
         return layoutData(from: src)
     }

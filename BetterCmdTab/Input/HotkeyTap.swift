@@ -967,7 +967,7 @@ final class HotkeyTap: @unchecked Sendable {
     }
 
     @MainActor
-    private func loadKeyboardLayout() {
+    func loadKeyboardLayout() {
         // Failure branches are logged inside currentOrFallbackLayoutData();
         // keep the previous cache (possibly nil) rather than clearing it.
         guard let data = KeyboardLayout.currentOrFallbackLayoutData() else { return }

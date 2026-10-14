@@ -104,6 +104,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private var stayOpenQuickTapRow: SettingsRowView?
     private let shiftTapBackSwitch = PreferenceSwitch(bind: \.shiftTapStepsBackward)
     private let backtickReverseSwitch = PreferenceSwitch(bind: \.backtickReversesAppSwitching)
+    private let englishKeyboardSwitch = PreferenceSwitch(bind: \.alwaysUseEnglishKeyboard)
     private let vimNavSwitch = PreferenceSwitch(bind: \.vimNavigationEnabled)
     private let oneHandHintsSwitch = PreferenceSwitch(bind: \.oneHandLetterHints)
 
@@ -136,6 +137,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         case .controls:
             addGlobalDefaultNote()
             buildKeyboardSection()
+            buildEnglishKeyboardSection()
             buildLetterJumpSection()
             buildOneHandHintsSection()
             buildSearchSection()
@@ -361,6 +363,16 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                accessory: searchModePopup, searchItemID: SearchID.searchMode)
     }
 
+    private func buildEnglishKeyboardSection() {
+        let english = addSection(title: String(localized: "Always use English keyboard mapping"), anchor: SearchID.englishKeyboard)
+        addRow(to: english, icon: "flask.fill",
+               title: String(localized: "These features are unstable"),
+               subtitle: String(localized: "Off by default. They may change or break."))
+        addRow(to: english, title: String(localized: "Always use English keyboard mapping"),
+               subtitle: String(localized: "Use English (US) keys for shortcuts and search in the switcher, regardless of your input language."),
+               accessory: englishKeyboardSwitch, searchItemID: SearchID.englishKeyboard)
+    }
+
     /// Keyboard — key-driven ways to move and commit the selection.
     private func buildKeyboardSection() {
         let keyboard = addSection(title: String(localized: "Keyboard"), anchor: SettingsAnchor.keyboard)
@@ -498,6 +510,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         syncStayOpenQuickTapRow()
         shiftTapBackSwitch.sync()
         backtickReverseSwitch.sync()
+        englishKeyboardSwitch.sync()
         vimNavSwitch.sync()
 
         letterHintsSwitch.state = prefs.letterHintsEnabled ? .on : .off

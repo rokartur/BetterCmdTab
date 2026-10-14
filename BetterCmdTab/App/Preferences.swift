@@ -1114,6 +1114,7 @@ final class Preferences: ObservableObject {
         static let animationsEnabled = "Switcher.animationsEnabled"
         static let fadeInDurationMs = "Switcher.fadeInDurationMs"
         static let fadeOutDurationMs = "Switcher.fadeOutDurationMs"
+        static let alwaysUseEnglishKeyboard = "Switcher.alwaysUseEnglishKeyboard"
         static let vimNavigationEnabled = "Switcher.vimNavigationEnabled"
         static let oneHandLetterHints = "Switcher.oneHandLetterHints"
         static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
@@ -1632,6 +1633,13 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != clickOutsideToDismiss else { return }
             UserDefaults.standard.set(clickOutsideToDismiss, forKey: Keys.clickOutsideToDismiss)
+        }
+    }
+
+    @Published var alwaysUseEnglishKeyboard: Bool {
+        didSet {
+            guard oldValue != alwaysUseEnglishKeyboard else { return }
+            UserDefaults.standard.set(alwaysUseEnglishKeyboard, forKey: Keys.alwaysUseEnglishKeyboard)
         }
     }
 
@@ -2703,6 +2711,7 @@ final class Preferences: ObservableObject {
         self.scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
         self.scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         self.clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
+        self.alwaysUseEnglishKeyboard = defaults.bool(forKey: Keys.alwaysUseEnglishKeyboard)
         self.vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
         self.oneHandLetterHints = defaults.object(forKey: Keys.oneHandLetterHints) as? Bool ?? false
         self.shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true
@@ -2867,6 +2876,7 @@ final class Preferences: ObservableObject {
         scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
         scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
+        alwaysUseEnglishKeyboard = defaults.bool(forKey: Keys.alwaysUseEnglishKeyboard)
         vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
         oneHandLetterHints = defaults.object(forKey: Keys.oneHandLetterHints) as? Bool ?? false
         shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true

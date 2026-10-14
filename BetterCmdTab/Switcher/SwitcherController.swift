@@ -923,6 +923,15 @@ final class SwitcherController: SwitcherViewDelegate {
             .sink { [weak self] enabled in self?.hotkey.setClickOutsideDismiss(enabled) }
             .store(in: &cancellables)
 
+        KeyboardLayout.reload()
+        Preferences.shared.$alwaysUseEnglishKeyboard
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                KeyboardLayout.reload()
+                self?.hotkey.loadKeyboardLayout()
+            }
+            .store(in: &cancellables)
+
         // h/j/k/l vim navigation: opt-in, mirrors bare arrow keys while the
         // switcher panel is on screen and search mode is inactive.
         hotkey.setVimNavigationEnabled(Preferences.shared.vimNavigationEnabled)
