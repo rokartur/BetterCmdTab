@@ -11,9 +11,9 @@ import os
 /// background app), this works out of the box and regardless of which app is
 /// frontmost.
 ///
-/// The gesture is continuous: while three (or four) fingers stay down, horizontal travel
-/// is accumulated and emits one step per `MTGesture.stepDistance` moved, so a
-/// single slide can advance several apps. Direction is configurable.
+/// The gesture is continuous: horizontal travel opens the switcher, then both
+/// axes navigate its layout while it is visible. Each `MTGesture.stepDistance`
+/// moved emits one step. Horizontal direction is configurable.
 ///
 /// Because it's a private framework the symbols and the contact-frame struct
 /// layout are undocumented and could change between macOS releases — that's why
@@ -24,6 +24,8 @@ import os
 final class SwipeTrigger {
     /// `+1` for a swipe that should advance forward, `-1` for backward.
     var onSwipe: (Int) -> Void = { _ in }
+    /// Row movement while the switcher is visible: +1 down, -1 up.
+    var onVerticalSwipe: (Int) -> Void = { _ in }
 
     /// Called when a three-finger gesture ends (all fingers lifted) and the
     /// "commit on release" option is on — the switcher commits its selection.
@@ -70,6 +72,10 @@ final class SwipeTrigger {
 
     func setFingerCount(_ count: Int) {
         MTGesture.setFingerCount(count)
+    }
+
+    func setNavigationEnabled(_ enabled: Bool) {
+        MTGesture.setNavigationEnabled(enabled)
     }
 
     private func install() {
@@ -132,6 +138,10 @@ final class SwipeTrigger {
     /// recognized; routes to the live trigger's handler.
     fileprivate static func deliver(_ direction: Int) {
         active?.onSwipe(direction)
+    }
+
+    fileprivate static func deliverVertical(_ direction: Int) {
+        active?.onVerticalSwipe(direction)
     }
 
     /// Called on the main actor when a gesture ends and commit-on-release is on.
@@ -206,10 +216,11 @@ private struct MultitouchAPI: @unchecked Sendable {
 /// Byte layout of the contact-frame struct, stable across macOS releases:
 /// the `normalized` readout (position then velocity, each two `Float`s) starts
 /// at offset 32, so the normalized position x lives at 32. Each contact is 96
-/// bytes. We only read normalized x, so we avoid mirroring the rest.
+/// bytes. Read the adjacent normalized x/y floats without mirroring the rest.
 private enum MTLayout {
     static let stride = 96
     static let normalizedPosX = 32
+    static let normalizedPosY = 36
 }
 
 /// Per-gesture state shared by MultitouchSupport callbacks and main-actor
@@ -238,6 +249,14 @@ enum MTGesture {
     /// take over. Gesture frames arrive at ≥60 Hz, so this is far longer than any
     /// real inter-frame gap — only a truly dead device crosses it.
     static let latchStaleWindow: Double = 0.5
+    /// Let staggered finger landings settle before the first selection step.
+    static let entryConfirmation: Double = 0.04
+    static let openingDistance: Float = 0.015
+    static let maximumOpeningDrift: Float = 0.1
+
+    static func navigationDistance(forLevel level: Int) -> Float {
+        stepDistance(forLevel: level) * 0.45
+    }
 
     private struct State: Sendable {
         /// Bumped at every install/uninstall/reset boundary. An action carries
@@ -245,16 +264,20 @@ enum MTGesture {
         /// target a newer trigger session.
         var generation: UInt64 = 1
         var stepDistance = MTGesture.stepDistance(forLevel: defaultSensitivityLevel)
-        /// A swipe gesture has begun and not yet fully lifted. Survives a brief
-        /// drop below `fingerCount` fingers so finger flicker does not end it.
+        /// Only a gesture that emitted a step may commit on release.
         var active = false
+        var rejected = false
         var tracking = false
         var lastX: Float = 0
+        var lastY: Float = 0
+        var beganAt: Double = 0
         var accumulator: Float = 0
+        var verticalTravel: Float = 0
         var reverse = false
         var commitOnRelease = false
         var oneShot = false
         var fingerCount = 3
+        var navigationEnabled = false
         var fired = false
         /// Device the current gesture is latched to (`-1` = none).
         var latchedDevice: Int32 = -1
@@ -265,6 +288,7 @@ enum MTGesture {
     struct Action: Sendable {
         /// Signed number of selection steps. Positive means forward.
         var steps = 0
+        var verticalSteps = 0
         var commit = false
         var generation: UInt64 = 0
         static let none = Action()
@@ -293,6 +317,15 @@ enum MTGesture {
         state.withLock { $0.fingerCount = count }
     }
 
+    static func setNavigationEnabled(_ enabled: Bool) {
+        state.withLock {
+            guard $0.navigationEnabled != enabled else { return }
+            $0.navigationEnabled = enabled
+            // Movement before the panel appeared must not become a row jump.
+            $0.verticalTravel = 0
+        }
+    }
+
     static func reset() {
         state.withLock { current in
             let config = (
@@ -300,6 +333,7 @@ enum MTGesture {
                 current.reverse,
                 current.commitOnRelease,
                 current.oneShot,
+                current.navigationEnabled,
                 current.fingerCount
             )
             var nextGeneration = current.generation &+ 1
@@ -310,7 +344,23 @@ enum MTGesture {
             current.reverse = config.1
             current.commitOnRelease = config.2
             current.oneShot = config.3
-            current.fingerCount = config.4
+            current.navigationEnabled = config.4
+            current.fingerCount = config.5
+        }
+    }
+
+    enum ScrollRouting: Sendable {
+        case navigate
+        case consume
+        case passthrough
+    }
+
+    /// The raw contact path already moves the selection. Consume its
+    /// companion scroll events, but leave rejected/native gestures untouched.
+    static var scrollRouting: ScrollRouting {
+        state.withLock {
+            if $0.rejected { return .passthrough }
+            return $0.latchedDevice == -1 ? .navigate : .consume
         }
     }
 
@@ -325,6 +375,7 @@ enum MTGesture {
         device: Int32,
         contactCount: Int32,
         averageX: Float?,
+        averageY: Float = 0,
         timestamp: Double
     ) -> Action {
         state.withLock { state in
@@ -337,42 +388,98 @@ enum MTGesture {
                 state.latchedDevice = -1
                 state.tracking = false
                 state.active = false
+                state.rejected = false
                 state.accumulator = 0
+                state.verticalTravel = 0
                 state.fired = false
             }
             // A malformed private-framework timestamp must not poison stale-
             // device takeover forever. Preserve the last valid frame time.
             if timestamp.isFinite { state.latchedAt = timestamp }
 
-            if contactCount >= state.fingerCount, let averageX {
+            // Extra fingers belong to macOS. Preserve rejection through lift-off
+            // tails; another device cannot clear this latch.
+            if contactCount > state.fingerCount {
+                state.latchedDevice = device
+                state.rejected = true
+                state.active = false
+                state.tracking = false
+                state.accumulator = 0
+                return .none
+            }
+            if state.rejected, contactCount != 0 { return .none }
+
+            if contactCount == state.fingerCount, let averageX {
                 // Reject before latching/storing `lastX`. In one-shot mode a
                 // NaN accumulator never crosses either threshold and otherwise
                 // remains poisoned until lift.
-                guard averageX.isFinite else {
+                guard averageX.isFinite, averageY.isFinite, timestamp.isFinite else {
                     state.tracking = false
                     state.accumulator = 0
+                    state.verticalTravel = 0
                     return .none
                 }
                 state.latchedDevice = device
-                state.active = true
                 if !state.tracking {
                     state.tracking = true
                     state.lastX = averageX
+                    state.lastY = averageY
+                    state.beganAt = timestamp
                     return .none
                 }
 
                 state.accumulator += averageX - state.lastX
+                state.verticalTravel += averageY - state.lastY
                 state.lastX = averageX
+                state.lastY = averageY
+                let canMoveVertically = state.navigationEnabled && !state.oneShot
+                if !state.navigationEnabled || state.oneShot {
+                    if !state.active, abs(state.verticalTravel) >= maximumOpeningDrift {
+                        state.rejected = true
+                        return .none
+                    }
+                    guard timestamp - state.beganAt >= entryConfirmation else { return .none }
+                }
                 let rightward = state.reverse ? -1 : 1
+                if !state.navigationEnabled, !state.oneShot {
+                    // Wait for the main actor to reveal the panel before any
+                    // further movement can become selection steps.
+                    guard !state.active, abs(state.accumulator) >= openingDistance,
+                          abs(state.accumulator) > abs(state.verticalTravel) else { return .none }
+                    let direction = state.accumulator > 0 ? rightward : -rightward
+                    state.active = true
+                    state.accumulator = 0
+                    state.verticalTravel = 0
+                    return Action(steps: direction, generation: state.generation)
+                }
+                if canMoveVertically, abs(state.verticalTravel) > abs(state.accumulator) {
+                    let distance = state.stepDistance * 0.45
+                    let quotient = state.verticalTravel / distance
+                    guard quotient.isFinite else {
+                        state.verticalTravel = 0
+                        return .none
+                    }
+                    let bounded = min(16, max(-16, quotient))
+                    let steps = Int(bounded.rounded(.towardZero))
+                    if quotient != bounded {
+                        state.verticalTravel = 0
+                    } else if steps != 0 {
+                        state.verticalTravel -= Float(steps) * distance
+                    }
+                    if steps != 0 { state.active = true }
+                    return Action(verticalSteps: -steps, generation: state.generation)
+                }
 
                 if state.oneShot {
                     guard !state.fired else { return .none }
                     if state.accumulator >= oneShotThreshold {
                         state.fired = true
+                        state.active = true
                         return Action(steps: rightward, generation: state.generation)
                     }
                     if state.accumulator <= -oneShotThreshold {
                         state.fired = true
+                        state.active = true
                         return Action(steps: -rightward, generation: state.generation)
                     }
                     return .none
@@ -385,7 +492,8 @@ enum MTGesture {
                     state.accumulator = 0
                     return .none
                 }
-                let quotient = state.accumulator / state.stepDistance
+                let distance = state.stepDistance * 0.45
+                let quotient = state.accumulator / distance
                 // Normalized contact coordinates make |quotient| tiny. Clamp a
                 // malformed private-framework frame so conversion cannot trap or
                 // enqueue an unbounded burst onto the main thread.
@@ -394,15 +502,21 @@ enum MTGesture {
                 if quotient != bounded {
                     state.accumulator = 0
                 } else if physicalSteps != 0 {
-                    state.accumulator -= Float(physicalSteps) * state.stepDistance
+                    state.accumulator -= Float(physicalSteps) * distance
+                }
+                if physicalSteps != 0 {
+                    state.active = true
                 }
                 return Action(steps: physicalSteps * rightward, generation: state.generation)
             }
 
             state.tracking = false
+            state.accumulator = 0
+            state.verticalTravel = 0
             guard contactCount == 0 else { return .none }
             let shouldCommit = state.active && state.commitOnRelease
             state.active = false
+            state.rejected = false
             state.accumulator = 0
             state.fired = false
             state.latchedDevice = -1
@@ -412,14 +526,18 @@ enum MTGesture {
 }
 
 /// Hop the frame's coalesced steps to the main actor and into the live trigger.
-private func mtEmitSteps(_ signedCount: Int, generation: UInt64) {
+private func mtEmitSteps(_ signedCount: Int, generation: UInt64, vertical: Bool = false) {
     guard signedCount != 0 else { return }
     DispatchQueue.main.async {
         MainActor.assumeIsolated {
             guard MTGesture.isCurrent(generation: generation) else { return }
             let direction = signedCount > 0 ? 1 : -1
             for _ in 0..<abs(signedCount) {
-                SwipeTrigger.deliver(direction)
+                if vertical {
+                    SwipeTrigger.deliverVertical(direction)
+                } else {
+                    SwipeTrigger.deliver(direction)
+                }
             }
         }
     }
@@ -436,7 +554,7 @@ private func mtEmitCommit(generation: UInt64) {
 }
 
 /// `@convention(c)` contact-frame callback. Non-capturing, so it can be passed
-/// as a C function pointer. While the set fingers stay down it accumulates
+/// as a C function pointer. While the configured fingers stay down it accumulates
 /// horizontal travel and emits one step per `stepDistance` moved, so continuing
 /// to slide keeps advancing the selection. When all fingers lift it optionally
 /// commits the selection.
@@ -448,24 +566,27 @@ private func multitouchSwipeCallback(
     _ frame: Int32
 ) -> Int32 {
     var averageX: Float?
-    if let contacts, numContacts >= 3 {
-        // Average the normalized x of the first three contacts. Vertical motion
-        // is ignored, so a pure three-finger up/down swipe banks no travel and
-        // never steps — only the horizontal component drives the selection.
+    var averageY: Float = 0
+    if let contacts, numContacts == 3 || numContacts == 4 {
         var sumX: Float = 0
-        for i in 0..<3 {
+        var sumY: Float = 0
+        for i in 0..<Int(numContacts) {
             let base = contacts.advanced(by: i * MTLayout.stride)
             sumX += base.loadUnaligned(fromByteOffset: MTLayout.normalizedPosX, as: Float.self)
+            sumY += base.loadUnaligned(fromByteOffset: MTLayout.normalizedPosY, as: Float.self)
         }
-        averageX = sumX / 3
+        averageX = sumX / Float(numContacts)
+        averageY = sumY / Float(numContacts)
     }
     let action = MTGesture.consume(
         device: device,
         contactCount: numContacts,
         averageX: averageX,
+        averageY: averageY,
         timestamp: timestamp
     )
     mtEmitSteps(action.steps, generation: action.generation)
+    mtEmitSteps(action.verticalSteps, generation: action.generation, vertical: true)
     if action.commit { mtEmitCommit(generation: action.generation) }
     return 0
 }

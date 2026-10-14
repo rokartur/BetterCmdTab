@@ -10,6 +10,7 @@ final class HotkeyTap: @unchecked Sendable {
     enum Event: Sendable {
         case nextApp
         case prevApp
+        case scrollSelection(direction: Int, horizontal: Bool)
         case nextWindow
         case prevWindow
         case nextRow
@@ -204,17 +205,61 @@ final class HotkeyTap: @unchecked Sendable {
     /// True while the switcher is in browser-tab drill-in. Nav keys reroute to
     /// `.tabPrev`/`.tabNext`, Esc exits the drill, Cmd release commits the tab.
     private let tabDrillFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
-    /// When true, a mouse-wheel scroll steps the open switcher's selection.
-    /// Trackpad / Magic Mouse gesture scrolls (which carry a scroll or
-    /// momentum phase) always pass through; phase-less *continuous* wheel
-    /// scrolls from driver-smoothed mice accumulate into steps (issue #68).
+    /// Scroll navigation is active only while the switcher is open.
     private let scrollEnabledFlag = OSAllocatedUnfairLock<Bool>(initialState: false)
-    /// Running line-delta accumulator for continuous (phase-less) wheel
-    /// scrolls plus the uptime of the last accumulated event, so a pause
-    /// drops a stale remainder. Only touched while the switcher is open with
-    /// scroll-to-switch on — the idle path never reads it.
     private let continuousScrollState =
-        OSAllocatedUnfairLock<(acc: Double, lastNs: UInt64)>(initialState: (0, 0))
+        OSAllocatedUnfairLock<ScrollNavigation>(initialState: ScrollNavigation())
+
+    struct ScrollStep {
+        var count: Int
+        var horizontal: Bool
+    }
+
+    /// Shared by phased two-finger scrolling and smooth mouse wheels. Keeping
+    /// the axis with the remainder prevents a horizontal fraction becoming a row jump.
+    struct ScrollNavigation {
+        var accumulated: Double = 0
+        var lastNs: UInt64 = 0
+        var horizontal = false
+
+        mutating func consume(x: Double, y: Double, continuous: Bool,
+                              phase: Int64, momentum: Int64, routing: MTGesture.ScrollRouting,
+                              reverse: Bool, now: UInt64) -> ScrollStep? {
+            switch routing {
+            case .passthrough:
+                self = Self()
+                return nil
+            case .consume:
+                self = Self()
+                return ScrollStep(count: 0, horizontal: false)
+            case .navigate:
+                break
+            }
+            // Inertia must not keep moving the selection after fingers lift.
+            guard momentum == 0 else { self = Self(); return ScrollStep(count: 0, horizontal: false) }
+            guard x.isFinite, y.isFinite else { self = Self(); return nil }
+            let nextHorizontal = abs(x) > abs(y)
+            let delta = nextHorizontal ? x : y
+            if now &- lastNs > continuousScrollResetNs || horizontal != nextHorizontal || phase & 1 != 0 {
+                accumulated = 0
+            }
+            horizontal = nextHorizontal
+            lastNs = now
+            guard delta != 0 else { return ScrollStep(count: 0, horizontal: horizontal) }
+            let steps: Int
+            if continuous {
+                let result = accumulateContinuousScroll(
+                    accumulated: accumulated, delta: min(48, max(-48, delta)),
+                    threshold: continuousScrollStepLines)
+                accumulated = result.remainder
+                steps = result.steps
+            } else {
+                accumulated = 0
+                steps = delta > 0 ? 1 : -1
+            }
+            return ScrollStep(count: min(3, max(-3, steps)) * (reverse ? 1 : -1), horizontal: horizontal)
+        }
+    }
     /// One selection step per this many accumulated scroll lines. Smooth
     /// wheels report a wheel notch as a burst of continuous line-fraction
     /// deltas totalling a few lines, so this lands near one step per notch.
@@ -637,7 +682,7 @@ final class HotkeyTap: @unchecked Sendable {
         if !value { stopShiftRepeat() }
         // Closing also drops any partially-accumulated continuous scroll so a
         // leftover fraction can't leak a step into the next open.
-        if !value { continuousScrollState.withLock { $0 = (0, 0) } }
+        if !value { continuousScrollState.withLock { $0 = ScrollNavigation() } }
         // The pointer tap is only needed while the switcher is open; keep it
         // live exactly for that window so idle scroll/click traffic never
         // enters this process. Safe to call from main: `tapEnable` just toggles
@@ -1154,50 +1199,24 @@ final class HotkeyTap: @unchecked Sendable {
                 return Unmanaged.passUnretained(event)
             }
             let continuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
-            if !continuous {
-                let delta = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
-                guard delta != 0 else { return Unmanaged.passUnretained(event) }
-                // With macOS natural scrolling, rolling the wheel down gives a
-                // negative delta and should advance the selection forward.
-                let reverse = scrollReverseFlag.withLock { $0 }
-                let forward = (delta < 0) != reverse
-                deliver(forward ? .nextApp : .prevApp)
-                return nil
+            let x = continuous
+                ? event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
+                : Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis2))
+            let y = continuous
+                ? event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
+                : Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis1))
+            let routing = MTGesture.scrollRouting
+            let reverse = scrollReverseFlag.withLock { $0 }
+            let step = continuousScrollState.withLock { state in
+                state.consume(x: x, y: y, continuous: continuous,
+                              phase: event.getIntegerValueField(.scrollWheelEventScrollPhase),
+                              momentum: event.getIntegerValueField(.scrollWheelEventMomentumPhase),
+                              routing: routing, reverse: reverse,
+                              now: DispatchTime.now().uptimeNanoseconds)
             }
-            // Continuous scrolls: trackpad and Magic Mouse gestures carry a
-            // scroll or momentum phase — pass those straight through so
-            // two-finger scrolling stays free and the trackpad keeps its
-            // three-finger swipe. A continuous scroll with NO phase is a
-            // driver-smoothed mouse wheel (Logitech Options, many Bluetooth
-            // mice — issue #68): the user rolled a physical wheel and expects
-            // a step, so accumulate the line-fraction deltas and step per
-            // `continuousScrollStepLines`, swallowing the events like the
-            // discrete path does.
-            let phase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
-            let momentum = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
-            guard phase == 0, momentum == 0 else {
-                return Unmanaged.passUnretained(event)
-            }
-            let lineDelta = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
-            guard lineDelta != 0 else { return Unmanaged.passUnretained(event) }
-            let now = DispatchTime.now().uptimeNanoseconds
-            let steps = continuousScrollState.withLock { state -> Int in
-                if now &- state.lastNs > Self.continuousScrollResetNs { state.acc = 0 }
-                state.lastNs = now
-                let result = Self.accumulateContinuousScroll(
-                    accumulated: state.acc, delta: lineDelta,
-                    threshold: Self.continuousScrollStepLines)
-                state.acc = result.remainder
-                return result.steps
-            }
-            if steps != 0 {
-                let reverse = scrollReverseFlag.withLock { $0 }
-                let forward = (steps < 0) != reverse
-                // A single flick can cross several thresholds; cap the burst
-                // so one event can never flood the selection.
-                for _ in 0..<min(abs(steps), 3) {
-                    deliver(forward ? .nextApp : .prevApp)
-                }
+            guard let step else { return Unmanaged.passUnretained(event) }
+            for _ in 0..<abs(step.count) {
+                deliver(.scrollSelection(direction: step.count > 0 ? 1 : -1, horizontal: step.horizontal))
             }
             return nil
         }

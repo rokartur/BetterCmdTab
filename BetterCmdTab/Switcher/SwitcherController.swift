@@ -848,6 +848,11 @@ final class SwitcherController: SwitcherViewDelegate {
         swipeTrigger.onSwipe = { [weak self] delta in
             self?.triggerFromGesture(delta: delta)
         }
+        swipeTrigger.onVerticalSwipe = { [weak self] delta in
+            guard let self, self.phase == .visible,
+                  Preferences.shared.swipeMode == .openSwitcher else { return }
+            self.navigateFromGesture(delta: delta, vertical: true)
+        }
         swipeTrigger.onCommit = { [weak self] in
             self?.commitFromGesture()
         }
@@ -859,8 +864,8 @@ final class SwitcherController: SwitcherViewDelegate {
         // per swipe (one Space jump / one app flip).
         swipeTrigger.setOneShot(Preferences.shared.swipeMode != .openSwitcher)
         swipeTrigger.setEnabled(Preferences.shared.experimentalSwipeTrigger)
-        // The swipe takes over three-finger horizontal Spaces navigation, so
-        // suppress the system Space-swipe whenever the swipe is enabled. Wire the
+        // One-shot modes take over Spaces navigation; openSwitcher leaves it
+        // native (use a different finger count for macOS Spaces). Wire the
         // storm callback before installing the tap so a disable burst (e.g. on AX
         // revoke) tears it down instead of freezing the system.
         spaceSwipeSuppressor.onTapDisabledStorm = { [weak self] in self?.handleSwipeSuppressorStorm() }
@@ -897,7 +902,11 @@ final class SwitcherController: SwitcherViewDelegate {
             .store(in: &cancellables)
         Preferences.shared.$swipeMode
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] mode in self?.swipeTrigger.setOneShot(mode != .openSwitcher) }
+            .sink { [weak self] mode in
+                guard let self else { return }
+                self.swipeTrigger.setOneShot(mode != .openSwitcher)
+                self.updateSwipeSuppressor()
+            }
             .store(in: &cancellables)
 
         // Mouse scroll-to-switch: stepped by the hotkey tap (it sees scroll
@@ -991,7 +1000,7 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         switch phase {
         case .visible:
-            advanceLinearVisible(by: delta, wrap: true)
+            navigateFromGesture(delta: delta, vertical: false)
         case .primed:
             advance(by: delta, wrap: true)
         case .idle:
@@ -1000,9 +1009,10 @@ final class SwitcherController: SwitcherViewDelegate {
             // No empty-list bail: with every app filtered out (e.g. a lone
             // windowless Finder under its when-no-windows exception, #112)
             // the panel still reveals into the #31 empty state.
-            // Anchor on the global sort: this path never resolves per-shortcut
-            // options, so `effective` is a stale snapshot here (#88).
-            let anchor = primedAnchor(for: Preferences.shared.sortOrder)
+            activeFilterConfig = nil
+            effective = .defaults
+            activeTarget = .switchApps
+            let anchor = primedAnchor(for: effective.sortOrder)
             let step = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
             primedIndex = Self.primedStartIndex(count: primedApps.count, step: step, anchor: anchor)
             primedStepDelta = step
@@ -1023,6 +1033,25 @@ final class SwitcherController: SwitcherViewDelegate {
     private func commitFromGesture() {
         guard phase != .idle else { return }
         commit()
+    }
+
+    /// Trackpad movement follows the displayed geometry, stopping at grid edges
+    /// instead of wrapping a horizontal swipe into the next row.
+    private func navigateFromGesture(delta: Int, vertical: Bool) {
+        if currentMetrics.layoutMode.isGridLike {
+            let next = vertical
+                ? view.neighboringRowIndex(from: index, direction: delta)
+                : view.neighboringColumnIndex(from: index, direction: delta)
+            if let next {
+                index = next
+                view.setSelectedIndex(index)
+                schedulePrefetchForCurrentSelection()
+            }
+        } else if vertical {
+            advanceVerticalOrLinear(by: delta)
+        } else {
+            advanceHorizontal(by: delta)
+        }
     }
 
     /// "Quick switch" swipe mode: one swipe acts like a quick ⌘Tab
@@ -1707,6 +1736,9 @@ final class SwitcherController: SwitcherViewDelegate {
         let shouldArm = Preferences.shared.experimentalSwipeTrigger
             && AccessibilityCheck.isTrusted
             && swipeTrigger.isInstalled
+            // This tap cannot distinguish finger counts, so openSwitcher must
+            // leave native gestures with another count available.
+            && Preferences.shared.swipeMode != .openSwitcher
         spaceSwipeSuppressor.setEnabled(shouldArm)
     }
 
@@ -1836,6 +1868,7 @@ final class SwitcherController: SwitcherViewDelegate {
         cache.stop()
         mru.stop()
         windowMRU.stop()
+        swipeTrigger.setNavigationEnabled(false)
         swipeTrigger.setEnabled(false)
         spaceSwipeSuppressor.setEnabled(false)
         hotkey.setSwitching(false)
@@ -2020,6 +2053,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // action keys + letter-jump on this so a panel-less `.primed` never
             // swallows ⌘W/⌘Q/etc. from the focused app (issue #16).
             hotkey.setPanelPresented(newValue.presentsPanel)
+            swipeTrigger.setNavigationEnabled(newValue == .visible)
             // Liveness ceiling on `.primed` (see `primedWatchdog`). Arm on entry,
             // tear down on every other edge — `reveal()` → `.visible` and any
             // commit/cancel → `.idle` both pass through here, so the normal fast
@@ -2359,7 +2393,7 @@ final class SwitcherController: SwitcherViewDelegate {
     private func noteSteeringActivity(for event: HotkeyTap.Event) {
         switch event {
         case .nextApp, .prevApp, .nextWindow, .prevWindow, .nextRow, .prevRow,
-             .spatialLeft, .spatialRight, .letterInput, .letterInputKey,
+             .spatialLeft, .spatialRight, .scrollSelection, .letterInput, .letterInputKey,
              .searchInput, .searchInputKey, .searchBackspace, .toggleSearch,
              .enterTabDrill, .exitTabDrill, .tabPrev, .tabNext:
             lastVisibleActivity = Date()
@@ -2371,6 +2405,9 @@ final class SwitcherController: SwitcherViewDelegate {
     private func handle(_ event: HotkeyTap.Event) {
         noteSteeringActivity(for: event)
         switch event {
+        case .scrollSelection(let direction, let horizontal):
+            guard phase == .visible, !tabDrillActive else { return }
+            navigateFromGesture(delta: direction, vertical: !horizontal)
         case .nextApp:
             // Secure-input Carbon parity with the tap's drill branch: while
             // drilled, the trigger chord steps the tab strip — never the app

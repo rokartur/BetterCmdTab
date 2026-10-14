@@ -482,17 +482,20 @@ final class SwitcherView: NSView {
     /// we'd go past the top/bottom edge, jumps to the opposite-end row.
     /// Returns nil if there's only one row or layout has no frames.
     func neighboringRowIndex(from current: Int, direction: Int, wrap: Bool = false) -> Int? {
-        let info = computeLayout()
-        guard info.frames.indices.contains(current) else { return nil }
-        let currentFrame = info.frames[current]
+        Self.rowNeighborIndex(frames: computeLayout().frames, from: current, direction: direction, wrap: wrap)
+    }
+
+    nonisolated static func rowNeighborIndex(frames: [NSRect], from current: Int, direction: Int, wrap: Bool = false) -> Int? {
+        guard frames.indices.contains(current) else { return nil }
+        let currentFrame = frames[current]
         let currentMidX = currentFrame.midX
 
         // Group frames into rows by Y. Frames are emitted row-by-row from the
         // top, so consecutive frames with the same Y belong to one row.
         let tolerance: CGFloat = 0.5
         var rows: [[(idx: Int, midX: CGFloat)]] = []
-        for (i, f) in info.frames.enumerated() {
-            if let last = rows.last, let head = last.first, abs(info.frames[head.idx].minY - f.minY) < tolerance {
+        for (i, f) in frames.enumerated() {
+            if let last = rows.last, let head = last.first, abs(frames[head.idx].minY - f.minY) < tolerance {
                 rows[rows.count - 1].append((i, f.midX))
             } else {
                 rows.append([(i, f.midX)])
@@ -523,6 +526,26 @@ final class SwitcherView: NSView {
             }
         }
         return best.idx
+    }
+
+    func neighboringColumnIndex(from current: Int, direction: Int) -> Int? {
+        Self.columnNeighborIndex(frames: computeLayout().frames, from: current, direction: direction)
+    }
+
+    nonisolated static func columnNeighborIndex(frames: [NSRect], from current: Int, direction: Int) -> Int? {
+        guard frames.indices.contains(current), direction != 0 else { return nil }
+        let origin = frames[current]
+        var nearest: Int?
+        var distance = CGFloat.infinity
+        for (candidate, frame) in frames.enumerated() {
+            guard abs(frame.minY - origin.minY) < 0.5 else { continue }
+            let dx = (frame.midX - origin.midX) * CGFloat(direction > 0 ? 1 : -1)
+            if dx > 0, dx < distance {
+                nearest = candidate
+                distance = dx
+            }
+        }
+        return nearest
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
