@@ -1120,6 +1120,7 @@ final class Preferences: ObservableObject {
         static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
         static let backtickReversesAppSwitching = "Switcher.backtickReversesAppSwitching"
         static let switcherDisplayMode = "Switcher.displayMode"
+        static let movePointerAcrossDisplays = "Switcher.movePointerAcrossDisplays"
         static let verticalPosition = "Switcher.verticalPosition"
         static let previewTitleAlignment = "Switcher.previewTitleAlignment"
         static let titleTruncationMode = "Switcher.titleTruncationMode"
@@ -1139,6 +1140,15 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != switcherDisplayMode else { return }
             UserDefaults.standard.set(switcherDisplayMode.rawValue, forKey: Keys.switcherDisplayMode)
+        }
+    }
+
+    /// Warp the pointer to the display of a window switched to on another display
+    /// (#205). Off by default; `Activator` reads the key off-main.
+    @Published var movePointerAcrossDisplays: Bool {
+        didSet {
+            guard oldValue != movePointerAcrossDisplays else { return }
+            UserDefaults.standard.set(movePointerAcrossDisplays, forKey: Keys.movePointerAcrossDisplays)
         }
     }
 
@@ -2619,6 +2629,7 @@ final class Preferences: ObservableObject {
         self.switcherLayoutMode = layoutRaw.flatMap(SwitcherLayoutMode.init(rawValue:)) ?? .gridView
         self.switcherDisplayMode = defaults.string(forKey: Keys.switcherDisplayMode)
             .flatMap(SwitcherDisplayMode.init(rawValue:)) ?? .mouseCursor
+        self.movePointerAcrossDisplays = defaults.bool(forKey: Keys.movePointerAcrossDisplays)
         self.verticalPosition = defaults.string(forKey: Keys.verticalPosition)
             .flatMap(SwitcherVerticalPosition.init(rawValue:)) ?? .center
 
@@ -2812,6 +2823,7 @@ final class Preferences: ObservableObject {
         switcherLayoutMode = defaults.string(forKey: Keys.switcherLayoutMode).flatMap(SwitcherLayoutMode.init(rawValue:)) ?? .gridView
         switcherDisplayMode = defaults.string(forKey: Keys.switcherDisplayMode)
             .flatMap(SwitcherDisplayMode.init(rawValue:)) ?? .mouseCursor
+        movePointerAcrossDisplays = defaults.bool(forKey: Keys.movePointerAcrossDisplays)
         verticalPosition = defaults.string(forKey: Keys.verticalPosition)
             .flatMap(SwitcherVerticalPosition.init(rawValue:)) ?? .center
         sortOrder = defaults.string(forKey: Keys.sortOrder).flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru

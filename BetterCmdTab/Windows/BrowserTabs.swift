@@ -186,6 +186,7 @@ enum BrowserTabs {
         // The script can fail up to 8 s late; don't steal focus from a newer switch.
         guard Activator.isCurrentActivation(generation) else { return }
         AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+        Activator.movePointerToDisplayIfEnabled(of: PrivateAPI.cgWindowId(of: window), generation: generation)
         DispatchQueue.main.async {
             if Activator.isCurrentActivation(generation) { Activator.activateProcess(app) }
         }
@@ -685,6 +686,7 @@ enum BrowserTabs {
         if #available(macOS 14.0, *) { NSApp.yieldActivation(to: app) }
         DispatchQueue.global(qos: .userInitiated).async {
             guard activateTab(at: tabIndex, in: app, window: window, title: title, generation: generation) else { return }
+            Activator.movePointerToDisplayIfEnabled(of: PrivateAPI.cgWindowId(of: window), generation: generation)
             // From an inactive source (primed tap) the script's own `activate` can be denied.
             DispatchQueue.main.async {
                 if Activator.isCurrentActivation(generation), !app.isActive { Activator.activateProcess(app) }

@@ -383,6 +383,10 @@
       "description" : "Highlight the entry under the pointer.",
       "type" : "boolean"
     },
+    "movePointerAcrossDisplays" : {
+      "description" : "After a switch to a window on another display, move the pointer to the center of that display.",
+      "type" : "boolean"
+    },
     "nextScopedShortcutID" : {
       "description" : "Internal counter for allocating scoped-shortcut ids. Never decreases, so a removed id is never reused. Don't edit.",
       "type" : "integer"

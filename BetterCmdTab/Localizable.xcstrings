@@ -9855,6 +9855,46 @@
         }
       }
     },
+    "Move pointer to the window's display" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeiger auf den Bildschirm des Fensters bewegen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mover el puntero a la pantalla de la ventana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer le pointeur vers l’écran de la fenêtre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenoś kursor na ekran okna"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемещать указатель на дисплей окна"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将指针移到窗口所在的显示器"
+          }
+        }
+      }
+    },
     "Move selection down" : {
       "localizations" : {
         "de" : {
@@ -18501,6 +18541,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索时"
+          }
+        }
+      }
+    },
+    "When the window you switch to is on another display, move the pointer to the center of that display." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liegt das Fenster, zu dem du wechselst, auf einem anderen Display, wird der Zeiger in die Mitte dieses Displays bewegt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la ventana a la que cambias está en otra pantalla, el puntero se mueve al centro de esa pantalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la fenêtre vers laquelle vous basculez est sur un autre écran, le pointeur se place au centre de cet écran."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy okno, do którego przełączasz, jest na innym ekranie, kursor przenosi się na środek tego ekranu."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если окно, на которое вы переключаетесь, находится на другом дисплее, указатель перемещается в центр этого дисплея."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换到的窗口位于另一台显示器上时，将指针移到该显示器的中心。"
           }
         }
       }

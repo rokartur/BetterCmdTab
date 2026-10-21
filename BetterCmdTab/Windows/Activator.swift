@@ -475,6 +475,7 @@ enum Activator {
             guard isCurrentActivation(gen) else { return }
             AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
             AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+            movePointerToDisplayIfEnabled(of: wid, generation: gen)
         }
         if pid == getpid() { applyFocus() } else { activationQueue.async(execute: applyFocus) }
 
@@ -614,8 +615,30 @@ enum Activator {
             guard isCurrentActivation(gen) else { return }
             AXUIElementPerformAction(tab, kAXPressAction as CFString)
             AXUIElementSetAttributeValue(tab, kAXSelectedAttribute as CFString, kCFBooleanTrue)
+            movePointerToDisplayIfEnabled(of: wid, generation: gen)
         }
         if pid == getpid() { apply() } else { activationQueue.async(execute: apply) }
+    }
+
+    /// Opt-in (#205). Bounds come from the WindowServer, so a wedged app cannot stall this.
+    static func movePointerToDisplayIfEnabled(of wid: CGWindowID, generation: UInt64) {
+        guard wid != 0,
+              isCurrentActivation(generation),
+              UserDefaults.standard.bool(forKey: Preferences.Keys.movePointerAcrossDisplays),
+              let info = CGWindowListCopyWindowInfo(.optionIncludingWindow, wid) as? [NSDictionary],
+              let boundsDict = info.first?[kCGWindowBounds as String] as? NSDictionary,
+              let windowBounds = CGRect(dictionaryRepresentation: boundsDict),
+              let pointer = CGEvent(source: nil)?.location else { return }
+        var count: UInt32 = 0
+        CGGetActiveDisplayList(0, nil, &count)
+        var displays = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        CGGetActiveDisplayList(count, &displays, &count)
+        guard let target = ScreenSelection.pointerWarpTarget(
+            windowBounds: windowBounds, pointer: pointer, displayBounds: displays.prefix(Int(count)).map(CGDisplayBounds)
+        ) else { return }
+        CGWarpMouseCursorPosition(target)
+        // A warp freezes mouse input for ~0.25s; re-associating ends that at once.
+        CGAssociateMouseAndMouseCursorPosition(1)
     }
 
     /// Landing a Space switch focuses that Space's frontmost app, which took focus

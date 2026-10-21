@@ -41,7 +41,7 @@ const properties = schema.properties as Record<string, SchemaFragment>;
 const sections: { title: string; keys: string[] }[] = [
   {
     title: 'Display & timing',
-    keys: ['displayMode', 'verticalPosition', 'revealDelayMs', 'titleRefreshIntervalMs'],
+    keys: ['displayMode', 'movePointerAcrossDisplays', 'verticalPosition', 'revealDelayMs', 'titleRefreshIntervalMs'],
   },
   {
     title: 'Layout',
@@ -267,6 +267,7 @@ const defaults: Record<string, string> = {
   livePreviews: 'false',
   mouseClickSelectionEnabled: 'true',
   mouseHoverSelectionEnabled: 'true',
+  movePointerAcrossDisplays: 'false',
   nextScopedShortcutID: '0',
   oneHandLetterHints: 'false',
   panelAppearance: '"system"',

@@ -2,8 +2,9 @@ import CoreGraphics
 import Foundation
 
 /// Pure screen-picking geometry, split out from `NSScreen` so it is unit
-/// testable without a live WindowServer. All rects share one coordinate space
-/// (Cocoa, bottom-left origin) supplied by the caller.
+/// testable without a live WindowServer. Each function's rects share one
+/// coordinate space supplied by the caller: Cocoa for screen picking, CG
+/// (top-left origin) for `pointerWarpTarget`.
 enum ScreenSelection {
 
     /// Index of the screen containing the cursor `point`, or nil when the
@@ -37,6 +38,15 @@ enum ScreenSelection {
             if best == nil || area > best!.area { best = (i, area) }
         }
         return best?.index
+    }
+
+    /// Center of the display holding most of `windowBounds`, or nil when the
+    /// pointer is already over the window or on that display. All values in CG global space.
+    static func pointerWarpTarget(windowBounds: CGRect, pointer: CGPoint, displayBounds: [CGRect]) -> CGPoint? {
+        guard !windowBounds.contains(pointer),
+              let i = indexOfMaxOverlap(rect: windowBounds, screenFrames: displayBounds),
+              !displayBounds[i].contains(pointer) else { return nil }
+        return CGPoint(x: displayBounds[i].midX, y: displayBounds[i].midY)
     }
 
     /// Index of the "Main display" — the screen whose frame origin is (0, 0),

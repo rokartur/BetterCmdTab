@@ -236,6 +236,8 @@ enum ConfigSchemaDocs {
         "displayMode": ConfigSettingDoc(
             "string", "Which monitor the switcher opens on.",
             values: ConfigValues(SwitcherDisplayMode.self, \.displayName)),
+        "movePointerAcrossDisplays": ConfigSettingDoc(
+            "boolean", "After a switch to a window on another display, move the pointer to the center of that display."),
         "verticalPosition": ConfigSettingDoc(
             "string", "Where the switcher sits vertically. top keeps its top edge still while search narrows the list.",
             values: ConfigValues(SwitcherVerticalPosition.self, \.displayName)),

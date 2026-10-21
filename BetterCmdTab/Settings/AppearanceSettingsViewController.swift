@@ -25,6 +25,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private let fontSizePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let fontFacePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let gridSingleRowSwitch = PreferenceSwitch(bind: \.gridSingleRow)
+    private let movePointerSwitch = PreferenceSwitch(bind: \.movePointerAcrossDisplays)
     private let livePreviewSwitch = PreferenceSwitch(bind: \.livePreviews)
     private let windowTitleSwitch = PreferenceSwitch(bind: \.showWindowTitleLabel)
     private let appNamesSwitch = PreferenceSwitch(bind: \.showApplicationNames)
@@ -61,7 +62,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         // the global-defaults note more than Switcher or Controls do.
         addGlobalDefaultNote()
 
-        // Layout section — the panel's shape: which layout, how big, how many
+        // Layout section: where the panel shows, its shape and size, and the
         // grid columns.
         let layout = addSection(title: String(localized: "Layout"), anchor: SettingsAnchor.appearanceLayout)
 
@@ -69,6 +70,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         addRow(to: layout, title: String(localized: "Show switcher on"),
                subtitle: String(localized: "Choose which monitor the switcher opens on when you have more than one display."),
                accessory: displayMonitorPopup, searchItemID: SearchID.displayMonitor)
+
+        addRow(to: layout, title: String(localized: "Move pointer to the window's display"),
+               subtitle: String(localized: "When the window you switch to is on another display, move the pointer to the center of that display."),
+               accessory: movePointerSwitch, searchItemID: SearchID.movePointerAcrossDisplays)
 
         configurePopup(verticalPositionPopup, titles: verticalPositions.map(\.displayName), action: #selector(verticalPositionChanged))
         addRow(to: layout, title: String(localized: "Vertical position"),
@@ -373,6 +378,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.gridSingleRowSwitch.sync() }
             .store(in: &cancellables)
+        prefs.$movePointerAcrossDisplays
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.movePointerSwitch.sync() }
+            .store(in: &cancellables)
         prefs.$livePreviews
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.livePreviewSwitch.sync() }
@@ -474,6 +483,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         selectAppearance(prefs.panelAppearance)
         selectGrid(prefs.gridMaxColumns)
         gridSingleRowSwitch.sync()
+        movePointerSwitch.sync()
         livePreviewSwitch.sync()
         applyListWidth(prefs.listWidthPercent)
         windowTitleSwitch.sync()
