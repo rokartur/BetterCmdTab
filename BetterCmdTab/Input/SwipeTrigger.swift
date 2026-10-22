@@ -25,6 +25,9 @@ final class SwipeTrigger {
     /// `+1` for a swipe that should advance forward, `-1` for backward.
     var onSwipe: (Int) -> Void = { _ in }
 
+    /// `+1` for a slide down a row, `-1` for up. Never fires in one-shot modes.
+    var onRowSwipe: (Int) -> Void = { _ in }
+
     /// Called when a three-finger gesture ends (all fingers lifted) and the
     /// "commit on release" option is on — the switcher commits its selection.
     var onCommit: () -> Void = {}
@@ -134,6 +137,10 @@ final class SwipeTrigger {
         active?.onSwipe(direction)
     }
 
+    fileprivate static func deliverRow(_ direction: Int) {
+        active?.onRowSwipe(direction)
+    }
+
     /// Called on the main actor when a gesture ends and commit-on-release is on.
     fileprivate static func deliverCommit() {
         active?.onCommit()
@@ -205,11 +212,13 @@ private struct MultitouchAPI: @unchecked Sendable {
 
 /// Byte layout of the contact-frame struct, stable across macOS releases:
 /// the `normalized` readout (position then velocity, each two `Float`s) starts
-/// at offset 32, so the normalized position x lives at 32. Each contact is 96
-/// bytes. We only read normalized x, so we avoid mirroring the rest.
+/// at offset 32, so the normalized position x lives at 32 and y at 36. Each
+/// contact is 96 bytes. We only read the normalized position, so we avoid
+/// mirroring the rest.
 private enum MTLayout {
     static let stride = 96
     static let normalizedPosX = 32
+    static let normalizedPosY = 36
 }
 
 /// Per-gesture state shared by MultitouchSupport callbacks and main-actor
@@ -250,7 +259,9 @@ enum MTGesture {
         var active = false
         var tracking = false
         var lastX: Float = 0
+        var lastY: Float = 0
         var accumulator: Float = 0
+        var rowAccumulator: Float = 0
         var reverse = false
         var commitOnRelease = false
         var oneShot = false
@@ -265,6 +276,8 @@ enum MTGesture {
     struct Action: Sendable {
         /// Signed number of selection steps. Positive means forward.
         var steps = 0
+        /// Signed number of row steps. Positive means down.
+        var rows = 0
         var commit = false
         var generation: UInt64 = 0
         static let none = Action()
@@ -319,12 +332,12 @@ enum MTGesture {
     }
 
     /// Consume one contact frame and return work to deliver after releasing the
-    /// lock. `averageX` is pre-read from the callback's transient C buffer, so no
+    /// lock. `position` is pre-read from the callback's transient C buffer, so no
     /// unsafe pointer crosses into the lock closure.
     static func consume(
         device: Int32,
         contactCount: Int32,
-        averageX: Float?,
+        position: (x: Float, y: Float)?,
         timestamp: Double
     ) -> Action {
         state.withLock { state in
@@ -338,31 +351,36 @@ enum MTGesture {
                 state.tracking = false
                 state.active = false
                 state.accumulator = 0
+                state.rowAccumulator = 0
                 state.fired = false
             }
             // A malformed private-framework timestamp must not poison stale-
             // device takeover forever. Preserve the last valid frame time.
             if timestamp.isFinite { state.latchedAt = timestamp }
 
-            if contactCount >= state.fingerCount, let averageX {
+            if contactCount >= state.fingerCount, let position {
                 // Reject before latching/storing `lastX`. In one-shot mode a
                 // NaN accumulator never crosses either threshold and otherwise
                 // remains poisoned until lift.
-                guard averageX.isFinite else {
+                guard position.x.isFinite, position.y.isFinite else {
                     state.tracking = false
                     state.accumulator = 0
+                    state.rowAccumulator = 0
                     return .none
                 }
                 state.latchedDevice = device
                 state.active = true
                 if !state.tracking {
                     state.tracking = true
-                    state.lastX = averageX
+                    state.lastX = position.x
+                    state.lastY = position.y
                     return .none
                 }
 
-                state.accumulator += averageX - state.lastX
-                state.lastX = averageX
+                state.accumulator += position.x - state.lastX
+                state.rowAccumulator += position.y - state.lastY
+                state.lastX = position.x
+                state.lastY = position.y
                 let rightward = state.reverse ? -1 : 1
 
                 if state.oneShot {
@@ -378,25 +396,17 @@ enum MTGesture {
                     return .none
                 }
 
-                // Convert all whole steps in one calculation instead of a pair
-                // of potentially long while-loops on the private callback thread.
-                guard state.accumulator.isFinite, state.stepDistance.isFinite,
-                      state.stepDistance > 0 else {
-                    state.accumulator = 0
-                    return .none
+                // A step on one axis drops the other axis's drift, so a long
+                // horizontal slide never banks a stray row step, and vice versa.
+                let physicalSteps = takeWholeSteps(from: &state.accumulator, distance: state.stepDistance)
+                if physicalSteps != 0 {
+                    state.rowAccumulator = 0
+                    return Action(steps: physicalSteps * rightward, generation: state.generation)
                 }
-                let quotient = state.accumulator / state.stepDistance
-                // Normalized contact coordinates make |quotient| tiny. Clamp a
-                // malformed private-framework frame so conversion cannot trap or
-                // enqueue an unbounded burst onto the main thread.
-                let bounded = min(16, max(-16, quotient))
-                let physicalSteps = Int(bounded.rounded(.towardZero))
-                if quotient != bounded {
-                    state.accumulator = 0
-                } else if physicalSteps != 0 {
-                    state.accumulator -= Float(physicalSteps) * state.stepDistance
-                }
-                return Action(steps: physicalSteps * rightward, generation: state.generation)
+                let rowSteps = takeWholeSteps(from: &state.rowAccumulator, distance: state.stepDistance)
+                if rowSteps != 0 { state.accumulator = 0 }
+                // Normalized y grows upward, so an upward slide is a row up (-1).
+                return Action(rows: -rowSteps, generation: state.generation)
             }
 
             state.tracking = false
@@ -404,22 +414,44 @@ enum MTGesture {
             let shouldCommit = state.active && state.commitOnRelease
             state.active = false
             state.accumulator = 0
+            state.rowAccumulator = 0
             state.fired = false
             state.latchedDevice = -1
             return Action(steps: 0, commit: shouldCommit, generation: state.generation)
         }
     }
+
+    /// Removes the whole steps `accumulator` holds and returns them signed,
+    /// in one calculation instead of a loop on the private callback thread.
+    private static func takeWholeSteps(from accumulator: inout Float, distance: Float) -> Int {
+        guard accumulator.isFinite, distance.isFinite, distance > 0 else {
+            accumulator = 0
+            return 0
+        }
+        let quotient = accumulator / distance
+        // Normalized contact coordinates make |quotient| tiny. Clamp a
+        // malformed private-framework frame so conversion cannot trap or
+        // enqueue an unbounded burst onto the main thread.
+        let bounded = min(16, max(-16, quotient))
+        let steps = Int(bounded.rounded(.towardZero))
+        if quotient != bounded {
+            accumulator = 0
+        } else if steps != 0 {
+            accumulator -= Float(steps) * distance
+        }
+        return steps
+    }
 }
 
 /// Hop the frame's coalesced steps to the main actor and into the live trigger.
-private func mtEmitSteps(_ signedCount: Int, generation: UInt64) {
+private func mtEmitSteps(_ signedCount: Int, generation: UInt64, deliver: @escaping @MainActor (Int) -> Void) {
     guard signedCount != 0 else { return }
     DispatchQueue.main.async {
         MainActor.assumeIsolated {
             guard MTGesture.isCurrent(generation: generation) else { return }
             let direction = signedCount > 0 ? 1 : -1
             for _ in 0..<abs(signedCount) {
-                SwipeTrigger.deliver(direction)
+                deliver(direction)
             }
         }
     }
@@ -437,9 +469,9 @@ private func mtEmitCommit(generation: UInt64) {
 
 /// `@convention(c)` contact-frame callback. Non-capturing, so it can be passed
 /// as a C function pointer. While the set fingers stay down it accumulates
-/// horizontal travel and emits one step per `stepDistance` moved, so continuing
-/// to slide keeps advancing the selection. When all fingers lift it optionally
-/// commits the selection.
+/// horizontal and vertical travel and emits one step per `stepDistance` moved,
+/// so continuing to slide keeps moving the selection. When all fingers lift it
+/// optionally commits the selection.
 private func multitouchSwipeCallback(
     _ device: Int32,
     _ contacts: UnsafeRawPointer?,
@@ -447,25 +479,26 @@ private func multitouchSwipeCallback(
     _ timestamp: Double,
     _ frame: Int32
 ) -> Int32 {
-    var averageX: Float?
+    var position: (x: Float, y: Float)?
     if let contacts, numContacts >= 3 {
-        // Average the normalized x of the first three contacts. Vertical motion
-        // is ignored, so a pure three-finger up/down swipe banks no travel and
-        // never steps — only the horizontal component drives the selection.
+        // Average the normalized position of the first three contacts.
         var sumX: Float = 0
+        var sumY: Float = 0
         for i in 0..<3 {
             let base = contacts.advanced(by: i * MTLayout.stride)
             sumX += base.loadUnaligned(fromByteOffset: MTLayout.normalizedPosX, as: Float.self)
+            sumY += base.loadUnaligned(fromByteOffset: MTLayout.normalizedPosY, as: Float.self)
         }
-        averageX = sumX / 3
+        position = (sumX / 3, sumY / 3)
     }
     let action = MTGesture.consume(
         device: device,
         contactCount: numContacts,
-        averageX: averageX,
+        position: position,
         timestamp: timestamp
     )
-    mtEmitSteps(action.steps, generation: action.generation)
+    mtEmitSteps(action.steps, generation: action.generation, deliver: SwipeTrigger.deliver)
+    mtEmitSteps(action.rows, generation: action.generation, deliver: SwipeTrigger.deliverRow)
     if action.commit { mtEmitCommit(generation: action.generation) }
     return 0
 }

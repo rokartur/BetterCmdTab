@@ -848,6 +848,11 @@ final class SwitcherController: SwitcherViewDelegate {
         swipeTrigger.onSwipe = { [weak self] delta in
             self?.triggerFromGesture(delta: delta)
         }
+        swipeTrigger.onRowSwipe = { [weak self] delta in
+            // Same as ↑/↓: a row in a multi-row grid, linear otherwise (#218).
+            guard let self, self.phase == .visible else { return }
+            self.advanceVerticalOrLinear(by: delta)
+        }
         swipeTrigger.onCommit = { [weak self] in
             self?.commitFromGesture()
         }
