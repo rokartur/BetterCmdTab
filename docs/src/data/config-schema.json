@@ -491,7 +491,7 @@
     "revealDelayMs" : {
       "description" : "How long the shortcut must be held before the panel appears — a quicker tap switches without showing it (milliseconds).",
       "maximum" : 500,
-      "minimum" : 40,
+      "minimum" : 0,
       "type" : "integer"
     },
     "scopedShortcutList" : {

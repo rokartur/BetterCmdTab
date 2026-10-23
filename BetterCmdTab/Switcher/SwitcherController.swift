@@ -189,7 +189,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// the `.primed` edge from the single `phase` chokepoint (issue #16).
     private var primedWatchdog: Timer?
     /// Hard ceiling for the `.primed` phase — comfortably above the configurable
-    /// `revealDelay` (clamped to 40…500 ms) and any off-main first-scan, so it
+    /// `revealDelay` (clamped to 0…500 ms) and any off-main first-scan, so it
     /// only ever fires on a genuine strand, never on a legitimately slow open.
     private static let primedWatchdogTimeout: TimeInterval = 1.5
     /// Liveness backstop for a stranded `.visible` release-to-commit panel — the
