@@ -67,6 +67,7 @@ final class AppCatalogCache {
     private var pidCoverage: [pid_t: (expected: Set<CGWindowID>, uncoverable: Set<CGWindowID>)] = [:]
     private weak var mru: MRUTracker?
     private var observers: [NSObjectProtocol] = []
+    private var unlockObserver: NSObjectProtocol?
     private var axObservers: [pid_t: AXObserver] = [:]
     private var axObserverFailures: Set<pid_t> = []
     /// Per-build tokens prevent an observer created for a terminated process from
@@ -141,6 +142,10 @@ final class AppCatalogCache {
         let workspace = NSWorkspace.shared.notificationCenter
         for observer in observers { workspace.removeObserver(observer) }
         observers.removeAll()
+        if let unlockObserver {
+            DistributedNotificationCenter.default().removeObserver(unlockObserver)
+            self.unlockObserver = nil
+        }
 
         // Invalidate builds that have not attached yet, then detach every live
         // source on main. `uninstallAXObserver` performs the blocking server-side
@@ -504,6 +509,12 @@ final class AppCatalogCache {
             }
         }
         observers.append(launchObs)
+        // A scan while the screen is locked reads no windows and caches every app as windowless (#250).
+        unlockObserver = DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.scheduleFullRefresh() }
+        }
     }
 
     /// Install AX observers for every running app. The blocking AX calls
@@ -817,6 +828,7 @@ final class AppCatalogCache {
         tearDownOnMainActor {
             let nc = NSWorkspace.shared.notificationCenter
             for observer in observers { nc.removeObserver(observer) }
+            if let unlockObserver { DistributedNotificationCenter.default().removeObserver(unlockObserver) }
             for (_, observer) in axObservers {
                 CFRunLoopRemoveSource(
                     CFRunLoopGetMain(),
