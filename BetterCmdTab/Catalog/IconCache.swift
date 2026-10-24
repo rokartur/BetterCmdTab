@@ -74,7 +74,7 @@ enum IconCache {
         if let pid = row.pid {
             let key = NSNumber(value: pid)
             if let cached = cache.object(forKey: key) { return cached }
-            guard let source = row.app?.icon else { return row.icon }
+            guard let app = row.app, let source = dockIcon(of: app) else { return row.icon }
             let flat = flattened(source) ?? source
             cache.setObject(flat, forKey: key, cost: bytesPerImage)
             return flat
@@ -85,7 +85,7 @@ enum IconCache {
         guard let bundleID = row.bundleIdentifier, !bundleID.isEmpty else { return row.icon }
         let key = bundleID as NSString
         if let cached = bundleCache.object(forKey: key) { return cached }
-        guard let source = row.icon else { return nil }
+        guard let source = DockTileIcon.image(bundleIdentifier: bundleID) ?? row.icon else { return nil }
         let flat = flattened(source) ?? source
         bundleCache.setObject(flat, forKey: key, cost: bytesPerImage)
         return flat
@@ -93,6 +93,17 @@ enum IconCache {
 
     static func evict(_ pid: pid_t) {
         cache.removeObject(forKey: NSNumber(value: pid))
+    }
+
+    static func evict(bundleIdentifier: String) {
+        bundleCache.removeObject(forKey: bundleIdentifier as NSString)
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier) {
+            evict(app.processIdentifier)
+        }
+    }
+
+    private static func dockIcon(of app: NSRunningApplication) -> NSImage? {
+        DockTileIcon.image(bundleIdentifier: app.bundleIdentifier, bundleURL: app.bundleURL) ?? app.icon
     }
 
     static func clear() {
@@ -317,7 +328,8 @@ enum IconCache {
         for i in start..<end {
             let key = NSNumber(value: pids[i])
             guard cache.object(forKey: key) == nil,
-                  let source = NSRunningApplication(processIdentifier: pids[i])?.icon else { continue }
+                  let app = NSRunningApplication(processIdentifier: pids[i]),
+                  let source = dockIcon(of: app) else { continue }
             let flat = flattened(source) ?? source
             cache.setObject(flat, forKey: key, cost: bytesPerImage)
         }

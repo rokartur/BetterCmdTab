@@ -53,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // in (#117). After ScopedSwitch.installHandlers(): a config-file load
         // re-runs it idempotently for any imported scoped shortcuts.
         ConfigFile.shared.start()
+        DockTileIcon.observeChanges()
         #if DEBUG
         // In Debug builds always show the menu bar icon, regardless of the
         // saved preference — otherwise a hidden icon leaves no way to reach
