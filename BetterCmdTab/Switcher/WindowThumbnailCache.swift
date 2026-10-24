@@ -1,7 +1,6 @@
 import AppKit
 import CoreGraphics
 import os
-@preconcurrency import ScreenCaptureKit
 
 /// Generation tokens for asynchronous thumbnail captures. Clearing the cache
 /// invalidates every outstanding token; an old completion then cannot repopulate
@@ -46,10 +45,10 @@ struct ThumbnailRequestGate {
 /// now leave only via the count/cost limits or the real memory-pressure
 /// handler wired in `init`.
 ///
-/// Capture uses `SCScreenshotManager` on macOS 14+ (the supported path) and
-/// falls back to the deprecated-but-functional `CGWindowListCreateImage` on
-/// macOS 13. Either path needs the Screen Recording permission; without it the
-/// capture returns nil and the tile keeps showing the app icon.
+/// Capture uses the private WindowServer `CGSHWCaptureWindowList`, not ScreenCaptureKit:
+/// SCK flags the session as screen-shared, which shows the menu bar sharing indicator
+/// and on macOS 15 blocks Apple Watch unlock (#200). It needs the Screen Recording
+/// permission; without it the capture returns nil and the tile keeps showing the app icon.
 @MainActor
 final class WindowThumbnailCache {
     static let shared = WindowThumbnailCache()
@@ -124,11 +123,9 @@ final class WindowThumbnailCache {
         beginRequest(wid: wid, pixelHeight: pixelHeight, maxAge: 0, isLive: false)
     }
 
-    /// Request the next one-shot live frame. ScreenCaptureKit only; the legacy
-    /// CG fallback captures at native resolution and downsizes on the CPU, which
-    /// is acceptable once per reveal but not on a 10 Hz path.
+    /// Request the next one-shot live frame: a point-size WindowServer capture downscaled
+    /// on the CPU (about 2 ms of CPU per window on an M1 Max).
     func requestLiveFrame(wid: CGWindowID, pixelHeight: CGFloat) {
-        guard #available(macOS 14.0, *) else { return }
         beginRequest(wid: wid, pixelHeight: pixelHeight, maxAge: 0, isLive: true)
     }
 
@@ -231,19 +228,14 @@ final class WindowThumbnailCache {
         staticRetryKeys.removeAll()
         permissionRetryRequests.removeAll()
         liveFailureAt.removeAll()
-        releaseCaptureMetadata()
+        cancelPendingRetries()
     }
 
-    /// Release ScreenCaptureKit's system-wide `SCWindow` inventory after a panel
-    /// session. Thumbnails stay cached, but the broader shareable-content map is
-    /// useful only while captures are actively being requested.
-    func releaseCaptureMetadata() {
+    /// Drop the retries queued for a panel session that has ended. Thumbnails stay cached.
+    func cancelPendingRetries() {
         staticRetryGeneration &+= 1
         staticRetryKeys.removeAll()
         permissionRetryRequests.removeAll()
-        if #available(macOS 14.0, *) {
-            Task { await SCWindowProvider.shared.clear() }
-        }
     }
 
     /// Prompt for Screen Recording once per launch, the first time the preview
@@ -255,9 +247,6 @@ final class WindowThumbnailCache {
         DispatchQueue.global(qos: .utility).async {
             guard CGPreflightScreenCaptureAccess() || CGRequestScreenCaptureAccess() else { return }
             Task { @MainActor in
-                if #available(macOS 14.0, *) {
-                    await SCWindowProvider.shared.clearFailureBackoff()
-                }
                 WindowThumbnailCache.shared.retryPermissionFailures()
             }
         }
@@ -285,45 +274,46 @@ final class WindowThumbnailCache {
 
     // MARK: - Capture
 
-    nonisolated private static func capture(wid: CGWindowID, pixelHeight: CGFloat) async -> NSImage? {
-        // 14+ is SCK only: a window SCK misses (e.g. Chrome DRM video, #199) keeps
-        // its app icon rather than retrying through CGWindowListCreateImage.
-        if #available(macOS 14.0, *) {
-            return await captureSCK(wid: wid, pixelHeight: pixelHeight)
-        }
-        return captureCG(wid: wid, pixelHeight: pixelHeight)
-    }
+    nonisolated private static let windowServerQueue = DispatchQueue(label: "WindowThumbnailCache.windowServer", qos: .userInitiated)
 
-    @available(macOS 14.0, *)
-    nonisolated private static func captureSCK(wid: CGWindowID, pixelHeight: CGFloat) async -> NSImage? {
-        guard let captured = await SCWindowProvider.shared.capture(
-            wid: wid,
-            pixelHeight: pixelHeight
-        ) else { return nil }
-        let cg = captured.image
+    nonisolated private static func capture(wid: CGWindowID, pixelHeight: CGFloat) async -> NSImage? {
+        // A preview panel left open (stayOpenOnRelease) must not capture behind the lock screen (#200).
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        if session?["CGSSessionScreenIsLocked"] as? Bool == true { return nil }
+        // The capture is synchronous and `capture` inherits the main actor under
+        // NonisolatedNonsendingByDefault, so hop to a serial queue: the WindowServer
+        // serves captures one at a time anyway, so a second queue would not speed it up.
+        let captured = await withCheckedContinuation { continuation in
+            windowServerQueue.async {
+                continuation.resume(returning: captureCGS(wid: wid, pixelHeight: pixelHeight).map { CapturedCGImage(image: $0) })
+            }
+        }
+        guard let cg = captured?.image else { return nil }
         return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
     }
 
-    nonisolated private static func captureCG(wid: CGWindowID, pixelHeight: CGFloat) -> NSImage? {
-        guard let cg = CGWindowListCreateImage(
-            .null,
-            .optionIncludingWindow,
-            wid,
-            [.boundsIgnoreFraming, .bestResolution]
-        ), cg.width > 1, cg.height > 1 else { return nil }
-        // `.bestResolution` returns the window at native Retina size — a large
-        // window costs tens of MB, blowing the whole cache budget on one entry.
-        // Downscale to the tile's pixel height so it costs one cache slot.
+    nonisolated private static func captureCGS(wid: CGWindowID, pixelHeight: CGFloat) -> CGImage? {
+        // Without the grant the WindowServer can hand back a blank frame instead of nil.
+        guard CGPreflightScreenCaptureAccess(),
+              let nominal = PrivateAPI.captureWindowImage(wid, nominalResolution: true),
+              nominal.width > 1, nominal.height > 1 else { return nil }
+        // A point-size capture has a quarter of the Retina pixels, so the downscale
+        // below costs about 2 ms of CPU instead of 5 with no visible difference.
+        // Only a window shorter than the tile needs the backing-resolution capture.
+        var cg = nominal
+        if CGFloat(nominal.height) < pixelHeight.rounded(),
+           let backing = PrivateAPI.captureWindowImage(wid, nominalResolution: false) {
+            cg = backing
+        }
+        // Downscale to the tile's pixel height so one window costs one cache slot.
         return downscaled(cg, toPixelHeight: pixelHeight)
     }
 
     /// Returns `cg` redrawn at `pixelHeight` (aspect preserved) when it is
-    /// taller than the target, or wrapped as-is when it already fits.
-    nonisolated private static func downscaled(_ cg: CGImage, toPixelHeight pixelHeight: CGFloat) -> NSImage? {
+    /// taller than the target, or as-is when it already fits.
+    nonisolated private static func downscaled(_ cg: CGImage, toPixelHeight pixelHeight: CGFloat) -> CGImage {
         let targetH = max(1, Int(pixelHeight.rounded()))
-        guard cg.height > targetH else {
-            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
-        }
+        guard cg.height > targetH else { return cg }
         let targetW = max(1, Int((CGFloat(cg.width) * CGFloat(targetH) / CGFloat(cg.height)).rounded()))
         let space = cg.colorSpace.flatMap { $0.model == .rgb ? $0 : nil } ?? CGColorSpaceCreateDeviceRGB()
         guard let ctx = CGContext(
@@ -334,15 +324,10 @@ final class WindowThumbnailCache {
             bytesPerRow: 0,
             space: space,
             bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
-        ) else {
-            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
-        }
+        ) else { return cg }
         ctx.interpolationQuality = .medium
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: targetW, height: targetH))
-        guard let scaled = ctx.makeImage() else {
-            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
-        }
-        return NSImage(cgImage: scaled, size: NSSize(width: scaled.width, height: scaled.height))
+        return ctx.makeImage() ?? cg
     }
 }
 
@@ -420,181 +405,8 @@ struct ThumbnailLRU {
     }
 }
 
-@available(macOS 14.0, *)
 private struct CapturedCGImage: @unchecked Sendable {
     /// CGImage is immutable and safe to retain/read across queues; CoreGraphics
     /// predates Swift Sendable annotations, so contain that guarantee here.
     let image: CGImage
-}
-
-/// Short-lived cache of `SCShareableContent` so a single reveal enumerates the
-/// window list once instead of once per captured window (the enumeration is the
-/// expensive part of an `SCScreenshotManager` capture).
-@available(macOS 14.0, *)
-private actor SCWindowProvider {
-    static let shared = SCWindowProvider()
-
-    private var windowsByID: [CGWindowID: SCWindow] = [:]
-    private var fetchedAt: Date = .distantPast
-    private var lastFailureAt: Date = .distantPast
-    private let ttl: TimeInterval = 1.5
-    /// After a failed enumeration (typically Screen Recording denied — a state
-    /// the app tolerates indefinitely), skip further attempts for this long so
-    /// a denied permission doesn't fire XPC round trips per tile per repaint.
-    private let failureBackoff: TimeInterval = 5.0
-
-    /// A transient enumeration failure (SCK busy, a just-opened window not yet in
-    /// the inventory) clears on its own in a fraction of a second, so pacing it
-    /// behind the 5 s permission backoff needlessly blanks every tile until the
-    /// next reveal. Only a *denied permission* — which the app tolerates
-    /// indefinitely — warrants the long backoff. `performRefresh` picks the
-    /// window based on whether Screen Recording is currently granted.
-    private let transientFailureBackoff: TimeInterval = 0.5
-    /// Whether the last failure happened while Screen Recording was granted
-    /// (transient) vs denied (permission). Selects the backoff length above.
-    private var lastFailureWasTransient = false
-
-    private var refreshGeneration: UInt64 = 0
-    private var inFlightRefresh: (generation: UInt64, task: Task<Void, Never>)?
-
-    /// Reset the failure pacing so the next enumeration retries immediately.
-    /// Called when Screen Recording is granted at runtime: without this, a denial
-    /// recorded moments earlier would keep every tile on its app icon for up to
-    /// `failureBackoff` seconds after the user already fixed the permission.
-    func clearFailureBackoff() {
-        lastFailureAt = .distantPast
-        lastFailureWasTransient = false
-    }
-
-    /// Resolve and capture entirely inside the actor so the non-Sendable
-    /// ScreenCaptureKit `SCWindow` never crosses an isolation boundary.
-    func capture(wid: CGWindowID, pixelHeight: CGFloat) async -> CapturedCGImage? {
-        guard let scWindow = await window(for: wid) else { return nil }
-        let frame = scWindow.frame
-        guard frame.height > 1, frame.width > 1 else { return nil }
-
-        let filter = SCContentFilter(desktopIndependentWindow: scWindow)
-        let config = SCStreamConfiguration()
-        // Match the window's aspect ratio, capped to the on-screen tile height.
-        // `frame` is in points while `pixelHeight` is pixels; assume Retina 2x
-        // for the native height (the target cap also keeps 1x displays bounded).
-        let aspect = frame.width / frame.height
-        let height = max(1, min(frame.height * 2, pixelHeight))
-        config.height = Int(height.rounded())
-        config.width = max(1, Int((height * aspect).rounded()))
-        config.showsCursor = false
-        config.ignoreShadowsSingleWindow = true
-        config.scalesToFit = true
-
-        // SCK can reply (nil, nil) for PiP DRM video; the async import force-unwraps
-        // that and traps on the replayd XPC queue (#199).
-        return await withCheckedContinuation { continuation in
-            SCScreenshotManager.captureImage(
-                contentFilter: filter,
-                configuration: config
-            ) { image, error in
-                if image == nil, error == nil {
-                    Log.cache.debug("SCK returned no image and no error for window \(wid)")
-                }
-                continuation.resume(returning: image.map { CapturedCGImage(image: $0) })
-            }
-        }
-    }
-
-    private func window(for wid: CGWindowID) async -> SCWindow? {
-        let entered = Date()
-        if entered.timeIntervalSince(fetchedAt) >= ttl {
-            await refresh(ifOlderThan: entered)
-        }
-        if let cached = windowsByID[wid] { return cached }
-        // Miss on a freshly opened window — refetch once before giving up,
-        // but only when the map predates this call (a refresh that already
-        // completed above wouldn't find it the second time either).
-        if fetchedAt < entered {
-            await refresh(ifOlderThan: entered)
-        }
-        return windowsByID[wid]
-    }
-
-    /// Refresh the map unless another caller already refreshed it after
-    /// `reference`, coalescing concurrent callers onto a single in-flight
-    /// enumeration. The actor is reentrant — every caller suspended at the
-    /// SCShareableContent await would otherwise pass the staleness check and
-    /// fire its own full system-wide window enumeration, one per visible tile
-    /// per TTL lapse when reveal and live-snapshot requests arrive together.
-    private func refresh(ifOlderThan reference: Date) async {
-        // Coalesce every caller that arrived during the same enumeration. The
-        // successful refresh is stamped at completion, so all of those callers
-        // accept the same map instead of serially starting one enumeration each.
-        while let running = inFlightRefresh {
-            await running.task.value
-            if fetchedAt >= reference { return }
-        }
-        if fetchedAt >= reference { return }
-        refreshGeneration &+= 1
-        let generation = refreshGeneration
-        let task = Task {
-            await performRefresh(generation: generation)
-            // Clear from inside the child so the handle can't linger as a
-            // completed task absorbing refreshes until the creator resumes. A
-            // clear/new refresh may supersede us while SCK is suspended, so only
-            // clear the slot if it still belongs to this generation.
-            if inFlightRefresh?.generation == generation {
-                inFlightRefresh = nil
-            }
-        }
-        inFlightRefresh = (generation, task)
-        await task.value
-    }
-
-    private func performRefresh(generation: UInt64) async {
-        if lastFailureAt != .distantPast, !lastFailureWasTransient,
-           CGPreflightScreenCaptureAccess() {
-            clearFailureBackoff()
-        }
-        let backoff = lastFailureWasTransient ? transientFailureBackoff : failureBackoff
-        guard Date().timeIntervalSince(lastFailureAt) >= backoff else { return }
-        // Completion handler, not the async import, for the same (nil, nil) trap as `capture`.
-        let content = await withCheckedContinuation { continuation in
-            SCShareableContent.getExcludingDesktopWindows(
-                false,
-                onScreenWindowsOnly: false
-            ) { content, _ in
-                continuation.resume(returning: content)
-            }
-        }
-        guard !Task.isCancelled, generation == refreshGeneration else { return }
-        guard let content else {
-            // Leave the previous map (possibly empty). Classify the failure so the
-            // pacing above can retry a transient hiccup quickly while still holding
-            // back per-tile XPC when the permission is genuinely denied.
-            fetchedAt = .distantPast
-            lastFailureAt = Date()
-            lastFailureWasTransient = CGPreflightScreenCaptureAccess()
-            return
-        }
-        windowsByID = Dictionary(
-            content.windows.map { ($0.windowID, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
-        // Completion time makes this refresh satisfy every caller that
-        // coalesced onto it. A later lookup that misses the cached map still
-        // gets the one explicit second-chance refresh in `window(for:)`.
-        fetchedAt = Date()
-        lastFailureAt = .distantPast
-        lastFailureWasTransient = false
-    }
-
-    /// Drop the broad shareable-content inventory and invalidate a suspended
-    /// refresh. Its completion checks `refreshGeneration`, so it cannot repopulate
-    /// the actor after the panel has closed or memory pressure requested a purge.
-    func clear() {
-        refreshGeneration &+= 1
-        inFlightRefresh?.task.cancel()
-        inFlightRefresh = nil
-        windowsByID.removeAll()
-        fetchedAt = .distantPast
-        lastFailureAt = .distantPast
-        lastFailureWasTransient = false
-    }
 }

@@ -372,7 +372,7 @@
       "type" : "integer"
     },
     "livePreviews" : {
-      "description" : "Keep window previews refreshing while the panel is open. Costs CPU\/GPU; needs macOS 14 or later.",
+      "description" : "Keep window previews refreshing while the panel is open. Costs CPU\/GPU.",
       "type" : "boolean"
     },
     "mouseClickSelectionEnabled" : {

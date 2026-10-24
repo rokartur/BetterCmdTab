@@ -267,7 +267,7 @@ enum ConfigSchemaDocs {
         "experimentalBrowserTabPreviews": ConfigSettingDoc(
             "boolean", "Legacy browser-tab-preview flag, kept in sync with browserTabPreviews for older builds. Edit browserTabPreviews instead."),
         "livePreviews": ConfigSettingDoc(
-            "boolean", "Keep window previews refreshing while the panel is open. Costs CPU/GPU; needs macOS 14 or later."),
+            "boolean", "Keep window previews refreshing while the panel is open. Costs CPU/GPU."),
         "experimentalLivePreviews": ConfigSettingDoc(
             "boolean", "Legacy live-preview flag, kept in sync with livePreviews for older builds. Edit livePreviews instead."),
         "panelAppearance": ConfigSettingDoc(

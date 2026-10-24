@@ -139,6 +139,27 @@ enum PrivateAPI {
     private static let addWindowsToSpacesFn: (@convention(c) (Int32, CFArray, CFArray) -> Void)? =
         sym("CGSAddWindowsToSpaces", in: skyLight)
 
+    // MARK: - SkyLight: window capture
+
+    // (cid, window ids, count, capture options) -> CFArray<CGImage>; only the first id is honoured.
+    private static let hwCaptureWindowListFn: (@convention(c) (Int32, UnsafeMutablePointer<CGWindowID>, UInt32, UInt32) -> Unmanaged<CFArray>?)? =
+        sym("CGSHWCaptureWindowList", in: skyLight)
+
+    /// WindowServer snapshot of one window at its point size (`nominalResolution`) or its
+    /// backing resolution, or nil when the symbol is missing or Screen Recording is denied.
+    /// Synchronous; call it off the main thread.
+    static func captureWindowImage(_ wid: CGWindowID, nominalResolution: Bool) -> CGImage? {
+        guard let mainConnection = mainConnectionFn, let capture = hwCaptureWindowListFn else { return nil }
+        var windowID = wid
+        let ignoreGlobalClipShape: UInt32 = 1 << 11
+        // Without fullSize, Stage Manager skews the frame.
+        let fullSize: UInt32 = 1 << 19
+        let nominal: UInt32 = nominalResolution ? 1 << 9 : 0
+        let options = ignoreGlobalClipShape | fullSize | nominal
+        let images = capture(mainConnection(), &windowID, 1, options)?.takeRetainedValue() as? [CGImage]
+        return images?.first
+    }
+
     // MARK: - SkyLight: current-Space queries (read-only)
 
     /// The id of the currently focused Space, or nil when the private API is
@@ -315,6 +336,7 @@ enum PrivateAPI {
         if copyActiveMenuBarDisplayFn == nil { missing.append("SLSCopyActiveMenuBarDisplayIdentifier") }
         if addWindowsToSpacesFn == nil { missing.append("CGSAddWindowsToSpaces") }
         if setSymbolicHotKeyEnabledFn == nil { missing.append("CGSSetSymbolicHotKeyEnabled") }
+        if hwCaptureWindowListFn == nil { missing.append("CGSHWCaptureWindowList") }
         return missing
     }
 

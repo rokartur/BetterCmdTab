@@ -323,14 +323,14 @@ final class SwitcherView: NSView {
         syncLivePreviewTimer()
     }
 
-    /// Live previews use short, tile-sized SCScreenshotManager captures rather
+    /// Live previews use short, tile-sized one-shot captures rather
     /// than persistent SCStreams. Persistent per-window streams are smoother,
     /// but macOS marks every captured window with sharing UI; one-shot captures
     /// avoid that intrusive system overlay. 10 Hz is a practical middle ground
     /// between the old 2 fps behavior and the cost of continuously recapturing
     /// every visible window.
     private func syncLivePreviewTimer() {
-        guard #available(macOS 14.0, *), Preferences.shared.livePreviews else {
+        guard Preferences.shared.livePreviews else {
             stopLivePreviewTimer()
             return
         }
@@ -414,7 +414,7 @@ final class SwitcherView: NSView {
         emptyTitle.isHidden = true
         if allowsWindowCapture {
             WindowThumbnailCache.shared.setReadyHandler(nil, for: self)
-            WindowThumbnailCache.shared.releaseCaptureMetadata()
+            WindowThumbnailCache.shared.cancelPendingRetries()
         }
     }
 

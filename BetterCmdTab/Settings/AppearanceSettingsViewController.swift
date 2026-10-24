@@ -228,15 +228,9 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Panel, tiles and tab strip glide between states. Off, or macOS Reduce Motion, switches instantly."),
                accessory: animationsSwitch, searchItemID: SearchID.animations)
 
-        // Live refresh rides on the macOS 14 ScreenCaptureKit still-image API;
-        // on macOS 13 the toggle would be inert, so say why it is unavailable.
-        let liveAvailable = if #available(macOS 14.0, *) { true } else { false }
         addRow(to: panel, title: String(localized: "Live window previews"),
-               subtitle: liveAvailable
-                   ? String(localized: "In the Previews layout, thumbnails keep refreshing while the switcher is open, so they show what is happening in each window right now. Uses extra CPU and GPU while the panel is up.")
-                   : String(localized: "Requires macOS 14 or later. Thumbnails are captured once each time the switcher opens."),
+               subtitle: String(localized: "In the Previews layout, thumbnails keep refreshing while the switcher is open, so they show what is happening in each window right now. Uses extra CPU and GPU while the panel is up."),
                accessory: livePreviewSwitch, searchItemID: SearchID.livePreviews)
-        livePreviewSwitch.isEnabled = liveAvailable
 
         previewButton.title = String(localized: "Show Preview")
         previewButton.bezelStyle = .rounded

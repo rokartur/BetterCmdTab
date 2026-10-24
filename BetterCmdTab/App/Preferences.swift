@@ -1025,8 +1025,7 @@ final class Preferences: ObservableObject {
         /// Continuously refresh window-preview thumbnails while the panel is
         /// open, so tiles show live window contents instead of a frame captured
         /// on reveal. Default off — recurring captures cost CPU/GPU on an
-        /// otherwise idle open panel. Needs macOS 14 (ScreenCaptureKit still
-        /// image API); on macOS 13 the flag is inert.
+        /// otherwise idle open panel.
         static let livePreviews = "Switcher.livePreviews"
         /// Pre-graduation key (live previews used to live behind the Experimental
         /// tab); read as a fallback so a user's earlier choice carries over.
@@ -1800,7 +1799,7 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// When true, preview tiles take short, tile-sized ScreenCaptureKit snapshots
+    /// When true, preview tiles take short, tile-sized one-shot snapshots
     /// at roughly 10 fps while the switcher is open. This is smoother than a
     /// reveal-time still without using persistent streams, whose system sharing
     /// indicators would be shown on every captured window. Off by default because
