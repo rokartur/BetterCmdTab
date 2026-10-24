@@ -439,6 +439,7 @@ enum ConfigSchemaDocs {
         "clickOutsideToDismiss": ConfigSettingDoc("boolean", "Click outside the panel to dismiss it without switching."),
         "mouseHoverSelectionEnabled": ConfigSettingDoc("boolean", "Highlight the entry under the pointer."),
         "mouseClickSelectionEnabled": ConfigSettingDoc("boolean", "Click an entry to switch to it."),
+        "clickOnMouseUp": ConfigSettingDoc("boolean", "Act on a click inside the panel when the button is released, like a menu: release on another row to pick it, or off the rows to cancel."),
         "hoverActionsEnabled": ConfigSettingDoc("boolean", "Show action buttons on the entry under the pointer."),
         "hoverShowClose": ConfigSettingDoc("boolean", "Include \"close\" among the hover actions."),
         "hoverShowMinimize": ConfigSettingDoc("boolean", "Include \"minimize\" among the hover actions."),

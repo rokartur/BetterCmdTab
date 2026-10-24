@@ -53,6 +53,7 @@ enum SettingsAnchor {
     static let inputLanguage = "controls.inputLanguage"
     static let search = "controls.search"
     static let mouse = "controls.mouse"
+    static let mouseRelease = "controls.mouseRelease"
     static let hoverActions = "controls.hoverActions"
     // Tabs
     static let nativeTabs = "tabs.native"
@@ -146,6 +147,7 @@ enum SearchID {
     static let clickDismiss = "switcher.clickDismiss"
     static let selectOnHover = "controls.selectOnHover"
     static let selectOnClick = "controls.selectOnClick"
+    static let clickOnMouseUp = "controls.clickOnMouseUp"
     static let hoverActions = "switcher.hoverActions"
     // Tabs
     static let tabDrill = "switcher.tabDrill"
@@ -474,6 +476,8 @@ enum SettingsCatalog {
              String(localized: "Select window on hover"), ["hover", "pointer", "mouse", "selection", "highlight"]),
         item(SearchID.selectOnClick, .controls, SettingsAnchor.mouse, String(localized: "Controls"), String(localized: "Mouse"),
              String(localized: "Select window on click"), ["click", "mouse", "pick", "selection"]),
+        item(SearchID.clickOnMouseUp, .controls, SettingsAnchor.mouseRelease, String(localized: "Controls"), String(localized: "Mouse release"),
+             String(localized: "Click on mouse release"), ["click", "mouse", "release", "mouse up", "drag", "menu", "cancel"]),
         // Controls · Hover actions
         item(SearchID.hoverActions, .controls, SettingsAnchor.hoverActions, String(localized: "Controls"), String(localized: "Hover actions"),
              String(localized: "Action buttons on hover"), ["hover", "buttons", "close", "minimize", "maximize", "zoom", "hide", "quit", "force quit", "actions"]),

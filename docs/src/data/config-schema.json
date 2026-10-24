@@ -107,6 +107,10 @@
       "minimum" : 0,
       "type" : "integer"
     },
+    "clickOnMouseUp" : {
+      "description" : "Act on a click inside the panel when the button is released, like a menu: release on another row to pick it, or off the rows to cancel.",
+      "type" : "boolean"
+    },
     "clickOutsideToDismiss" : {
       "description" : "Click outside the panel to dismiss it without switching.",
       "type" : "boolean"

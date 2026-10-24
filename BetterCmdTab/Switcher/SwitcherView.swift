@@ -547,16 +547,22 @@ final class SwitcherView: NSView {
     }
 
     override func mouseMoved(with event: NSEvent) {
-        // Same manual routing as `handleClick`: the hitTest override pins mouse
+        pointerMoved(toWindowPoint: event.locationInWindow)
+    }
+
+    /// Also driven by the controller for a held-button drag, which AppKit never
+    /// reports as `mouseMoved` (#247).
+    func pointerMoved(toWindowPoint point: NSPoint) {
+        // Same manual routing as `clickTarget`: the hitTest override pins mouse
         // events to this view, so the strip is asked what is under the pointer
         // rather than each cell tracking it.
         if tabStripActive, !tabStrip.isHidden,
-           let tabIdx = tabStrip.index(atWindowPoint: event.locationInWindow) {
+           let tabIdx = tabStrip.index(atWindowPoint: point) {
             setHoveredIndex(-1)
             delegate?.switcherViewDidHoverTab(tabIdx)
             return
         }
-        let idx = indexAtWindowPoint(event.locationInWindow)
+        let idx = indexAtWindowPoint(point)
         if showsHoverActions { setHoveredIndex(idx ?? -1) }
         if let idx {
             // Hover-select moves the selection to the row under the pointer; the
@@ -567,7 +573,7 @@ final class SwitcherView: NSView {
                 delegate?.switcherViewDidHover(index: idx)
             }
             // Highlight the hover-action dot under the pointer, if any.
-            itemViews[idx].setHotDot(atWindowPoint: event.locationInWindow)
+            itemViews[idx].setHotDot(atWindowPoint: point)
         }
     }
 
@@ -594,29 +600,49 @@ final class SwitcherView: NSView {
     /// the panel are swallowed by the tap (#36) and arrive from the controller
     /// as a bare point — they never exist as deliverable NSEvents.
     func handleClick(atWindowPoint point: NSPoint) {
+        guard let target = clickTarget(atWindowPoint: point) else { return }
+        perform(target)
+    }
+
+    enum ClickTarget: Equatable {
+        case tab(Int)
+        /// `window` tells a press and a release apart when a reflow moves another window to `row`.
+        case action(RowAction, row: Int, window: SwitcherRow.Identity)
+        case row(Int)
+    }
+
+    /// What a click at a window-local point would act on, without acting.
+    func clickTarget(atWindowPoint point: NSPoint) -> ClickTarget? {
         // The hitTest override pins every mouse event to this view, so clicks
         // over the drill-in tab strip are routed to its cells manually (the
         // same way hover-action dots are hit-tested below).
         if tabStripActive, !tabStrip.isHidden,
            tabStrip.bounds.contains(tabStrip.convert(point, from: nil)) {
-            if let tabIdx = tabStrip.index(atWindowPoint: point) {
-                delegate?.switcherViewDidSelectTab(tabIdx)
-            }
-            return
+            return tabStrip.index(atWindowPoint: point).map { .tab($0) }
         }
-        guard let idx = indexAtWindowPoint(point), itemViews.indices.contains(idx) else { return }
-        // A click on a hover-action dot runs that action instead of committing.
+        guard let idx = indexAtWindowPoint(point), itemViews.indices.contains(idx) else { return nil }
+        // A click on a hover-action dot targets that action instead of the row.
         // The dots can't receive events themselves (glass-hosted subtree), so
         // hit-test them here against the hovered row.
         if let action = itemViews[idx].hoverAction(atWindowPoint: point) {
-            delegate?.switcherViewDidInvokeAction(action, atIndex: idx)
-            return
+            return .action(action, row: idx, window: rows[idx].identity)
         }
-        // Click-select commits the row under the pointer; the user can turn it
-        // off so a stray click inside the panel can't pick a window (issue #47).
-        // Tab-strip and hover-action clicks above stay live regardless.
-        if Preferences.shared.mouseClickSelectionEnabled {
-            delegate?.switcherViewDidClick(index: idx)
+        return .row(idx)
+    }
+
+    func perform(_ target: ClickTarget) {
+        switch target {
+        case .tab(let tabIdx):
+            delegate?.switcherViewDidSelectTab(tabIdx)
+        case .action(let action, let row, _):
+            delegate?.switcherViewDidInvokeAction(action, atIndex: row)
+        case .row(let idx):
+            // Click-select commits the row under the pointer; the user can turn it
+            // off so a stray click inside the panel can't pick a window (issue #47).
+            // Tab-strip and hover-action clicks stay live regardless.
+            if Preferences.shared.mouseClickSelectionEnabled {
+                delegate?.switcherViewDidClick(index: idx)
+            }
         }
     }
 

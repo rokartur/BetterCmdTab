@@ -1102,6 +1102,7 @@ final class Preferences: ObservableObject {
         static let shortcutOverrides = "Switcher.shortcutOverrides"
         static let mouseHoverSelectionEnabled = "Switcher.mouseHoverSelectionEnabled"
         static let mouseClickSelectionEnabled = "Switcher.mouseClickSelectionEnabled"
+        static let clickOnMouseUp = "Switcher.clickOnMouseUp"
         static let hoverActionsEnabled = "Switcher.hoverActionsEnabled"
         static let hoverShowClose = "Switcher.hoverShowClose"
         static let hoverShowMinimize = "Switcher.hoverShowMinimize"
@@ -1717,6 +1718,15 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != mouseClickSelectionEnabled else { return }
             UserDefaults.standard.set(mouseClickSelectionEnabled, forKey: Keys.mouseClickSelectionEnabled)
+        }
+    }
+
+    /// Act on a click inside the panel when the button is released, like a menu:
+    /// on the row or tab under the pointer, or nothing off them (issue #247). Default off.
+    @Published var clickOnMouseUp: Bool {
+        didSet {
+            guard oldValue != clickOnMouseUp else { return }
+            UserDefaults.standard.set(clickOnMouseUp, forKey: Keys.clickOnMouseUp)
         }
     }
 
@@ -2795,6 +2805,7 @@ final class Preferences: ObservableObject {
         }
         self.mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
         self.mouseClickSelectionEnabled = defaults.object(forKey: Keys.mouseClickSelectionEnabled) as? Bool ?? true
+        self.clickOnMouseUp = defaults.object(forKey: Keys.clickOnMouseUp) as? Bool ?? false
         self.hoverActionsEnabled = defaults.object(forKey: Keys.hoverActionsEnabled) as? Bool ?? false
         self.hoverShowClose = defaults.object(forKey: Keys.hoverShowClose) as? Bool ?? true
         self.hoverShowMinimize = defaults.object(forKey: Keys.hoverShowMinimize) as? Bool ?? true
@@ -2894,6 +2905,7 @@ final class Preferences: ObservableObject {
         backtickReversesAppSwitching = defaults.object(forKey: Keys.backtickReversesAppSwitching) as? Bool ?? false
         mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
         mouseClickSelectionEnabled = defaults.object(forKey: Keys.mouseClickSelectionEnabled) as? Bool ?? true
+        clickOnMouseUp = defaults.object(forKey: Keys.clickOnMouseUp) as? Bool ?? false
         cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
         instantSpaceSwitch = Self.stored(.instantSpaceSwitch, defaults)
         tabDrillEnabled = defaults.object(forKey: Keys.tabDrillEnabled) as? Bool ?? true

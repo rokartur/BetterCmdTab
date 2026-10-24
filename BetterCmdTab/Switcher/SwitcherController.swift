@@ -92,6 +92,13 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Window shelf (#211): the highlighted app's windows, under the switcher.
     private let shelf = SwitcherView(frame: .zero, allowsWindowCapture: true, showsHoverActions: false)
     private let shelfMouse = WindowShelfMouse()
+    /// An in-panel mouse-down held while `clickOnMouseUp` waits for the release.
+    /// `target` is nil for a press on empty glass or off it, which a drag onto a row can still pick.
+    private struct HeldPress {
+        let target: SwitcherView.ClickTarget?
+        let startedOffGlass: Bool
+    }
+    private var heldPress: HeldPress?
     private let stack: SwitcherStackView
     private var shelfHoverGrace: (timer: Timer, index: Int, pid: pid_t?)?
     /// Screen point of the last hover over the switcher, so the grace waits only for a pointer heading down.
@@ -2051,6 +2058,7 @@ final class SwitcherController: SwitcherViewDelegate {
             if wasIdle != (newValue == .idle) {
                 if newValue == .idle {
                     secureInputMonitor.stop()
+                    heldPress = nil
                     RowLabels.setOffHandLetters([])
                 } else {
                     RowLabels.setOffHandLetters(sessionOffHandLetters())
@@ -2484,15 +2492,41 @@ final class SwitcherController: SwitcherViewDelegate {
             // would. `.visible` gates out a click racing a commit's `vanish()`
             // across the tap-thread → main hop.
             guard phase == .visible else { return }
-            if !shelf.isHidden, shelf.bounds.contains(shelf.convert(point, from: nil)) {
-                shelf.handleClick(atWindowPoint: point)
-            } else if view.bounds.contains(view.convert(point, from: nil)) {
-                view.handleClick(atWindowPoint: point)
-            } else if Preferences.shared.clickOutsideToDismiss {
+            heldPress = nil
+            let clickedView = glassView(atWindowPoint: point)
+            if Preferences.shared.clickOnMouseUp {
+                let target = clickedView?.clickTarget(atWindowPoint: point)
+                heldPress = HeldPress(target: target, startedOffGlass: clickedView == nil)
+                // Detach from ⌘ already on the press, as `switcherViewDidInvokeAction` does on a click:
+                // releasing ⌘ before the button would otherwise switch apps instead of running the action.
+                if case .action = target { stickyOpen = true }
+                return
+            }
+            guard let clickedView else {
                 // The gap and the clear sides around the narrower block (#211) are
                 // inside the panel frame the tap hit-tests, but outside the glass.
-                cancel()
+                if Preferences.shared.clickOutsideToDismiss { cancel() }
+                return
             }
+            clickedView.handleClick(atWindowPoint: point)
+        case .panelMouseDragged(let point):
+            guard phase == .visible, heldPress != nil else { return }
+            // Both views, so the one the drag left drops its hover: AppKit sends no
+            // `mouseExited` for drags the tap swallowed.
+            view.pointerMoved(toWindowPoint: point)
+            if !shelf.isHidden { shelf.pointerMoved(toWindowPoint: point) }
+        case .panelMouseUp(let point):
+            guard phase == .visible, let press = heldPress else { return }
+            heldPress = nil
+            guard let releasedView = glassView(atWindowPoint: point) else {
+                // Pressed and released off the glass: the deferred click-outside-to-dismiss.
+                if press.startedOffGlass, Preferences.shared.clickOutsideToDismiss { cancel() }
+                return
+            }
+            guard let target = Self.releaseTarget(
+                pressed: press.target,
+                released: releasedView.clickTarget(atWindowPoint: point)) else { return }
+            releasedView.perform(target)
         case .toggleSearch:
             toggleSearch()
         case .searchInput(let ch):
@@ -2540,6 +2574,24 @@ final class SwitcherController: SwitcherViewDelegate {
                 handleSearchInput(ch)
             }
         }
+    }
+
+    /// The window shelf or the switcher, whichever glass contains a window-local point.
+    private func glassView(atWindowPoint point: NSPoint) -> SwitcherView? {
+        if !shelf.isHidden, shelf.bounds.contains(shelf.convert(point, from: nil)) { return shelf }
+        if view.bounds.contains(view.convert(point, from: nil)) { return view }
+        return nil
+    }
+
+    /// Like a menu (#247): a release on a row or tab acts on it, anywhere else cancels.
+    /// A hover action (close, quit) needs press and release on the same button of the same window.
+    nonisolated static func releaseTarget(
+        pressed: SwitcherView.ClickTarget?,
+        released: SwitcherView.ClickTarget?
+    ) -> SwitcherView.ClickTarget? {
+        guard let released else { return nil }
+        if case .action = released, released != pressed { return nil }
+        return released
     }
 
     nonisolated static func windowTriggerStepsAppsBackward(

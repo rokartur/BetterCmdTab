@@ -444,6 +444,47 @@
         }
       }
     },
+    "Act on a click when you release the button, like a menu: drag to another row to pick it instead, or release away from the rows to cancel. Picking a row requires “Select window on click”." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Klick erst beim Loslassen der Maustaste ausführen, wie in einem Menü: Zum Wechseln auf eine andere Zeile ziehen, zum Abbrechen außerhalb der Zeilen loslassen. Das Auswählen einer Zeile erfordert „Fenster per Klick auswählen“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejecutar el clic al soltar el botón, como en un menú: arrastra a otra fila para elegirla o suelta fuera de las filas para cancelar. Elegir una fila requiere «Seleccionar ventana al hacer clic»."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exécuter le clic au relâchement du bouton, comme dans un menu : glissez vers une autre ligne pour la choisir, ou relâchez hors des lignes pour annuler. Choisir une ligne nécessite « Sélectionner la fenêtre au clic »."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wykonuj kliknięcie po puszczeniu przycisku, jak w menu: przeciągnij na inny wiersz, aby go wybrać, albo puść poza wierszami, aby anulować. Wybór wiersza wymaga opcji „Wybieraj okno kliknięciem”."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выполнять щелчок при отпускании кнопки, как в меню: перетащите указатель на другую строку, чтобы выбрать её, или отпустите вне строк, чтобы отменить. Для выбора строки нужен параметр «Выбирать окно по щелчку»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "像菜单一样在松开按键时执行点击：拖到另一行可改选该行，在行外松开即可取消。选择行需要开启“点击选择窗口”。"
+          }
+        }
+      }
+    },
     "Action buttons on hover" : {
       "localizations" : {
         "de" : {
@@ -3123,6 +3164,47 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "点击切换器外任意位置即可关闭，并保持当前窗口聚焦。"
+          }
+        }
+      }
+    },
+    "Click on mouse release" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Loslassen der Maustaste klicken"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hacer clic al soltar el botón"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cliquer au relâchement du bouton"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klikaj po puszczeniu przycisku"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Щелчок при отпускании кнопки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "松开鼠标按键时点击"
           }
         }
       }
@@ -9771,6 +9853,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "鼠标"
+          }
+        }
+      }
+    },
+    "Mouse release" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loslassen der Maustaste"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soltar el botón"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relâchement du bouton"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puszczenie przycisku"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отпускание кнопки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "松开鼠标按钮"
           }
         }
       }

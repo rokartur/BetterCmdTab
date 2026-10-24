@@ -114,6 +114,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let clickDismissSwitch = PreferenceSwitch(bind: \.clickOutsideToDismiss)
     private let hoverSelectSwitch = PreferenceSwitch(bind: \.mouseHoverSelectionEnabled)
     private let clickSelectSwitch = PreferenceSwitch(bind: \.mouseClickSelectionEnabled)
+    private let clickOnMouseUpSwitch = PreferenceSwitch(bind: \.clickOnMouseUp)
 
     // Mouse — hover actions
     private let hoverSwitch = NSSwitch()
@@ -416,6 +417,14 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                subtitle: String(localized: "Click a row to switch to that window. Off ignores clicks inside the switcher so the mouse can't pick a window — the tab strip and hover actions still work."),
                accessory: clickSelectSwitch, searchItemID: SearchID.selectOnClick)
 
+        let release = addSection(title: String(localized: "Mouse release"), anchor: SettingsAnchor.mouseRelease)
+        addRow(to: release, icon: "flask.fill",
+               title: String(localized: "These features are unstable"),
+               subtitle: String(localized: "Off by default. They may change or break."))
+        addRow(to: release, title: String(localized: "Click on mouse release"),
+               subtitle: String(localized: "Act on a click when you release the button, like a menu: drag to another row to pick it instead, or release away from the rows to cancel. Picking a row requires “Select window on click”."),
+               accessory: clickOnMouseUpSwitch, searchItemID: SearchID.clickOnMouseUp)
+
         // Hover actions — buttons revealed on a row under the pointer.
         let hover = addSection(title: String(localized: "Hover actions"), anchor: SettingsAnchor.hoverActions)
         configureSwitch(hoverSwitch, action: #selector(toggleHover(_:)))
@@ -533,6 +542,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         clickDismissSwitch.sync()
         hoverSelectSwitch.sync()
         clickSelectSwitch.sync()
+        clickOnMouseUpSwitch.sync()
         hoverSwitch.state = prefs.hoverActionsEnabled ? .on : .off
         hoverCloseSwitch.sync()
         hoverMinimizeSwitch.sync()

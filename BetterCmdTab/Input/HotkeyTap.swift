@@ -44,6 +44,12 @@ final class HotkeyTap: @unchecked Sendable {
         /// and friends, #36) can't steal a modifier-held click as their own
         /// drag gesture, then hands the click back through this channel.
         case panelClick(CGPoint)
+        /// The pointer moved with the left button held after a `panelClick`,
+        /// carrying the window-local point (issue #247).
+        case panelMouseDragged(CGPoint)
+        /// The left button went up after a `panelClick`, carrying the
+        /// window-local point of the release (issue #247).
+        case panelMouseUp(CGPoint)
         case closeWindow
         case minimizeWindow
         case hideApp
@@ -233,6 +239,12 @@ final class HotkeyTap: @unchecked Sendable {
     /// tap thread without touching AppKit. `nil` while the panel is hidden.
     /// Published by SwitcherController on present/dismiss and on every relayout.
     private let switcherFrame = OSAllocatedUnfairLock<CGRect?>(initialState: nil)
+    /// True between a swallowed in-panel left mouse-down and its mouse-up, so the tap
+    /// swallows exactly the drags and mouse-up whose mouse-down nobody else saw
+    /// (whatever `clickOnMouseUp` is set to).
+    private let leftDownSwallowed = OSAllocatedUnfairLock<Bool>(initialState: false)
+    /// Newest held-button drag point not yet taken by main, see `deliverCoalescedDrag`.
+    private let pendingDragPoint = OSAllocatedUnfairLock<CGPoint?>(initialState: nil)
     /// When true, the *initial* trigger chord (⌘Tab / ⌘`) is passed through to
     /// the focused app instead of opening the switcher — the "Ignore shortcuts"
     /// per-app exception. Recomputed on main from the frontmost app and pushed
@@ -455,6 +467,8 @@ final class HotkeyTap: @unchecked Sendable {
         let pointerMask: CGEventMask =
             (1 << CGEventType.scrollWheel.rawValue) |
             (1 << CGEventType.leftMouseDown.rawValue) |
+            (1 << CGEventType.leftMouseDragged.rawValue) |
+            (1 << CGEventType.leftMouseUp.rawValue) |
             (1 << CGEventType.rightMouseDown.rawValue) |
             (1 << CGEventType.otherMouseDown.rawValue)
 
@@ -631,13 +645,17 @@ final class HotkeyTap: @unchecked Sendable {
     /// the access safe without needing `MainActor.assumeIsolated`.
     func setSwitching(_ value: Bool) {
         switchingFlag.withLock { $0 = value }
-        // Closing the switcher (commit, Esc, click-outside, app deactivation)
-        // must always kill a lingering held-Shift backward repeat — catch-all
-        // for any close path the tap-thread stop signals don't observe.
-        if !value { stopShiftRepeat() }
-        // Closing also drops any partially-accumulated continuous scroll so a
-        // leftover fraction can't leak a step into the next open.
-        if !value { continuousScrollState.withLock { $0 = (0, 0) } }
+        if !value {
+            // Closing the switcher (commit, Esc, click-outside, app deactivation)
+            // must always kill a lingering held-Shift backward repeat — catch-all
+            // for any close path the tap-thread stop signals don't observe.
+            stopShiftRepeat()
+            // Closing also drops any partially-accumulated continuous scroll so a
+            // leftover fraction can't leak a step into the next open.
+            continuousScrollState.withLock { $0 = (0, 0) }
+            // The pointer tap goes off with the switcher, so a pending mouse-up may never arrive.
+            leftDownSwallowed.withLock { $0 = false }
+        }
         // The pointer tap is only needed while the switcher is open; keep it
         // live exactly for that window so idle scroll/click traffic never
         // enters this process. Safe to call from main: `tapEnable` just toggles
@@ -1215,6 +1233,9 @@ final class HotkeyTap: @unchecked Sendable {
             //
             // A click outside the panel keeps the click-outside-to-dismiss
             // behavior: swallowed + dismiss when enabled, pass-through when not.
+            // Every left press resets the flag, so a store racing `setSwitching(false)` can't
+            // outlive its gesture and swallow the next session's first mouse-up.
+            if type == .leftMouseDown { leftDownSwallowed.withLock { $0 = false } }
             guard isSwitchingNow(), let frame = switcherFrame.withLock({ $0 }) else {
                 return Unmanaged.passUnretained(event)
             }
@@ -1223,6 +1244,7 @@ final class HotkeyTap: @unchecked Sendable {
                 // panel ignores them, but no button may reach a third-party
                 // monitor while the trigger modifier is held.
                 if type == .leftMouseDown {
+                    leftDownSwallowed.withLock { $0 = true }
                     deliver(.panelClick(Self.windowPoint(
                         forClick: event.location, inPanelFrame: frame)))
                 }
@@ -1233,6 +1255,26 @@ final class HotkeyTap: @unchecked Sendable {
                 return nil
             }
             return Unmanaged.passUnretained(event)
+        }
+
+        if type == .leftMouseDragged || type == .leftMouseUp {
+            let isUp = type == .leftMouseUp
+            let swallowed = leftDownSwallowed.withLock { state -> Bool in
+                defer { if isUp { state = false } }
+                return state
+            }
+            guard isSwitchingNow(), swallowed else { return Unmanaged.passUnretained(event) }
+            guard let frame = switcherFrame.withLock({ $0 }) else {
+                Log.hotkey.debug("panel mouse-up or drag swallowed with no panel frame")
+                return nil
+            }
+            let point = Self.windowPoint(forClick: event.location, inPanelFrame: frame)
+            if isUp {
+                deliver(.panelMouseUp(point))
+            } else {
+                deliverCoalescedDrag(to: point)
+            }
+            return nil
         }
 
         let cfg = config.withLock { $0 }
@@ -1635,5 +1677,22 @@ final class HotkeyTap: @unchecked Sendable {
 
     private func deliver(_ event: Event) {
         DispatchQueue.main.async { [weak self] in self?.onEvent(event) }
+    }
+
+    /// At most one drag hop in flight, carrying the newest point: a 1000 Hz mouse
+    /// would otherwise queue a main-thread hit test per event.
+    private func deliverCoalescedDrag(to point: CGPoint) {
+        let isFirst = pendingDragPoint.withLock { pending -> Bool in
+            defer { pending = point }
+            return pending == nil
+        }
+        guard isFirst else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let point = pendingDragPoint.withLock({ pending -> CGPoint? in
+                defer { pending = nil }
+                return pending
+            }) else { return }
+            onEvent(.panelMouseDragged(point))
+        }
     }
 }
