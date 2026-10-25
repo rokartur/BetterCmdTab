@@ -41,7 +41,13 @@ const properties = schema.properties as Record<string, SchemaFragment>;
 const sections: { title: string; keys: string[] }[] = [
   {
     title: 'Display & timing',
-    keys: ['displayMode', 'movePointerAcrossDisplays', 'verticalPosition', 'revealDelayMs', 'titleRefreshIntervalMs'],
+    keys: [
+      'displayMode',
+      'movePointerAcrossDisplays',
+      'verticalPosition',
+      'revealDelayMs',
+      'titleRefreshIntervalMs',
+    ],
   },
   {
     title: 'Layout',
