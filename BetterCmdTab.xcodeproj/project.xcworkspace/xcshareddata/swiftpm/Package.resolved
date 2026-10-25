@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/rokartur/BetterSettings.git",
       "state" : {
-        "revision" : "cfe039eaca3112b694b75f05010ebb2bdc971af5",
-        "version" : "0.2.10"
+        "revision" : "d3599a4942580b7c4ecce42f33f26d16e003bfa8",
+        "version" : "0.5.3"
       }
     },
     {
