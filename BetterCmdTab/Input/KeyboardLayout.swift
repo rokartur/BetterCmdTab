@@ -120,8 +120,9 @@ enum KeyboardLayout {
     }
 
     static func currentOrFallbackLayoutData() -> Data? {
-        if UserDefaults.standard.bool(forKey: Preferences.Keys.alwaysUseEnglishKeyboard) {
-            return englishLayoutData()
+        if UserDefaults.standard.bool(forKey: Preferences.Keys.alwaysUseEnglishKeyboard),
+           let data = englishLayoutData() {
+            return data
         }
         if let src = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
            let data = layoutData(from: src) {
@@ -139,8 +140,9 @@ enum KeyboardLayout {
 
     /// The most recently used ASCII-capable keyboard layout, the current one when it is ASCII-capable.
     static func asciiCapableLayoutData() -> Data? {
-        if UserDefaults.standard.bool(forKey: Preferences.Keys.alwaysUseEnglishKeyboard) {
-            return englishLayoutData()
+        if UserDefaults.standard.bool(forKey: Preferences.Keys.alwaysUseEnglishKeyboard),
+           let data = englishLayoutData() {
+            return data
         }
         guard let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue() else { return nil }
         return layoutData(from: src)
