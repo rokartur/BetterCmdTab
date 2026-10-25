@@ -12,25 +12,25 @@
     "format:check": "oxfmt --check ."
   },
   "dependencies": {
-    "cn": "^0.4.0",
-    "fumadocs-core": "16.15.13",
-    "fumadocs-mdx": "15.4.3",
-    "fumadocs-ui": "npm:@fumadocs/base-ui@16.15.13",
-    "lucide-react": "^1.47.0",
-    "next": "16.3.6",
-    "next-intl": "^4.14.6",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "cn": "^0.5.0",
+    "fumadocs-core": "16.17.8",
+    "fumadocs-mdx": "15.4.10",
+    "fumadocs-ui": "npm:@fumadocs/base-ui@16.17.8",
+    "lucide-react": "^1.61.0",
+    "next": "16.4.3",
+    "next-intl": "^4.14.9",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@types/mdx": "^2.0.14",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "oxfmt": "^0.70.0",
-    "oxlint": "^1.85.0",
-    "postcss": "^8.5.28",
+    "oxfmt": "^0.74.0",
+    "oxlint": "^1.89.0",
+    "postcss": "^8.5.31",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   }
