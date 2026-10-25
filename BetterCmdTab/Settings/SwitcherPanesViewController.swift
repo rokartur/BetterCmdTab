@@ -3,22 +3,22 @@ import BetterSettings
 import BetterShortcuts
 import Combine
 
-/// Backs three sibling panes that all edit the switcher's global defaults, so
+/// Backs four sibling panes that all edit the switcher's global defaults, so
 /// they share one set of controls and one `viewWillAppear` sync:
 ///
-/// - **Switcher** — what the panel lists (Contents) and its two timing knobs.
-/// - **Controls** — how you drive the open panel: keys, letter jump, search,
-///   mouse, hover actions.
+/// - **Contents** — what the panel lists, the window shelf, Handoff, timing.
+/// - **Keyboard** — keys, input language, letter jump, search.
+/// - **Mouse** — pointer selection, scrolling, hover actions.
 /// - **Tabs** — native window tabs and browser tabs.
 ///
-/// Global hotkeys live under Shortcuts, the look under Appearance, per-app
-/// rules under Apps, and the Apple Events consent browser tabs need under
-/// Privacy.
+/// Global hotkeys live under Window Shortcuts, the swipe under Trackpad, the
+/// look under Appearance, per-app rules under Apps, and the Apple Events
+/// consent browser tabs need under Privacy.
 @MainActor
 final class SwitcherPanesViewController: SettingsTabViewController {
 
-    /// Which of the three panes this instance builds.
-    enum Pane { case switcher, controls, tabs }
+    /// Which of the four panes this instance builds.
+    enum Pane { case contents, keyboard, mouse, tabs }
 
     private let pane: Pane
 
@@ -76,7 +76,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let browserTabMRUSwitch = PreferenceSwitch(bind: \.browserTabMRU)
     private let browserTabPreviewsSwitch = PreferenceSwitch(bind: \.browserTabPreviews)
     /// Kept so the row can visibly lock (dim + tooltip) while its prerequisite
-    /// "Type-to-filter search" — owned by the Controls pane — is off.
+    /// "Type-to-filter search" — owned by the Keyboard pane — is off.
     private var searchTabsRow: SettingsRowView?
 
     // Search
@@ -129,19 +129,21 @@ final class SwitcherPanesViewController: SettingsTabViewController {
 
     override func setupContent() {
         switch pane {
-        case .switcher:
+        case .contents:
             addGlobalDefaultNote()
             buildContentsSection()
             buildWindowShelfSection()
             buildHandoffSection()
             buildTimingSection()
-        case .controls:
+        case .keyboard:
             addGlobalDefaultNote()
             buildKeyboardSection()
             buildEnglishKeyboardSection()
             buildLetterJumpSection()
             buildOneHandHintsSection()
             buildSearchSection()
+        case .mouse:
+            addGlobalDefaultNote()
             buildMouseSection()
         case .tabs:
             buildNativeTabsSection()
@@ -445,16 +447,17 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         super.viewWillAppear()
         // Every control below belongs to exactly one pane, and only that pane's
         // controls were ever added to a view. Sync and subscribe per pane so a
-        // preference change wakes one handler, not three.
+        // preference change wakes one handler, not four.
         switch pane {
-        case .switcher: syncSwitcherPane()
-        case .controls: syncControlsPane()
+        case .contents: syncContentsPane()
+        case .keyboard: syncKeyboardPane()
+        case .mouse: syncMousePane()
         case .tabs: syncTabsPane()
         }
     }
 
     /// Contents and Timing.
-    private func syncSwitcherPane() {
+    private func syncContentsPane() {
         let prefs = Preferences.shared
         applyDelay(prefs.revealDelayMs)
         applyTitleRefresh(prefs.titleRefreshIntervalMs)
@@ -511,8 +514,8 @@ final class SwitcherPanesViewController: SettingsTabViewController {
             .store(in: &cancellables)
     }
 
-    /// Keyboard, Letter jump, Search, Mouse and Hover actions.
-    private func syncControlsPane() {
+    /// Keyboard, Input language, Letter jump and Search.
+    private func syncKeyboardPane() {
         let prefs = Preferences.shared
         stayOpenSwitch.state = prefs.stayOpenOnRelease ? .on : .off
         stayOpenQuickTapSwitch.sync()
@@ -535,22 +538,6 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         launcherSwitch.sync()
         selectSearchMode(prefs.searchDismissMode)
         syncSearchOptionRows()
-
-        scrollSwitch.state = prefs.scrollToSwitch ? .on : .off
-        scrollReverseSwitch.sync()
-        scrollReverseSwitch.isEnabled = prefs.scrollToSwitch
-        clickDismissSwitch.sync()
-        hoverSelectSwitch.sync()
-        clickSelectSwitch.sync()
-        clickOnMouseUpSwitch.sync()
-        hoverSwitch.state = prefs.hoverActionsEnabled ? .on : .off
-        hoverCloseSwitch.sync()
-        hoverMinimizeSwitch.sync()
-        hoverMaximizeSwitch.sync()
-        hoverHideSwitch.sync()
-        hoverQuitSwitch.sync()
-        hoverForceQuitSwitch.sync()
-        setHoverSubOptionsEnabled(prefs.hoverActionsEnabled)
 
         prefs.$searchDismissMode
             .receive(on: DispatchQueue.main)
@@ -591,6 +578,26 @@ final class SwitcherPanesViewController: SettingsTabViewController {
             .store(in: &cancellables)
     }
 
+    /// Mouse, Mouse release and Hover actions.
+    private func syncMousePane() {
+        let prefs = Preferences.shared
+        scrollSwitch.state = prefs.scrollToSwitch ? .on : .off
+        scrollReverseSwitch.sync()
+        scrollReverseSwitch.isEnabled = prefs.scrollToSwitch
+        clickDismissSwitch.sync()
+        hoverSelectSwitch.sync()
+        clickSelectSwitch.sync()
+        clickOnMouseUpSwitch.sync()
+        hoverSwitch.state = prefs.hoverActionsEnabled ? .on : .off
+        hoverCloseSwitch.sync()
+        hoverMinimizeSwitch.sync()
+        hoverMaximizeSwitch.sync()
+        hoverHideSwitch.sync()
+        hoverQuitSwitch.sync()
+        hoverForceQuitSwitch.sync()
+        setHoverSubOptionsEnabled(prefs.hoverActionsEnabled)
+    }
+
     /// Native tabs and Browser tabs.
     private func syncTabsPane() {
         let prefs = Preferences.shared
@@ -613,7 +620,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
             }
             .store(in: &cancellables)
         // "Search browser tabs" is gated on type-to-filter instead, and that
-        // switch lives a pane away under Controls — so watch it from here too.
+        // switch lives a pane away under Keyboard — so watch it from here too.
         prefs.$fuzzySearchEnabled
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.syncBrowserTabRows() }
@@ -889,10 +896,10 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         browserTabMRUSwitch.isEnabled = expanded
 
         // "Search browser tabs" hangs off type-to-filter instead, which lives a
-        // pane away under Controls — so name it in the tooltip.
+        // pane away under Keyboard — so name it in the tooltip.
         lockRow(searchTabsRow, control: searchTabsSwitch,
                 unlocked: Preferences.shared.fuzzySearchEnabled,
-                hint: String(localized: "Turn on \u{201C}Type-to-filter search\u{201D} under Controls first."))
+                hint: String(localized: "Turn on \u{201C}Type-to-filter search\u{201D} under Keyboard first."))
     }
 
     /// Same gate for the minimized sink, keyed on its own prerequisite.

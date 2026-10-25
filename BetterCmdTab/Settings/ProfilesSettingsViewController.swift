@@ -2,8 +2,8 @@ import AppKit
 import BetterSettings
 import BetterShortcuts
 
-/// Profiles pane — the switcher shortcuts and their per-shortcut overrides.
-/// Global hotkeys that never open the panel live under Shortcuts instead.
+/// Switcher Shortcuts pane — the switcher shortcuts and their per-shortcut overrides.
+/// Global hotkeys that never open the panel live under Window Shortcuts instead.
 @MainActor
 final class ProfilesSettingsViewController: SettingsTabViewController {
 
