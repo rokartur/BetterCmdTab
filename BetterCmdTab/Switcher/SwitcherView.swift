@@ -356,7 +356,9 @@ final class SwitcherView: NSView {
         }
         let scale = window?.backingScaleFactor ?? 2
         let pixelHeight = metrics.previewThumbHeight * scale
-        for view in itemViews {
+        // Captures run one at a time, so the selected tile goes first; its repeat below is a no-op.
+        let selectedFirst = itemViews.indices.contains(selectedIndex) ? [itemViews[selectedIndex]] + itemViews : itemViews
+        for view in selectedFirst {
             guard let preview = view as? SwitcherPreviewItemView,
                   !preview.isHidden,
                   let key = preview.thumbnailKey else { continue }

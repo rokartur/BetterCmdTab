@@ -285,7 +285,11 @@ final class WindowThumbnailCache {
         // serves captures one at a time anyway, so a second queue would not speed it up.
         let captured = await withCheckedContinuation { continuation in
             windowServerQueue.async {
-                continuation.resume(returning: captureCGS(wid: wid, pixelHeight: pixelHeight).map { CapturedCGImage(image: $0) })
+                let window = captureCGS(wid: wid, pixelHeight: pixelHeight)
+                // Downscale off the serial queue so the next window's capture starts now.
+                DispatchQueue.global(qos: .userInitiated).async {
+                    continuation.resume(returning: window.map { CapturedCGImage(image: downscaled($0, toPixelHeight: pixelHeight)) })
+                }
             }
         }
         guard let cg = captured?.image else { return nil }
@@ -298,15 +302,10 @@ final class WindowThumbnailCache {
               let nominal = PrivateAPI.captureWindowImage(wid, nominalResolution: true),
               nominal.width > 1, nominal.height > 1 else { return nil }
         // A point-size capture has a quarter of the Retina pixels, so the downscale
-        // below costs about 2 ms of CPU instead of 5 with no visible difference.
+        // to the tile costs about 2 ms of CPU instead of 5 with no visible difference.
         // Only a window shorter than the tile needs the backing-resolution capture.
-        var cg = nominal
-        if CGFloat(nominal.height) < pixelHeight.rounded(),
-           let backing = PrivateAPI.captureWindowImage(wid, nominalResolution: false) {
-            cg = backing
-        }
-        // Downscale to the tile's pixel height so one window costs one cache slot.
-        return downscaled(cg, toPixelHeight: pixelHeight)
+        guard CGFloat(nominal.height) < pixelHeight.rounded() else { return nominal }
+        return PrivateAPI.captureWindowImage(wid, nominalResolution: false) ?? nominal
     }
 
     /// Returns `cg` redrawn at `pixelHeight` (aspect preserved) when it is
