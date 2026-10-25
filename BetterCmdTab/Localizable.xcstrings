@@ -2327,47 +2327,6 @@
         }
       }
     },
-    "Browsers need Apple Events consent to list their tabs. Click to prompt for each running browser (Safari, Chrome, Arc, Brave, Edge…). Must be done with this window open." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Browser benötigen die Apple-Events-Zustimmung, um ihre Tabs aufzulisten. Klicke, um jeden laufenden Browser (Safari, Chrome, Arc, Brave, Edge…) abzufragen. Muss bei geöffnetem Fenster erfolgen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Los navegadores necesitan el consentimiento de Apple Events para listar sus pestañas. Haz clic para solicitarlo a cada navegador en ejecución (Safari, Chrome, Arc, Brave, Edge…). Debe hacerse con esta ventana abierta."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les navigateurs ont besoin du consentement Apple Events pour lister leurs onglets. Cliquez pour le demander à chaque navigateur en cours d’exécution (Safari, Chrome, Arc, Brave, Edge…). À faire avec cette fenêtre ouverte."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przeglądarki potrzebują zgody Apple Events, aby wyświetlić listę swoich kart. Kliknij, aby poprosić o nią każdą uruchomioną przeglądarkę (Safari, Chrome, Arc, Brave, Edge…). Trzeba to zrobić przy otwartym tym oknie."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Для получения списка вкладок браузерам требуется разрешение на Apple Events. Нажмите, чтобы запросить разрешение для каждого запущенного браузера (Safari, Chrome, Arc, Brave, Edge…). Это действие необходимо выполнить при открытом окне настроек."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "列出浏览器标签页需要 Apple Events 授权。点击后会为每个正在运行的浏览器（Safari、Chrome、Arc、Brave、Edge…）请求权限。此窗口必须保持打开。"
-          }
-        }
-      }
-    },
     "Cancel" : {
       "localizations" : {
         "de" : {
@@ -5766,47 +5725,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在“系统设置”▸“隐私”中授予 %@ 自动化权限"
-          }
-        }
-      }
-    },
-    "Grant permissions…" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Berechtigungen erteilen…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conceder permisos…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accorder les autorisations…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przyznaj uprawnienia…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Предоставить разрешения…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "授予权限…"
           }
         }
       }
@@ -9370,47 +9288,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "列表最大宽度"
-          }
-        }
-      }
-    },
-    "Medium" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mittel"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mediano"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Moyen"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Średni"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Средний"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中"
           }
         }
       }
