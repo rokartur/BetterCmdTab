@@ -88,6 +88,7 @@ const sections: { title: string; keys: string[] }[] = [
     title: 'Contents',
     keys: [
       'sortOrder',
+      'initialSelection',
       'spaceScope',
       'instantSpaceSwitch',
       'applicationsOnly',
@@ -267,6 +268,7 @@ const defaults: Record<string, string> = {
   hoverShowMaximize: 'true',
   hoverShowMinimize: 'true',
   hoverShowQuit: 'true',
+  initialSelection: '"nextApp"',
   instantSpaceSwitch: 'false',
   layoutMode: '"iconDock"',
   letterChainTimeoutMs: '1000',

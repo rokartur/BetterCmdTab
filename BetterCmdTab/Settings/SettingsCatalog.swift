@@ -124,6 +124,7 @@ enum SearchID {
     static let spaceScope = "contents.spaceScope"
     static let instantSpace = "contents.instantSpace"
     static let sortOrder = "contents.sortOrder"
+    static let initialSelection = "contents.initialSelection"
     static let showRecentlyClosed = "contents.showRecentlyClosed"
     static let recentlyClosedLimit = "contents.recentlyClosedLimit"
     static let windowDrill = "contents.windowDrill"
@@ -456,6 +457,8 @@ enum SettingsCatalog {
              String(localized: "Switch Spaces without animation"), ["spaces", "space", "animation", "instant", "full screen"]),
         item(SearchID.sortOrder, .contents, SettingsAnchor.contents, String(localized: "Contents"), String(localized: "Contents"),
              String(localized: "Sort order"), ["sort", "order", "mru", "most recent", "alphabetical", "launch order", "windows", "window recency"]),
+        item(SearchID.initialSelection, .contents, SettingsAnchor.contents, String(localized: "Contents"), String(localized: "Contents"),
+             String(localized: "First ⌘Tab selects"), ["initial selection", "first", "middle", "center", "next app", "start", "selects"]),
         item(SearchID.showRecentlyClosed, .contents, SettingsAnchor.contents, String(localized: "Contents"), String(localized: "Contents"),
              String(localized: "Show recently closed apps"), ["recently closed", "reopen", "recent"]),
         item(SearchID.recentlyClosedLimit, .contents, SettingsAnchor.contents, String(localized: "Contents"), String(localized: "Contents"),

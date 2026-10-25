@@ -41,18 +41,23 @@ struct SettingsPortabilityTests {
         let prefs = Preferences.shared
         let savedSort = prefs.sortOrder
         let savedOpacity = prefs.panelOpacity
+        let savedSelection = prefs.initialSelection
         defer {
             try? prefs.importSettings(from: flat([
                 "sortOrder": savedSort.rawValue,
+                "initialSelection": savedSelection.rawValue,
                 "panelOpacity": savedOpacity,
             ]))
         }
         let target: SwitcherSortOrder = savedSort == .alphabetical ? .launchOrder : .alphabetical
+        let targetSelection: InitialSelection = savedSelection == .middle ? .nextApp : .middle
         try prefs.importSettings(from: flat([
             "sortOrder": target.rawValue,
             "panelOpacity": 55,
+            "initialSelection": targetSelection.rawValue,
         ]))
         #expect(prefs.sortOrder == target)
+        #expect(prefs.initialSelection == targetSelection)
         #expect(prefs.panelOpacity == 55)
     }
 

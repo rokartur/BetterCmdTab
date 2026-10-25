@@ -5169,6 +5169,46 @@
         }
       }
     },
+    "First ⌘Tab selects" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstes ⌘Tab wählt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El primer ⌘Tab selecciona"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le premier ⌘Tab sélectionne"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pierwsze ⌘Tab zaznacza"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Первое нажатие ⌘Tab выбирает"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "首次按 ⌘Tab 选中"
+          }
+        }
+      }
+    },
     "Font" : {
       "localizations" : {
         "de" : {
@@ -9412,6 +9452,86 @@
         }
       }
     },
+    "Middle app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mittlere App"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App central"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App du milieu"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Środkowa aplikacja"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложение в середине"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中间的应用"
+          }
+        }
+      }
+    },
+    "Middle app counts apps, not window rows. Applies to sorts that stay put as you switch." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Mittlere App“ zählt Apps, nicht Fensterzeilen. Gilt für Sortierungen, die beim Wechseln an Ort und Stelle bleiben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«App central» cuenta apps, no filas de ventanas. Se aplica a los órdenes que permanecen en su sitio al cambiar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App du milieu compte les apps, pas les lignes de fenêtres. S’applique aux tris qui restent en place lorsque vous changez."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Środkowa aplikacja liczy aplikacje, nie wiersze okien. Dotyczy sortowań, które pozostają na miejscu podczas przełączania."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Приложение в середине» считает приложения, а не строки окон. Действует для сортировок, порядок которых не меняется во время переключения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“中间的应用”按应用计数，而不是按窗口行计数。适用于切换时保持不变的排序方式。"
+          }
+        }
+      }
+    },
     "Minimize window" : {
       "localizations" : {
         "de" : {
@@ -10329,6 +10449,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从不"
+          }
+        }
+      }
+    },
+    "Next app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nächste App"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siguiente app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App suivante"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Następna aplikacja"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Следующее приложение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一个应用"
           }
         }
       }

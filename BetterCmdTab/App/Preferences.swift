@@ -367,6 +367,23 @@ enum SwitcherSortOrder: String, CaseIterable {
     }
 }
 
+/// Where the first ⌘Tab press lands under a sort that anchors on the frontmost app (#251).
+/// Raw values are persisted under `Keys.initialSelection`, so don't rename cases.
+enum InitialSelection: String, CaseIterable {
+    /// One step from the frontmost app in the press direction. Default.
+    case nextApp
+    /// The middle app (the later one for an even count), so either end is at most
+    /// half the list away. Counts apps, not window rows.
+    case middle
+
+    var displayName: String {
+        switch self {
+        case .nextApp: return String(localized: "Next app")
+        case .middle: return String(localized: "Middle app")
+        }
+    }
+}
+
 /// Which Spaces the switcher shows windows from (#57). Raw values are
 /// persisted under `Keys.spaceScope`, so don't rename cases. Supersedes the
 /// legacy `Keys.currentSpaceOnly` bool, which is kept in sync for older
@@ -957,6 +974,7 @@ final class Preferences: ObservableObject {
     enum Keys {
         static let switcherLayoutMode = "Switcher.layoutMode"
         static let sortOrder = "Switcher.sortOrder"
+        static let initialSelection = "Switcher.initialSelection"
         static let revealDelayMs = "Switcher.revealDelayMs"
         static let letterChainTimeoutMs = "Switcher.letterChainTimeoutMs"
         static let titleRefreshIntervalMs = "Switcher.titleRefreshIntervalMs"
@@ -1182,6 +1200,13 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != sortOrder else { return }
             UserDefaults.standard.set(sortOrder.rawValue, forKey: Keys.sortOrder)
+        }
+    }
+
+    @Published var initialSelection: InitialSelection {
+        didSet {
+            guard oldValue != initialSelection else { return }
+            UserDefaults.standard.set(initialSelection.rawValue, forKey: Keys.initialSelection)
         }
     }
 
@@ -2666,6 +2691,7 @@ final class Preferences: ObservableObject {
 
         let sortRaw = defaults.string(forKey: Keys.sortOrder)
         self.sortOrder = sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
+        self.initialSelection = defaults.string(forKey: Keys.initialSelection).flatMap(InitialSelection.init(rawValue:)) ?? .nextApp
 
         let delay = defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs
         self.revealDelayMs = Self.clampDelay(delay)
@@ -2860,6 +2886,7 @@ final class Preferences: ObservableObject {
             .flatMap(SwitcherVerticalPosition.init(rawValue:)) ?? .center
         topOffsetPercent = Self.clampTopOffsetPercent(defaults.object(forKey: Keys.topOffsetPercent) as? Int ?? Self.defaultTopOffsetPercent)
         sortOrder = defaults.string(forKey: Keys.sortOrder).flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
+        initialSelection = defaults.string(forKey: Keys.initialSelection).flatMap(InitialSelection.init(rawValue:)) ?? .nextApp
         revealDelayMs = Self.clampDelay(defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs)
         letterChainTimeoutMs = Self.clampLetterChainTimeout(defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs)
         titleRefreshIntervalMs = Self.clampTitleRefreshInterval(defaults.object(forKey: Keys.titleRefreshIntervalMs) as? Int ?? Self.defaultTitleRefreshIntervalMs)

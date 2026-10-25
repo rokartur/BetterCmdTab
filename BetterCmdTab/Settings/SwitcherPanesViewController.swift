@@ -56,6 +56,8 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let recentlyClosedLimitField = NSTextField()
     private let sortOrderPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
+    private let initialSelectionPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let initialSelections: [InitialSelection] = InitialSelection.allCases
     private let windowShelfPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let windowShelves: [WindowShelf] = WindowShelf.allCases
     private let windowShelfSingleWindowSwitch = PreferenceSwitch(bind: \.windowShelfSingleWindow)
@@ -218,6 +220,10 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         addRow(to: contents, title: String(localized: "Sort order"),
                subtitle: String(localized: "Most recent keeps the classic ⌘Tab order; Most recent (windows) interleaves windows from all apps by last focus; the others stay put as you switch."),
                accessory: sortOrderPopup, searchItemID: SearchID.sortOrder)
+        configurePopup(initialSelectionPopup, titles: initialSelections.map(\.displayName), action: #selector(initialSelectionChanged))
+        addRow(to: contents, title: String(localized: "First ⌘Tab selects"),
+               subtitle: String(localized: "Middle app counts apps, not window rows. Applies to sorts that stay put as you switch."),
+               accessory: initialSelectionPopup, searchItemID: SearchID.initialSelection)
         configureSwitch(recentlyClosedSwitch, action: #selector(toggleRecentlyClosed(_:)))
         addRow(to: contents, title: String(localized: "Show recently closed apps"),
                subtitle: String(localized: "Lists apps and windows you just closed so you can reopen them."),
@@ -476,6 +482,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         if let index = spaceScopes.firstIndex(of: prefs.spaceScope) { spaceScopePopup.selectItem(at: index) }
         instantSpaceRowSwitch.sync()
         selectSortOrder(prefs.sortOrder)
+        if let index = initialSelections.firstIndex(of: prefs.initialSelection) { initialSelectionPopup.selectItem(at: index) }
         if let index = windowShelves.firstIndex(of: prefs.windowShelf) { windowShelfPopup.selectItem(at: index) }
         windowShelfSingleWindowSwitch.sync()
         if let index = handoffPlacements.firstIndex(of: prefs.handoffPlacement) { handoffPopup.selectItem(at: index) }
@@ -930,6 +937,12 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         let idx = sortOrderPopup.indexOfSelectedItem
         guard sortOrders.indices.contains(idx) else { return }
         Preferences.shared.sortOrder = sortOrders[idx]
+    }
+
+    @objc private func initialSelectionChanged() {
+        let idx = initialSelectionPopup.indexOfSelectedItem
+        guard initialSelections.indices.contains(idx) else { return }
+        Preferences.shared.initialSelection = initialSelections[idx]
     }
 
     @objc private func windowShelfChanged() {

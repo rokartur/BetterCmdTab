@@ -316,3 +316,41 @@ struct PrimedTargetIndexTests {
         }
     }
 }
+
+@Suite("Switcher primed start (#251)")
+struct SwitcherPrimedStartTests {
+    @Test func nextApp_stepsOneFromFrontmost() {
+        #expect(SwitcherController.primedStart(count: 5, delta: 1, anchor: 3, startsInMiddle: false) == (4, 1))
+        #expect(SwitcherController.primedStart(count: 5, delta: -1, anchor: 3, startsInMiddle: false) == (2, -1))
+    }
+
+    @Test func middle_landsOnMiddleAppWithNoStep() {
+        #expect(SwitcherController.primedStart(count: 5, delta: 1, anchor: 4, startsInMiddle: true) == (2, 0))
+        #expect(SwitcherController.primedStart(count: 5, delta: -1, anchor: 0, startsInMiddle: true) == (2, 0))
+        #expect(SwitcherController.primedStart(count: 4, delta: 1, anchor: nil, startsInMiddle: true) == (2, 0))
+        #expect(SwitcherController.primedStart(count: 0, delta: 1, anchor: nil, startsInMiddle: true) == (0, 0))
+        #expect(SwitcherController.primedStart(count: 1, delta: 1, anchor: 0, startsInMiddle: true) == (0, 0))
+    }
+
+    @Test func middle_stepsPastMiddleWhenItIsFrontmost() {
+        #expect(SwitcherController.primedStart(count: 5, delta: 1, anchor: 2, startsInMiddle: true) == (3, 1))
+        #expect(SwitcherController.primedStart(count: 5, delta: -1, anchor: 2, startsInMiddle: true) == (1, -1))
+        #expect(SwitcherController.primedStart(count: 2, delta: 1, anchor: 1, startsInMiddle: true) == (0, 1))
+    }
+
+    @Test func middle_scopedRemapAnchorsOnMiddleEligibleApp() {
+        let pids: [pid_t] = [10, 20, 30, 40, 50]
+        let eligible: Set<pid_t> = [20, 30, 50]
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: pids, eligiblePids: eligible, step: 0, anchorPid: 50, startsInMiddle: true) == 2)
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: pids, eligiblePids: eligible, step: 1, anchorPid: 50, startsInMiddle: true) == 4)
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: pids, eligiblePids: eligible, step: 0, anchorPid: 30, startsInMiddle: true) == 4)
+    }
+
+    @Test func nextApp_scopedRemapStepsFromEligibleFrontmost() {
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: [10, 20, 30, 40, 50], eligiblePids: [20, 30, 50], step: 1, anchorPid: 20, startsInMiddle: false) == 2)
+    }
+}

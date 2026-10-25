@@ -1026,10 +1026,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // the panel still reveals into the #31 empty state.
             // Anchor on the global sort: this path never resolves per-shortcut
             // options, so `effective` is a stale snapshot here (#88).
-            let anchor = primedAnchor(for: Preferences.shared.sortOrder)
-            let step = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
-            primedIndex = Self.primedStartIndex(count: primedApps.count, step: step, anchor: anchor)
-            primedStepDelta = step
+            startPrimed(delta: delta, sort: Preferences.shared.sortOrder)
             primedByHeldChord = false
             switchSessionKind = .none
             phase = .primed
@@ -2750,20 +2747,54 @@ final class SwitcherController: SwitcherViewDelegate {
         return ((((anchor ?? 0) + step) % count) + count) % count
     }
 
+    /// Middle mode (#251) lands on the middle app with no step, or one past it when
+    /// it is the frontmost app, so a quick tap still switches.
+    nonisolated static func primedStart(
+        count: Int, delta: Int, anchor: Int?, startsInMiddle: Bool
+    ) -> (index: Int, step: Int) {
+        if startsInMiddle {
+            let middle = count / 2
+            guard count > 1, middle == anchor else { return (middle, 0) }
+            let step = delta > 0 ? 1 : -1
+            return (primedStartIndex(count: count, step: step, anchor: middle), step)
+        }
+        let step = count == 1 ? 0 : (delta > 0 ? 1 : -1)
+        return (primedStartIndex(count: count, step: step, anchor: anchor), step)
+    }
+
+    private func startPrimed(delta: Int, sort: SwitcherSortOrder) {
+        let start = Self.primedStart(count: primedApps.count, delta: delta,
+                                     anchor: primedAnchor(for: sort),
+                                     startsInMiddle: startsPrimedInMiddle(sort))
+        primedIndex = start.index
+        primedStepDelta = start.step
+    }
+
+    private func startsPrimedInMiddle(_ sort: SwitcherSortOrder) -> Bool {
+        sort.anchorsPrimedOnFrontmost && Preferences.shared.initialSelection == .middle
+    }
+
     /// Pure core of `eligiblePrimedApp`, split out so the Space-scope remap
     /// (#126) can be unit-tested without constructing `NSRunningApplication`s.
     /// Filters the primed pid list down to `eligiblePids` (apps that kept a row
     /// after the Space-scope filter), then steps by the accumulated tap delta
     /// exactly like `primedStartIndex` walks the full list. `anchorPid` is the
-    /// frontmost app under sorts that anchor on it (#88), nil under MRU sorts.
+    /// frontmost app under sorts that anchor on it (#88), nil under MRU sorts;
+    /// `startsInMiddle` anchors on the middle eligible app instead (#251).
     /// Returns an index into `primedPids`; nil when nothing is eligible.
     nonisolated static func eligiblePrimedIndex(
-        primedPids: [pid_t], eligiblePids: Set<pid_t>, step: Int, anchorPid: pid_t?
+        primedPids: [pid_t], eligiblePids: Set<pid_t>, step: Int, anchorPid: pid_t?, startsInMiddle: Bool
     ) -> Int? {
         let eligible = primedPids.enumerated().filter { eligiblePids.contains($0.element) }
         guard !eligible.isEmpty else { return nil }
-        let anchor = anchorPid.flatMap { pid in eligible.firstIndex { $0.element == pid } }
-        return eligible[primedStartIndex(count: eligible.count, step: step, anchor: anchor)].offset
+        let front = anchorPid.flatMap { pid in eligible.firstIndex { $0.element == pid } }
+        guard startsInMiddle else {
+            return eligible[primedStartIndex(count: eligible.count, step: step, anchor: front)].offset
+        }
+        let middle = eligible.count / 2
+        // Same rule as `primedStart`: a first tap never lands on the frontmost app.
+        let skipsFront = step == 0 && middle == front && eligible.count > 1
+        return eligible[primedStartIndex(count: eligible.count, step: skipsFront ? 1 : step, anchor: middle)].offset
     }
 
     /// Pure: initial selection for a scoped open. Row 0 unless the frontmost
@@ -2795,10 +2826,7 @@ final class SwitcherController: SwitcherViewDelegate {
             // quick tap must no-op — commit() has nothing to activate — and a
             // held ⌘ still reveals the #31 empty state.
             switchSessionKind = .appSwitching
-            let anchor = primedAnchor(for: effective.sortOrder)
-            let step = primedApps.count == 1 ? 0 : (delta > 0 ? 1 : -1)
-            primedIndex = Self.primedStartIndex(count: primedApps.count, step: step, anchor: anchor)
-            primedStepDelta = step
+            startPrimed(delta: delta, sort: effective.sortOrder)
             schedulePrimedReveal()
         case .primed:
             guard !primedApps.isEmpty else { return }
@@ -4447,7 +4475,8 @@ final class SwitcherController: SwitcherViewDelegate {
             primedPids: primedApps.map(\.pid),
             eligiblePids: Set(rows.compactMap(\.pid)),
             step: primedStepDelta,
-            anchorPid: anchorPid
+            anchorPid: anchorPid,
+            startsInMiddle: startsPrimedInMiddle(effective.sortOrder)
         ).map { primedApps[$0] }
     }
 

@@ -333,6 +333,18 @@
       "description" : "Include \"quit\" among the hover actions.",
       "type" : "boolean"
     },
+    "initialSelection" : {
+      "description" : "Where the first ⌘Tab press lands under sorts that stay put as you switch. Middle app counts apps, not window rows.",
+      "enum" : [
+        "nextApp",
+        "middle"
+      ],
+      "enumDescriptions" : [
+        "Next app",
+        "Middle app"
+      ],
+      "type" : "string"
+    },
     "instantSpaceSwitch" : {
       "description" : "Switch Spaces without the macOS animation.",
       "type" : "boolean"
