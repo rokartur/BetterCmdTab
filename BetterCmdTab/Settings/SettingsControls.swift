@@ -12,7 +12,37 @@ extension SettingsTabViewController {
         let note = addSection(title: nil, anchor: nil)
         addRow(to: note, icon: "slider.horizontal.3",
                title: SettingsCatalog.globalDefaultNoteTitle,
-               subtitle: SettingsCatalog.globalDefaultNoteSubtitle)
+               subtitle: SettingsCatalog.globalDefaultNoteSubtitle,
+               accessory: makeTabLink(to: SettingsTabID.switcherShortcuts))
+    }
+
+    /// Closes a pane with BetterAudio-style links to the tabs that hold the
+    /// settings next door, one row per `(row title, tab id)`.
+    func addRelatedSection(_ links: [(title: String, tabID: String)]) {
+        let related = addSection(title: String(localized: "Related"))
+        for (index, link) in links.enumerated() {
+            if index > 0 { addDivider(to: related) }
+            addRow(to: related, title: link.title, accessory: makeTabLink(to: link.tabID))
+        }
+    }
+
+    /// Small push button titled with the tab's name that opens that tab.
+    func makeTabLink(to tabID: String) -> NSButton {
+        let tabTitle = SettingsCatalog.title(of: tabID)
+        let button = NSButton(title: tabTitle, target: self, action: #selector(openLinkedTab(_:)))
+        button.identifier = NSUserInterfaceItemIdentifier(tabID)
+        button.bezelStyle = .push
+        button.controlSize = .small
+        button.font = .systemFont(ofSize: NSFont.systemFontSize(for: .small))
+        button.image = NSImage(systemSymbolName: "chevron.forward", accessibilityDescription: nil)
+        button.imagePosition = .imageTrailing
+        button.toolTip = String(localized: "Open \(tabTitle)")
+        button.setAccessibilityLabel(button.toolTip)
+        return button
+    }
+
+    @objc private func openLinkedTab(_ sender: NSButton) {
+        SettingsWindowPresenter.shared.show(selecting: sender.identifier!.rawValue)
     }
 
     /// Small switch wired to `action` on this controller.

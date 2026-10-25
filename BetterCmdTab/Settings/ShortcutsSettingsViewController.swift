@@ -24,6 +24,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         buildDirectActivationSection()
         buildArrangeSection()
         buildAllWindowsSection()
+        addRelatedSection([(String(localized: "Shortcuts that open the switcher"), SettingsTabID.switcherShortcuts)])
     }
 
     /// Direct activation — global hotkeys that focus (and launch) a chosen app,

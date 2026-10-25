@@ -20,6 +20,7 @@ final class ProfilesSettingsViewController: SettingsTabViewController {
         // Appearance pane — rather than nesting cards inside a card.
         addArrangedSubview(shortcutsEditorView)
         register(section: shortcutsEditorView, anchor: SettingsAnchor.switching)
+        addRelatedSection([(String(localized: "Hotkeys that never open the switcher"), SettingsTabID.windowShortcuts)])
         // The in-panel action keys (close / minimize / hide / quit / full screen)
         // are edited per profile, inside each profile's "In-panel keys" card in the
         // editor above (#5) — there is no separate global section.

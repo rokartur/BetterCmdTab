@@ -135,6 +135,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
             buildWindowShelfSection()
             buildHandoffSection()
             buildTimingSection()
+            addRelatedSection([(String(localized: "Hide or ignore specific apps"), SettingsTabID.apps)])
         case .keyboard:
             addGlobalDefaultNote()
             buildKeyboardSection()
@@ -148,6 +149,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         case .tabs:
             buildNativeTabsSection()
             buildBrowserTabsSection()
+            addRelatedSection([(String(localized: "Apple Events access for browser tabs"), SettingsTabID.privacy)])
         }
     }
 

@@ -208,6 +208,10 @@ enum SettingsCatalog {
     static let globalDefaultNoteTitle = String(localized: "Defaults for every shortcut")
     static let globalDefaultNoteSubtitle = String(localized: "Many of these can be overridden per shortcut under Switcher Shortcuts.")
 
+    static func title(of tabID: String) -> String {
+        tabs.first { $0.id == tabID }!.title
+    }
+
     static func makeConfiguration() -> SettingsConfiguration {
         SettingsConfiguration(
             tabs: tabs,
