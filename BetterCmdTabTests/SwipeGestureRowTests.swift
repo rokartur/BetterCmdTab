@@ -9,6 +9,7 @@ struct SwipeGestureRowTests {
 
     private func startScrubbing() {
         MTGesture.setOneShot(false)
+        MTGesture.setFingerCount(3)
         MTGesture.setSensitivity(MTGesture.defaultSensitivityLevel)
         MTGesture.reset()
     }
