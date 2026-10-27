@@ -133,6 +133,25 @@ struct SettingsPortabilityTests {
         #expect(Preferences.shared.topOffsetPercent == 20)
     }
 
+    @Test("reload writes the clamp back when the published value does not change")
+    func reloadWritesClampBack() {
+        let defaults = UserDefaults.standard
+        let key = Preferences.Keys.topOffsetPercent
+        let saved = defaults.object(forKey: key)
+        defer {
+            if let saved { defaults.set(saved, forKey: key) } else { defaults.removeObject(forKey: key) }
+            Preferences.shared.reloadFromDefaults()
+        }
+
+        let max = Preferences.topOffsetPercentRange.upperBound
+        defaults.set(max, forKey: key)
+        Preferences.shared.reloadFromDefaults()
+        defaults.set(90, forKey: key)
+        Preferences.shared.reloadFromDefaults()
+        #expect(Preferences.shared.topOffsetPercent == max)
+        #expect(defaults.integer(forKey: key) == max)
+    }
+
     @Test("an unknown initialSelection falls back to nextApp")
     func initialSelectionFallsBackToNextApp() {
         let defaults = UserDefaults.standard
