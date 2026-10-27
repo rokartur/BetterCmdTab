@@ -2,9 +2,9 @@ name: Site CI
 
 # The site ships as two static exports — web/ (TanStack Start, prerendered) and
 # docs/ (Next) — merged into one tree and served by web/serve.ts (see
-# web/Dockerfile). It serves files and nothing else —
-# no rewrites, no redirects, no custom headers — so anything that used to be a
-# server rule is now a property of the built tree, and that is what gets checked
+# web/Dockerfile). Beyond files it only 301s bare directories and /pl/*, and sets
+# cache headers, so anything that used to be a server rule is now a property of the
+# built tree, and that is what gets checked
 # here. A broken export must fail on the PR, not on the live domain.
 on:
   push:
@@ -104,13 +104,13 @@ jobs:
           # Machine-readable exports are consumed outside Next, so relative
           # links bypass basePath and must be canonical production URLs.
           machine_exports="out/llms.txt out/llms-full.txt $(find out/llms.mdx -type f -name '*.md')"
-          relative_links=$(grep -nHE '\]\(/[^/]' $machine_exports || true)
+          relative_links=$(grep -nHE '(\]\(|href=")/[^/]' $machine_exports || true)
           if [ -n "$relative_links" ]; then
             echo "::error::machine-readable exports contain root-relative links:"
             echo "$relative_links"
             fail=1
           fi
-          for u in $(grep -hoE 'https://bettercmdtab\.app/docs/[^)[:space:]]*' $machine_exports | sort -u); do
+          for u in $(grep -hoE 'https://bettercmdtab\.app/docs/[^)"[:space:]]*' $machine_exports | sort -u); do
             relative=${u#https://bettercmdtab.app/docs/}
             fragment=
             case "$relative" in
@@ -172,7 +172,7 @@ jobs:
 
           # An internal link to a redirecting URL spends a hop and dilutes the
           # signal it passes. Same slash rule as above.
-          for h in $(grep -oh 'href="/docs[^"]*"' $root/index.html | sed 's|href="||; s|"||' | sort -u); do
+          for h in $(grep -oh 'href="/docs[^"]*"' $root/index.html $root/404.html $root/alttab-alternative/index.html $root/cmd-tab-mac/index.html | sed 's|href="||; s|"||' | sort -u); do
             case "$h" in
               */) test -f "${root}${h%/}/index.html" \
                     || { echo "::error::marketing page links to $h, which has no page"; fail=1; };;
