@@ -107,15 +107,47 @@ struct SettingsPortabilityTests {
 
         try prefs.importSettings(from: flat(["topOffsetPercent": 90]))
         #expect(prefs.topOffsetPercent == Preferences.topOffsetPercentRange.upperBound)
-        #expect(UserDefaults.standard.integer(forKey: key) == Preferences.topOffsetPercentRange.upperBound)
 
-        prefs.topOffsetPercent = 12
         prefs.topOffsetPercent = -5
         #expect(prefs.topOffsetPercent == 0)
         #expect(UserDefaults.standard.integer(forKey: key) == 0)
 
         try prefs.importSettings(from: data)
         #expect(prefs.topOffsetPercent == 12)
+    }
+
+    @Test("topOffsetPercent reloads the historical 20 when the key is absent")
+    func topOffsetPercentDefaultsToTwenty() {
+        let defaults = UserDefaults.standard
+        let key = Preferences.Keys.topOffsetPercent
+        let saved = defaults.object(forKey: key)
+        defer {
+            if let saved { defaults.set(saved, forKey: key) } else { defaults.removeObject(forKey: key) }
+            Preferences.shared.reloadFromDefaults()
+        }
+
+        defaults.set(7, forKey: key)
+        Preferences.shared.reloadFromDefaults()
+        defaults.removeObject(forKey: key)
+        Preferences.shared.reloadFromDefaults()
+        #expect(Preferences.shared.topOffsetPercent == 20)
+    }
+
+    @Test("an unknown initialSelection falls back to nextApp")
+    func initialSelectionFallsBackToNextApp() {
+        let defaults = UserDefaults.standard
+        let key = Preferences.Keys.initialSelection
+        let saved = defaults.object(forKey: key)
+        defer {
+            if let saved { defaults.set(saved, forKey: key) } else { defaults.removeObject(forKey: key) }
+            Preferences.shared.reloadFromDefaults()
+        }
+
+        defaults.set(InitialSelection.middle.rawValue, forKey: key)
+        Preferences.shared.reloadFromDefaults()
+        defaults.set("middleApp", forKey: key)
+        Preferences.shared.reloadFromDefaults()
+        #expect(Preferences.shared.initialSelection == .nextApp)
     }
 
     /// Default-true is what makes #159 upgrade-safe: it reproduces the historical

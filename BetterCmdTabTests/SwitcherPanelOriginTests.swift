@@ -20,12 +20,14 @@ struct SwitcherPanelOriginTests {
 
     @Test func tallPanelSlidesUpInsteadOfSpilling() {
         let tall = NSSize(width: 400, height: 900)
-        let origin = SwitcherPanel.origin(of: tall, in: visible, position: .top, topOffsetPercent: 50)
+        let origin = SwitcherPanel.origin(
+            of: tall, in: visible, position: .top, topOffsetPercent: Preferences.topOffsetPercentRange.upperBound)
         #expect(origin.y == visible.minY)
     }
 
     @Test func centerIgnoresOffset() {
-        let origin = SwitcherPanel.origin(of: size, in: visible, position: .center, topOffsetPercent: 50)
+        let origin = SwitcherPanel.origin(
+            of: size, in: visible, position: .center, topOffsetPercent: Preferences.topOffsetPercentRange.upperBound)
         #expect(origin == NSPoint(x: 300, y: 400))
     }
 
@@ -33,6 +35,11 @@ struct SwitcherPanelOriginTests {
         let origin = SwitcherPanel.origin(
             of: size, in: visible, position: .top, topOffsetPercent: Preferences.defaultTopOffsetPercent)
         #expect(origin == NSPoint(x: 300, y: 600))
+    }
+
+    @Test func topRoomIsTheHeightBelowTheOffset() {
+        #expect(SwitcherPanel.topRoom(in: visible, topOffsetPercent: 40) == 600)
+        #expect(SwitcherPanel.topRoom(in: visible, topOffsetPercent: 0) == 1000)
     }
 
     @Test func offsetMeasuresFromVisibleFrameNotScreenOrigin() {
