@@ -200,16 +200,16 @@ files with no server at runtime.
 `web/out/docs`, and serves the merged tree with `web/serve.ts`, deployed on
 vexdock. There is no separate docs service and no reverse proxy.
 
-`web/serve.ts` serves files and nothing else: a slashed URL gets
-`<path>/index.html`, a bare directory 301s to its slashed form, anything
-missing gets `404.html`, and no header is set that a page could rely on.
+`web/serve.ts` serves files: a slashed URL gets `<path>/index.html`, a bare
+directory 301s to its slashed form, `/pl/*` 301s to `/docs/pl/*`, anything
+missing gets `404.html`, and only hashed assets (a year), media (a week) and
+HTML (`no-cache`) get `Cache-Control`.
 Anything that would be a server rule is a property of the built tree instead:
 
 - Every page is `<slug>/index.html`, so the slashed URL is the one that exists:
   `docs/` sets Next's `trailingSlash: true`, `web/` gets subfolder indexes from
   TanStack Start's prerender. Canonicals, the sitemap and internal links use the
-  slashed form; the bare form spends a redirect. Two exceptions: bare `/docs`,
-  which `serve.ts` serves from `docs/index.html` as the canonical docs home, and
+  slashed form; the bare form spends a redirect. One exception:
   `web/out/404.html`, prerendered from the `/404` route with
   `autoSubfolderIndex: false` because `serve.ts` serves that exact filename.
 - `web/public/sitemap.xml` is hand-maintained; CI checks it both ways: every URL

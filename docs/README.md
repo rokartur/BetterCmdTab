@@ -24,7 +24,6 @@ files whose URLs already carry the `/docs` prefix.
 `web/out/docs`, and serves the merged tree with `web/serve.ts` on vexdock — no
 docs server, no reverse proxy.
 
-Pages serves files and nothing else: no rewrites, no redirects, no custom
-headers. That is why both apps set `trailingSlash: true` — every page ships as
-`<slug>/index.html`, so the URL with the slash is the one that exists and the
-bare form is Pages' own 301 to it.
+`web/serve.ts` answers a slashed URL with `<slug>/index.html` and 301s the bare
+form to it, so the docs set `trailingSlash: true` and every URL with the slash
+is the one that exists.
