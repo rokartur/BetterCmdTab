@@ -44,10 +44,12 @@ const release = (tag: string, prerelease: boolean, downloads: number): GhRelease
 });
 
 test("channels picks the newest stable and exposes a beta only when it leads", () => {
-  const withBeta = channels([release("26.7-beta.3", true, 10), release("26.6.1", false, 90)]);
+  const beta = { ...release("26.7-beta.3", true, 10), published_at: "2026-07-09T08:00:00Z" };
+  const withBeta = channels([beta, release("26.6.1", false, 90)]);
   expect(withBeta.stable.version).toBe("26.6.1");
   expect(withBeta.stable.published).toBe("2026-07-03T12:30:53Z");
   expect(withBeta.beta?.version).toBe("26.7-beta.3");
+  expect(withBeta.beta?.published).toBe("2026-07-09T08:00:00Z");
   expect(withBeta.totalDownloads).toBe(100);
 
   // Once stable catches up the toggle disappears.
@@ -95,7 +97,7 @@ test("corrupt, legacy and tampered entries are rejected, never rendered", () => 
     JSON.stringify({ at: 1 }),
     JSON.stringify({ at: 1, rel: { ...ok, totalDownloads: -1 } }),
     JSON.stringify({ at: 1, rel: { ...ok, totalDownloads: 1.5 } }),
-    JSON.stringify({ at: 1, rel: { ...ok, stable: { version: "26.7", dmgUrl: 42 } } }),
+    JSON.stringify({ at: 1, rel: { ...ok, stable: { ...ok.stable, dmgUrl: 42 } } }),
     // Cached before channels carried a release date.
     JSON.stringify({
       at: 1,
@@ -105,13 +107,13 @@ test("corrupt, legacy and tampered entries are rejected, never rendered", () => 
     // An href pointing anywhere but this repo must never reach the page.
     JSON.stringify({
       at: 1,
-      rel: { ...ok, stable: { version: "x", dmgUrl: "javascript:alert(1)" } },
+      rel: { ...ok, stable: { ...ok.stable, dmgUrl: "javascript:alert(1)" } },
     }),
     JSON.stringify({
       at: 1,
-      rel: { ...ok, stable: { version: "x", dmgUrl: "https://evil.example/x.dmg" } },
+      rel: { ...ok, stable: { ...ok.stable, dmgUrl: "https://evil.example/x.dmg" } },
     }),
-    JSON.stringify({ at: 1, rel: { ...ok, beta: { version: "x", dmgUrl: "https://evil.test" } } }),
+    JSON.stringify({ at: 1, rel: { ...ok, beta: { ...ok.stable, dmgUrl: "https://evil.test" } } }),
   ];
   for (const raw of bad) {
     store[CACHE_KEY] = raw;
