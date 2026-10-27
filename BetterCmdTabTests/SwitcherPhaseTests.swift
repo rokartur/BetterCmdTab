@@ -333,24 +333,44 @@ struct SwitcherPrimedStartTests {
     }
 
     @Test func middle_stepsPastMiddleWhenItIsFrontmost() {
-        #expect(SwitcherController.primedStart(count: 5, delta: 1, anchor: 2, startsInMiddle: true) == (3, 1))
-        #expect(SwitcherController.primedStart(count: 5, delta: -1, anchor: 2, startsInMiddle: true) == (1, -1))
-        #expect(SwitcherController.primedStart(count: 2, delta: 1, anchor: 1, startsInMiddle: true) == (0, 1))
+        #expect(SwitcherController.primedStart(count: 5, delta: 1, anchor: 2, startsInMiddle: true) == (3, 0))
+        #expect(SwitcherController.primedStart(count: 5, delta: -1, anchor: 2, startsInMiddle: true) == (1, 0))
+        #expect(SwitcherController.primedStart(count: 2, delta: 1, anchor: 1, startsInMiddle: true) == (0, 0))
+    }
+
+    @Test(arguments: SwitcherSortOrder.allCases)
+    func middle_onlyUnderSortsThatStayPut(sort: SwitcherSortOrder) {
+        let staysPut: Set<SwitcherSortOrder> = [.alphabetical, .launchOrder, .dock]
+        #expect(SwitcherController.startsPrimedInMiddle(sort: sort, selection: .middle) == staysPut.contains(sort))
+        #expect(!SwitcherController.startsPrimedInMiddle(sort: sort, selection: .nextApp))
     }
 
     @Test func middle_scopedRemapAnchorsOnMiddleEligibleApp() {
         let pids: [pid_t] = [10, 20, 30, 40, 50]
-        let eligible: Set<pid_t> = [20, 30, 50]
-        #expect(SwitcherController.eligiblePrimedIndex(
-            primedPids: pids, eligiblePids: eligible, step: 0, anchorPid: 50, startsInMiddle: true) == 2)
-        #expect(SwitcherController.eligiblePrimedIndex(
-            primedPids: pids, eligiblePids: eligible, step: 1, anchorPid: 50, startsInMiddle: true) == 4)
-        #expect(SwitcherController.eligiblePrimedIndex(
-            primedPids: pids, eligiblePids: eligible, step: 0, anchorPid: 30, startsInMiddle: true) == 4)
+        func remap(_ eligible: Set<pid_t>, front: pid_t, direction: Int, taps: Int = 0) -> pid_t? {
+            SwitcherController.eligiblePrimedIndex(
+                primedPids: pids, eligiblePids: eligible, step: taps, direction: direction,
+                anchorPid: front, startsInMiddle: true
+            ).map { pids[$0] }
+        }
+        #expect(remap([20, 30, 50], front: 50, direction: 1) == 30)
+        #expect(remap([20, 30, 50], front: 50, direction: 1, taps: 1) == 50)
+        // Eligible middle is frontmost: step off it in the press direction.
+        #expect(remap([20, 30, 50], front: 30, direction: 1) == 50)
+        #expect(remap([20, 30, 50], front: 30, direction: -1) == 20)
+        #expect(remap([20, 30, 50], front: 30, direction: 1, taps: 1) == 20)
+        // Full-list middle 30 is frontmost, the eligible middle 40 is not.
+        #expect(remap([10, 30, 40, 50], front: 30, direction: 1) == 40)
+        #expect(remap([10, 30, 40, 50], front: 30, direction: -1) == 40)
+        #expect(remap([20, 40], front: 40, direction: 1) == 20)
+        #expect(remap([20, 40], front: 20, direction: -1) == 40)
+        #expect(remap([30], front: 30, direction: 1) == 30)
+        #expect(remap([40], front: 30, direction: -1) == 40)
     }
 
     @Test func nextApp_scopedRemapStepsFromEligibleFrontmost() {
         #expect(SwitcherController.eligiblePrimedIndex(
-            primedPids: [10, 20, 30, 40, 50], eligiblePids: [20, 30, 50], step: 1, anchorPid: 20, startsInMiddle: false) == 2)
+            primedPids: [10, 20, 30, 40, 50], eligiblePids: [20, 30, 50], step: 1, direction: 1,
+            anchorPid: 20, startsInMiddle: false) == 2)
     }
 }

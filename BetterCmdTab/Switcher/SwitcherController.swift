@@ -118,6 +118,9 @@ final class SwitcherController: SwitcherViewDelegate {
     /// *window*, not the second app's first window. This raw step count maps
     /// onto the window rows in `reveal()` / `commit()` for that mode.
     private var primedStepDelta: Int = 0
+    /// Direction of the first primed press (1 or -1). Middle mode's Space remap
+    /// steps off a frontmost middle app this way (#251).
+    private var primedFirstDirection = 1
     /// Canonical catalog set for the current reveal. `rows`/`labels` are the
     /// *displayed* derivation (fuzzy-filtered or letter-prefix-reordered);
     /// `baseRows`/`baseLabels` are the unfiltered source so the search query
@@ -2747,31 +2750,39 @@ final class SwitcherController: SwitcherViewDelegate {
         return ((((anchor ?? 0) + step) % count) + count) % count
     }
 
-    /// Middle mode (#251) lands on the middle app with no step, or one past it when
-    /// it is the frontmost app, so a quick tap still switches.
+    /// `step` seeds `primedStepDelta`. Middle mode (#251) seeds 0, so the Space
+    /// remap re-decides the frontmost skip over the eligible apps.
     nonisolated static func primedStart(
         count: Int, delta: Int, anchor: Int?, startsInMiddle: Bool
     ) -> (index: Int, step: Int) {
+        let direction = delta > 0 ? 1 : -1
         if startsInMiddle {
-            let middle = count / 2
-            guard count > 1, middle == anchor else { return (middle, 0) }
-            let step = delta > 0 ? 1 : -1
-            return (primedStartIndex(count: count, step: step, anchor: middle), step)
+            return (middleStartIndex(count: count, front: anchor, direction: direction, taps: 0), 0)
         }
-        let step = count == 1 ? 0 : (delta > 0 ? 1 : -1)
+        let step = count == 1 ? 0 : direction
         return (primedStartIndex(count: count, step: step, anchor: anchor), step)
     }
 
-    private func startPrimed(delta: Int, sort: SwitcherSortOrder) {
-        let start = Self.primedStart(count: primedApps.count, delta: delta,
-                                     anchor: primedAnchor(for: sort),
-                                     startsInMiddle: startsPrimedInMiddle(sort))
-        primedIndex = start.index
-        primedStepDelta = start.step
+    /// The middle app, or one step from it in the press `direction` when it is
+    /// the frontmost app, so a quick tap still switches; then `taps` more steps.
+    nonisolated static func middleStartIndex(count: Int, front: Int?, direction: Int, taps: Int) -> Int {
+        let middle = count / 2
+        let skip = count > 1 && middle == front ? direction : 0
+        return primedStartIndex(count: count, step: skip + taps, anchor: middle)
     }
 
-    private func startsPrimedInMiddle(_ sort: SwitcherSortOrder) -> Bool {
-        sort.anchorsPrimedOnFrontmost && Preferences.shared.initialSelection == .middle
+    private func startPrimed(delta: Int, sort: SwitcherSortOrder) {
+        let start = Self.primedStart(
+            count: primedApps.count, delta: delta, anchor: primedAnchor(for: sort),
+            startsInMiddle: Self.startsPrimedInMiddle(sort: sort, selection: Preferences.shared.initialSelection))
+        primedIndex = start.index
+        primedStepDelta = start.step
+        primedFirstDirection = delta > 0 ? 1 : -1
+    }
+
+    /// Most recent sorts lead with the frontmost app, so they have no middle to start on.
+    nonisolated static func startsPrimedInMiddle(sort: SwitcherSortOrder, selection: InitialSelection) -> Bool {
+        sort.anchorsPrimedOnFrontmost && selection == .middle
     }
 
     /// Pure core of `eligiblePrimedApp`, split out so the Space-scope remap
@@ -2780,21 +2791,20 @@ final class SwitcherController: SwitcherViewDelegate {
     /// after the Space-scope filter), then steps by the accumulated tap delta
     /// exactly like `primedStartIndex` walks the full list. `anchorPid` is the
     /// frontmost app under sorts that anchor on it (#88), nil under MRU sorts;
-    /// `startsInMiddle` anchors on the middle eligible app instead (#251).
+    /// `startsInMiddle` starts on the middle eligible app instead (#251), where
+    /// `step` counts the presses after the first one, made in `direction`.
     /// Returns an index into `primedPids`; nil when nothing is eligible.
     nonisolated static func eligiblePrimedIndex(
-        primedPids: [pid_t], eligiblePids: Set<pid_t>, step: Int, anchorPid: pid_t?, startsInMiddle: Bool
+        primedPids: [pid_t], eligiblePids: Set<pid_t>, step: Int, direction: Int, anchorPid: pid_t?,
+        startsInMiddle: Bool
     ) -> Int? {
         let eligible = primedPids.enumerated().filter { eligiblePids.contains($0.element) }
         guard !eligible.isEmpty else { return nil }
         let front = anchorPid.flatMap { pid in eligible.firstIndex { $0.element == pid } }
-        guard startsInMiddle else {
-            return eligible[primedStartIndex(count: eligible.count, step: step, anchor: front)].offset
-        }
-        let middle = eligible.count / 2
-        // Same rule as `primedStart`: a first tap never lands on the frontmost app.
-        let skipsFront = step == 0 && middle == front && eligible.count > 1
-        return eligible[primedStartIndex(count: eligible.count, step: skipsFront ? 1 : step, anchor: middle)].offset
+        let index = startsInMiddle
+            ? middleStartIndex(count: eligible.count, front: front, direction: direction, taps: step)
+            : primedStartIndex(count: eligible.count, step: step, anchor: front)
+        return eligible[index].offset
     }
 
     /// Pure: initial selection for a scoped open. Row 0 unless the frontmost
@@ -3437,7 +3447,9 @@ final class SwitcherController: SwitcherViewDelegate {
                 // `primedStepDelta` taps from row 0 (the current window), so a
                 // single forward tap lands on the second-most-recent window.
                 index = ((primedStepDelta % rows.count) + rows.count) % rows.count
-            } else if let pid = targetPid, let match = rows.firstIndex(where: { $0.pid == pid }) {
+            } else if let pid = eligiblePrimedApp(in: cachedRows, scope: activeFilterConfig?.spaceScope ?? Preferences.storedSpaceScope(.standard))?.pid ?? targetPid,
+                      let match = rows.firstIndex(where: { $0.pid == pid }) {
+                // Space remap, as commit() does, so a held panel selects the app a quick tap would.
                 index = match
             } else {
                 index = 0
@@ -4475,8 +4487,10 @@ final class SwitcherController: SwitcherViewDelegate {
             primedPids: primedApps.map(\.pid),
             eligiblePids: Set(rows.compactMap(\.pid)),
             step: primedStepDelta,
+            direction: primedFirstDirection,
             anchorPid: anchorPid,
-            startsInMiddle: startsPrimedInMiddle(effective.sortOrder)
+            startsInMiddle: Self.startsPrimedInMiddle(
+                sort: effective.sortOrder, selection: Preferences.shared.initialSelection)
         ).map { primedApps[$0] }
     }
 
@@ -5020,7 +5034,6 @@ final class SwitcherController: SwitcherViewDelegate {
                         metrics: metrics, effective: shelfEffective)
         shelf.isHidden = false
         // Past the room, the panel would slide or clamp and the switcher row would move.
-        // `.top` hangs `topOffsetPercent` down the screen (#175), so it has the rest.
         let visible = panel.activeScreen().visibleFrame
         let prefs = Preferences.shared
         let room = prefs.verticalPosition == .top
