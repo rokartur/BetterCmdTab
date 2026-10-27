@@ -328,7 +328,7 @@ enum ConfigSchemaDocs {
             "string", "Order apps and windows are listed in.",
             values: ConfigValues(SwitcherSortOrder.self, \.displayName)),
         "initialSelection": ConfigSettingDoc(
-            "string", "Where the first ⌘Tab press lands under sorts that stay put as you switch. Middle app counts apps, not window rows.",
+            "string", "Where the first ⌘Tab press lands under sorts that stay put as you switch. middle counts apps, not window rows.",
             values: ConfigValues(InitialSelection.self, \.displayName)),
         "spaceScope": ConfigSettingDoc(
             "string", "Which Spaces windows are pulled from.",

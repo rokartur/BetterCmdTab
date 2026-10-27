@@ -334,7 +334,7 @@
       "type" : "boolean"
     },
     "initialSelection" : {
-      "description" : "Where the first ⌘Tab press lands under sorts that stay put as you switch. Middle app counts apps, not window rows.",
+      "description" : "Where the first ⌘Tab press lands under sorts that stay put as you switch. middle counts apps, not window rows.",
       "enum" : [
         "nextApp",
         "middle"

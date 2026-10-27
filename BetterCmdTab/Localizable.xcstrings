@@ -9509,13 +9509,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "App du milieu compte les apps, pas les lignes de fenêtres. S’applique aux tris qui restent en place lorsque vous changez."
+            "value" : "« App du milieu » compte les apps, pas les lignes de fenêtres. S’applique aux tris qui restent en place lorsque vous changez."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Środkowa aplikacja liczy aplikacje, nie wiersze okien. Dotyczy sortowań, które pozostają na miejscu podczas przełączania."
+            "value" : "„Środkowa aplikacja” liczy aplikacje, nie wiersze okien. Dotyczy sortowań, które pozostają na miejscu podczas przełączania."
           }
         },
         "ru" : {
