@@ -62,8 +62,14 @@ export function channels(releases: GhRelease[]): Releases {
   return {
     stable: dmgOf(releases.find((r) => !r.prerelease) ?? releases[0]),
     beta: releases[0]?.prerelease ? dmgOf(releases[0]) : null,
+    // The .dmg and .zip builds only: the in-app update check also fetches
+    // betterupdater-manifest.json and its .sig, which would inflate the count.
     totalDownloads: releases.reduce(
-      (sum, r) => sum + r.assets.reduce((s, a) => s + a.download_count, 0),
+      (sum, r) =>
+        sum +
+        r.assets
+          .filter((a) => /\.(dmg|zip)$/.test(a.name))
+          .reduce((s, a) => s + a.download_count, 0),
       0,
     ),
   };

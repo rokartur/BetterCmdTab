@@ -58,6 +58,21 @@ test("channels picks the newest stable and exposes a beta only when it leads", (
   expect(settled.beta).toBeNull();
 });
 
+test("the download total counts builds, not updater manifest checks", () => {
+  const r = release("26.7", false, 12);
+  const asset = (name: string, download_count: number) => ({
+    name,
+    browser_download_url: `${REPO}/releases/download/26.7/${name}`,
+    download_count,
+  });
+  r.assets.push(
+    asset("BetterCmdTab-26.7.zip", 3),
+    asset("betterupdater-manifest.json", 500),
+    asset("betterupdater-manifest.json.sig", 500),
+  );
+  expect(channels([r]).totalDownloads).toBe(15);
+});
+
 test("channels survives an empty list and a release with no .dmg", () => {
   const empty = channels([]);
   expect(empty.stable.version).toBeNull();
