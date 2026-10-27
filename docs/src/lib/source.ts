@@ -78,8 +78,11 @@ export function getPageMarkdownUrl(page: (typeof source)['$inferPage']) {
   return { segments, url: publicUrl(docsContentRoute, segments) };
 }
 
+// Markdown links and JSX `href` props (the <Card> grids) both reach the export verbatim.
+const ROOT_RELATIVE_LINK = /(\]\(|href=")(\/(?!\/)[^)"\s]*)/g;
+
 export function canonicalizeLLMLinks(markdown: string, locale?: string) {
-  return markdown.replace(/\]\((\/(?!\/)[^)\s]*)\)/g, (_link, href: string) => {
+  return markdown.replace(ROOT_RELATIVE_LINK, (_link, opener: string, href: string) => {
     const suffixStart = href.search(/[?#]/);
     const pathname = suffixStart === -1 ? href : href.slice(0, suffixStart);
     const suffix = suffixStart === -1 ? '' : href.slice(suffixStart);
@@ -95,7 +98,7 @@ export function canonicalizeLLMLinks(markdown: string, locale?: string) {
     const page = source.getPage(slugs.length === 0 ? undefined : slugs, targetLocale);
     if (!page) throw new Error(`LLM export contains an unknown docs link: ${href}`);
 
-    return `](${getPageUrl(page)}${suffix})`;
+    return `${opener}${getPageUrl(page)}${suffix}`;
   });
 }
 

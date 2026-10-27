@@ -8,7 +8,7 @@ import {
 } from 'fumadocs-ui/layouts/docs/page';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
 import { getMDXComponents } from '@/components/mdx';
@@ -101,6 +101,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
   // og:url has no canonical fallback in Next and must be set too.
   const url = getPageUrl(page);
+  const t = await getTranslations({ locale, namespace: 'Metadata' });
 
   return {
     // The layout's title.template applies only to segments below it, never to this page.
@@ -110,10 +111,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       canonical: url,
       languages: getPageAlternates(page),
     },
-    // Next replaces the layout's openGraph object whole, so type and siteName repeat here.
+    // Next replaces the layout's openGraph object whole, so the page sets every field itself.
     openGraph: {
       type: 'article',
-      siteName: appName,
+      siteName: t('siteName'),
       title: page.data.title,
       description: page.data.description,
       url,
