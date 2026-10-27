@@ -1,16 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Article, articleHead } from "../sections/Article";
+import { BREW } from "../sections/Download";
 
 export const Route = createFileRoute("/alttab-alternative")({
   head: () =>
-    articleHead(
-      "/alttab-alternative/",
-      "Free AltTab Alternative for Mac · BetterCmdTab",
-      "BetterCmdTab is a free, open-source AltTab alternative for macOS: search, every layout and extra shortcuts without a Pro license, plus app launching and tiling.",
-    ),
+    articleHead({
+      path: "/alttab-alternative/",
+      title: "Free AltTab Alternative for Mac · BetterCmdTab",
+      description:
+        "BetterCmdTab is a free, open-source AltTab alternative for macOS: search, every layout and extra shortcuts without a Pro license, plus app launching.",
+    }),
   component: AltTabAlternative,
 });
+
+// Feature, then BetterCmdTab, AltTab free, AltTab Pro.
+const rows = [
+  ["Switch windows with live previews", "Yes", "Yes", "Yes"],
+  ["Type to search", "Yes", "No", "Yes"],
+  ["App icon grid and title list layouts", "Yes", "No", "Yes"],
+  ["More than one shortcut", "Yes", "No", "Yes, up to 9"],
+  ["Cycle the front app's windows", "Yes, ⌘`", "No", "Yes"],
+  ["Launch any installed app", "Yes", "No", "No"],
+  ["Pick a single browser tab", "Yes", "No", "No"],
+  ["Window tiling, move to another display", "Yes", "No", "No"],
+  ["Force quit, reopen recently closed apps", "Yes", "No", "No"],
+  ["Price", "Free", "Free", "$9.99 or $24.99"],
+];
 
 function AltTabAlternative() {
   return (
@@ -35,78 +51,26 @@ function AltTabAlternative() {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>Switch windows with live previews</td>
-            <td>Yes</td>
-            <td>Yes</td>
-            <td>Yes</td>
-          </tr>
-          <tr>
-            <td>Type to search</td>
-            <td>Yes</td>
-            <td>No</td>
-            <td>Yes</td>
-          </tr>
-          <tr>
-            <td>App icon grid and title list layouts</td>
-            <td>Yes</td>
-            <td>No</td>
-            <td>Yes</td>
-          </tr>
-          <tr>
-            <td>More than one shortcut</td>
-            <td>Yes</td>
-            <td>No</td>
-            <td>Yes, up to 9</td>
-          </tr>
-          <tr>
-            <td>Cycle the front app's windows</td>
-            <td>Yes, ⌘`</td>
-            <td>No</td>
-            <td>Yes</td>
-          </tr>
-          <tr>
-            <td>Launch any installed app</td>
-            <td>Yes</td>
-            <td>No</td>
-            <td>No</td>
-          </tr>
-          <tr>
-            <td>Pick a single browser tab</td>
-            <td>Yes</td>
-            <td>No</td>
-            <td>No</td>
-          </tr>
-          <tr>
-            <td>Window tiling, move to another display</td>
-            <td>Yes</td>
-            <td>No</td>
-            <td>No</td>
-          </tr>
-          <tr>
-            <td>Force quit, reopen recently closed apps</td>
-            <td>Yes</td>
-            <td>No</td>
-            <td>No</td>
-          </tr>
-          <tr>
-            <td>Price</td>
-            <td>Free</td>
-            <td>Free</td>
-            <td>$9.99 or $24.99</td>
-          </tr>
+          {rows.map(([feature, ...cells]) => (
+            <tr key={feature}>
+              <td>{feature}</td>
+              {cells.map((cell, i) => (
+                <td key={i}>{cell}</td>
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
       <p>
         Checked October 2026 against <a href="https://alt-tab.app/pricing">alt-tab.app/pricing</a>.
-        The <a href="/#compare">full comparison</a> covers 31 features, with the built-in ⌘Tab too.
+        The <a href="/#compare">full comparison</a> also covers the built-in ⌘Tab.
       </p>
 
       <h2>Switching from AltTab</h2>
       <ol>
         <li>
-          Install BetterCmdTab with <code>brew install --cask bettercmdtab</code>, or download the
-          .dmg and drag it into Applications.
+          Install BetterCmdTab with <code>{BREW}</code>, or download the .dmg and drag it into
+          Applications.
         </li>
         <li>
           Open it and enable it under System Settings, Privacy &amp; Security, Accessibility. Live
@@ -121,8 +85,9 @@ function AltTabAlternative() {
         </li>
       </ol>
       <p>
-        Every setting lives in a JSON file as well as in the app, so a setup can be versioned and
-        moved between Macs. The <a href="/docs/">docs</a> list every option.
+        Settings live in a JSON file as well as in the app, so a setup can be versioned and moved
+        between Macs; only the recorded shortcut keys and a custom sound stay out. The{" "}
+        <a href="/docs/config-reference/">config reference</a> lists every option.
       </p>
 
       <h2>When AltTab is the better pick</h2>

@@ -11,9 +11,8 @@ const DESCRIPTION =
   "Free, open-source Cmd+Tab replacement for macOS: window switcher with list, grid and live preview layouts, fuzzy app search and launch, zero telemetry.";
 const IMAGE_ALT = "BetterCmdTab: The ⌘Tab macOS deserves. Window previews switcher screenshot.";
 
-// The homepage is the only route, so every tag below is a constant. Router
-// `head()` emits raw tags, so URLs that Next used to absolutise against
-// `metadataBase` (canonical, og:url, og:image) are spelled out against SITE.
+// Site-wide defaults; routes override them in their own head(). Router head() emits raw
+// tags, so absolute URLs are spelled out against SITE.
 const meta = [
   { charSet: "utf-8" },
   { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -50,7 +49,6 @@ const meta = [
   { property: "og:site_name", content: "BetterCmdTab" },
   { property: "og:title", content: TITLE },
   { property: "og:description", content: DESCRIPTION },
-  { property: "og:url", content: `${SITE}/` },
   { property: "og:locale", content: "en_US" },
   { property: "og:image", content: `${SITE}/og.jpeg` },
   { property: "og:image:secure_url", content: `${SITE}/og.jpeg` },
@@ -115,7 +113,7 @@ const jsonLd = {
         "Tap to switch instantly or hold to open the switcher",
         "Scroll the mouse wheel to move through apps",
         "Per-app global hotkeys to focus or launch",
-        "Tab drill-in for Safari, Chrome, Arc, Finder, and Terminal",
+        "Tab drill-in for Safari, Chrome, Arc, Brave, Edge, Finder, and Terminal",
         "Surface native and browser tabs as their own rows",
         "Window tiling to halves and corners, maximize, and center",
         "Move the highlighted window to the next display",
@@ -187,7 +185,10 @@ export const Route = createRootRoute({
       { rel: "dns-prefetch", href: "https://api.github.com" },
       { rel: "dns-prefetch", href: "https://objects.githubusercontent.com" },
     ],
-    scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
+    // JSON.stringify leaves "<" alone, so a "</script>" in any string would end the tag.
+    scripts: [
+      { type: "application/ld+json", children: JSON.stringify(jsonLd).replaceAll("<", "\\u003c") },
+    ],
   }),
   shellComponent: RootDocument,
   notFoundComponent: NotFound,

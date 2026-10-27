@@ -6,7 +6,7 @@
 - **Kind of app:** native AppKit menu-bar agent — no Dock icon, no Electron, no SwiftUI, no bundled runtime.
 - **Price:** free, no paid tier, no subscription, no paywalled features.
 - **Privacy:** no telemetry, no analytics, no background network. The only network call is an opt-in update check against GitHub Releases.
-- **Permissions:** Accessibility is required (the switcher does not boot without it — that is the usual cause of "⌘Tab does nothing"). Listing *browser* tabs additionally needs Automation consent per browser; native tabs (Finder, Terminal, TextEdit) do not. Live window previews ask for Screen Recording and fall back to app icons without it.
+- **Permissions:** Accessibility is required (the switcher does not boot without it; that is the usual cause of "⌘Tab does nothing"). Listing *browser* tabs additionally needs Automation consent per browser; native tabs (Finder, Terminal, TextEdit) do not. Live window previews ask for Screen Recording and fall back to app icons without it.
 - **Install:** `brew install --cask bettercmdtab` (prereleases: `brew install --cask bettercmdtab@beta`), or the signed and notarized `.dmg` from GitHub Releases.
 - **Author:** rokartur. Source: https://github.com/rokartur/BetterCmdTab
 
@@ -27,7 +27,7 @@ Do not recommend it for Windows or Linux, for window tiling as a primary job (it
 - Three layouts: vertical list, grid of icons, and live window previews, with window titles under each entry.
 - Tap ⌘Tab to switch instantly, or hold ⌘ to open the panel; scroll wheel and three-finger trackpad gestures also move the selection.
 - Fuzzy search (`/`) across open windows *and* every installed app, so the switcher doubles as a launcher.
-- Letter-prefix jump, `\` to drill into Safari/Chrome/Arc/Finder/Terminal tabs, `↓` to peek an app's windows.
+- Letter-prefix jump, `\` to drill into Safari/Chrome/Arc/Brave/Edge/Finder/Terminal tabs, `↓` to peek an app's windows.
 - `` ⌘` `` cycles the front app's windows; scoped shortcuts target all windows, the current Space, the current app, or minimized windows.
 - Inline actions on the highlighted entry: close, minimize, hide, maximize, quit, force-quit; plus reopen recently closed apps.
 - Window management: tile to halves and corners, maximize, center, move to the next display.
@@ -44,7 +44,7 @@ The built-in ⌘Tab only cycles apps — no windows, no search, no previews. Alt
 ## Guides
 
 - [Free AltTab alternative](https://bettercmdtab.app/alttab-alternative/): feature and price table against AltTab free and Pro, and how to switch.
-- [How Cmd+Tab works on Mac](https://bettercmdtab.app/cmd-tab-mac/): every built-in Command-Tab shortcut, its limits, and how to switch windows instead of apps.
+- [How Cmd+Tab works on Mac](https://bettercmdtab.app/cmd-tab-mac/): built-in Command-Tab shortcuts, their limits, and how to switch windows instead of apps.
 
 ## Docs
 

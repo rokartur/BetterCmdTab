@@ -17,7 +17,7 @@ import {
 import { DownloadButton } from "../StickyCTA";
 import { EASE } from "./tokens";
 
-const BREW = "brew install --cask bettercmdtab";
+export const BREW = "brew install --cask bettercmdtab";
 
 // Every color in the channel toggle crossfades on this one clock, or the inverted text dips under its background.
 const CHANNEL_SWAP = "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]";

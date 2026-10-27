@@ -1,16 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Article, articleHead } from "../sections/Article";
+import { BREW } from "../sections/Download";
 
 export const Route = createFileRoute("/cmd-tab-mac")({
   head: () =>
-    articleHead(
-      "/cmd-tab-mac/",
-      "How Cmd+Tab Works on Mac · BetterCmdTab",
-      "Every built-in Command-Tab shortcut on macOS, where the app switcher falls short, and how to switch between windows instead of apps.",
-    ),
+    articleHead({
+      path: "/cmd-tab-mac/",
+      title: "How Cmd+Tab Works on Mac · BetterCmdTab",
+      description:
+        "The built-in Command-Tab shortcuts on macOS, where the app switcher falls short, and how to switch between windows instead of apps.",
+    }),
   component: CmdTabMac,
 });
+
+const shortcuts = [
+  ["⌘Tab", "Switch to the app you used last. Keep ⌘ held and press Tab again to go further."],
+  ["⌘⇧Tab", "Move backward through the open switcher."],
+  ["⌘`", "Switch between the windows of the front app. Add ⇧ to go backward."],
+  ["⌘Q or ⌘H in the switcher", "Quit or hide the highlighted app without leaving the switcher."],
+  [
+    "↑ or ↓ in the switcher",
+    "Show every window of the highlighted app, then pick one with the arrows.",
+  ],
+  ["⌃↑", "Mission Control: all windows of all apps on the current Space."],
+  ["⌃↓", "App Exposé: all windows of the front app."],
+];
 
 function CmdTabMac() {
   return (
@@ -27,34 +42,12 @@ function CmdTabMac() {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>⌘Tab</td>
-            <td>Switch to the app you used last. Keep ⌘ held and press Tab again to go further.</td>
-          </tr>
-          <tr>
-            <td>⌘⇧Tab</td>
-            <td>Move backward through the open switcher.</td>
-          </tr>
-          <tr>
-            <td>⌘`</td>
-            <td>Switch between the windows of the front app. Add ⇧ to go backward.</td>
-          </tr>
-          <tr>
-            <td>⌘Q or ⌘H in the switcher</td>
-            <td>Quit or hide the highlighted app without leaving the switcher.</td>
-          </tr>
-          <tr>
-            <td>↑ or ↓ in the switcher</td>
-            <td>Show every window of the highlighted app, then pick one with the arrows.</td>
-          </tr>
-          <tr>
-            <td>⌃↑</td>
-            <td>Mission Control: all windows of all apps on the current Space.</td>
-          </tr>
-          <tr>
-            <td>⌃↓</td>
-            <td>App Exposé: all windows of the front app.</td>
-          </tr>
+          {shortcuts.map(([keys, action]) => (
+            <tr key={keys}>
+              <td>{keys}</td>
+              <td>{action}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
 
@@ -65,8 +58,8 @@ function CmdTabMac() {
           with ⌘` after you switch.
         </li>
         <li>
-          Minimized windows stay in the Dock. Switching to their app brings up nothing until you
-          click the window there.
+          Minimized windows stay in the Dock. Switching to their app restores none of them unless
+          you press ⌥ before you release ⌘.
         </li>
         <li>There is no search: with twenty apps open you press Tab until you get there.</li>
         <li>It shows only icons, with no window titles or previews to tell windows apart.</li>
@@ -81,8 +74,7 @@ function CmdTabMac() {
       </p>
       <ol>
         <li>
-          Install it with <code>brew install --cask bettercmdtab</code>, or download the .dmg and
-          drag it into Applications.
+          Install it with <code>{BREW}</code>, or download the .dmg and drag it into Applications.
         </li>
         <li>Enable it under System Settings, Privacy &amp; Security, Accessibility.</li>
         <li>Hold ⌘ and press Tab.</li>

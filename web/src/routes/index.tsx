@@ -29,15 +29,18 @@ import { EASE } from "../sections/tokens";
 import { DownloadButton, StickyCTA } from "../StickyCTA";
 import { SITE } from "./__root";
 
-// Here rather than in __root so the prerendered 404.html carries no canonical.
+// Here rather than in __root so the prerendered 404.html carries no canonical or og:url.
 export const Route = createFileRoute("/")({
   head: () => ({
-    links: [
-      { rel: "canonical", href: `${SITE}/` },
-      { rel: "alternate", hrefLang: "en", href: `${SITE}/` },
-      { rel: "alternate", hrefLang: "x-default", href: `${SITE}/` },
+    meta: [{ property: "og:url", content: `${SITE}/` }],
+    links: [{ rel: "canonical", href: `${SITE}/` }],
+    // JSON.stringify leaves "<" alone, so a "</script>" in an answer would end the tag.
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(faqJsonLd).replaceAll("<", "\\u003c"),
+      },
     ],
-    scripts: [{ type: "application/ld+json", children: JSON.stringify(faqJsonLd) }],
   }),
   component: Home,
 });
@@ -60,7 +63,7 @@ const faqJsonLd = {
 // everything below the fold ships in its final position. Motion here is only for
 // what a click or a hover asks for.
 
-const downloadFmt = new Intl.NumberFormat("en-US");
+const countFmt = new Intl.NumberFormat("en-US");
 // UTC so the prerendered month and the hydrated one agree in every time zone.
 const monthFmt = new Intl.DateTimeFormat("en-US", {
   month: "long",
@@ -108,7 +111,7 @@ function Home() {
                 </div>
                 <p className="enter m-0 text-[13px] text-muted [animation-delay:1570ms]">
                   Free, open-source Command-Tab replacement ·{" "}
-                  {totalDownloads > 0 && `${downloadFmt.format(totalDownloads)} downloads · `}
+                  {totalDownloads > 0 && `${countFmt.format(totalDownloads)} downloads · `}
                   macOS 13+
                   {sel.version && (
                     <>
@@ -181,7 +184,7 @@ function Home() {
               transition={layoutShift}
               className="m-0 text-[13px] text-muted"
             >
-              {downloadFmt.format(repo.stars)} stars on GitHub
+              {countFmt.format(repo.stars)} stars on GitHub
               {sel.published && ` · Updated ${monthFmt.format(new Date(sel.published))}`}
               {" · "}macOS 13+
               {sel.version && (

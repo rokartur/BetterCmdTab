@@ -2,11 +2,19 @@ import type { ReactNode } from "react";
 
 import { SITE } from "../routes/__root";
 import { DownloadButton } from "../StickyCTA";
-import { useReleases } from "./Download";
+import { BREW, useReleases } from "./Download";
 import { Footer } from "./Footer";
 
 // Head tags for a guide page; each spells out its own canonical, see routes/index.tsx.
-export function articleHead(path: string, title: string, description: string) {
+export function articleHead({
+  path,
+  title,
+  description,
+}: {
+  path: string;
+  title: string;
+  description: string;
+}) {
   const url = `${SITE}${path}`;
   return {
     meta: [
@@ -65,7 +73,7 @@ export function Article({
             className="bg-text text-bg hover:bg-[#3a3833]"
           />
           <span className="text-[15px] text-muted">
-            or <code className="font-mono">brew install --cask bettercmdtab</code>
+            or <code className="font-mono">{BREW}</code>
           </span>
         </p>
       </main>

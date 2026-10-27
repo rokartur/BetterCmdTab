@@ -20,7 +20,7 @@ export const faq: Array<[question: string, answer: string]> = [
   ],
   [
     "How is it different from the built-in ⌘Tab?",
-    "The macOS ⌘Tab switches apps, not windows: two Safari windows are one entry, and minimized windows are out of reach. BetterCmdTab lists every window, including minimized ones and those on other Spaces, adds search and previews, and keeps the same ⌘Tab muscle memory.",
+    "The macOS ⌘Tab switches apps, not windows: two Safari windows are one entry, and minimized windows need a mouse or ⌥ to come back. BetterCmdTab lists every window, including minimized ones and those on other Spaces, adds search and previews, and keeps the same ⌘Tab muscle memory.",
   ],
   [
     "How do I install it?",

@@ -4,7 +4,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-// Static site: one prerendered page, no server at runtime. serve.ts serves
+// Static site: every route in `pages` is prerendered, no server at runtime. serve.ts serves
 // the tree as plain files (see Dockerfile), and the
 // docs export (../docs, still Next with basePath=/docs) is merged into `out/docs`
 // afterwards so the two static trees share one origin.
