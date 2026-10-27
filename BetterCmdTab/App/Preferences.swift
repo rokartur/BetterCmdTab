@@ -2402,11 +2402,11 @@ final class Preferences: ObservableObject {
     }
 
     static func clampDelay(_ value: Int) -> Int {
-        min(revealDelayRange.upperBound, max(revealDelayRange.lowerBound, value))
+        value.clamped(to: revealDelayRange)
     }
 
     static func clampLetterChainTimeout(_ value: Int) -> Int {
-        min(letterChainTimeoutRange.upperBound, max(letterChainTimeoutRange.lowerBound, value))
+        value.clamped(to: letterChainTimeoutRange)
     }
 
     /// Preserve the user's order while enforcing the one-app/one-letter
@@ -2432,19 +2432,19 @@ final class Preferences: ObservableObject {
     }
 
     static func clampTitleRefreshInterval(_ value: Int) -> Int {
-        min(titleRefreshIntervalRange.upperBound, max(titleRefreshIntervalRange.lowerBound, value))
+        value.clamped(to: titleRefreshIntervalRange)
     }
 
     static func clampSwipeSensitivity(_ value: Int) -> Int {
-        min(swipeSensitivityRange.upperBound, max(swipeSensitivityRange.lowerBound, value))
+        value.clamped(to: swipeSensitivityRange)
     }
 
     static func clampSwipeFingerCount(_ value: Int) -> Int {
-        min(swipeFingerCountRange.upperBound, max(swipeFingerCountRange.lowerBound, value))
+        value.clamped(to: swipeFingerCountRange)
     }
 
     nonisolated static func clampPanelScalePercent(_ value: Int) -> Int {
-        min(panelScalePercentRange.upperBound, max(panelScalePercentRange.lowerBound, value))
+        value.clamped(to: panelScalePercentRange)
     }
 
     /// Convert the three pre-#105 persisted presets to their effective
@@ -2559,36 +2559,36 @@ final class Preferences: ObservableObject {
     }
 
     static func clampOpacity(_ value: Int) -> Int {
-        min(panelOpacityRange.upperBound, max(panelOpacityRange.lowerBound, value))
+        value.clamped(to: panelOpacityRange)
     }
 
     static func clampCornerRadius(_ value: Int) -> Int {
-        min(panelCornerRadiusRange.upperBound, max(panelCornerRadiusRange.lowerBound, value))
+        value.clamped(to: panelCornerRadiusRange)
     }
 
     static func clampFadeDuration(_ value: Int) -> Int {
-        min(fadeDurationRange.upperBound, max(fadeDurationRange.lowerBound, value))
+        value.clamped(to: fadeDurationRange)
     }
 
     static func clampGridColumns(_ value: Int) -> Int {
-        min(gridMaxColumnsRange.upperBound, max(gridMaxColumnsRange.lowerBound, value))
+        value.clamped(to: gridMaxColumnsRange)
     }
 
     nonisolated static func clampListWidthPercent(_ value: Int) -> Int {
-        min(listWidthPercentRange.upperBound, max(listWidthPercentRange.lowerBound, value))
+        value.clamped(to: listWidthPercentRange)
     }
 
     nonisolated static func clampTopOffsetPercent(_ value: Int) -> Int {
-        min(topOffsetPercentRange.upperBound, max(topOffsetPercentRange.lowerBound, value))
+        value.clamped(to: topOffsetPercentRange)
     }
 
     static func clampRecentlyClosedLimit(_ value: Int) -> Int {
-        min(recentlyClosedLimitRange.upperBound, max(recentlyClosedLimitRange.lowerBound, value))
+        value.clamped(to: recentlyClosedLimitRange)
     }
 
     /// `<= 0` normalizes to `0` (unlimited); anything else snaps into 2…16.
     static func clampBrowserTabRowLimit(_ value: Int) -> Int {
-        value <= 0 ? 0 : min(browserTabRowLimitRange.upperBound, max(browserTabRowLimitRange.lowerBound, value))
+        value <= 0 ? 0 : value.clamped(to: browserTabRowLimitRange)
     }
 
     /// A preference that graduated out of the Experimental pane. Each one keeps
@@ -3012,5 +3012,11 @@ final class Preferences: ObservableObject {
         animationsEnabled = defaults.object(forKey: Keys.animationsEnabled) as? Bool ?? true
         fadeInDurationMs = Self.clampFadeDuration(defaults.object(forKey: Keys.fadeInDurationMs) as? Int ?? 0)
         fadeOutDurationMs = Self.clampFadeDuration(defaults.object(forKey: Keys.fadeOutDurationMs) as? Int ?? 0)
+    }
+}
+
+extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(range.upperBound, max(range.lowerBound, self))
     }
 }
