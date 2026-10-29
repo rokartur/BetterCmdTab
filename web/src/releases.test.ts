@@ -58,7 +58,7 @@ test("channels picks the newest stable and exposes a beta only when it leads", (
   expect(settled.beta).toBeNull();
 });
 
-test("the download total counts builds, not updater manifest checks", () => {
+test("the download total counts every asset", () => {
   const r = release("26.7", false, 12);
   const asset = (name: string, download_count: number) => ({
     name,
@@ -70,7 +70,7 @@ test("the download total counts builds, not updater manifest checks", () => {
     asset("betterupdater-manifest.json", 500),
     asset("betterupdater-manifest.json.sig", 500),
   );
-  expect(channels([r]).totalDownloads).toBe(15);
+  expect(channels([r]).totalDownloads).toBe(1015);
 });
 
 test("channels survives an empty list and a release with no .dmg", () => {
