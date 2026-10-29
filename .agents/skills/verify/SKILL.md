@@ -128,6 +128,7 @@ Swift function is a test, not a witness.
 | `Catalog/`, `Windows/` | Prepare named real apps/windows, open the switcher, then select or act on one | Visible rows and resulting frontmost app/window state |
 | `ConfigFile`, import/export | Seed `$STATE/xdg/bettercmdtab/config.json` or use the real import/export UI | File contents and the live setting/behavior after reload |
 | updater/About | Use the manual UI action against a safe target | UI result and relevant unified-log lines |
+| commit, dismiss, stale frame | `kill -STOP` the target app, ⌘Tab to it, then `kill -CONT`: a busy target turns any main-thread AX call into a 1.5 s stall | No `Commit hid the panel` line in `log show --predicate 'subsystem == "pro.bettercmdtab.BetterCmdTab"'`, and frames show the panel gone at ⌘ release |
 | hot-path performance | Use separate clean base/target worktrees and SHA-specific Release build/state roots; drive identical seeded scenarios under Instruments with `Log.reveal` | Equal sample counts and median/p95 latency, CPU, or allocation numbers |
 
 For each independent claim, drive the claimed path and one adjacent probe:

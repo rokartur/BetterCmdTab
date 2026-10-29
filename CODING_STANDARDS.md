@@ -15,6 +15,11 @@ Everything on the ⌘Tab path (chord, catalog, panel open, cycle, activate) is h
 the main thread, or measure it. Allocate and poll outside the hot path. A dependency or a
 background task needs a case that twenty lines cannot cover.
 
+Main never waits on another process while the panel is up or between ⌘ release and the hide:
+read ids from `SwitcherRow` (`cgWindowID`), and send AX calls off main. A busy or stopped
+target answers AX only after its messaging timeout, which a window element does not inherit
+from its app element (1.5 s, measured), so set it on the element you call.
+
 ## Logging
 
 Log through `Log.*` (`BetterCmdTab/System/Log.swift`).
