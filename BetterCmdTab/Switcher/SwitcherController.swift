@@ -4592,6 +4592,8 @@ final class SwitcherController: SwitcherViewDelegate {
             commitTab()
             return
         }
+        let commitStart = ContinuousClock.now
+        let commitInterval = Log.reveal.beginInterval("commit")
         revealTimer?.invalidate()
         revealTimer = nil
         tabPrefetchTimer?.invalidate()
@@ -4682,9 +4684,11 @@ final class SwitcherController: SwitcherViewDelegate {
         if let pendingActivation {
             CommitFeedback.play()
             panel.vanish()
+            endCommitInterval(commitInterval, startedAt: commitStart)
             pendingActivation()
         } else {
             finishDismiss()
+            endCommitInterval(commitInterval, startedAt: commitStart)
         }
         primedApps = []
         rows = []
@@ -4712,6 +4716,16 @@ final class SwitcherController: SwitcherViewDelegate {
         previousFrontmostApp = nil
         resetLetterBuffer()
         resetSearch()
+    }
+
+    /// Closes the `commit` signpost once the panel is hidden. Over 100 ms means a
+    /// synchronous call blocked main between ⌘ release and the hide (#146, #272).
+    private func endCommitInterval(_ interval: OSSignpostIntervalState, startedAt start: ContinuousClock.Instant) {
+        Log.reveal.endInterval("commit", interval)
+        let elapsedMs = Int((ContinuousClock.now - start) / .milliseconds(1))
+        if elapsedMs > 100 {
+            Log.switcher.error("Commit hid the panel \(elapsedMs) ms after ⌘ release")
+        }
     }
 
     private func cancel() {
@@ -5380,6 +5394,8 @@ final class SwitcherController: SwitcherViewDelegate {
             commit()
             return
         }
+        let commitStart = ContinuousClock.now
+        let commitInterval = Log.reveal.beginInterval("commit")
         let instantSpace = Preferences.shared.instantSpaceSwitch
         if let pid = row.pid { mru.bump(pid) }
         // Window MRU follows the window the user actually lands on: for the
@@ -5397,6 +5413,7 @@ final class SwitcherController: SwitcherViewDelegate {
         dockBadgeObserver.stop()
         CommitFeedback.play()
         panel.vanish()
+        endCommitInterval(commitInterval, startedAt: commitStart)
         // Activate BEFORE dismissing the panel (same reason as commit()):
         // panel.dismiss() surrenders our key window, so a synchronous activate
         // afterwards can lose focus back to the WindowServer.
@@ -5773,7 +5790,9 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func recordClosedTombstone(for row: SwitcherRow) {
         guard let pid = row.pid else { return }
-        let wid = row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
+        let wid = Activator.resolvedWindowID(cached: row.cgWindowID) {
+            row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
+        }
         // Record even when wid == 0 — title fallback still catches it.
         closedTombstones.append(ClosedWindowSignature(
             pid: pid,
@@ -5830,7 +5849,9 @@ final class SwitcherController: SwitcherViewDelegate {
         var firstHiddenByPid: [pid_t: (app: NSRunningApplication, discovery: Int)] = [:]
         var discoveryCounter = 0
         for row in snapshot {
-            let rowWid = row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
+            let rowWid = Activator.resolvedWindowID(cached: row.cgWindowID) {
+                row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
+            }
             var suppressed = false
             for (i, sig) in closedTombstones.enumerated() {
                 if signatureMatches(sig, row: row, rowWid: rowWid) {
