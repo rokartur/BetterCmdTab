@@ -4527,7 +4527,7 @@ final class SwitcherController: SwitcherViewDelegate {
 
     private func bumpWindowMRUIfPossible(for row: SwitcherRow) {
         guard let win = row.window, let pid = row.pid else { return }
-        let wid = PrivateAPI.cgWindowId(of: win)
+        let wid = Activator.resolvedWindowID(cached: row.cgWindowID) { PrivateAPI.cgWindowId(of: win) }
         guard wid != 0 else { return }
         windowMRU.bump(pid: pid, wid: wid)
     }

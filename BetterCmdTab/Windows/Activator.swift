@@ -430,7 +430,7 @@ enum Activator {
             return
         }
 
-        let wid = resolvedWindowID(live: PrivateAPI.cgWindowId(of: window), cached: cachedWid)
+        let wid = resolvedWindowID(cached: cachedWid) { PrivateAPI.cgWindowId(of: window) }
 
         // Jump to the window's Space instantly (no slide) before raising. The
         // synthetic Dock-swipe lands asynchronously, so focus waits for it.
@@ -530,17 +530,15 @@ enum Activator {
         }
     }
 
-    /// The WindowServer id to raise: the live `_AXUIElementGetWindow` resolve
-    /// when it succeeded, else the id cached at enumeration time
-    /// (`SwitcherRow.cgWindowID`). Chromium/Electron apps invalidate AX window
-    /// elements aggressively and go deaf to AX while busy, so on a fast switch
-    /// the live resolve can return 0 from a stale element — which used to skip
-    /// the SLPS raise entirely and leave the app active with its window still
-    /// behind. The cached id keeps the WindowServer-level raise working; it
-    /// needs no cooperation from the target's AX server. Pure, split out for
-    /// unit tests.
-    static func resolvedWindowID(live: CGWindowID, cached: CGWindowID) -> CGWindowID {
-        live != 0 ? live : cached
+    /// The WindowServer id to raise: the id cached at enumeration time
+    /// (`SwitcherRow.cgWindowID`), else the live `_AXUIElementGetWindow` resolve.
+    /// A window keeps its id for life, and the live resolve is a synchronous round
+    /// trip to the target's AX server: on main it blocked the commit for up to the
+    /// AX timeout while the target was busy or napped, holding the panel on screen
+    /// after ⌘ release. Chromium/Electron also invalidate AX elements, so the live
+    /// resolve can return 0 where the cached id still raises via SLPS.
+    static func resolvedWindowID(cached: CGWindowID, live: () -> CGWindowID) -> CGWindowID {
+        cached != 0 ? cached : live()
     }
 
     /// Pure decision core of `verifyFocusSettled`, split out for unit tests:
@@ -575,7 +573,7 @@ enum Activator {
             app.unhide()
         }
 
-        let wid = resolvedWindowID(live: PrivateAPI.cgWindowId(of: window), cached: cachedWid)
+        let wid = resolvedWindowID(cached: cachedWid) { PrivateAPI.cgWindowId(of: window) }
         guard instantSpace && wid != 0 && PrivateAPI.switchToSpace(ofWindow: wid) else {
             return focusTab(app: app, window: window, tab: tab, wid: wid, isMinimized: isMinimized, generation: gen, completion: completion)
         }

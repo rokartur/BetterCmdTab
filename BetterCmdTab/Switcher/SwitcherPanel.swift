@@ -362,6 +362,9 @@ final class SwitcherPanel: NSPanel {
         park()
         if orderingOut { orderOut(nil) }
         CATransaction.commit()
+        // Nested in an open implicit transaction, the hide reaches WindowServer only when
+        // the runloop turn ends, after the commit's activation work, which can block on a busy target.
+        CATransaction.flush()
     }
 
     /// Convert a Cocoa global rect (bottom-left origin, y-up) to the CGEvent
