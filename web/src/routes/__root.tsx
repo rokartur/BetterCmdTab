@@ -1,4 +1,4 @@
-import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 import appCss from "../styles.css?url";
@@ -13,9 +13,13 @@ const IMAGE_ALT = "BetterCmdTab: The ⌘Tab macOS deserves. Window previews swit
 
 // Site-wide defaults; routes override them in their own head(). Router head() emits raw
 // tags, so absolute URLs are spelled out against SITE.
-const meta = [
+const documentMeta = [
   { charSet: "utf-8" },
   { name: "viewport", content: "width=device-width, initial-scale=1" },
+];
+
+const meta = [
+  ...documentMeta,
   { title: TITLE },
   { name: "description", content: DESCRIPTION },
   { name: "application-name", content: "BetterCmdTab" },
@@ -175,21 +179,28 @@ const jsonLd = {
 };
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta,
-    links: [
-      ...links,
-      // Warm up the release lookup the page fires on mount. The LCP screenshot's
-      // preload comes from React's SSR, see Showcase.tsx.
-      { rel: "preconnect", href: "https://api.github.com", crossOrigin: "" },
-      { rel: "dns-prefetch", href: "https://api.github.com" },
-      { rel: "dns-prefetch", href: "https://objects.githubusercontent.com" },
-    ],
-    // JSON.stringify leaves "<" alone, so a "</script>" in any string would end the tag.
-    scripts: [
-      { type: "application/ld+json", children: JSON.stringify(jsonLd).replaceAll("<", "\\u003c") },
-    ],
-  }),
+  // Docs pages bring their own stylesheet and metadata, see routes/docs/$.tsx.
+  head: ({ matches }) =>
+    matches.some((match) => match.pathname.startsWith("/docs/"))
+      ? { meta: documentMeta }
+      : {
+          meta,
+          links: [
+            ...links,
+            // Warm up the release lookup the page fires on mount. The LCP screenshot's
+            // preload comes from React's SSR, see Showcase.tsx.
+            { rel: "preconnect", href: "https://api.github.com", crossOrigin: "" },
+            { rel: "dns-prefetch", href: "https://api.github.com" },
+            { rel: "dns-prefetch", href: "https://objects.githubusercontent.com" },
+          ],
+          // JSON.stringify leaves "<" alone, so a "</script>" in any string would end the tag.
+          scripts: [
+            {
+              type: "application/ld+json",
+              children: JSON.stringify(jsonLd).replaceAll("<", "\\u003c"),
+            },
+          ],
+        },
   shellComponent: RootDocument,
   notFoundComponent: NotFound,
 });
@@ -212,8 +223,10 @@ export function NotFound() {
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the docs theme script sets the class before hydration.
+    <html lang={pathname.startsWith("/docs/pl/") ? "pl" : "en"} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

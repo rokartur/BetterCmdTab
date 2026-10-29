@@ -1,0 +1,160 @@
+---
+title: Per-shortcut overrides
+description: Give each shortcut its own layout, filters, sorting and appearance — plus scoped shortcuts.
+icon: Keyboard
+---
+
+Every switcher shortcut normally uses the global settings. `shortcutOverrides` lets a
+shortcut disagree: a compact alphabetical list for one hotkey, full-size window
+previews for another, from the same install.
+
+This pairs with `scopedShortcutList`, which creates additional hotkeys that open the
+switcher pre-filtered to a subset of windows. Together: one hotkey for "all my
+windows as previews", another for "just this app's windows, as a list".
+
+## Targets
+
+An override names the shortcut it applies to in its `target` field:
+
+| `target` | Shortcut |
+| --- | --- |
+| `switchApps` | The main switcher (<kbd>⌘Tab</kbd> by default) |
+| `switchWindows` | The window switcher (<kbd>⌘`</kbd> by default) |
+| `scoped.<id>` | A scoped shortcut, where `<id>` is its `id` in `scopedShortcutList` |
+
+```json title="config.json"
+{
+  "shortcutOverrides": [
+    {
+      "target": "switchWindows",
+      "layoutMode": "windowPreview",
+      "panelScalePercent": "140",
+      "sortOrder": "mruWindows"
+    },
+    {
+      "target": "scoped.0",
+      "layoutMode": "list",
+      "listWidthPercent": "60",
+      "showMinimized": "false"
+    }
+  ]
+}
+```
+
+<Callout type="warn" title="Override values are strings">
+Overrides are stored as string dictionaries, so **every** value is written as a JSON
+string — `"140"` not `140`, `"false"` not `false`. The global keys they mirror use
+their natural types. The generated `schema.json` enforces this, so your editor will
+flag it.
+</Callout>
+
+Any field you omit inherits the global setting. An override with nothing but a
+`target` is the same as having no override at all, and is dropped when the file is
+next written.
+
+## Fields
+
+Field names mostly match the global key of the same name — see the
+[config reference](/docs/config-reference/) for what each one does. Three are
+shortened: `showMinimized`, `showHidden` and `showWindowless` map to
+`showMinimizedWindows`, `showHiddenApps` and `showWindowlessApps`.
+
+`spaceScope` takes an extra value here, `"inherit"`, which follows the global setting.
+
+<ConfigObject name="shortcutOverrides" />
+
+Unknown fields are preserved as-is rather than dropped, so opening your config with an
+older version of the app will not strip overrides it doesn't understand yet.
+
+## Scoped shortcuts
+
+`scopedShortcutList` defines extra global hotkeys, each opening the switcher already
+filtered. Add and remove them under **Settings → Profiles**.
+
+```json title="config.json"
+{
+  "scopedShortcutList": [
+    { "id": "0", "scope": "currentAppWindows", "name": "scopedSwitch1" },
+    { "id": "1", "scope": "minimizedOnly", "name": "scopedSwitch2" }
+  ]
+}
+```
+
+<ConfigObject name="scopedShortcutList" />
+
+<Callout type="info" title="The key combination is not in this file">
+`name` is the label the chord is *recorded under*; the chord itself lives outside the
+`Switcher.*` namespace and is not synced. Copying your config to another Mac carries
+the scoped shortcuts and their settings over — you re-record their key combinations
+there, under Settings → Profiles.
+</Callout>
+
+Ids are allocated monotonically and never reused, so an entry keeps its recorded chord
+and its `shortcutOverrides` entry across adds, removes and reordering. `id` is a
+decimal **string**, matching how the list is stored.
+
+<Callout type="warn">
+Do not hand-pick ids that collide with an existing entry, and leave
+`nextScopedShortcutID` alone — it is the allocator's counter. Adding entries through
+the settings window avoids both problems.
+</Callout>
+
+## Direct app hotkeys
+
+Unrelated to scoped shortcuts, but often wanted alongside them: `directActivationBindings`
+assigns a bundle ID to each of nine "focus or launch this app" hotkey slots. It is
+always exactly nine entries; an empty string leaves a slot unused.
+
+```json title="config.json"
+{
+  "directActivationBindings": [
+    "com.apple.Safari",
+    "com.googlecode.iterm2",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ]
+}
+```
+
+The chords for these slots are, again, recorded outside this file.
+
+## Worked example
+
+A setup with three distinct switchers:
+
+```json title="config.json"
+{
+  "layoutMode": "iconDock",
+  "sortOrder": "mru",
+  "spaceScope": "allSpaces",
+
+  "scopedShortcutList": [
+    { "id": "0", "scope": "currentAppWindows", "name": "scopedSwitch1" }
+  ],
+
+  "shortcutOverrides": [
+    {
+      "target": "switchWindows",
+      "layoutMode": "windowPreview",
+      "sortOrder": "mruWindows",
+      "panelScalePercent": "130"
+    },
+    {
+      "target": "scoped.0",
+      "layoutMode": "list",
+      "listWidthPercent": "50",
+      "showWindowTitleLabel": "true",
+      "spaceScope": "inherit"
+    }
+  ]
+}
+```
+
+- <kbd>⌘Tab</kbd> — icon grid of apps, most-recent first, across all Spaces.
+- <kbd>⌘`</kbd> — large window previews of the front app, ordered by most recent window.
+- **The scoped hotkey** — a narrow list of the current app's windows with full titles.

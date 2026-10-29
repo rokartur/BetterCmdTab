@@ -1,0 +1,179 @@
+---
+title: Quick start
+description: Install BetterCmdTab, grant Accessibility, and make your first switch.
+icon: Rocket
+---
+
+## 1. Install
+
+<Tabs items={['Homebrew', 'Download']}>
+<Tab value="Homebrew">
+
+```bash
+brew install --cask bettercmdtab
+```
+
+For prerelease builds:
+
+```bash
+brew install --cask bettercmdtab@beta
+```
+
+</Tab>
+<Tab value="Download">
+
+Grab the latest signed `.dmg` from the
+[Releases page](https://github.com/rokartur/BetterCmdTab/releases), open it, drag
+`BetterCmdTab.app` to `/Applications`, and launch it.
+
+The app is signed and notarized, so Gatekeeper opens it without a warning.
+
+</Tab>
+</Tabs>
+
+BetterCmdTab is a menu-bar app — it has no Dock icon and no main window. After
+launch, look for its icon in the menu bar.
+
+## 2. Grant Accessibility permission
+
+This is not optional. BetterCmdTab needs Accessibility to install the global
+⌘Tab event tap and to read window lists.
+
+1. Open **System Settings → Privacy & Security → Accessibility**.
+2. Enable **BetterCmdTab**.
+
+<Callout type="warn" title="⌘Tab does nothing?">
+That is almost always a missing Accessibility permission. The switcher does not
+boot until the permission is granted — the app polls for it, so granting it while
+the app runs is enough, but quitting and relaunching also works.
+</Callout>
+
+### Browser tabs need a second permission
+
+Accessibility is enough for everything except **browser** tabs. Listing tabs from
+Safari, Chrome, Arc, Brave, Edge and friends goes through Apple Events, which macOS
+gates separately under **Privacy & Security → Automation**.
+
+Open **Settings → Privacy → Permissions → Browser tab access** and press **Check access…**
+with the settings window still open — macOS only surfaces the consent prompt while a
+window has focus, and it asks once per browser. Skip this and <kbd>{"\\"}</kbd> on a browser row,
+`expandBrowserTabsAsWindows` and `searchExpandsBrowserTabs` all silently come back
+empty.
+
+Native tabs (Finder, Terminal, TextEdit) use Accessibility and need nothing extra.
+
+## 3. Switch
+
+| Action | Keys |
+| --- | --- |
+| Open the switcher | Hold <kbd>⌘</kbd> and press <kbd>Tab</kbd> |
+| Step forward / backward | <kbd>Tab</kbd> / <kbd>⇧Tab</kbd>, or the arrow keys |
+| Commit and switch | Release <kbd>⌘</kbd> |
+| Switch without showing the panel | Tap <kbd>⌘Tab</kbd> quickly |
+| Cycle the front app's windows | <kbd>⌘`</kbd> |
+| Jump to an entry | Type the letter shown on it |
+| Peek an app's windows | <kbd>↓</kbd> (see below) |
+| Cancel | <kbd>Esc</kbd> |
+
+These act while the switcher is open. All of them are rebindable per profile under
+**Settings → Profiles**; the shipped defaults are:
+
+| Action | Keys |
+| --- | --- |
+| Close the window | <kbd>⌘W</kbd> |
+| Minimize the window | <kbd>⌘M</kbd> |
+| Hide the app | <kbd>⌘H</kbd> |
+| Quit the app | <kbd>⌘Q</kbd> |
+| Force quit the app | <kbd>⌘⌥Q</kbd> |
+| Full screen | <kbd>⌘F</kbd> |
+| Search | <kbd>/</kbd>, then type |
+| Peek a window's tabs | <kbd>{"\\"}</kbd> |
+
+<kbd>⌘</kbd> is held the whole time the panel is up, so only the key you record matters —
+the modifier is ignored in-panel. Clearing a recorder turns that key off.
+
+<kbd>↓</kbd> only drills into an app's windows where it would otherwise do nothing useful — the
+grid and window-preview layouts while the panel is a single row. In the list layout,
+and in a multi-row grid, <kbd>↓</kbd> keeps moving the selection instead. It also needs
+[`windowDrillEnabled`](/docs/config-reference/#windowDrillEnabled), one row per app
+([`applicationsOnly`](/docs/config-reference/#applicationsOnly)), and an app with at least
+two windows.
+
+A quick tap switches instantly without drawing anything. The panel only appears
+once you have held the shortcut for [`revealDelayMs`](/docs/config-reference/#revealDelayMs)
+(100 ms by default) — raise it if the panel flashes during fast tap-switching.
+
+### What the icons mean
+
+A small glyph at the end of a list row (or under a grid tile) says what state the
+entry is in:
+
+| Icon | Meaning |
+| --- | --- |
+| Green speaker | The app is playing audio |
+| Eye with a slash | The app is hidden (<kbd>⌘H</kbd>) |
+| Minus in a rectangle | The window is minimized |
+| Dashed square | The app is running but has no open window — <kbd>Return</kbd> opens one |
+| Two diagonal arrows | The window is full-screen |
+| Arrow leaving a square | The app is not running yet — <kbd>Return</kbd> launches it |
+| Clock with an arrow | Recently closed — <kbd>Return</kbd> reopens it |
+
+The four window-state glyphs (hidden, minimized, no window, full-screen) can be
+turned off under **Appearance → Labels → Show status icons**
+([`showWindowStatusIcons`](/docs/config-reference/#showWindowStatusIcons)). The audio,
+launch and reopen cues always show.
+
+Apps with no open window carry no window recency, so under either recency
+[`sortOrder`](/docs/config-reference/#sortOrder) (`mru`, `mruWindows`) they collect at the
+end of the list. Hidden apps do the same while
+[`sinkHiddenApps`](/docs/config-reference/#sinkHiddenApps) is on. Switch `sortOrder` to
+`alphabetical` to order every entry by name instead, or pin the apps you want on
+top under **Apps**.
+
+## 4. Make it yours
+
+Open **Settings** from the menu-bar icon. The panes are General, Profiles, Shortcuts,
+Switcher, Controls, Tabs, Apps, Appearance, Privacy and About.
+
+Three changes worth making straight away:
+
+- **Layout** — Appearance → Layout. Try `Window previews` if you juggle many windows
+  of the same app.
+- **Show windows from** — Switcher → Contents. On a multi-monitor setup
+  `Visible Spaces` lists what is actually on screen and hides windows parked on
+  background desktops.
+- **Stay open** — Controls → Keyboard. Keeps the panel up after you release <kbd>⌘</kbd>
+  so you can browse at your own pace and confirm with <kbd>Return</kbd>.
+
+## 5. Optional: move your settings into a file
+
+If you keep dotfiles, or want to diff and version your setup, opt into the
+configuration file:
+
+**Settings → General → Backup → Configuration file → Create…**
+
+That writes your current settings to `~/.config/bettercmdtab/config.json` and
+starts a live two-way sync — edits to the file apply immediately, and changes made
+in the settings window are written back.
+
+```json title="~/.config/bettercmdtab/config.json"
+{
+  "$schema": "schema.json",
+  "layoutMode": "windowPreview",
+  "spaceScope": "visibleSpaces",
+  "stayOpenOnRelease": true,
+  "revealDelayMs": 150
+}
+```
+
+See [Configuration file](/docs/configuration/) for how the sync behaves, and the
+[config reference](/docs/config-reference/) for every key.
+
+## Next steps
+
+<Cards>
+  <Card title="Configuration file" href="/docs/configuration/" description="How the live sync, schema and precedence work." />
+  <Card title="Config reference" href="/docs/config-reference/" description="Every key with types, defaults and allowed values." />
+  <Card title="App rules" href="/docs/app-rules/" description="Hide apps, or pass ⌘Tab through to them." />
+  <Card title="Per-shortcut overrides" href="/docs/overrides/" description="A different switcher per shortcut." />
+</Cards>

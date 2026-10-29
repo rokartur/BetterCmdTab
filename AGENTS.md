@@ -18,7 +18,7 @@ Read before editing:
 - `CODING_STANDARDS.md` for any change under `BetterCmdTab/`.
 - `ARCHITECTURE.md` (what crosses between folders) before touching `Input/`, `Catalog/`,
   `Switcher/`, `Windows/`, `App/Preferences.swift` or `App/ConfigFile.swift`.
-- `docs/CONTRIBUTING.md` before touching `web/` or `docs/`.
+- `web/CONTRIBUTING.md` before touching `web/`.
 - `CONTRIBUTING.md` for build and test commands and the PR process.
 
 ## Agent skills

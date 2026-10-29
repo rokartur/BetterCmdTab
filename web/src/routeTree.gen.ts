@@ -13,6 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as AlttabAlternativeRouteImport } from './routes/alttab-alternative'
 import { Route as CmdTabMacRouteImport } from './routes/cmd-tab-mac'
+import { Route as DocsSplatRouteImport } from './routes/docs/$'
+import { Route as DocsLlmsFullDottxtRouteImport } from './routes/docs/llms-full[.]txt'
+import { Route as DocsLlmsDottxtRouteImport } from './routes/docs/llms[.]txt'
+import { Route as DocsApiSearchRouteImport } from './routes/docs/api/search'
+import { Route as DocsLlmsDotmdxDocsSplatRouteImport } from './routes/docs/llms[.]mdx/docs/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +39,53 @@ const CmdTabMacRoute = CmdTabMacRouteImport.update({
   path: '/cmd-tab-mac',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsSplatRoute = DocsSplatRouteImport.update({
+  id: '/docs/$',
+  path: '/docs/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsLlmsFullDottxtRoute = DocsLlmsFullDottxtRouteImport.update({
+  id: '/docs/llms-full.txt',
+  path: '/docs/llms-full.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsLlmsDottxtRoute = DocsLlmsDottxtRouteImport.update({
+  id: '/docs/llms.txt',
+  path: '/docs/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsApiSearchRoute = DocsApiSearchRouteImport.update({
+  id: '/docs/api/search',
+  path: '/docs/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsLlmsDotmdxDocsSplatRoute = DocsLlmsDotmdxDocsSplatRouteImport.update({
+  id: '/docs/llms.mdx/docs/$',
+  path: '/docs/llms.mdx/docs/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/alttab-alternative': typeof AlttabAlternativeRoute
   '/cmd-tab-mac': typeof CmdTabMacRoute
+  '/docs/$': typeof DocsSplatRoute
+  '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
+  '/docs/llms.txt': typeof DocsLlmsDottxtRoute
+  '/docs/api/search': typeof DocsApiSearchRoute
+  '/docs/llms.mdx/docs/$': typeof DocsLlmsDotmdxDocsSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/404': typeof R404Route
   '/alttab-alternative': typeof AlttabAlternativeRoute
   '/cmd-tab-mac': typeof CmdTabMacRoute
+  '/docs/$': typeof DocsSplatRoute
+  '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
+  '/docs/llms.txt': typeof DocsLlmsDottxtRoute
+  '/docs/api/search': typeof DocsApiSearchRoute
+  '/docs/llms.mdx/docs/$': typeof DocsLlmsDotmdxDocsSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +93,46 @@ export interface FileRoutesById {
   '/404': typeof R404Route
   '/alttab-alternative': typeof AlttabAlternativeRoute
   '/cmd-tab-mac': typeof CmdTabMacRoute
+  '/docs/$': typeof DocsSplatRoute
+  '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
+  '/docs/llms.txt': typeof DocsLlmsDottxtRoute
+  '/docs/api/search': typeof DocsApiSearchRoute
+  '/docs/llms.mdx/docs/$': typeof DocsLlmsDotmdxDocsSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/404' | '/alttab-alternative' | '/cmd-tab-mac'
+  fullPaths:
+    | '/'
+    | '/404'
+    | '/alttab-alternative'
+    | '/cmd-tab-mac'
+    | '/docs/$'
+    | '/docs/llms-full.txt'
+    | '/docs/llms.txt'
+    | '/docs/api/search'
+    | '/docs/llms.mdx/docs/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/404' | '/alttab-alternative' | '/cmd-tab-mac'
-  id: '__root__' | '/' | '/404' | '/alttab-alternative' | '/cmd-tab-mac'
+  to:
+    | '/'
+    | '/404'
+    | '/alttab-alternative'
+    | '/cmd-tab-mac'
+    | '/docs/$'
+    | '/docs/llms-full.txt'
+    | '/docs/llms.txt'
+    | '/docs/api/search'
+    | '/docs/llms.mdx/docs/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/404'
+    | '/alttab-alternative'
+    | '/cmd-tab-mac'
+    | '/docs/$'
+    | '/docs/llms-full.txt'
+    | '/docs/llms.txt'
+    | '/docs/api/search'
+    | '/docs/llms.mdx/docs/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +140,11 @@ export interface RootRouteChildren {
   R404Route: typeof R404Route
   AlttabAlternativeRoute: typeof AlttabAlternativeRoute
   CmdTabMacRoute: typeof CmdTabMacRoute
+  DocsSplatRoute: typeof DocsSplatRoute
+  DocsLlmsFullDottxtRoute: typeof DocsLlmsFullDottxtRoute
+  DocsLlmsDottxtRoute: typeof DocsLlmsDottxtRoute
+  DocsApiSearchRoute: typeof DocsApiSearchRoute
+  DocsLlmsDotmdxDocsSplatRoute: typeof DocsLlmsDotmdxDocsSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +177,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CmdTabMacRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/$': {
+      id: '/docs/$'
+      path: '/docs/$'
+      fullPath: '/docs/$'
+      preLoaderRoute: typeof DocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/llms-full.txt': {
+      id: '/docs/llms-full.txt'
+      path: '/docs/llms-full.txt'
+      fullPath: '/docs/llms-full.txt'
+      preLoaderRoute: typeof DocsLlmsFullDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/llms.txt': {
+      id: '/docs/llms.txt'
+      path: '/docs/llms.txt'
+      fullPath: '/docs/llms.txt'
+      preLoaderRoute: typeof DocsLlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/api/search': {
+      id: '/docs/api/search'
+      path: '/docs/api/search'
+      fullPath: '/docs/api/search'
+      preLoaderRoute: typeof DocsApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/llms.mdx/docs/$': {
+      id: '/docs/llms.mdx/docs/$'
+      path: '/docs/llms.mdx/docs/$'
+      fullPath: '/docs/llms.mdx/docs/$'
+      preLoaderRoute: typeof DocsLlmsDotmdxDocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +220,11 @@ const rootRouteChildren: RootRouteChildren = {
   R404Route: R404Route,
   AlttabAlternativeRoute: AlttabAlternativeRoute,
   CmdTabMacRoute: CmdTabMacRoute,
+  DocsSplatRoute: DocsSplatRoute,
+  DocsLlmsFullDottxtRoute: DocsLlmsFullDottxtRoute,
+  DocsLlmsDottxtRoute: DocsLlmsDottxtRoute,
+  DocsApiSearchRoute: DocsApiSearchRoute,
+  DocsLlmsDotmdxDocsSplatRoute: DocsLlmsDotmdxDocsSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -69,16 +69,16 @@ catalog entries.
 
 ## 6. Config reference docs
 
-`docs/src/data/config-schema.json` is generated; never edit it by hand. After
+`web/src/docs/config-schema.json` is generated; never edit it by hand. After
 launching the new build once, copy it from the app (English system, see
-`docs/CONTRIBUTING.md`):
+`web/CONTRIBUTING.md`):
 
 ```bash
-cp ~/.config/bettercmdtab/schema.json docs/src/data/config-schema.json
+cp ~/.config/bettercmdtab/schema.json web/src/docs/config-schema.json
 ```
 
 Then add the key to `sections` and its `reloadFromDefaults()` value to
-`defaults` in `docs/src/lib/config-reference.ts`.
+`defaults` in `web/src/docs/config-reference.ts`.
 
 **Complete when:** `ConfigSchemaDocsTests` passes and `cd docs && bun run build`
 passes; the build fails and names any key missing from either map.

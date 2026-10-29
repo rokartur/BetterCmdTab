@@ -2,16 +2,4 @@
 User-agent: *
 Allow: /
 
-# Next writes an RSC payload twin beside every page (/index.txt,
-# /docs/overrides/__next._full.txt, and 60-odd more) carrying that page's whole
-# visible text as text/plain, a duplicate of the HTML at a second URL. Nothing
-# links to these, so blocking the crawl is enough.
-Disallow: /*.txt$
-
-# Written for AI crawlers to consume, so they stay fetchable. Longer than the
-# rule above, and a longer match wins.
-Allow: /llms.txt
-Allow: /docs/llms.txt
-Allow: /docs/llms-full.txt
-
 Sitemap: https://bettercmdtab.app/sitemap.xml

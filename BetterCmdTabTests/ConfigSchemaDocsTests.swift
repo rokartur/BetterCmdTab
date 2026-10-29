@@ -4,7 +4,7 @@ import Testing
 @testable import BetterCmdTab
 
 /// Guards the checked-in copy of the config schema against the app that
-/// generates it. `docs/src/data/config-schema.json` is copied by hand out of a
+/// generates it. `web/src/docs/config-schema.json` is copied by hand out of a
 /// generated `~/.config/bettercmdtab/schema.json` (#117), so a reworded
 /// description or a new documented key silently ships a docs page describing a
 /// build nobody runs. Compare the copy to `ConfigSchemaDocs` instead of by eye.
@@ -16,12 +16,12 @@ struct ConfigSchemaDocsTests {
     }
 
     /// The docs copy is not in the test bundle; read it off the checkout
-    /// relative to this source file (repo-root/docs/…), like the xcstrings.
+    /// relative to this source file (repo-root/web/…), like the xcstrings.
     private static func publishedProperties() throws -> [String: [String: Any]] {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("docs/src/data/config-schema.json")
+            .appendingPathComponent("web/src/docs/config-schema.json")
         let root = try JSONSerialization.jsonObject(with: Data(contentsOf: url))
         guard let properties = (root as? [String: Any])?["properties"] as? [String: [String: Any]] else {
             throw SchemaError(description: "published schema has no properties object")
@@ -51,7 +51,7 @@ struct ConfigSchemaDocsTests {
             }
             #expect(
                 Self.stable(doc.fragment) == Self.stable(property),
-                "\(key) drifted: regenerate the schema and copy it into docs/src/data/config-schema.json"
+                "\(key) drifted: regenerate the schema and copy it into web/src/docs/config-schema.json"
             )
         }
     }

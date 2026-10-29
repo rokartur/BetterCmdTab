@@ -36,9 +36,8 @@ Bun.serve({
       return redirect(`${pathname}/${search}`);
     }
 
-    // Vite (/assets/) and Next (/docs/_next/static/) content-hash these, so a change gets a new URL.
-    if (pathname.startsWith("/assets/") || pathname.startsWith("/docs/_next/static/"))
-      return cached(file, "public, max-age=31536000, immutable");
+    // Vite content-hashes these, so a change gets a new URL.
+    if (pathname.startsWith("/assets/")) return cached(file, "public, max-age=31536000, immutable");
     // Not hashed, but replaced rarely: a week of staleness after a redesign is the trade. The docs
     // og images are regenerated under the same URL on every build, so they stay uncached.
     if (/\.(png|jpe?g|webp|wav)$/.test(pathname) && !pathname.startsWith("/docs/og/"))
