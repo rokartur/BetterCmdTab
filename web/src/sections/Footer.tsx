@@ -94,6 +94,22 @@ export function Footer({ dmgUrl, style }: { dmgUrl: string; style: CSSProperties
                 Star on GitHub
               </ExternalLink>
             </div>
+            <ExternalLink
+              className="border-0"
+              href="https://macbase.app/apps/bettercmdtab?ref=badge"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                className="block h-[72px] w-auto"
+                src="https://macbase.app/badge/featured-on-macbase-dark.svg"
+                alt="BetterCmdTab is featured on MacBase"
+                width={225}
+                height={72}
+                loading="lazy"
+                decoding="async"
+              />
+            </ExternalLink>
           </div>
 
           <div>
