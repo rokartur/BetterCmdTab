@@ -7,14 +7,14 @@ on:
       - "BetterCmdTab/**"
       - "BetterCmdTabTests/**"
       - "BetterCmdTab.xcodeproj/**"
-      - "docs/src/data/config-schema.json"
+      - "web/src/docs/config-schema.json"
       - ".github/workflows/ci-app.yml"
   pull_request:
     paths:
       - "BetterCmdTab/**"
       - "BetterCmdTabTests/**"
       - "BetterCmdTab.xcodeproj/**"
-      - "docs/src/data/config-schema.json"
+      - "web/src/docs/config-schema.json"
       - ".github/workflows/ci-app.yml"
   workflow_dispatch:
 

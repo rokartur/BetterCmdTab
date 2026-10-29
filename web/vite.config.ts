@@ -2,14 +2,22 @@ import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
+import { fumadocsMdx } from "fumadocs-mdx/vite";
 import { defineConfig } from "vite";
 
+import { docsContentFiles } from "./src/docs/content-files";
+
+const docsPages = docsContentFiles().flatMap(({ path }) => [
+  { path: `/docs/${path}` },
+  { path: `/docs/llms.mdx/docs/${path}content.md` },
+]);
+
 // Static site: every route in `pages` is prerendered, no server at runtime. serve.ts serves
-// the tree as plain files (see Dockerfile), and the
-// docs export (../docs, still Next with basePath=/docs) is merged into `out/docs`
-// afterwards so the two static trees share one origin.
+// the tree as plain files (see Dockerfile). Docs OG images are binary, which the prerender
+// pass writes as text, so scripts/docs-og.tsx renders those after the build.
 export default defineConfig({
   plugins: [
+    fumadocsMdx(),
     tailwindcss(),
     tanstackStart({
       pages: [
@@ -20,13 +28,14 @@ export default defineConfig({
         // route is prerendered to that exact filename rather than the default
         // /404/index.html subfolder.
         { path: "/404", prerender: { autoSubfolderIndex: false } },
+        ...docsPages,
+        { path: "/docs/api/search" },
+        { path: "/docs/llms.txt" },
+        { path: "/docs/llms-full.txt" },
       ],
-      // crawlLinks would follow the /docs/* links into the other app, which
-      // this build has no routes for.
+      // `pages` is the complete list; a crawl would only rediscover it.
       prerender: { enabled: true, crawlLinks: false, failOnError: true },
-      // web/public/sitemap.xml is hand-maintained and covers the docs pages
-      // too, which this build knows nothing about. Generating one here would
-      // overwrite it with a single entry.
+      // web/public/sitemap.xml is hand-maintained; generating one here would overwrite it.
       sitemap: { enabled: false },
     }),
     viteReact(),

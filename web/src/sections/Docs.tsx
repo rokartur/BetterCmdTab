@@ -1,10 +1,8 @@
 import { LiveConfig } from "./LiveConfig";
 import { H2 } from "./tokens";
 
-// Same origin, served by the docs app rather than this static export — plain
-// anchors so the browser does a real navigation instead of the router
-// swallowing it. Slash-terminated like every docs URL: serve.ts 301s the bare
-// form, and an internal link should not spend a redirect.
+// Plain anchors for a full load: docs pages use their own stylesheet. Slash-terminated like
+// every docs URL: serve.ts 301s the bare form, and an internal link should not spend a redirect.
 export const DOCS = "/docs/";
 
 // Paths are relative to DOCS; the quick start is the docs landing page.

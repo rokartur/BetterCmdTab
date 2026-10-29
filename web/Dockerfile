@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build context is the repo root: the image serves web/ at / and docs/ at /docs.
+# Build context is the repo root: the image serves web/out, docs included.
 FROM oven/bun:1-alpine AS web
 WORKDIR /app/web
 COPY web/package.json web/bun.lock ./
@@ -12,17 +12,10 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     bun run scripts/fetch-releases.ts || echo "fetch-releases failed, building with the committed releases.json and repo.json"
 RUN bun run build
 
-FROM oven/bun:1-alpine AS docs
-WORKDIR /app/docs
-COPY docs/package.json docs/bun.lock ./
-RUN bun install --frozen-lockfile
-COPY docs ./
-RUN bun run build
 
 FROM oven/bun:1-alpine
 WORKDIR /app
 COPY --from=web /app/web/out ./out
-COPY --from=docs /app/docs/out ./out/docs
 COPY web/serve.ts ./
 USER bun
 EXPOSE 3000

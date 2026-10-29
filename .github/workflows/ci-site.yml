@@ -1,22 +1,19 @@
 name: Site CI
 
-# The site ships as two static exports — web/ (TanStack Start, prerendered) and
-# docs/ (Next) — merged into one tree and served by web/serve.ts (see
-# web/Dockerfile). Beyond files it only 301s bare directories and /pl/*, and sets
-# cache headers, so anything that used to be a server rule is now a property of the
-# built tree, and that is what gets checked
-# here. A broken export must fail on the PR, not on the live domain.
+# web/ is one TanStack Start app, marketing pages and docs, prerendered into a static
+# tree that web/serve.ts serves (see web/Dockerfile). Beyond files it only 301s bare
+# directories and /pl/*, and sets cache headers, so anything that used to be a server
+# rule is a property of the built tree, and that is what gets checked here. A broken
+# export must fail on the PR, not on the live domain.
 on:
   push:
     branches: [main]
     paths:
       - "web/**"
-      - "docs/**"
       - ".github/workflows/ci-site.yml"
   pull_request:
     paths:
       - "web/**"
-      - "docs/**"
       - ".github/workflows/ci-site.yml"
   workflow_dispatch:
 
@@ -31,6 +28,9 @@ jobs:
   checks:
     name: Lint, types and build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
     steps:
       - uses: actions/checkout@v4
 
@@ -38,72 +38,39 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install (web)
-        working-directory: web
+      - name: Install
         run: bun install --frozen-lockfile
 
-      - name: Install (docs)
-        working-directory: docs
-        run: bun install --frozen-lockfile
-
-      - name: Lint, format and types (web)
-        working-directory: web
+      - name: Lint, format and types
         run: |
           bun run lint
           bun run format:check
           bun run types:check
 
-      - name: Lint and types (docs)
-        working-directory: docs
-        run: |
-          bun run lint
-          bun run types:check
-
-      - name: Build (web)
-        working-directory: web
+      - name: Build
         run: bun run build
 
-      - name: Build (docs)
-        working-directory: docs
-        run: bun run build
-
-      # The two exports share one origin, so every absolute URL the docs emit
-      # must start with /docs. Next only applies basePath to what it generates
-      # itself — hand-built URLs (llms.mdx, og, the search index) and metadata
-      # icon hrefs are literal strings and silently resolve against the origin
-      # root, which is the marketing site. That has regressed repeatedly, so it
-      # is checked here rather than by eye.
-      - name: Verify every docs URL is prefixed with /docs
-        working-directory: docs
+      - name: Verify the docs export
         run: |
           fail=0
-          # --include must precede --, or it is parsed as a path and the scan
-          # leaks into JS chunks (whose fumadocs fallback strings are harmless).
-          for pat in '"/_next/' '"/llms\.mdx' '"/og/docs' '"/api/search' '"/favicon-' '"/apple-touch-icon' '"/icon\.png'; do
-            hits=$(grep -rl --include='*.html' -- "$pat" out || true)
-            if [ -n "$hits" ]; then
-              echo "::error::unprefixed $pat (basePath not applied) in:"
-              echo "$hits"
-              fail=1
-            fi
-          done
-          duplicate_base=$(grep -rl 'href="/docs/docs/' out --include='*.html' || true)
-          if [ -n "$duplicate_base" ]; then
-            echo "::error::internal links repeat the /docs basePath in:"
-            echo "$duplicate_base"
+          # Server routes, not pages: these must be files, or the search box and the
+          # Markdown links 404.
+          test -f out/docs/api/search                 || { echo "::error::static search index missing"; fail=1; }
+          test -f out/docs/llms.mdx/docs/content.md    || { echo "::error::English markdown export missing"; fail=1; }
+          test -f out/docs/llms.mdx/docs/pl/content.md || { echo "::error::Polish markdown export missing"; fail=1; }
+          test -f out/docs/llms.txt                    || { echo "::error::llms.txt missing"; fail=1; }
+          grep -q '<html lang="en"' out/docs/index.html    || { echo "::error::English document language missing"; fail=1; }
+          grep -q '<html lang="pl"' out/docs/pl/index.html || { echo "::error::Polish document language missing"; fail=1; }
+          # fumadocs' default URL puts the locale before the base (/pl/docs/...).
+          wrong_locale=$(grep -rl '"/pl/docs' out/docs --include='*.html' || true)
+          if [ -n "$wrong_locale" ]; then
+            echo "::error::links with the locale before /docs in:"
+            echo "$wrong_locale"
             fail=1
           fi
-          # Route handlers, not pages: trailingSlash must not have turned these
-          # into directories, or the search box and every og:image 404.
-          test -f out/api/search                 || { echo "::error::static search index missing"; fail=1; }
-          test -f out/llms.mdx/docs/content.md    || { echo "::error::English markdown export missing"; fail=1; }
-          test -f out/llms.mdx/docs/pl/content.md || { echo "::error::Polish markdown export missing"; fail=1; }
-          test -f out/llms.txt                    || { echo "::error::llms.txt missing"; fail=1; }
-          grep -q '<html lang="en"' out/index.html    || { echo "::error::English document language missing"; fail=1; }
-          grep -q '<html lang="pl"' out/pl/index.html || { echo "::error::Polish document language missing"; fail=1; }
-          # Machine-readable exports are consumed outside Next, so relative
-          # links bypass basePath and must be canonical production URLs.
-          machine_exports="out/llms.txt out/llms-full.txt $(find out/llms.mdx -type f -name '*.md')"
+          # Machine-readable exports are read off-site, so root-relative links must be
+          # canonical production URLs.
+          machine_exports="out/docs/llms.txt out/docs/llms-full.txt $(find out/docs/llms.mdx -type f -name '*.md')"
           relative_links=$(grep -nHE '(\]\(|href=")/[^/]' $machine_exports || true)
           if [ -n "$relative_links" ]; then
             echo "::error::machine-readable exports contain root-relative links:"
@@ -116,16 +83,16 @@ jobs:
             case "$relative" in
               *#*) fragment=${relative#*#}; relative=${relative%%#*} ;;
             esac
-            [ -n "$relative" ] && page="out/${relative%/}/index.html" || page=out/index.html
+            [ -n "$relative" ] && page="out/docs/${relative%/}/index.html" || page=out/docs/index.html
             test -f "$page" || { echo "::error::machine-readable export links to missing $u"; fail=1; continue; }
             [ -z "$fragment" ] || grep -qF "id=\"$fragment\"" "$page" \
               || { echo "::error::machine-readable export links to missing fragment $u"; fail=1; }
           done
-          # Content links in a translated page must not silently switch the
-          # reader back to the unprefixed English tree.
-          bad_links=$(grep -rho 'href="/docs/[^"]*"' out/pl --include='*.html' \
+          # Content links in a translated page must not silently switch the reader back
+          # to the unprefixed English tree.
+          bad_links=$(grep -rho 'href="/docs/[^"]*"' out/docs/pl --include='*.html' \
                         | sed 's/^href="//; s/"$//' \
-                        | grep -Ev '^/docs/(pl/|_next/|api/|llms|og/|favicon-|apple-touch-icon|icon[^/]*\.png)' \
+                        | grep -Ev '^/docs/(pl/|icon-64\.png)' \
                         | sort -u || true)
           if [ -n "$bad_links" ]; then
             echo "::error::Polish pages link to English docs paths:"
@@ -133,34 +100,31 @@ jobs:
             fail=1
           fi
           # Every og:image the pages advertise must actually be on disk.
-          for u in $(grep -rho 'og:image" content="https://bettercmdtab.app/docs\([^"]*\)"' out --include='*.html' \
-                     | sed 's|.*app/docs||; s|"$||' | sort -u); do
-            test -f "out${u}" || { echo "::error::og:image /docs${u} has no file"; fail=1; }
+          for u in $(grep -rho 'og:image" content="https://bettercmdtab.app\([^"]*\)"' out/docs --include='*.html' \
+                     | sed 's|.*bettercmdtab.app||; s|"$||' | sort -u); do
+            test -f "out${u}" || { echo "::error::og:image ${u} has no file"; fail=1; }
           done
-          # Every page is reachable at more than one URL, so a missing canonical
-          # lets the duplicates split ranking signals. This shipped broken once.
-          # Polish pages add one more directory level, so scan the whole export.
-          for f in $(find out -name 'index.html' ! -path 'out/_not-found/*' ! -path 'out/404/*'); do
+          # Every page is reachable at more than one URL, so a missing canonical lets the
+          # duplicates split ranking signals. This shipped broken once.
+          for f in $(find out/docs -name 'index.html'); do
             grep -q 'rel="canonical"' "$f" || { echo "::error::$f has no rel=canonical"; fail=1; }
             grep -q 'og:url' "$f"          || { echo "::error::$f has no og:url"; fail=1; }
           done
           [ "$fail" = 0 ] && echo "docs export OK"
           exit $fail
 
-      # web/serve.ts serves this tree as is, so the guarantees below are
-      # properties of the files themselves, checked without booting a server.
-      - name: Verify the merged artifact
+      # web/serve.ts serves this tree as is, so the guarantees below are properties of
+      # the files themselves, checked without booting a server.
+      - name: Verify the artifact
         run: |
-          mkdir -p web/out/docs
-          cp -R docs/out/. web/out/docs/
-          root=web/out
+          root=out
           fail=0
 
-          # serve.ts answers a URL ending in a slash with <path>/index.html and
-          # 301s the bare form to it. So every sitemap entry must end in a slash
-          # AND have that exact file, or the sitemap advertises a redirect or a
-          # 404, both worse than not listing the page at all.
-          for u in $(grep -o '<loc>[^<]*</loc>' web/public/sitemap.xml \
+          # serve.ts answers a URL ending in a slash with <path>/index.html and 301s the
+          # bare form to it. So every sitemap entry must end in a slash AND have that
+          # exact file, or the sitemap advertises a redirect or a 404, both worse than
+          # not listing the page at all.
+          for u in $(grep -o '<loc>[^<]*</loc>' public/sitemap.xml \
                      | sed 's|</*loc>||g; s|https://bettercmdtab.app||'); do
             case "$u" in
               */) ;;
@@ -170,41 +134,37 @@ jobs:
               || { echo "::error::sitemap lists $u but ${root}${u%/}/index.html does not exist"; fail=1; }
           done
 
-          # An internal link to a redirecting URL spends a hop and dilutes the
-          # signal it passes. Same slash rule as above.
-          for h in $(grep -oh 'href="/docs[^"]*"' $root/index.html $root/404.html $root/alttab-alternative/index.html $root/cmd-tab-mac/index.html | sed 's|href="||; s|"||' | sort -u); do
+          # An internal link to a redirecting URL spends a hop and dilutes the signal it
+          # passes. Same slash rule as above.
+          for h in $(grep -oh 'href="/docs[^"]*"' $root/index.html $root/404.html $root/alttab-alternative/index.html $root/cmd-tab-mac/index.html $(find $root/docs -name index.html) \
+                     | sed 's|href="||; s|"||' | sed 's|#.*||' | grep -v '\.png$' | sort -u); do
             case "$h" in
               */) test -f "${root}${h%/}/index.html" \
-                    || { echo "::error::marketing page links to $h, which has no page"; fail=1; };;
-              *) echo "::error::marketing page links to $h without a trailing slash (301 in serve.ts)"; fail=1;;
+                    || { echo "::error::a page links to $h, which has no page"; fail=1; };;
+              *) echo "::error::a page links to $h without a trailing slash (301 in serve.ts)"; fail=1;;
             esac
           done
-
-          # Next writes an RSC payload twin holding each page's whole text as
-          # text/plain; robots.txt keeps crawlers off those.
-          grep -q 'Disallow: /\*\.txt\$'   web/public/robots.txt || { echo "::error::robots.txt no longer blocks the RSC payload twins"; fail=1; }
-          grep -q 'Allow: /docs/llms.txt'  web/public/robots.txt || { echo "::error::robots.txt no longer allows llms.txt"; fail=1; }
 
           # serve.ts answers every missing path on the origin, docs included, with it.
           test -f $root/404.html || { echo "::error::404.html missing from the artifact"; fail=1; }
 
-          [ "$fail" = 0 ] && echo "merged artifact OK"
+          [ "$fail" = 0 ] && echo "artifact OK"
           exit $fail
 
       # The sitemap is hand-maintained while the docs pages are generated from
-      # content/docs, so the two drift apart silently: a renamed page becomes a
-      # sitemap 404, a new one never gets submitted. Guard both directions.
+      # content/docs, so the two drift apart silently: a renamed page becomes a sitemap
+      # 404, a new one never gets submitted. Guard both directions.
       - name: Verify the sitemap matches the docs content
         run: |
           fail=0
-          for file in docs/content/docs/*/*.mdx; do
+          for file in content/docs/*/*.mdx; do
             locale=$(basename "$(dirname "$file")")
             slug=$(basename "$file" .mdx)
             prefix="https://bettercmdtab.app/docs"
             [ "$locale" = en ] || prefix="$prefix/$locale"
             if [ "$slug" != index ]; then url="$prefix/$slug/"
             else url="$prefix/"; fi
-            grep -qF "<loc>$url</loc>" web/public/sitemap.xml \
+            grep -qF "<loc>$url</loc>" public/sitemap.xml \
               || { echo "::error::$url is missing from web/public/sitemap.xml"; fail=1; }
           done
           [ "$fail" = 0 ] && echo "sitemap covers every docs page"
