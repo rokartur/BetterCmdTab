@@ -3,10 +3,8 @@ import AppKit
 import CoreGraphics
 import os
 
-/// Experimental companion to `SwipeTrigger`: while the three-finger switcher
-/// swipe is enabled, this swallows the system's horizontal "swipe between
-/// Spaces" gesture so a three-finger slide drives only the switcher and never
-/// also slides Spaces underneath it.
+/// Experimental companion to `SwipeTrigger`: swallows the system's horizontal Space swipe
+/// while `MTGesture.ownsTouch`, so the switcher swipe never also slides Spaces under it.
 ///
 /// A session-level `CGEventTap` (the same public mechanism as the hotkey tap)
 /// watches the private CGS gesture event stream and returns `nil` for the
@@ -46,6 +44,10 @@ final class SpaceSwipeSuppressor: @unchecked Sendable {
 
     @MainActor init() {}
 
+    /// `MTGesture.ownsTouch` at the Began phase of the system swipe in flight, so a finger
+    /// landing mid-swipe cannot split its phases (#259); nil reads it live. Tap thread only.
+    private var swipeVerdict: Bool?
+
     /// Storm guard for the tap-disabled re-enable path — identical rationale to
     /// `HotkeyTap.DisableGate`. An active session tap whose process loses
     /// Accessibility trust is disabled by the WindowServer; re-enabling it then
@@ -67,13 +69,17 @@ final class SpaceSwipeSuppressor: @unchecked Sendable {
 
     /// Undocumented CGS gesture event types and fields (from the IOHID/CGS
     /// private headers; same constants InstantSpaceSwitcher uses).
-    private enum CGS {
+    enum CGS {
         static let eventGesture: UInt32 = 29        // kCGSEventGesture
         static let eventDockControl: UInt32 = 30    // kCGSEventDockControl
         static let fieldHIDType: UInt32 = 110       // kCGEventGestureHIDType
         static let fieldSwipeMotion: UInt32 = 123   // kCGEventGestureSwipeMotion
+        static let fieldPhase: UInt32 = 132         // kCGEventGesturePhase
         static let hidDockSwipe: Int64 = 23         // kIOHIDEventTypeDockSwipe
         static let motionHorizontal: Int64 = 1      // kCGGestureMotionHorizontal
+        static let phaseBegan: Int64 = 1            // kCGSGesturePhaseBegan
+        static let phaseEnded: Int64 = 4            // kCGSGesturePhaseEnded
+        static let phaseCancelled: Int64 = 8        // kCGSGesturePhaseCancelled
     }
 
     @MainActor
@@ -158,7 +164,7 @@ final class SpaceSwipeSuppressor: @unchecked Sendable {
         ports.withLockUnchecked { $0.tapThread = thread }
     }
 
-    private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+    func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             // Accessibility revoked → an active session tap can't be durably
             // re-enabled; re-enabling spins this thread in synchronous
@@ -211,15 +217,19 @@ final class SpaceSwipeSuppressor: @unchecked Sendable {
         // Suppress only *real* trackpad swipes (posted by the HID kernel, source
         // pid 0). Our own instant-Space-switch synthetic swipe carries this
         // process's pid — let it through, or this tap would eat it and the
-        // jump-to-Space would silently fail whenever the swipe trigger is on.
+        // jump-to-Space would silently fail whenever the gesture owns the touch.
         if event.getIntegerValueField(.eventSourceUnixProcessID) != 0 {
             return Unmanaged.passUnretained(event)
         }
 
-        // Suppress only the horizontal Space swipe; pass vertical dock swipes
-        // (Mission Control / App Exposé) through untouched.
+        // Swallow only a horizontal Space swipe whose touch the gesture owns; vertical
+        // dock swipes and other touches, like a four-finger Space swipe (#259), pass.
+        let phase = event.getIntegerValueField(field(CGS.fieldPhase))
+        if phase == CGS.phaseBegan { swipeVerdict = MTGesture.ownsTouch }
+        let swallow = swipeVerdict ?? MTGesture.ownsTouch
+        if phase == CGS.phaseEnded || phase == CGS.phaseCancelled { swipeVerdict = nil }
         let motion = event.getIntegerValueField(field(CGS.fieldSwipeMotion))
-        if motion == CGS.motionHorizontal {
+        if motion == CGS.motionHorizontal, swallow {
             return nil
         }
         return Unmanaged.passUnretained(event)

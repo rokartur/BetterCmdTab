@@ -16145,42 +16145,42 @@
         }
       }
     },
-    "Slide three or four fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed." : {
+    "Slide the number of fingers set below horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Streiche mit drei oder vier Fingern waagerecht über das Trackpad. Liest das Trackpad direkt aus, sodass keine Systemeinstellung erforderlich ist."
+            "value" : "Streiche mit der unten eingestellten Anzahl Finger waagerecht über das Trackpad. Liest das Trackpad direkt aus, sodass keine Systemeinstellung erforderlich ist."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Desliza tres o cuatro dedos horizontalmente por el trackpad. Lee el trackpad directamente, por lo que no se necesita ningún ajuste del sistema."
+            "value" : "Desliza horizontalmente por el trackpad con el número de dedos elegido abajo. Lee el trackpad directamente, por lo que no se necesita ningún ajuste del sistema."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faites glisser trois ou quatre doigts horizontalement sur le trackpad. Lit directement le trackpad, donc aucun réglage système n’est nécessaire."
+            "value" : "Faites glisser horizontalement sur le trackpad le nombre de doigts choisi ci-dessous. Lit directement le trackpad, donc aucun réglage système n’est nécessaire."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przesuń trzema lub czterema palcami w poziomie po gładziku. Odczytuje gładzik bezpośrednio, więc nie jest potrzebne żadne ustawienie systemowe."
+            "value" : "Przesuń w poziomie po gładziku tyloma palcami, ile ustawiono poniżej. Odczytuje gładzik bezpośrednio, więc nie jest potrzebne żadne ustawienie systemowe."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Проведите тремя или четырьмя пальцами по трекпаду по горизонтали. BetterCmdTab считывает жест напрямую, поэтому менять системные настройки не требуется."
+            "value" : "Проведите по трекпаду по горизонтали таким числом пальцев, какое задано ниже. BetterCmdTab считывает жест напрямую, поэтому менять системные настройки не требуется."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在触控板上三指或四指水平滑动。会直接读取触控板，因此无需系统设置。"
+            "value" : "在触控板上用下方设置的手指数水平滑动。会直接读取触控板，因此无需系统设置。"
           }
         }
       }

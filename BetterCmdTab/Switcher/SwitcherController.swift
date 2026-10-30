@@ -875,10 +875,8 @@ final class SwitcherController: SwitcherViewDelegate {
         // per swipe (one Space jump / one app flip).
         swipeTrigger.setOneShot(Preferences.shared.swipeMode != .openSwitcher)
         swipeTrigger.setEnabled(Preferences.shared.experimentalSwipeTrigger)
-        // The swipe takes over three-finger horizontal Spaces navigation, so
-        // suppress the system Space-swipe whenever the swipe is enabled. Wire the
-        // storm callback before installing the tap so a disable burst (e.g. on AX
-        // revoke) tears it down instead of freezing the system.
+        // Wire the storm callback before installing the tap so a disable burst
+        // (e.g. on AX revoke) tears it down instead of freezing the system.
         spaceSwipeSuppressor.onTapDisabledStorm = { [weak self] in self?.handleSwipeSuppressorStorm() }
         // Gate on swipeTrigger.isInstalled (set by setEnabled above), AX trust, and
         // the pref — see updateSwipeSuppressor.
@@ -1753,7 +1751,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// callback on a live multitouch device. With no trackpad (Mac with only a
     /// mouse) `SwipeTrigger.install()` registers nothing, so there is no gesture
     /// to take over — installing the suppressor tap would only spend energy (and
-    /// risk a storm) while needlessly swallowing the native three-finger swipe.
+    /// risk a storm).
     private func updateSwipeSuppressor() {
         let shouldArm = Preferences.shared.experimentalSwipeTrigger
             && AccessibilityCheck.isTrusted
