@@ -23,6 +23,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
 
     override func setupContent() {
         buildDirectActivationSection()
+        buildCycleAppWindowsSection()
         buildArrangeSection()
         buildAllWindowsSection()
         addRelatedSection([(String(localized: "Shortcuts that open the switcher"), SettingsTabID.switcherShortcuts)])
@@ -51,8 +52,16 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
             addRow(to: direct, title: String(localized: "Slot \(index + 1)"), accessory: stack)
             directButtons.append(button)
         }
+    }
+
+    /// Repeat presses of a direct-activation hotkey (#217): new, so off by default and unstable.
+    private func buildCycleAppWindowsSection() {
+        let cycle = addSection(title: String(localized: "Repeat presses"), anchor: SettingsAnchor.directActivationCycle)
+        addRow(to: cycle, icon: "flask.fill",
+               title: String(localized: "These features are unstable"),
+               subtitle: String(localized: "Off by default. They may change or break."))
         addRow(
-            to: direct,
+            to: cycle,
             title: String(localized: "Cycle app windows"),
             subtitle: String(localized: "Press an app's shortcut again while the app is in front to step through its windows."),
             accessory: cycleAppWindowsSwitch,

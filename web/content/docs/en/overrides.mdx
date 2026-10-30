@@ -106,7 +106,8 @@ assigns a bundle ID to each of nine "focus or launch this app" hotkey slots. It 
 always exactly nine entries; an empty string leaves a slot unused. With
 `directActivationCyclesWindows` on (**Settings → Window Shortcuts → Cycle app windows**,
 off by default), pressing a slot's hotkey again while its app is frontmost raises that
-app's next window, so repeat presses walk all of its windows like <kbd>⌘`</kbd>.
+app's next window, so repeat presses walk its on-screen windows like <kbd>⌘`</kbd>;
+minimized windows and windows on other Spaces are skipped.
 
 ```json title="config.json"
 {

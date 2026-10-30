@@ -240,6 +240,28 @@ struct SettingsPortabilityTests {
         #expect(prefs.gridSingleRow == true)
     }
 
+    @Test("directActivationCyclesWindows round-trips and reads false when the key is absent (#217)")
+    func directActivationCyclesWindowsRoundTrip() throws {
+        let prefs = Preferences.shared
+        let key = Preferences.Keys.directActivationCyclesWindows
+        let savedRaw = UserDefaults.standard.object(forKey: key)
+        let saved = prefs.directActivationCyclesWindows
+        defer {
+            prefs.directActivationCyclesWindows = saved
+            if savedRaw == nil { UserDefaults.standard.removeObject(forKey: key) }
+        }
+
+        prefs.directActivationCyclesWindows = true
+        let data = try Preferences.exportedJSONData()
+        prefs.directActivationCyclesWindows = false
+        try prefs.importSettings(from: data)
+        #expect(prefs.directActivationCyclesWindows == true)
+
+        UserDefaults.standard.removeObject(forKey: key)
+        prefs.reloadFromDefaults()
+        #expect(prefs.directActivationCyclesWindows == false)
+    }
+
     @Test("flat import accepts keys that already carry the Switcher. prefix")
     func flatImportPrefixLeniency() throws {
         let prefs = Preferences.shared

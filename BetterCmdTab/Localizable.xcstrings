@@ -12499,7 +12499,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drücke den Kurzbefehl einer App erneut, während sie im Vordergrund ist, um durch ihre Fenster zu wechseln."
+            "value" : "Drücke den Kurzbefehl einer App erneut, während sie im Vordergrund ist, um ihre Fenster durchzuschalten."
           }
         },
         "es" : {
@@ -13412,6 +13412,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新打开最近关闭项"
+          }
+        }
+      }
+    },
+    "Repeat presses" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholtes Drücken"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsaciones repetidas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuis répétés"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ponowne naciśnięcia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторные нажатия"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重复按下"
           }
         }
       }

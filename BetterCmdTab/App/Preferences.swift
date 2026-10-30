@@ -2138,7 +2138,7 @@ final class Preferences: ObservableObject {
     }
 
     /// A repeat press of a direct-activation hotkey while its app is frontmost
-    /// raises that app's rearmost window (#217). Default off.
+    /// raises that app's next window, walking them like ⌘` (#217). Default off.
     @Published var directActivationCyclesWindows: Bool {
         didSet {
             guard oldValue != directActivationCyclesWindows else { return }

@@ -234,53 +234,56 @@ enum Activator {
     }
 
     /// Focus the app with the given bundle ID, launching it if it isn't running.
-    /// Backs the direct-activation hotkeys (jump straight to a chosen app). With
-    /// `directActivationCyclesWindows` on, a press while the app is already
-    /// frontmost raises its next window (#217).
+    /// Backs the direct-activation hotkeys (jump straight to a chosen app).
     @MainActor
     static func activateOrLaunch(bundleID: String) {
-        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
-            if running.isActive, Preferences.shared.directActivationCyclesWindows {
-                raiseRearmostWindow(of: running)
-            } else {
-                activateApp(running)
-            }
-            return
+        let instances = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+        if Preferences.shared.directActivationCyclesWindows, let active = instances.first(where: \.isActive) {
+            return raiseNextWindow(pid: active.pid)
         }
+        if let running = instances.first { return activateApp(running) }
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
         beginActivation()
         openActivating(url, bundleID: bundleID)
     }
 
-    /// Raising the rearmost on-screen window, not the second one, makes repeated
-    /// presses walk every window like ⌘` instead of trading the front two. Below two
-    /// windows it falls back to `activateApp`, which unminimizes one when none is visible.
+    /// A repeat press (#217): the window it raised and its place in the run.
+    typealias CyclePress = (wid: CGWindowID, step: Int)
+
+    /// The last repeat press, so the next one continues the run while its window is in front.
+    @MainActor private static var lastCyclePress: CyclePress?
+
+    /// AX cannot send a window back, so each press raises one further down the stack
+    /// (`cycleTarget`); raising the second window every time would trade the front two.
     @MainActor
-    private static func raiseRearmostWindow(of app: NSRunningApplication) {
+    private static func raiseNextWindow(pid: pid_t) {
         let gen = beginActivation()
-        let pid = app.pid
+        let last = lastCyclePress
         activationQueue.async {
+            guard isCurrentActivation(gen) else { return }
             let windows = appWindows(pid: pid)
             let ids = windows.map { PrivateAPI.cgWindowId(of: $0) }
-            let wid = cycleTarget(frontToBack: onscreenWindowIDs(pid: pid), axWindows: Set(ids))
-            let window = wid.flatMap { ids.firstIndex(of: $0) }.map { windows[$0] }
+            let press = cycleTarget(frontToBack: onscreenWindowIDs(pid: pid), axWindowIDs: Set(ids), last: last)
             DispatchQueue.main.async {
                 guard isCurrentActivation(gen), let live = NSRunningApplication(processIdentifier: pid) else { return }
-                guard let wid, let window else { return activateApp(live) }
-                focusRunning(app: live, window: window, wid: wid, isMinimized: false, generation: gen, completion: {})
+                guard let press, let index = ids.firstIndex(of: press.wid) else { return activateApp(live) }
+                lastCyclePress = press
+                focusRunning(app: live, window: windows[index], wid: press.wid, isMinimized: false, generation: gen, completion: {})
             }
         }
     }
 
-    /// The rearmost of the app's on-screen windows that AX can raise, or nil when
-    /// fewer than two qualify. A helper surface with no AX window must not stall the cycle.
-    static func cycleTarget(frontToBack: [CGWindowID], axWindows: Set<CGWindowID>) -> CGWindowID? {
-        let visible = frontToBack.filter { axWindows.contains($0) }
-        return visible.count > 1 ? visible.last : nil
+    /// Press `step` of a run raises the window `step` places back, capped at the rearmost: a run
+    /// walks its starting order like ⌘` (B, C, A from A, B, C). Nil below two raisable windows.
+    static func cycleTarget(frontToBack: [CGWindowID], axWindowIDs: Set<CGWindowID>, last: CyclePress?) -> CyclePress? {
+        let visible = frontToBack.filter { axWindowIDs.contains($0) }
+        guard visible.count > 1 else { return nil }
+        let step = last.map { $0.wid == visible[0] ? $0.step + 1 : 1 } ?? 1
+        return (visible[min(step, visible.count - 1)], step)
     }
 
-    /// The app's on-screen windows, front to back. Only `.optionOnScreenOnly` lists in
-    /// z-order; `.optionAll`, which `snapshotCGWindowMap` reads, does not (macOS 27.2).
+    /// The app's on-screen windows, front to back, from one `.optionOnScreenOnly` copy;
+    /// `snapshotCGWindowMap().zOrder` holds the same order but also copies `.optionAll`.
     private static func onscreenWindowIDs(pid: pid_t) -> [CGWindowID] {
         guard let entries = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
                                                        kCGNullWindowID) as? [NSDictionary] else { return [] }
@@ -303,8 +306,14 @@ enum Activator {
         let axApp = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(axApp, 0.25)
         var windows: AnyObject?
-        AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windows)
-        return windows as? [AXUIElement] ?? []
+        let error = AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windows)
+        if error != .success {
+            Log.activator.debug("window cycle: AXWindows failed for pid \(pid): AXError \(error.rawValue)")
+        }
+        // A window element does not inherit the app's timeout, and every id lookup is a round trip.
+        let elements = windows as? [AXUIElement] ?? []
+        for element in elements { AXUIElementSetMessagingTimeout(element, 0.25) }
+        return elements
     }
 
     @MainActor
