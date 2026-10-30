@@ -5609,42 +5609,42 @@
         }
       }
     },
-    "Give a shortcut to one app — it focuses that app, opening it first if needed." : {
+    "Give a shortcut to one app — it focuses that app, opening it first if needed. Press it again to cycle through that app's windows." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Weise einer App einen Kurzbefehl zu — er aktiviert diese App und öffnet sie zunächst, falls nötig."
+            "value" : "Weise einer App einen Kurzbefehl zu — er aktiviert diese App und öffnet sie zunächst, falls nötig. Drücke ihn erneut, um durch die Fenster der App zu wechseln."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Asigna un atajo a una app: enfoca esa app y la abre primero si es necesario."
+            "value" : "Asigna un atajo a una app: enfoca esa app y la abre primero si es necesario. Púlsalo otra vez para recorrer las ventanas de la app."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Attribuez un raccourci à une app — il active cette app, en l’ouvrant d’abord si nécessaire."
+            "value" : "Attribuez un raccourci à une app — il active cette app, en l’ouvrant d’abord si nécessaire. Appuyez de nouveau pour parcourir les fenêtres de l’app."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przypisz skrót do jednej aplikacji — aktywuje on tę aplikację, otwierając ją najpierw, jeśli to konieczne."
+            "value" : "Przypisz skrót do jednej aplikacji — aktywuje on tę aplikację, otwierając ją najpierw, jeśli to konieczne. Naciśnij go ponownie, aby przełączać okna tej aplikacji."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Назначьте сочетание клавиш одному приложению: оно активирует приложение, предварительно запустив его при необходимости."
+            "value" : "Назначьте сочетание клавиш одному приложению: оно активирует приложение, предварительно запустив его при необходимости. Нажмите его снова, чтобы переключаться между окнами приложения."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "给某个应用分配快捷键 — 聚焦该应用，必要时先打开它。"
+            "value" : "给某个应用分配快捷键 — 聚焦该应用，必要时先打开它。再次按下可在该应用的窗口之间循环切换。"
           }
         }
       }

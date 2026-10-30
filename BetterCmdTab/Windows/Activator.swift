@@ -234,16 +234,57 @@ enum Activator {
     }
 
     /// Focus the app with the given bundle ID, launching it if it isn't running.
-    /// Backs the direct-activation hotkeys (jump straight to a chosen app).
+    /// Backs the direct-activation hotkeys (jump straight to a chosen app). A
+    /// press while the app is already frontmost raises its next window (#217).
     @MainActor
     static func activateOrLaunch(bundleID: String) {
         if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
-            activateApp(running)
+            if running.isActive {
+                raiseRearmostWindow(of: running)
+            } else {
+                activateApp(running)
+            }
             return
         }
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
         beginActivation()
         openActivating(url, bundleID: bundleID)
+    }
+
+    /// Raising the rearmost on-screen window, not the second one, makes repeated
+    /// presses walk every window like ⌘` instead of trading the front two. Below two
+    /// windows it falls back to `activateApp`, which unminimizes one when none is visible.
+    @MainActor
+    private static func raiseRearmostWindow(of app: NSRunningApplication) {
+        let gen = beginActivation()
+        let pid = app.pid
+        activationQueue.async {
+            let windows = appWindows(pid: pid)
+            let ids = windows.map { PrivateAPI.cgWindowId(of: $0) }
+            let wid = cycleTarget(pid: pid, axWindows: Set(ids), in: WindowEnumerator.snapshotCGWindowMap())
+            let window = wid.flatMap { ids.firstIndex(of: $0) }.map { windows[$0] }
+            DispatchQueue.main.async {
+                guard isCurrentActivation(gen), let live = NSRunningApplication(processIdentifier: pid) else { return }
+                guard let wid, let window else { return activateApp(live) }
+                focusRunning(app: live, window: window, wid: wid, isMinimized: false, generation: gen, completion: {})
+            }
+        }
+    }
+
+    /// The rearmost of the app's on-screen windows that AX can raise, or nil when
+    /// fewer than two qualify. A helper surface with no AX window must not stall the cycle.
+    static func cycleTarget(pid: pid_t, axWindows: Set<CGWindowID>, in snapshot: CGWindowSnapshot) -> CGWindowID? {
+        let onscreen = snapshot.onscreen(for: pid)
+        let visible = snapshot.zOrder(for: pid).filter { onscreen.contains($0) && axWindows.contains($0) }
+        return visible.count > 1 ? visible.last : nil
+    }
+
+    private static func appWindows(pid: pid_t) -> [AXUIElement] {
+        let axApp = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(axApp, 0.25)
+        var windows: AnyObject?
+        AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windows)
+        return windows as? [AXUIElement] ?? []
     }
 
     @MainActor

@@ -34,7 +34,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         addRow(
             to: direct,
             title: String(localized: "Jump straight to an app"),
-            subtitle: String(localized: "Give a shortcut to one app — it focuses that app, opening it first if needed."),
+            subtitle: String(localized: "Give a shortcut to one app — it focuses that app, opening it first if needed. Press it again to cycle through that app's windows."),
             searchItemID: SearchID.directActivation
         )
         for (index, name) in BetterShortcuts.Name.directActivate.enumerated() {
