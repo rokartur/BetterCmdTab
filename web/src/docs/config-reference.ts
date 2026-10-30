@@ -169,7 +169,7 @@ const sections: { title: string; keys: string[] }[] = [
   },
   {
     title: "Shortcuts",
-    keys: ["directActivationBindings", "nextScopedShortcutID"],
+    keys: ["directActivationBindings", "directActivationCyclesWindows", "nextScopedShortcutID"],
   },
   {
     title: "Feedback & menu bar",
@@ -245,6 +245,7 @@ const defaults: Record<string, string> = {
   commitSoundName: '"Tink"',
   cycleTileWidths: "false",
   directActivationBindings: '["", "", "", "", "", "", "", "", ""]',
+  directActivationCyclesWindows: "false",
   displayMode: '"mouseCursor"',
   expandBrowserTabsAsWindows: "false",
   expandTabsAsWindows: "false",

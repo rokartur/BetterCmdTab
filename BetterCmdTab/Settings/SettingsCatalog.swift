@@ -40,6 +40,7 @@ enum SettingsAnchor {
     static let switching = "switcherShortcuts.switching"
     // Window Shortcuts — every global hotkey that does not open the switcher.
     static let directActivation = "windowShortcuts.directActivation"
+    static let directActivationCycle = "windowShortcuts.directActivationCycle"
     static let windowArrange = "windowShortcuts.arrange"
     static let windowAll = "windowShortcuts.all"
     // Trackpad
@@ -102,6 +103,7 @@ enum SearchID {
     static let panelKeys = "switcherShortcuts.panelKeys"
     // Window Shortcuts, Trackpad
     static let directActivation = "windowShortcuts.directActivation"
+    static let directActivationCyclesWindows = "windowShortcuts.directActivationCyclesWindows"
     static let windowMgmt = "windowShortcuts.windowMgmt"
     static let cycleTileWidths = "windowShortcuts.cycleTileWidths"
     static let hideAllWindows = "windowShortcuts.hideAllWindows"
@@ -395,6 +397,8 @@ enum SettingsCatalog {
         item(SearchID.directActivation, .windowShortcuts, SettingsAnchor.directActivation, String(localized: "Window Shortcuts"), String(localized: "Direct activation"),
              String(localized: "Jump straight to an app"),
              ["direct activation", "hotkey", "shortcut", "activate", "focus app", "jump to app"]),
+        item(SearchID.directActivationCyclesWindows, .windowShortcuts, SettingsAnchor.directActivationCycle, String(localized: "Window Shortcuts"), String(localized: "Repeat presses"),
+             String(localized: "Cycle app windows"), ["cycle", "windows", "next window", "press again", "repeat", "direct activation"]),
         // Window Shortcuts · Arrange window
         item(SearchID.windowMgmt, .windowShortcuts, SettingsAnchor.windowArrange, String(localized: "Window Shortcuts"), String(localized: "Arrange window"),
              String(localized: "Arrange the focused window"),

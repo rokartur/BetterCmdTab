@@ -237,13 +237,83 @@ enum Activator {
     /// Backs the direct-activation hotkeys (jump straight to a chosen app).
     @MainActor
     static func activateOrLaunch(bundleID: String) {
-        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
-            activateApp(running)
-            return
+        let instances = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+        if Preferences.shared.directActivationCyclesWindows, let active = instances.first(where: \.isActive) {
+            return raiseNextWindow(pid: active.pid)
         }
+        if let running = instances.first { return activateApp(running) }
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
         beginActivation()
         openActivating(url, bundleID: bundleID)
+    }
+
+    /// A repeat press (#217): the window it raised and its place in the run.
+    typealias CyclePress = (wid: CGWindowID, step: Int)
+
+    /// The last repeat press, so the next one continues the run while its window is in front.
+    @MainActor private static var lastCyclePress: CyclePress?
+
+    /// AX cannot send a window back, so each press raises one further down the stack
+    /// (`cycleTarget`); raising the second window every time would trade the front two.
+    @MainActor
+    private static func raiseNextWindow(pid: pid_t) {
+        let gen = beginActivation()
+        let last = lastCyclePress
+        activationQueue.async {
+            guard isCurrentActivation(gen) else { return }
+            let windows = appWindows(pid: pid)
+            let ids = windows.map { PrivateAPI.cgWindowId(of: $0) }
+            let press = cycleTarget(frontToBack: onscreenWindowIDs(pid: pid), axWindowIDs: Set(ids), last: last)
+            DispatchQueue.main.async {
+                guard isCurrentActivation(gen), let live = NSRunningApplication(processIdentifier: pid) else { return }
+                guard let press, let index = ids.firstIndex(of: press.wid) else { return activateApp(live) }
+                lastCyclePress = press
+                focusRunning(app: live, window: windows[index], wid: press.wid, isMinimized: false, generation: gen, completion: {})
+            }
+        }
+    }
+
+    /// Press `step` of a run raises the window `step` places back, capped at the rearmost: a run
+    /// walks its starting order like ⌘` (B, C, A from A, B, C). Nil below two raisable windows.
+    static func cycleTarget(frontToBack: [CGWindowID], axWindowIDs: Set<CGWindowID>, last: CyclePress?) -> CyclePress? {
+        let visible = frontToBack.filter { axWindowIDs.contains($0) }
+        guard visible.count > 1 else { return nil }
+        let step = last.map { $0.wid == visible[0] ? $0.step + 1 : 1 } ?? 1
+        return (visible[min(step, visible.count - 1)], step)
+    }
+
+    /// The app's on-screen windows, front to back, from one `.optionOnScreenOnly` copy;
+    /// `snapshotCGWindowMap().zOrder` holds the same order but also copies `.optionAll`.
+    private static func onscreenWindowIDs(pid: pid_t) -> [CGWindowID] {
+        guard let entries = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
+                                                       kCGNullWindowID) as? [NSDictionary] else { return [] }
+        var ids: [CGWindowID] = []
+        for entry in entries {
+            guard (entry[kCGWindowOwnerPID as String] as? pid_t) == pid,
+                  let number = entry[kCGWindowNumber as String] as? Int,
+                  let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation: boundsDict),
+                  WindowEnumerator.cgWindowBucket(
+                      layer: (entry[kCGWindowLayer as String] as? Int) ?? 0,
+                      alpha: (entry[kCGWindowAlpha as String] as? Double) ?? 1,
+                      width: rect.width, height: rect.height) == .normal else { continue }
+            ids.append(CGWindowID(number))
+        }
+        return ids
+    }
+
+    private static func appWindows(pid: pid_t) -> [AXUIElement] {
+        let axApp = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(axApp, 0.25)
+        var windows: AnyObject?
+        let error = AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windows)
+        if error != .success {
+            Log.activator.debug("window cycle: AXWindows failed for pid \(pid): AXError \(error.rawValue)")
+        }
+        // A window element does not inherit the app's timeout, and every id lookup is a round trip.
+        let elements = windows as? [AXUIElement] ?? []
+        for element in elements { AXUIElementSetMessagingTimeout(element, 0.25) }
+        return elements
     }
 
     @MainActor

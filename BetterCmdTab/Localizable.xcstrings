@@ -4008,6 +4008,46 @@
         }
       }
     },
+    "Cycle app windows" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster der App durchschalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alternar ventanas de la app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faire défiler les fenêtres de l’app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj okna aplikacji"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключение окон приложения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "循环切换应用窗口"
+          }
+        }
+      }
+    },
     "Cycle tile widths" : {
       "localizations" : {
         "de" : {
@@ -12534,6 +12574,46 @@
         }
       }
     },
+    "Press an app's shortcut again while the app is in front to step through its windows." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drücke den Kurzbefehl einer App erneut, während sie im Vordergrund ist, um ihre Fenster durchzuschalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa otra vez el atajo de una app mientras está al frente para recorrer sus ventanas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez de nouveau sur le raccourci d’une app quand elle est au premier plan pour parcourir ses fenêtres."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij ponownie skrót aplikacji, gdy jest na wierzchu, aby przełączać jej okna."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите сочетание клавиш приложения ещё раз, когда оно на переднем плане, чтобы переключаться между его окнами."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当应用位于最前面时，再次按下它的快捷键可在其窗口之间切换。"
+          }
+        }
+      }
+    },
     "Preview" : {
       "localizations" : {
         "de" : {
@@ -13412,6 +13492,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新打开最近关闭项"
+          }
+        }
+      }
+    },
+    "Repeat presses" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholtes Drücken"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsaciones repetidas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuis répétés"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ponowne naciśnięcia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторные нажатия"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重复按下"
           }
         }
       }

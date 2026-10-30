@@ -109,7 +109,12 @@ pozwala uniknąć obu problemów.
 Niezależnie od skrótów o ograniczonym zakresie, choć często używane razem z nimi:
 `directActivationBindings` przypisuje identyfikator pakietu do każdego z dziewięciu
 miejsc skrótu „uaktywnij lub uruchom tę aplikację”. Lista zawsze zawiera dokładnie
-dziewięć wpisów; pusty ciąg pozostawia miejsce nieużywane.
+dziewięć wpisów; pusty ciąg pozostawia miejsce nieużywane. Gdy włączysz
+`directActivationCyclesWindows` (**Ustawienia → Skróty okien → Przełączaj okna aplikacji**,
+domyślnie wyłączone), ponowne naciśnięcie skrótu, gdy jego aplikacja jest już na wierzchu,
+przenosi na pierwszy plan jej następne okno, więc kolejne naciśnięcia przechodzą przez
+jej okna widoczne na ekranie jak <kbd>⌘`</kbd>; okna zminimalizowane i okna na innych
+biurkach są pomijane.
 
 ```json title="config.json"
 {

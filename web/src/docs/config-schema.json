@@ -153,6 +153,10 @@
       "minItems" : 9,
       "type" : "array"
     },
+    "directActivationCyclesWindows" : {
+      "description" : "Pressing a direct-activation hotkey again while its app is frontmost raises that app's next window.",
+      "type" : "boolean"
+    },
     "displayMode" : {
       "description" : "Which monitor the switcher opens on.",
       "enum" : [
