@@ -116,11 +116,12 @@ final class SwitcherController: SwitcherViewDelegate {
     /// app-grouped orders but not for `.mruWindows`, where the list is
     /// window-level: there a forward tap must land on the second-most-recent
     /// *window*, not the second app's first window. This raw step count maps
-    /// onto the window rows in `reveal()` / `commit()` for that mode. With the current
-    /// app excluded (#190), row 0 is another app's newest window and a forward tap seeds 0.
+    /// onto the window rows in `reveal()` / `commit()` for that mode, from the current
+    /// window (`primedRecencyIndex`). With the current app left out of the list, a forward tap seeds 0.
     private var primedStepDelta: Int = 0
-    /// Index the excluded current app (#190) had in `primedApps` before it was
-    /// dropped, so the app after it holds that index. nil without the exclusion.
+    /// Index the frontmost app would hold in `primedApps` when the list leaves it out,
+    /// excluded (#190) or filtered like a windowless Finder (#278), so the app after it
+    /// holds that index. nil while the frontmost app is listed.
     private var primedExcludedIndex: Int?
     /// Direction of the first primed press (1 or -1). Middle mode's Space remap
     /// steps off a frontmost middle app this way (#251).
@@ -2753,16 +2754,16 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Start index for the first primed step. `anchor` is the frontmost app's
-    /// position in the primed list under a stable sort (#88); nil reproduces
-    /// the legacy head-anchored start (step 1 → 1, step -1 → count-1).
+    /// position in the primed list (#88, #278); nil reproduces the legacy
+    /// head-anchored start (step 1 → 1, step -1 → count-1).
     nonisolated static func primedStartIndex(count: Int, step: Int, anchor: Int?) -> Int {
         guard count > 1 else { return 0 }
         return ((((anchor ?? 0) + step) % count) + count) % count
     }
 
     /// `step` seeds `primedStepDelta`. Middle mode (#251) seeds 0, so the Space remap
-    /// re-decides the frontmost skip. `excludedAt` is the excluded app's old index (#190),
-    /// now held by the next app, so a forward press seeds 0.
+    /// re-decides the frontmost skip. `excludedAt` is the slot of a frontmost app the list
+    /// leaves out (#190, #278), now held by the next app, so a forward press seeds 0.
     nonisolated static func primedStart(
         count: Int, delta: Int, anchor: Int?, startsInMiddle: Bool, excludedAt: Int? = nil
     ) -> (index: Int, step: Int) {
@@ -2787,18 +2788,38 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     private func startPrimed(delta: Int, sort: SwitcherSortOrder) {
+        let frontPid = mru.order.first
+        let frontApp = primedApps.first { $0.pid == frontPid }
+            ?? NSWorkspace.shared.frontmostApplication.flatMap { $0.pid == frontPid ? $0 : nil }
+        let front = Self.primedFrontSlot(of: frontApp, in: primedApps, sort: sort, pinned: Preferences.shared.pinnedBundleIDs)
+        primedExcludedIndex = front.missingAt
         let start = Self.primedStart(
-            count: primedApps.count, delta: delta, anchor: primedAnchor(for: sort),
+            count: primedApps.count, delta: delta, anchor: front.anchor,
             startsInMiddle: Self.startsPrimedInMiddle(sort: sort, selection: Preferences.shared.initialSelection),
-            excludedAt: primedExcludedIndex)
+            excludedAt: front.missingAt)
         primedIndex = start.index
         primedStepDelta = start.step
         primedFirstDirection = delta > 0 ? 1 : -1
     }
 
-    /// Most recent sorts lead with the frontmost app, so they have no middle to start on.
+    /// The frontmost app's index in `primed` as `anchor`, or, when the list leaves it out
+    /// (#190's exclusion, a windowless Finder hidden by its exception), the index the list's
+    /// order would give it as `missingAt`. Pinned apps can sit ahead of it under any sort (#278).
+    nonisolated static func primedFrontSlot(
+        of front: NSRunningApplication?, in primed: [NSRunningApplication], sort: SwitcherSortOrder, pinned: [String]
+    ) -> (anchor: Int?, missingAt: Int?) {
+        guard let front else { return (nil, nil) }
+        if let index = primed.firstIndex(where: { $0.pid == front.pid }) { return (index, nil) }
+        return (nil, CatalogFilter.ordered([front] + primed, sort: sort, pinned: pinned).firstIndex { $0.pid == front.pid })
+    }
+
+    /// Most recent sorts reorder on every switch, so they have no fixed middle to start on.
+    /// Exhaustive on purpose: a new sort case must consciously pick a side.
     nonisolated static func startsPrimedInMiddle(sort: SwitcherSortOrder, selection: InitialSelection) -> Bool {
-        sort.anchorsPrimedOnFrontmost && selection == .middle
+        switch sort {
+        case .alphabetical, .launchOrder, .dock: return selection == .middle
+        case .mru, .mruWindows: return false
+        }
     }
 
     /// Pure core of `eligiblePrimedApp`, split out so the Space-scope remap
@@ -2806,10 +2827,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Filters the primed pid list down to `eligiblePids` (apps that kept a row
     /// after the Space-scope filter), then steps by the accumulated tap delta
     /// exactly like `primedStartIndex` walks the full list. `anchorPid` is the
-    /// frontmost app under sorts that anchor on it (#88), nil under MRU sorts;
-    /// `startsInMiddle` starts on the middle eligible app instead (#251), where
-    /// `step` counts the presses after the first one, made in `direction`.
-    /// `excludedAt` anchors on the first eligible app at or after that index (#190).
+    /// frontmost app (#88, #278); `startsInMiddle` starts on the middle eligible
+    /// app instead (#251), where `step` counts the presses after the first one,
+    /// made in `direction`.
+    /// `excludedAt`, the slot of a frontmost app the list leaves out, anchors on the
+    /// first eligible app at or after that index (#190, #278).
     /// Returns an index into `primedPids`; nil when nothing is eligible.
     nonisolated static func eligiblePrimedIndex(
         primedPids: [pid_t], eligiblePids: Set<pid_t>, step: Int, direction: Int, anchorPid: pid_t?,
@@ -2835,24 +2857,13 @@ final class SwitcherController: SwitcherViewDelegate {
         (count > 1 && firstRowPid != nil && firstRowPid == frontPid) ? 1 : 0
     }
 
-    /// Position of the frontmost app in `primedApps` for sorts that anchor on
-    /// it; nil under MRU sorts (frontmost already leads the list) or when the
-    /// frontmost app was filtered out of the primed list.
-    private func primedAnchor(for sort: SwitcherSortOrder) -> Int? {
-        guard sort.anchorsPrimedOnFrontmost, let front = mru.order.first else { return nil }
-        return primedApps.firstIndex { $0.pid == front }
-    }
-
     private func advance(by delta: Int, wrap: Bool) {
         switch phase {
         case .idle:
             mru.syncFrontmost()
             resolveActiveOptions(for: .switchApps)
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order, regularApps: cache.regularApps(), filter: activeFilterConfig, windowedPids: cache.windowedPids())
-            let excludedPid = activeFilterConfig?.excludedPid
-            // An app filtered out already (windowless Finder) leaves only other apps: start at 0.
-            primedExcludedIndex = excludedPid.map { pid in primedApps.firstIndex { $0.pid == pid } ?? 0 }
-            if let excludedPid { primedApps.removeAll { $0.pid == excludedPid } }
+            if let pid = activeFilterConfig?.excludedPid { primedApps.removeAll { $0.pid == pid } }
             // No empty-list bail: with every app filtered out (e.g. a lone
             // windowless Finder under its when-no-windows exception, #112) a
             // quick tap must no-op — commit() has nothing to activate — and a
@@ -3465,9 +3476,8 @@ final class SwitcherController: SwitcherViewDelegate {
                 index = Self.scopedInitialIndex(
                     firstRowPid: rows.first?.pid, frontPid: scopeFrontPid, count: rows.count)
             } else if effective.sortOrder == .mruWindows {
-                // Window-level list: `primedStepDelta` counts taps from row 0, the current
-                // window, or another app's newest when #190 excludes the current app.
-                index = ((primedStepDelta % rows.count) + rows.count) % rows.count
+                // Window-level list: `primedStepDelta` counts taps from the current window.
+                index = primedRecencyIndex(in: rows)
             } else if let pid = eligiblePrimedApp(in: cachedRows, scope: activeFilterConfig?.spaceScope ?? Preferences.storedSpaceScope(.standard))?.pid ?? targetPid,
                       let match = rows.firstIndex(where: { $0.pid == pid }) {
                 // Space remap, as commit() does, so a held panel selects the app a quick tap would.
@@ -3521,16 +3531,15 @@ final class SwitcherController: SwitcherViewDelegate {
         syncFocusedBrowserTabIndex()
         let expandedAtReveal = applyBrowserTabMRU(expandBrowserTabs(baseRows))
         if browserTabMRUActive {
-            // Tab-MRU reorders the expanded rows by unified tab+window recency, so
-            // row 0 is the current tab (another app's row when #190 excludes the current
-            // app); step from there by `primedStepDelta` exactly
-            // like the window sort. Rebuild unconditionally — the order can change
+            // Tab-MRU reorders the expanded rows by unified tab+window recency; step
+            // from the current tab by `primedStepDelta` exactly like the window sort.
+            // Rebuild unconditionally — the order can change
             // even when no browser expanded (windows re-rank by their .window keys).
             baseRows = expandedAtReveal
             baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
             labels = baseLabels
-            index = rows.isEmpty ? 0 : ((primedStepDelta % rows.count) + rows.count) % rows.count
+            index = primedRecencyIndex(in: rows)
         } else if expandedAtReveal.count != baseRows.count {
             // Window-level mode anchors on the selected *window*; matching by pid
             // would snap a non-first window back to its app's first row. Preserve
@@ -4504,13 +4513,12 @@ final class SwitcherController: SwitcherViewDelegate {
             guard primedApps.indices.contains(primedIndex) else { return nil }
             return primedApps[primedIndex]
         }
-        let anchorPid = effective.sortOrder.anchorsPrimedOnFrontmost ? mru.order.first : nil
         return Self.eligiblePrimedIndex(
             primedPids: primedApps.map(\.pid),
             eligiblePids: Set(rows.compactMap(\.pid)),
             step: primedStepDelta,
             direction: primedFirstDirection,
-            anchorPid: anchorPid,
+            anchorPid: mru.order.first,
             startsInMiddle: Self.startsPrimedInMiddle(
                 sort: effective.sortOrder, selection: Preferences.shared.initialSelection),
             excludedAt: primedExcludedIndex
@@ -4518,9 +4526,9 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// The window row a `.mruWindows` fast tap-release should activate: the
-    /// globally window-MRU-sorted rows stepped by `primedStepDelta` from row 0
-    /// (the current window, or another app's when #190 excludes the current app),
-    /// mirroring the default selection `reveal()` lands on
+    /// globally window-MRU-sorted rows stepped by `primedStepDelta` from the
+    /// current window (`primedRecencyIndex`), mirroring the default selection
+    /// `reveal()` lands on
     /// when the panel actually shows. nil if no windowed rows are catalogued yet.
     private func primedWindowMRUTargetRow() -> SwitcherRow? {
         // Signposted so the fast tap-release sort cost can be read in Instruments
@@ -4532,22 +4540,43 @@ final class SwitcherController: SwitcherViewDelegate {
             applyApplicationsOnly(applyWindowMRUSort(cache.rows(orderedBy: mru.order, filter: activeFilterConfig)))
         }
         guard !sorted.isEmpty else { return nil }
-        let idx = ((primedStepDelta % sorted.count) + sorted.count) % sorted.count
-        return sorted[idx]
+        return sorted[primedRecencyIndex(in: sorted)]
     }
 
     /// The row a browser-tab-MRU fast tap-release should activate: the fully
-    /// expanded, tab-recency-sorted rows stepped by `primedStepDelta` from row 0
-    /// (the current tab/window, or another app's when #190 excludes the current app),
-    /// mirroring the selection `reveal()` lands on. May
+    /// expanded, tab-recency-sorted rows stepped by `primedStepDelta` from the
+    /// current tab (`primedRecencyIndex`), mirroring the selection `reveal()` lands on. May
     /// be a browser-tab row, so the caller routes it through `activation(for:)`.
     private func primedBrowserTabMRUTargetRow() -> SwitcherRow? {
         let sorted = Log.reveal.withIntervalSignpost("primed.tabMRU") {
             applyBrowserTabMRU(expandBrowserTabs(applyApplicationsOnly(applyWindowMRUSort(cache.rows(orderedBy: mru.order, filter: activeFilterConfig)))))
         }
         guard !sorted.isEmpty else { return nil }
-        let idx = ((primedStepDelta % sorted.count) + sorted.count) % sorted.count
-        return sorted[idx]
+        return sorted[primedRecencyIndex(in: sorted)]
+    }
+
+    /// Row `primedStepDelta` reaches in recency-sorted rows; see `recencyRowIndex`.
+    private func primedRecencyIndex(in rows: [SwitcherRow]) -> Int {
+        Self.recencyRowIndex(
+            rowPids: rows.map(\.pid), front: mru.order.first,
+            appsAhead: primedExcludedIndex.map { primedApps.prefix($0).map(\.pid) }, step: primedStepDelta)
+    }
+
+    /// Row `step` reaches in a recency-sorted list, counted from the frontmost app's newest
+    /// row, which pinned apps can push off row 0 (#278). `appsAhead` is set when the primed
+    /// list leaves the frontmost app out, to the apps listed ahead of its slot: its rows are
+    /// skipped too (an accessory app has rows but no primed entry), so step 0 lands on the
+    /// first other row past them.
+    nonisolated static func recencyRowIndex(rowPids: [pid_t?], front: pid_t?, appsAhead: [pid_t]?, step: Int) -> Int {
+        guard let appsAhead else {
+            guard !rowPids.isEmpty else { return 0 }
+            let base = front.flatMap { rowPids.firstIndex(of: $0) } ?? 0
+            return ((base + step) % rowPids.count + rowPids.count) % rowPids.count
+        }
+        let others = rowPids.indices.filter { rowPids[$0] != front }
+        guard !others.isEmpty else { return 0 }
+        let base = others.prefix { index in appsAhead.contains { $0 == rowPids[index] } }.count
+        return others[((base + step) % others.count + others.count) % others.count]
     }
 
     private func bumpWindowMRUIfPossible(for row: SwitcherRow) {

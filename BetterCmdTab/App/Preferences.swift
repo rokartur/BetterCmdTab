@@ -353,22 +353,9 @@ enum SwitcherSortOrder: String, CaseIterable {
         case .dock: return String(localized: "Dock order")
         }
     }
-
-    /// Sorts whose list order is independent of recency: the frontmost app is
-    /// not at index 0, so the first primed ⌘Tab step must anchor on its
-    /// position instead of the list head (#88). MRU sorts return false — the
-    /// frontmost app already leads the list after `mru.syncFrontmost()`, and
-    /// `.mruWindows` steps by `primedStepDelta` over windows, not apps.
-    /// Exhaustive on purpose: a new sort case must consciously pick a side.
-    var anchorsPrimedOnFrontmost: Bool {
-        switch self {
-        case .alphabetical, .launchOrder, .dock: return true
-        case .mru, .mruWindows: return false
-        }
-    }
 }
 
-/// Where the first ⌘Tab press lands under a sort that anchors on the frontmost app (#251).
+/// Where the first ⌘Tab press lands under a sort that stays put as you switch (#251).
 /// Raw values are persisted under `Keys.initialSelection`, so don't rename cases.
 enum InitialSelection: String, CaseIterable {
     /// One step from the frontmost app in the press direction. Default.

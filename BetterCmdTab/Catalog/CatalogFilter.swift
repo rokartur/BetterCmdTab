@@ -37,7 +37,7 @@ enum CatalogFilter {
         let sinkMinimizedWindows: Bool
 
         /// The frontmost app when the shortcut excludes it (#190), set per trigger. `filteredRows`
-        /// drops its rows; `filteredApps` keeps it so the switcher can record its primed index first.
+        /// drops its rows; `filteredApps` keeps it and the switcher drops it from the primed list.
         var excludedPid: pid_t?
 
         /// No preference filtering and no reordering, so the filters skip that
@@ -625,7 +625,7 @@ enum CatalogFilter {
     /// data must never hide an app.
     static func filteredApps(_ apps: [NSRunningApplication], _ cfg: Config, windowedPids: Set<pid_t>? = nil) -> [NSRunningApplication] {
         if cfg.isIdentity { return apps }
-        var filtered = apps.filter { app in
+        let filtered = apps.filter { app in
             includes(
                 bundleID: app.bundleIdentifier,
                 isPlaceholder: false,
@@ -635,12 +635,16 @@ enum CatalogFilter {
                 cfg
             )
         }
-        if cfg.sortOrder != .mru {
-            filtered = applySortOrder(filtered, cfg.sortOrder, name: { $0.localizedName ?? "" }, bundleID: { $0.bundleIdentifier }, pid: { $0.pid })
-        }
-        guard !cfg.pinned.isEmpty else { return filtered }
-        return stablePartition(filtered) { app in
-            app.bundleIdentifier.flatMap { cfg.pinned.firstIndex(of: $0) }
+        return ordered(filtered, sort: cfg.sortOrder, pinned: cfg.pinned)
+    }
+
+    /// `filteredApps`' order without its filter, so the switcher can place a frontmost
+    /// app the filter dropped (#278).
+    static func ordered(_ apps: [NSRunningApplication], sort: SwitcherSortOrder, pinned: [String]) -> [NSRunningApplication] {
+        let sorted = applySortOrder(apps, sort, name: { $0.localizedName ?? "" }, bundleID: { $0.bundleIdentifier }, pid: { $0.pid })
+        guard !pinned.isEmpty else { return sorted }
+        return stablePartition(sorted) { app in
+            app.bundleIdentifier.flatMap { pinned.firstIndex(of: $0) }
         }
     }
 
