@@ -262,7 +262,7 @@ enum Activator {
         activationQueue.async {
             let windows = appWindows(pid: pid)
             let ids = windows.map { PrivateAPI.cgWindowId(of: $0) }
-            let wid = cycleTarget(pid: pid, axWindows: Set(ids), in: WindowEnumerator.snapshotCGWindowMap())
+            let wid = cycleTarget(frontToBack: onscreenWindowIDs(pid: pid), axWindows: Set(ids))
             let window = wid.flatMap { ids.firstIndex(of: $0) }.map { windows[$0] }
             DispatchQueue.main.async {
                 guard isCurrentActivation(gen), let live = NSRunningApplication(processIdentifier: pid) else { return }
@@ -274,10 +274,29 @@ enum Activator {
 
     /// The rearmost of the app's on-screen windows that AX can raise, or nil when
     /// fewer than two qualify. A helper surface with no AX window must not stall the cycle.
-    static func cycleTarget(pid: pid_t, axWindows: Set<CGWindowID>, in snapshot: CGWindowSnapshot) -> CGWindowID? {
-        let onscreen = snapshot.onscreen(for: pid)
-        let visible = snapshot.zOrder(for: pid).filter { onscreen.contains($0) && axWindows.contains($0) }
+    static func cycleTarget(frontToBack: [CGWindowID], axWindows: Set<CGWindowID>) -> CGWindowID? {
+        let visible = frontToBack.filter { axWindows.contains($0) }
         return visible.count > 1 ? visible.last : nil
+    }
+
+    /// The app's on-screen windows, front to back. Only `.optionOnScreenOnly` lists in
+    /// z-order; `.optionAll`, which `snapshotCGWindowMap` reads, does not (macOS 27.2).
+    private static func onscreenWindowIDs(pid: pid_t) -> [CGWindowID] {
+        guard let entries = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
+                                                       kCGNullWindowID) as? [NSDictionary] else { return [] }
+        var ids: [CGWindowID] = []
+        for entry in entries {
+            guard (entry[kCGWindowOwnerPID as String] as? pid_t) == pid,
+                  let number = entry[kCGWindowNumber as String] as? Int,
+                  let boundsDict = entry[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation: boundsDict),
+                  WindowEnumerator.cgWindowBucket(
+                      layer: (entry[kCGWindowLayer as String] as? Int) ?? 0,
+                      alpha: (entry[kCGWindowAlpha as String] as? Double) ?? 1,
+                      width: rect.width, height: rect.height) == .normal else { continue }
+            ids.append(CGWindowID(number))
+        }
+        return ids
     }
 
     private static func appWindows(pid: pid_t) -> [AXUIElement] {

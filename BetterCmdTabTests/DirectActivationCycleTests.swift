@@ -4,18 +4,12 @@ import Testing
 
 @Suite("Direct activation window cycle (#217)")
 struct DirectActivationCycleTests {
-    private func target(_ frontToBack: [CGWindowID], onscreen: Set<CGWindowID>, ax: Set<CGWindowID>? = nil) -> CGWindowID? {
-        let snapshot = CGWindowSnapshot(
-            ids: [7: Set(frontToBack)], zOrder: [7: frontToBack], nonNormalLayer: [:], onscreen: [7: onscreen])
-        return Activator.cycleTarget(pid: 7, axWindows: ax ?? Set(frontToBack), in: snapshot)
-    }
-
     @Test("repeat presses visit every window instead of trading the front two")
     func pressesWalkEveryWindow() throws {
         var stack: [CGWindowID] = [1, 2, 3]
         var raised: [CGWindowID] = []
         for _ in 0..<3 {
-            let wid = try #require(target(stack, onscreen: Set(stack)))
+            let wid = try #require(Activator.cycleTarget(frontToBack: stack, axWindows: Set(stack)))
             raised.append(wid)
             stack.removeAll { $0 == wid }
             stack.insert(wid, at: 0)
@@ -23,10 +17,9 @@ struct DirectActivationCycleTests {
         #expect(raised == [3, 2, 1])
     }
 
-    @Test("windows off screen or out of AX reach are skipped, and one window does not cycle")
-    func onlyReachableOnScreenWindowsCycle() {
-        #expect(target([1, 2, 3], onscreen: [1, 2]) == 2)
-        #expect(target([1, 2, 3], onscreen: [1, 2, 3], ax: [1, 2]) == 2)
-        #expect(target([1, 2], onscreen: [1]) == nil)
+    @Test("windows out of AX reach are skipped, and one window does not cycle")
+    func onlyReachableWindowsCycle() {
+        #expect(Activator.cycleTarget(frontToBack: [1, 2, 3], axWindows: [1, 2]) == 2)
+        #expect(Activator.cycleTarget(frontToBack: [1, 2], axWindows: [1]) == nil)
     }
 }
