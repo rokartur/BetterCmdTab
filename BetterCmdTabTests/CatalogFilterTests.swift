@@ -119,9 +119,9 @@ struct CatalogFilterTests {
         #expect(result.map(\.bundleIdentifier) == ["com.c", "com.a", "com.b"])
     }
 
-    @Test("an excluded pid drops that app's rows; the primed app list keeps it to start from its place (#190)")
+    @Test("filteredRows drops the excluded pid's rows; filteredApps keeps the app (#190)")
     func excludedPidDropsTheApp() {
-        var cfg = config()
+        var cfg = config(showHidden: false)
         cfg.excludedPid = NSRunningApplication.current.pid
         let rows = [launchRow("com.a"), SwitcherRow(app: .current, window: nil, windowTitle: "", isMinimized: false), launchRow("com.b")]
         #expect(CatalogFilter.filteredRows(rows, cfg).map(\.bundleIdentifier) == ["com.a", "com.b"])

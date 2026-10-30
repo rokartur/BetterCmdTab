@@ -336,6 +336,8 @@ struct SwitcherPrimedStartTests {
         #expect(start(delta: -1, excludedAt: 2) == (1, -1))
         #expect(start(delta: 1, excludedAt: 4) == (0, 0))
         #expect(start(delta: -1, excludedAt: 4) == (3, -1))
+        // Middle mode starts on the middle app even with the current app excluded.
+        #expect(SwitcherController.primedStart(count: 4, delta: 1, anchor: nil, startsInMiddle: true, excludedAt: 0) == (2, 0))
     }
 
     @Test func middle_landsOnMiddleAppWithNoStep() {
@@ -391,11 +393,15 @@ struct SwitcherPrimedStartTests {
     @Test func excludedCurrentApp_scopedRemapStartsOnTheNextEligibleApp() {
         func remap(step: Int, excludedAt: Int) -> Int? {
             SwitcherController.eligiblePrimedIndex(
-                primedPids: [10, 20, 30, 40], eligiblePids: [10, 40], step: step, direction: step < 0 ? -1 : 1,
+                primedPids: [10, 20, 30, 40], eligiblePids: [10, 40], step: step, direction: 1,
                 anchorPid: nil, startsInMiddle: false, excludedAt: excludedAt)
         }
         #expect(remap(step: 0, excludedAt: 2) == 3)
         #expect(remap(step: -1, excludedAt: 2) == 0)
         #expect(remap(step: 0, excludedAt: 4) == 0)
+        // Middle mode remaps on the middle eligible app, not the excluded app's neighbor.
+        #expect(SwitcherController.eligiblePrimedIndex(
+            primedPids: [10, 20, 30, 40], eligiblePids: [10, 20, 30, 40], step: 0, direction: 1,
+            anchorPid: 99, startsInMiddle: true, excludedAt: 0) == 2)
     }
 }

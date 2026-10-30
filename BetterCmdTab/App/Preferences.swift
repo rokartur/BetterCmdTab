@@ -529,7 +529,8 @@ struct ScopedShortcut: Equatable, Sendable {
 
 /// A per-shortcut override of the switcher's behavioral + appearance options
 /// (#74). Every field is optional (`spaceScope` uses its own `.inherit` case):
-/// an unset field means "inherit the global preference", so an all-unset
+/// an unset field means "inherit the global preference" (off for `excludeCurrentApp`,
+/// which has none), so an all-unset
 /// override is a no-op. Persisted as a plist `[String: String]` dictionary —
 /// like `AppException` — so it survives the generic `Switcher.*` settings
 /// export/import (a JSON `Data` blob would be dropped by the portability gates).

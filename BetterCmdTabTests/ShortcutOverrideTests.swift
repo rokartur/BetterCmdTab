@@ -83,6 +83,13 @@ struct ShortcutOverrideTests {
         #expect(ov.dictionary.isEmpty)
     }
 
+    @Test("excludeCurrentApp alone makes an override non-empty (#190)")
+    func excludeCurrentAppAloneIsNotEmpty() {
+        var ov = ShortcutOverride()
+        ov.excludeCurrentApp = true
+        #expect(!ov.isEmpty)
+    }
+
     @Test("dictionary round-trips a fully-populated override")
     func dictionaryRoundTrip() {
         var ov = ShortcutOverride()

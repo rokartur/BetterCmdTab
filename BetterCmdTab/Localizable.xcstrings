@@ -3728,6 +3728,46 @@
         }
       }
     },
+    "Current app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelle App"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App actual"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App active"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bieżąca aplikacja"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текущее приложение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前应用"
+          }
+        }
+      }
+    },
     "Current app's windows" : {
       "localizations" : {
         "de" : {
@@ -17391,7 +17431,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Liste zeigt nur andere Apps, daher führt der erste Druck immer zu einer anderen App."
+            "value" : "Die Liste zeigt nur andere Apps, daher führt der erste Tastendruck immer zu einer anderen App."
           }
         },
         "es" : {
@@ -17409,7 +17449,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lista pokazuje tylko inne aplikacje, więc pierwsze naciśnięcie zawsze przechodzi do innej aplikacji."
+            "value" : "Lista pokazuje tylko inne aplikacje, więc pierwsze naciśnięcie zawsze przełącza na inną aplikację."
           }
         },
         "ru" : {

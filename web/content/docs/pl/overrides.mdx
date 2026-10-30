@@ -50,7 +50,8 @@ im klucze globalne używają swoich naturalnych typów. Generowany plik `schema.
 wymusza tę zasadę, więc edytor oznaczy błąd.
 </Callout>
 
-Każde pominięte pole dziedziczy ustawienie globalne. Nadpisanie zawierające tylko
+Każde pominięte pole dziedziczy ustawienie globalne, poza `excludeCurrentApp`, które nie
+ma klucza globalnego i po pominięciu jest wyłączone. Nadpisanie zawierające tylko
 `target` jest równoważne brakowi nadpisania i zostaje usunięte przy następnym zapisie
 pliku.
 
