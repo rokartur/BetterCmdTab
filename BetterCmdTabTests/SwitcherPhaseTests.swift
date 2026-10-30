@@ -1,5 +1,5 @@
+import AppKit
 import CoreGraphics
-import Foundation
 import Testing
 @testable import BetterCmdTab
 
@@ -403,5 +403,80 @@ struct SwitcherPrimedStartTests {
         #expect(SwitcherController.eligiblePrimedIndex(
             primedPids: [10, 20, 30, 40], eligiblePids: [10, 20, 30, 40], step: 0, direction: 1,
             anchorPid: 99, startsInMiddle: true, excludedAt: 0) == 2)
+    }
+}
+
+@Suite("Switcher primed front slot (#278)")
+struct SwitcherPrimedFrontSlotTests {
+    /// Three running apps with distinct bundle ids and names, in name order.
+    private func threeApps() throws -> [NSRunningApplication] {
+        var apps: [NSRunningApplication] = []
+        for app in NSWorkspace.shared.runningApplications {
+            guard let id = app.bundleIdentifier, let name = app.localizedName?.lowercased(),
+                  !apps.contains(where: { $0.bundleIdentifier == id || $0.localizedName?.lowercased() == name })
+            else { continue }
+            apps.append(app)
+            if apps.count == 3 { break }
+        }
+        try #require(apps.count == 3)
+        return apps.sorted { ($0.localizedName ?? "").lowercased() < ($1.localizedName ?? "").lowercased() }
+    }
+
+    @Test func pinnedAppAheadOfFrontmost_firstPressGoesToThePreviousApp() throws {
+        let apps = try threeApps()
+        let (front, previous, pinned) = (apps[0], apps[1], apps[2])
+        let pins = [try #require(pinned.bundleIdentifier)]
+        let primed = CatalogFilter.ordered([front, previous, pinned], sort: .mru, pinned: pins)
+        #expect(primed == [pinned, front, previous])
+        let slot = SwitcherController.primedFrontSlot(of: front, in: primed, sort: .mru, pinned: pins)
+        #expect(slot.anchor == 1 && slot.missingAt == nil)
+        func target(_ delta: Int) -> NSRunningApplication {
+            primed[SwitcherController.primedStart(
+                count: primed.count, delta: delta, anchor: slot.anchor, startsInMiddle: false, excludedAt: slot.missingAt).index]
+        }
+        #expect(target(1) == previous)
+        #expect(target(-1) == pinned)
+    }
+
+    @Test func frontmostLeftOut_firstPressLandsOnItsSlot() throws {
+        let apps = try threeApps()
+        let (front, previous, pinned) = (apps[0], apps[1], apps[2])
+        let pins = [try #require(pinned.bundleIdentifier)]
+        // A windowless Finder hidden by its exception: the list holds every app but it.
+        let primed = CatalogFilter.ordered([previous, pinned], sort: .mru, pinned: pins)
+        let slot = SwitcherController.primedFrontSlot(of: front, in: primed, sort: .mru, pinned: pins)
+        #expect(slot.anchor == nil && slot.missingAt == 1)
+        #expect(SwitcherController.primedFrontSlot(of: front, in: [previous, pinned], sort: .mru, pinned: []).missingAt == 0)
+        // Sorts that stay put place it by their key: apps are in name order, so between the other two.
+        let named = CatalogFilter.ordered([apps[0], apps[2]], sort: .alphabetical, pinned: [])
+        #expect(SwitcherController.primedFrontSlot(of: apps[1], in: named, sort: .alphabetical, pinned: []).missingAt == 1)
+        #expect(SwitcherController.primedFrontSlot(of: nil, in: primed, sort: .mru, pinned: pins) == (nil, nil))
+    }
+
+    @Test func recencyRows_countFromTheFrontmostAppsNewestRow() {
+        func row(_ rowPids: [pid_t?], step: Int, appsAhead: [pid_t]? = nil) -> Int {
+            SwitcherController.recencyRowIndex(rowPids: rowPids, front: 5, appsAhead: appsAhead, step: step)
+        }
+        // Pinned app 1 with two windows ahead of the current window.
+        #expect(row([1, 1, 5, 7, 8], step: 1) == 3)
+        #expect(row([1, 1, 5, 7, 8], step: -1) == 1)
+        #expect(row([1, 5, 7], step: 1) == 2)
+        #expect(row([5, 7, 8], step: 1) == 1)
+        #expect(row([5, 7, 8], step: -1) == 2)
+        #expect(row([], step: 1) == 0)
+    }
+
+    @Test func recencyRows_skipAFrontmostAppThePrimedListLeavesOut() {
+        func row(_ rowPids: [pid_t?], step: Int, appsAhead: [pid_t]) -> Int {
+            SwitcherController.recencyRowIndex(rowPids: rowPids, front: 5, appsAhead: appsAhead, step: step)
+        }
+        // Excluded or filtered: no rows of its own; step 0 lands past the pinned app.
+        #expect(row([1, 7, 8], step: 0, appsAhead: [1]) == 1)
+        #expect(row([1, 7, 8], step: -1, appsAhead: [1]) == 0)
+        #expect(row([7, 8], step: 0, appsAhead: []) == 0)
+        // An accessory app has rows but no primed entry: its window is not the target.
+        #expect(row([5, 7, 8], step: 0, appsAhead: []) == 1)
+        #expect(row([5, 7, 8], step: -1, appsAhead: []) == 2)
+        #expect(row([5], step: 0, appsAhead: []) == 0)
     }
 }
