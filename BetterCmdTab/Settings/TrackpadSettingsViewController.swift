@@ -27,7 +27,7 @@ final class TrackpadSettingsViewController: SettingsTabViewController {
 
         configureSwitch(swipeSwitch, action: #selector(toggleSwipe(_:)))
         addRow(to: swipe, title: String(localized: "Swipe gesture"),
-               subtitle: String(localized: "Slide three or four fingers horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed."),
+               subtitle: String(localized: "Slide the number of fingers set below horizontally across the trackpad. Reads the trackpad directly, so no system setting is needed."),
                accessory: swipeSwitch, searchItemID: SearchID.swipe)
 
         configurePopup(swipeFingersPopup, titles: swipeFingerCounts.map(String.init), action: #selector(swipeFingersChanged))

@@ -1,7 +1,7 @@
 import AppKit
 import os
 
-/// Experimental: detects a horizontal three-finger trackpad swipe and reports a
+/// Experimental: detects a horizontal trackpad swipe and reports a
 /// direction so the switcher can be opened/advanced without the keyboard.
 ///
 /// Reads raw trackpad contacts via Apple's private `MultitouchSupport`
@@ -11,9 +11,10 @@ import os
 /// background app), this works out of the box and regardless of which app is
 /// frontmost.
 ///
-/// The gesture is continuous: while three (or four) fingers stay down, horizontal travel
-/// is accumulated and emits one step per `MTGesture.stepDistance` moved, so a
-/// single slide can advance several apps. Direction is configurable.
+/// The gesture is continuous: while exactly the set number of fingers (3 or 4) stays
+/// down, horizontal travel is accumulated and emits one step per
+/// `MTGesture.stepDistance` moved, so a single slide can advance several apps.
+/// Direction is configurable.
 ///
 /// Because it's a private framework the symbols and the contact-frame struct
 /// layout are undocumented and could change between macOS releases — that's why
@@ -28,7 +29,7 @@ final class SwipeTrigger {
     /// `+1` for a slide down a row, `-1` for up. Never fires in one-shot modes.
     var onRowSwipe: (Int) -> Void = { _ in }
 
-    /// Called when a three-finger gesture ends (all fingers lifted) and the
+    /// Called when the gesture ends (all fingers lifted) and the
     /// "commit on release" option is on — the switcher commits its selection.
     var onCommit: () -> Void = {}
 
@@ -78,7 +79,7 @@ final class SwipeTrigger {
     private func install() {
         guard devices.isEmpty else { return }
         guard let api = MultitouchAPI.shared else {
-            Log.priv.error("MultitouchSupport unavailable — three-finger swipe disabled")
+            Log.priv.error("MultitouchSupport unavailable — swipe trigger disabled")
             return
         }
         guard let list = api.createList()?.takeRetainedValue() else { return }
@@ -247,6 +248,9 @@ enum MTGesture {
     /// take over. Gesture frames arrive at ≥60 Hz, so this is far longer than any
     /// real inter-frame gap — only a truly dead device crosses it.
     static let latchStaleWindow: Double = 0.5
+    /// Steps wait this long after the fingers land, so a late fourth finger rejects first (#259).
+    /// shortcut: 50 ms is a guess, size it from real four-finger landings on a trackpad.
+    static let settleWindow: Double = 0.05
 
     private struct State: Sendable {
         /// Bumped at every install/uninstall/reset boundary. An action carries
@@ -270,9 +274,13 @@ enum MTGesture {
         /// Set once more than `fingerCount` fingers touch: that touch is another
         /// gesture, such as a four-finger Space swipe (#259), until every finger lifts.
         var rejected = false
-        /// The touch on the pad, or the last one to lift, is this gesture's. Kept
-        /// past the lift so every phase of one system Space swipe gets one answer.
+        /// The touch on the pad, or the last one to lift, is this gesture's. Kept past the
+        /// lift, briefly: a system Space swipe can send phases after the fingers leave.
         var ownsTouch = false
+        /// Uptime (ns) when the gesture's own touch lifted.
+        var ownedLiftAt: UInt64 = 0
+        /// Frame time when the touch first held exactly `fingerCount` fingers.
+        var activeSince: Double = 0
         /// Device the current gesture is latched to (`-1` = none).
         var latchedDevice: Int32 = -1
         /// Timestamp of the latched device's most recent frame.
@@ -335,7 +343,15 @@ enum MTGesture {
 
     /// Read by `SpaceSwipeSuppressor` on its tap thread.
     static var ownsTouch: Bool {
-        state.withLock { $0.ownsTouch }
+        ownsTouch(now: DispatchTime.now().uptimeNanoseconds)
+    }
+
+    /// Ownership outlives the lift by `latchStaleWindow` only: a pad connected after
+    /// `install()` sends no frame that would clear it, so its Space swipes must pass.
+    static func ownsTouch(now: UInt64) -> Bool {
+        state.withLock { s in
+            s.ownsTouch && (s.active || now &- s.ownedLiftAt < UInt64(latchStaleWindow * 1_000_000_000))
+        }
     }
 
     static func isCurrent(generation: UInt64) -> Bool {
@@ -373,7 +389,6 @@ enum MTGesture {
             if contactCount > state.fingerCount {
                 state.rejected = true
                 state.active = false
-                state.ownsTouch = false
                 state.latchedDevice = device
             }
 
@@ -388,6 +403,7 @@ enum MTGesture {
                     return .none
                 }
                 state.latchedDevice = device
+                if !state.active { state.activeSince = timestamp }
                 state.active = true
                 state.ownsTouch = true
                 if !state.tracking {
@@ -401,6 +417,7 @@ enum MTGesture {
                 state.rowAccumulator += position.y - state.lastY
                 state.lastX = position.x
                 state.lastY = position.y
+                if timestamp - state.activeSince < settleWindow { return .none }
                 let rightward = state.reverse ? -1 : 1
 
                 if state.oneShot {
@@ -429,11 +446,11 @@ enum MTGesture {
                 return Action(rows: -rowSteps, generation: state.generation)
             }
 
-            // Fingers outside a gesture start a touch the gesture does not own.
             if !state.active, contactCount > 0 { state.ownsTouch = false }
             state.tracking = false
             guard contactCount == 0 else { return .none }
             let shouldCommit = state.active && state.commitOnRelease
+            if state.active { state.ownedLiftAt = DispatchTime.now().uptimeNanoseconds }
             state.active = false
             state.rejected = false
             state.accumulator = 0
