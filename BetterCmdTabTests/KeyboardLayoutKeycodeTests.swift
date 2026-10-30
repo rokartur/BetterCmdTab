@@ -7,6 +7,7 @@ import Testing
 /// carrying an out-of-range value, and this runs on every keystroke while the
 /// panel is open, so the narrowing has to answer `nil` rather than trap.
 @Suite("Keyboard layout keycode narrowing")
+@MainActor // The layout load calls Text Input Sources, which HIToolbox aborts when two threads overlap.
 struct KeyboardLayoutKeycodeTests {
     /// There is deliberately no positive case: resolving a real character needs
     /// a live keyboard layout, which is not available headlessly. A regression
