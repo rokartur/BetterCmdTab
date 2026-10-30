@@ -103,7 +103,9 @@ the settings window avoids both problems.
 
 Unrelated to scoped shortcuts, but often wanted alongside them: `directActivationBindings`
 assigns a bundle ID to each of nine "focus or launch this app" hotkey slots. It is
-always exactly nine entries; an empty string leaves a slot unused.
+always exactly nine entries; an empty string leaves a slot unused. Pressing a slot's
+hotkey again while its app is frontmost raises that app's next window, so repeat presses
+walk all of its windows like <kbd>⌘`</kbd>.
 
 ```json title="config.json"
 {
