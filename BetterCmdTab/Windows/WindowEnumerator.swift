@@ -74,7 +74,7 @@ struct AXRef: Hashable {
 
 /// Per-pid window inventory captured from `CGWindowListCopyWindowInfo`.
 /// `ids` is the membership set used to confirm AX scan coverage; `zOrder`
-/// preserves the front-to-back ordering returned by WindowServer so we can
+/// holds each pid's on-screen windows front to back so we can
 /// surface windows in the switcher in the same order the user sees them
 /// stacked on screen instead of whatever arbitrary order AX returns.
 struct CGWindowSnapshot {
@@ -182,27 +182,31 @@ enum WindowEnumerator {
     /// would otherwise drop out of the hint set, causing the brute scan to
     /// miss them entirely.
     ///
-    /// The returned snapshot preserves WindowServer z-order per pid so
-    /// callers can sort their AX results by what the user actually sees,
-    /// rather than the arbitrary order `kAXWindowsAttribute` exposes.
+    /// The z-order comes from a second, `.optionOnScreenOnly` list, the only one
+    /// WindowServer documents as front to back: `.optionAll` keeps creation
+    /// order through raises (measured on macOS 27.2). Callers sort their AX
+    /// results by it, so windows list in the order the user sees them stacked.
     static func snapshotCGWindowMap() -> CGWindowSnapshot {
-        let opts: CGWindowListOption = [.optionAll, .excludeDesktopElements]
         // Cast to `[NSDictionary]`, not `[[String: Any]]`: the entries stay
         // toll-free-bridged CFDictionaries (no per-window Swift dictionary
         // allocated, no eager bridge of the ~10 keys we never read). Only the
         // 6 fields below get bridged, on access. This runs on the cold-reveal
         // full-scan path and on every coalesced bump, so the saved allocations
         // add up.
-        guard let cfArray = CGWindowListCopyWindowInfo(opts, kCGNullWindowID) as? [NSDictionary] else {
+        guard let all = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [NSDictionary],
+              let onscreenFrontToBack = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [NSDictionary] else {
             return .empty
         }
+        // Read once for the whole snapshot, not per window.
+        return snapshot(all: all, onscreenFrontToBack: onscreenFrontToBack, stageManager: isStageManagerEnabled)
+    }
+
+    /// Pure core of `snapshotCGWindowMap`, split out so the z-order source is testable.
+    static func snapshot(all: [NSDictionary], onscreenFrontToBack: [NSDictionary], stageManager: Bool) -> CGWindowSnapshot {
         var ids: [pid_t: Set<CGWindowID>] = [:]
-        var zOrder: [pid_t: [CGWindowID]] = [:]
         var nonNormalLayer: [pid_t: Set<CGWindowID>] = [:]
         var onscreen: [pid_t: Set<CGWindowID>] = [:]
-        // Read once for the whole snapshot, not per window.
-        let stageManager = isStageManagerEnabled
-        for entry in cfArray {
+        for entry in all {
             guard let ownerPID = entry[kCGWindowOwnerPID as String] as? pid_t else { continue }
             guard let widNum = entry[kCGWindowNumber as String] as? Int else { continue }
             let wid = CGWindowID(widNum)
@@ -219,9 +223,7 @@ enum WindowEnumerator {
             }
             switch cgWindowBucket(layer: layer, alpha: alpha, width: width, height: height, stageManager: stageManager) {
             case .normal:
-                if ids[ownerPID, default: []].insert(wid).inserted {
-                    zOrder[ownerPID, default: []].append(wid)
-                }
+                ids[ownerPID, default: []].insert(wid)
                 if (entry[kCGWindowIsOnscreen as String] as? Bool) == true {
                     onscreen[ownerPID, default: []].insert(wid)
                 }
@@ -230,6 +232,15 @@ enum WindowEnumerator {
             case .excluded:
                 break
             }
+        }
+        // Off-screen windows (minimized, hidden, on another Space) stay unranked,
+        // so `sortedByZOrder` keeps them behind the on-screen ones in AX order.
+        var zOrder: [pid_t: [CGWindowID]] = [:]
+        for entry in onscreenFrontToBack {
+            guard let ownerPID = entry[kCGWindowOwnerPID as String] as? pid_t,
+                  let widNum = entry[kCGWindowNumber as String] as? Int,
+                  ids[ownerPID]?.contains(CGWindowID(widNum)) == true else { continue }
+            zOrder[ownerPID, default: []].append(CGWindowID(widNum))
         }
         return CGWindowSnapshot(ids: ids, zOrder: zOrder, nonNormalLayer: nonNormalLayer, onscreen: onscreen)
     }
@@ -735,10 +746,10 @@ enum WindowEnumerator {
         "\(Int(f.origin.x)),\(Int(f.origin.y)),\(Int(f.width)),\(Int(f.height))"
     }
 
-    /// Re-orders the AX-derived window list to match the WindowServer
-    /// z-order returned by `CGWindowListCopyWindowInfo` (front-to-back).
-    /// Windows missing a CG id, or absent from the snapshot (e.g. on a
-    /// hidden Space when CG omits them) keep their original AX-relative
+    /// Re-orders the AX-derived window list to match the on-screen
+    /// z-order from `snapshotCGWindowMap` (front-to-back).
+    /// Windows missing a CG id, or off screen (minimized, hidden, on
+    /// another Space) keep their original AX-relative
     /// order at the tail — that's the same fallback behavior as before
     /// the z-order pass, just applied to a smaller subset.
     private static func sortedByZOrder(_ infos: [WindowInfo], cgZOrder: [CGWindowID]) -> [WindowInfo] {

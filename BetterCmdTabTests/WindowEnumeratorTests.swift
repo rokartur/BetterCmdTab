@@ -81,4 +81,27 @@ struct WindowEnumeratorTests {
         #expect(WindowEnumerator.cgWindowBucket(layer: 0, alpha: 0.0, width: 83, height: 103, stageManager: true) == .excluded)
         #expect(WindowEnumerator.cgWindowBucket(layer: 20, alpha: 1.0, width: 83, height: 103, stageManager: true) == .nonNormalLayer)
     }
+
+    // MARK: - snapshot z-order
+
+    private func entry(wid: Int, layer: Int = 0, onscreen: Bool = true) -> NSDictionary {
+        [
+            kCGWindowOwnerPID as String: 1,
+            kCGWindowNumber as String: wid,
+            kCGWindowLayer as String: layer,
+            kCGWindowBounds as String: ["Width": 800.0, "Height": 600.0],
+            kCGWindowIsOnscreen as String: onscreen,
+        ] as NSDictionary
+    }
+
+    @Test("z-order follows the on-screen list, not the .optionAll list")
+    func zOrderFromOnscreenList() {
+        // Measured on macOS 27.2: after window 1 is raised, `.optionAll` still lists
+        // creation order while the on-screen list has 1 in front.
+        let all = [entry(wid: 4, onscreen: false), entry(wid: 3), entry(wid: 2), entry(wid: 1), entry(wid: 9, layer: 25)]
+        let onscreen = [entry(wid: 9, layer: 25), entry(wid: 1), entry(wid: 3), entry(wid: 2)]
+        let snapshot = WindowEnumerator.snapshot(all: all, onscreenFrontToBack: onscreen, stageManager: false)
+        #expect(snapshot.zOrder(for: 1) == [1, 3, 2])
+        #expect(snapshot.ids(for: 1) == [1, 2, 3, 4])
+    }
 }
