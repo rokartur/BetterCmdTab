@@ -267,6 +267,12 @@ enum MTGesture {
         var oneShot = false
         var fingerCount = 3
         var fired = false
+        /// Set once more than `fingerCount` fingers touch: that touch is another
+        /// gesture, such as a four-finger Space swipe (#259), until every finger lifts.
+        var rejected = false
+        /// The touch on the pad, or the last one to lift, is this gesture's. Kept
+        /// past the lift so every phase of one system Space swipe gets one answer.
+        var ownsTouch = false
         /// Device the current gesture is latched to (`-1` = none).
         var latchedDevice: Int32 = -1
         /// Timestamp of the latched device's most recent frame.
@@ -327,6 +333,11 @@ enum MTGesture {
         }
     }
 
+    /// Read by `SpaceSwipeSuppressor` on its tap thread.
+    static var ownsTouch: Bool {
+        state.withLock { $0.ownsTouch }
+    }
+
     static func isCurrent(generation: UInt64) -> Bool {
         generation != 0 && state.withLock { $0.generation == generation }
     }
@@ -350,6 +361,7 @@ enum MTGesture {
                 state.latchedDevice = -1
                 state.tracking = false
                 state.active = false
+                state.rejected = false
                 state.accumulator = 0
                 state.rowAccumulator = 0
                 state.fired = false
@@ -358,7 +370,14 @@ enum MTGesture {
             // device takeover forever. Preserve the last valid frame time.
             if timestamp.isFinite { state.latchedAt = timestamp }
 
-            if contactCount >= state.fingerCount, let position {
+            if contactCount > state.fingerCount {
+                state.rejected = true
+                state.active = false
+                state.ownsTouch = false
+                state.latchedDevice = device
+            }
+
+            if !state.rejected, contactCount == state.fingerCount, let position {
                 // Reject before latching/storing `lastX`. In one-shot mode a
                 // NaN accumulator never crosses either threshold and otherwise
                 // remains poisoned until lift.
@@ -370,6 +389,7 @@ enum MTGesture {
                 }
                 state.latchedDevice = device
                 state.active = true
+                state.ownsTouch = true
                 if !state.tracking {
                     state.tracking = true
                     state.lastX = position.x
@@ -409,10 +429,13 @@ enum MTGesture {
                 return Action(rows: -rowSteps, generation: state.generation)
             }
 
+            // Fingers outside a gesture start a touch the gesture does not own.
+            if !state.active, contactCount > 0 { state.ownsTouch = false }
             state.tracking = false
             guard contactCount == 0 else { return .none }
             let shouldCommit = state.active && state.commitOnRelease
             state.active = false
+            state.rejected = false
             state.accumulator = 0
             state.rowAccumulator = 0
             state.fired = false

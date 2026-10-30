@@ -3,10 +3,10 @@ import AppKit
 import CoreGraphics
 import os
 
-/// Experimental companion to `SwipeTrigger`: while the three-finger switcher
-/// swipe is enabled, this swallows the system's horizontal "swipe between
-/// Spaces" gesture so a three-finger slide drives only the switcher and never
-/// also slides Spaces underneath it.
+/// Experimental companion to `SwipeTrigger`: while the switcher swipe is
+/// enabled, this swallows the system's horizontal "swipe between Spaces" gesture
+/// made by the swipe's own touch, so that slide drives only the switcher and
+/// never also slides Spaces underneath it.
 ///
 /// A session-level `CGEventTap` (the same public mechanism as the hotkey tap)
 /// watches the private CGS gesture event stream and returns `nil` for the
@@ -217,9 +217,10 @@ final class SpaceSwipeSuppressor: @unchecked Sendable {
         }
 
         // Suppress only the horizontal Space swipe; pass vertical dock swipes
-        // (Mission Control / App Exposé) through untouched.
+        // (Mission Control / App Exposé) through untouched. A touch with another
+        // finger count is the system's own Space swipe, so it passes too (#259).
         let motion = event.getIntegerValueField(field(CGS.fieldSwipeMotion))
-        if motion == CGS.motionHorizontal {
+        if motion == CGS.motionHorizontal, MTGesture.ownsTouch {
             return nil
         }
         return Unmanaged.passUnretained(event)

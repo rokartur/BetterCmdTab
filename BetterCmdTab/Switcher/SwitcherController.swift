@@ -875,10 +875,10 @@ final class SwitcherController: SwitcherViewDelegate {
         // per swipe (one Space jump / one app flip).
         swipeTrigger.setOneShot(Preferences.shared.swipeMode != .openSwitcher)
         swipeTrigger.setEnabled(Preferences.shared.experimentalSwipeTrigger)
-        // The swipe takes over three-finger horizontal Spaces navigation, so
-        // suppress the system Space-swipe whenever the swipe is enabled. Wire the
-        // storm callback before installing the tap so a disable burst (e.g. on AX
-        // revoke) tears it down instead of freezing the system.
+        // The swipe takes over horizontal Spaces navigation made with its finger
+        // count, so arm the system Space-swipe suppressor whenever it is enabled.
+        // Wire the storm callback before installing the tap so a disable burst
+        // (e.g. on AX revoke) tears it down instead of freezing the system.
         spaceSwipeSuppressor.onTapDisabledStorm = { [weak self] in self?.handleSwipeSuppressorStorm() }
         // Gate on swipeTrigger.isInstalled (set by setEnabled above), AX trust, and
         // the pref — see updateSwipeSuppressor.
