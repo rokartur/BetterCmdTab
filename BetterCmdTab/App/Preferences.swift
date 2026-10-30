@@ -541,6 +541,8 @@ struct ShortcutOverride: Equatable, Sendable {
     var showWindowless: Bool?
     var sortOrder: SwitcherSortOrder?
     var applicationsOnly: Bool?
+    /// Leave the frontmost app out of the list (#190). No global setting mirrors it.
+    var excludeCurrentApp: Bool?
     var windowShelf: WindowShelf?
     var expandBrowserTabsAsWindows: Bool?
     var stayOpenOnRelease: Bool?
@@ -577,6 +579,7 @@ struct ShortcutOverride: Equatable, Sendable {
     var isEmpty: Bool {
         spaceScope == .inherit && showMinimized == nil && showHidden == nil
             && showWindowless == nil && sortOrder == nil && applicationsOnly == nil
+            && excludeCurrentApp == nil
             && windowShelf == nil && expandBrowserTabsAsWindows == nil && stayOpenOnRelease == nil
             && stayOpenOnQuickTap == nil
             && layoutMode == nil && panelScalePercent == nil && panelAppearance == nil
@@ -604,6 +607,7 @@ struct ShortcutOverride: Equatable, Sendable {
         put("showWindowless", showWindowless)
         if let sortOrder { d["sortOrder"] = sortOrder.rawValue }
         put("applicationsOnly", applicationsOnly)
+        put("excludeCurrentApp", excludeCurrentApp)
         if let windowShelf { d["windowShelf"] = windowShelf.rawValue }
         put("expandBrowserTabsAsWindows", expandBrowserTabsAsWindows)
         put("stayOpenOnRelease", stayOpenOnRelease)
@@ -635,7 +639,7 @@ struct ShortcutOverride: Equatable, Sendable {
     private static let knownKeys: Set<String> = [
         "target",
         "spaceScope", "showMinimized", "showHidden", "showWindowless", "sortOrder",
-        "applicationsOnly", "windowShelf", "expandBrowserTabsAsWindows", "stayOpenOnRelease",
+        "applicationsOnly", "excludeCurrentApp", "windowShelf", "expandBrowserTabsAsWindows", "stayOpenOnRelease",
         "stayOpenOnQuickTap", "layoutMode", "panelSize", "panelScalePercent",
         "panelAppearance", "fontScale", "fontFace",
         "gridMaxColumns", "listWidthPercent", "panelOpacity", "panelCornerRadius", "backdropMaterial",
@@ -656,6 +660,7 @@ struct ShortcutOverride: Equatable, Sendable {
         showWindowless = bool("showWindowless")
         sortOrder = dictionary["sortOrder"].flatMap(SwitcherSortOrder.init(rawValue:))
         applicationsOnly = bool("applicationsOnly")
+        excludeCurrentApp = bool("excludeCurrentApp")
         windowShelf = dictionary["windowShelf"].flatMap(WindowShelf.init(rawValue:))
         expandBrowserTabsAsWindows = bool("expandBrowserTabsAsWindows")
         stayOpenOnRelease = bool("stayOpenOnRelease")

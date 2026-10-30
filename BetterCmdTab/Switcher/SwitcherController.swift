@@ -118,6 +118,9 @@ final class SwitcherController: SwitcherViewDelegate {
     /// *window*, not the second app's first window. This raw step count maps
     /// onto the window rows in `reveal()` / `commit()` for that mode.
     private var primedStepDelta: Int = 0
+    /// Index the excluded current app (#190) had in `primedApps` before it was
+    /// dropped, so the app after it holds that index. nil without the exclusion.
+    private var primedExcludedIndex: Int?
     /// Direction of the first primed press (1 or -1). Middle mode's Space remap
     /// steps off a frontmost middle app this way (#251).
     private var primedFirstDirection = 1
@@ -2108,6 +2111,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // Drop the per-shortcut override (#74) so the next plain ⌘Tab
                 // resolves the global config/appearance, not the last shortcut's.
                 activeFilterConfig = nil
+                primedExcludedIndex = nil
                 effective = .defaults
                 syncTypeToSearchEnabled()
                 // Restore the apps profile's in-panel action keys (#5) on close, so
@@ -2145,6 +2149,10 @@ final class SwitcherController: SwitcherViewDelegate {
     private func resolveActiveOptions(for target: SwitchTarget) {
         let override = Preferences.shared.override(for: target)
         activeFilterConfig = override.isEmpty ? nil : CatalogFilter.overlay(CatalogFilter.config(), override)
+        // ⌘` lists only the current app's windows, so excluding that app would empty it.
+        if override.excludeCurrentApp == true, target != .switchWindows {
+            activeFilterConfig?.excludedPid = NSWorkspace.shared.frontmostApplication?.pid
+        }
         effective = Preferences.shared.effectiveSettings(for: override)
         syncTypeToSearchEnabled()
         activeTarget = target
@@ -2751,13 +2759,18 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// `step` seeds `primedStepDelta`. Middle mode (#251) seeds 0, so the Space
-    /// remap re-decides the frontmost skip over the eligible apps.
+    /// remap re-decides the frontmost skip over the eligible apps. `excludedAt` is
+    /// the excluded current app's old index (#190), now its next app's: forward seeds 0.
     nonisolated static func primedStart(
-        count: Int, delta: Int, anchor: Int?, startsInMiddle: Bool
+        count: Int, delta: Int, anchor: Int?, startsInMiddle: Bool, excludedAt: Int? = nil
     ) -> (index: Int, step: Int) {
         let direction = delta > 0 ? 1 : -1
         if startsInMiddle {
             return (middleStartIndex(count: count, front: anchor, direction: direction, taps: 0), 0)
+        }
+        if let excludedAt {
+            let step = direction > 0 ? 0 : -1
+            return (primedStartIndex(count: count, step: step, anchor: excludedAt), step)
         }
         let step = count == 1 ? 0 : direction
         return (primedStartIndex(count: count, step: step, anchor: anchor), step)
@@ -2774,7 +2787,8 @@ final class SwitcherController: SwitcherViewDelegate {
     private func startPrimed(delta: Int, sort: SwitcherSortOrder) {
         let start = Self.primedStart(
             count: primedApps.count, delta: delta, anchor: primedAnchor(for: sort),
-            startsInMiddle: Self.startsPrimedInMiddle(sort: sort, selection: Preferences.shared.initialSelection))
+            startsInMiddle: Self.startsPrimedInMiddle(sort: sort, selection: Preferences.shared.initialSelection),
+            excludedAt: primedExcludedIndex)
         primedIndex = start.index
         primedStepDelta = start.step
         primedFirstDirection = delta > 0 ? 1 : -1
@@ -2793,13 +2807,18 @@ final class SwitcherController: SwitcherViewDelegate {
     /// frontmost app under sorts that anchor on it (#88), nil under MRU sorts;
     /// `startsInMiddle` starts on the middle eligible app instead (#251), where
     /// `step` counts the presses after the first one, made in `direction`.
+    /// `excludedAt` anchors on the first eligible app at or after that index (#190).
     /// Returns an index into `primedPids`; nil when nothing is eligible.
     nonisolated static func eligiblePrimedIndex(
         primedPids: [pid_t], eligiblePids: Set<pid_t>, step: Int, direction: Int, anchorPid: pid_t?,
-        startsInMiddle: Bool
+        startsInMiddle: Bool, excludedAt: Int? = nil
     ) -> Int? {
         let eligible = primedPids.enumerated().filter { eligiblePids.contains($0.element) }
         guard !eligible.isEmpty else { return nil }
+        if let excludedAt, !startsInMiddle {
+            let next = eligible.firstIndex { $0.offset >= excludedAt } ?? eligible.count
+            return eligible[primedStartIndex(count: eligible.count, step: step, anchor: next)].offset
+        }
         let front = anchorPid.flatMap { pid in eligible.firstIndex { $0.element == pid } }
         let index = startsInMiddle
             ? middleStartIndex(count: eligible.count, front: front, direction: direction, taps: step)
@@ -2831,6 +2850,8 @@ final class SwitcherController: SwitcherViewDelegate {
             mru.syncFrontmost()
             resolveActiveOptions(for: .switchApps)
             primedApps = AppCatalog.fastAppList(orderedBy: mru.order, regularApps: cache.regularApps(), filter: activeFilterConfig, windowedPids: cache.windowedPids())
+            primedExcludedIndex = activeFilterConfig?.excludedPid.flatMap { pid in primedApps.firstIndex { $0.pid == pid } }
+            if let primedExcludedIndex { primedApps.remove(at: primedExcludedIndex) }
             // No empty-list bail: with every app filtered out (e.g. a lone
             // windowless Finder under its when-no-windows exception, #112) a
             // quick tap must no-op — commit() has nothing to activate — and a
@@ -4490,7 +4511,8 @@ final class SwitcherController: SwitcherViewDelegate {
             direction: primedFirstDirection,
             anchorPid: anchorPid,
             startsInMiddle: Self.startsPrimedInMiddle(
-                sort: effective.sortOrder, selection: Preferences.shared.initialSelection)
+                sort: effective.sortOrder, selection: Preferences.shared.initialSelection),
+            excludedAt: primedExcludedIndex
         ).map { primedApps[$0] }
     }
 

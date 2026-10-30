@@ -201,6 +201,9 @@ enum ConfigSchemaDocs {
             "panelSize": ConfigSettingDoc(
                 "string", "Legacy size preset, read once and migrated to panelScalePercent.",
                 values: legacyPanelSizes),
+            "excludeCurrentApp": ConfigSettingDoc(
+                "string", "Override: leave out the frontmost app, so the first step goes to another app. Has no global key and does not apply to switchWindows.",
+                values: ["true", "false"]),
         ]
         for field in overrideFields {
             guard let global = base[overrideFieldSources[field] ?? field] else { continue }

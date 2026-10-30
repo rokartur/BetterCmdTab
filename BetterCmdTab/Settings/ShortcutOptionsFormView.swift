@@ -72,6 +72,11 @@ final class ShortcutOptionsFormView: NSView {
         addBoolRow(to: behavior, title: String(localized: "Applications only"),
                    subtitle: String(localized: "One row per app instead of one per window."),
                    current: override.applicationsOnly) { [weak self] in self?.override.applicationsOnly = $0; self?.persist() }
+        if target != .switchWindows {
+            addBoolRow(to: behavior, title: String(localized: "Exclude the current app"),
+                       subtitle: String(localized: "The list shows only other apps, so the first press always goes to another app."),
+                       current: override.excludeCurrentApp) { [weak self] in self?.override.excludeCurrentApp = $0; self?.persist() }
+        }
         addBoolRow(to: behavior, title: String(localized: "Stay open after releasing the modifier"),
                    subtitle: String(localized: "Pick with Return, a quick-jump letter, or the mouse; Esc dismisses."),
                    current: override.stayOpenOnRelease) { [weak self] in self?.override.stayOpenOnRelease = $0; self?.persist() }

@@ -92,6 +92,7 @@ struct ShortcutOverrideTests {
         ov.showWindowless = false
         ov.sortOrder = .alphabetical
         ov.applicationsOnly = true
+        ov.excludeCurrentApp = true
         ov.windowShelf = .grid
         ov.expandBrowserTabsAsWindows = false
         ov.stayOpenOnRelease = true
