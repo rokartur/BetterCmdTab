@@ -5,8 +5,8 @@ import BetterShortcuts
 /// Inline, live-persisting per-shortcut options (#74), laid out as the app's
 /// standard settings section cards + rows so it matches the Appearance pane
 /// exactly. Every option is a titled row whose accessory is a small popup; its
-/// first item, "Use global default", leaves the field unset so the shortcut
-/// inherits the global preference. Each change writes straight to
+/// first item, "Use global default" ("Off" where no global exists), leaves the field
+/// unset so the shortcut inherits the global preference. Each change writes straight to
 /// `Preferences.shortcutOverrides` — no draft / Done step (AltTab-style).
 ///
 /// The view is a vertical stack of two `SettingsSectionView` cards (Behavior,
@@ -20,7 +20,7 @@ final class ShortcutOptionsFormView: NSView {
     private let stack = NSStackView()
     private var actionTargets: [ClosureActionTarget] = []
 
-    private static let useGlobal = String(localized: "Use global default")
+    private nonisolated static let useGlobal = String(localized: "Use global default")
 
     init(target: SwitchTarget, includeSpaceScope: Bool) {
         self.target = target
@@ -80,6 +80,18 @@ final class ShortcutOptionsFormView: NSView {
                    current: override.stayOpenOnQuickTap) { [weak self] in self?.override.stayOpenOnQuickTap = $0; self?.persist() }
         addBoolRow(to: behavior, title: String(localized: "Expand browser tabs as windows"), current: override.expandBrowserTabsAsWindows) { [weak self] in self?.override.expandBrowserTabsAsWindows = $0; self?.persist() }
         addCard(behavior)
+
+        // MARK: Current app (#190). Not on ⌘`, whose list holds only the current app.
+        if target != .switchWindows {
+            let currentApp = SettingsSectionView(title: String(localized: "Current app"))
+            currentApp.addContent(SettingsRowView(icon: "flask.fill", title: String(localized: "These features are unstable"),
+                                                  subtitle: String(localized: "Off by default. They may change or break.")))
+            addPopupRow(to: currentApp, title: String(localized: "Exclude the current app"),
+                        subtitle: String(localized: "The list shows only other apps, so the first press always goes to another app."),
+                        values: [true], titles: [String(localized: "On")], current: override.excludeCurrentApp,
+                        nilTitle: String(localized: "Off")) { [weak self] in self?.override.excludeCurrentApp = $0; self?.persist() }
+            addCard(currentApp)
+        }
 
         // MARK: Window shelf (#211), unstable like its global setting
         let windowShelf = SettingsSectionView(title: String(localized: "Window shelf"))
@@ -248,17 +260,17 @@ final class ShortcutOptionsFormView: NSView {
     }
 
     /// Core builder: a `SettingsRowView` whose accessory is a popup whose first
-    /// item is "Use global default" (→ nil) followed by `titles`/`values`.
-    private func addPopupRow<T: Equatable>(to section: SettingsSectionView, title: String, subtitle: String?, values: [T], titles: [String], current: T?, set: @escaping (T?) -> Void) {
+    /// item is `nilTitle` (→ nil) followed by `titles`/`values`.
+    private func addPopupRow<T: Equatable>(to section: SettingsSectionView, title: String, subtitle: String?, values: [T], titles: [String], current: T?, nilTitle: String = ShortcutOptionsFormView.useGlobal, set: @escaping (T?) -> Void) {
         let popup = NSPopUpButton(frame: .zero, pullsDown: false)
         popup.controlSize = .small
         popup.translatesAutoresizingMaskIntoConstraints = false
         popup.setContentHuggingPriority(.required, for: .horizontal)
-        popup.addItem(withTitle: Self.useGlobal)
+        popup.addItem(withTitle: nilTitle)
         popup.menu?.addItem(.separator())
         for t in titles { popup.addItem(withTitle: t) }
-        // Menu index → option index: account for the leading "Use global default"
-        // item and the separator (2 leading entries).
+        // Menu index → option index: account for the leading nil item and the
+        // separator (2 leading entries).
         let leading = 2
         if let current, let i = values.firstIndex(of: current) {
             popup.selectItem(at: leading + i)

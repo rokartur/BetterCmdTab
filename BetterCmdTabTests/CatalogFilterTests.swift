@@ -119,6 +119,15 @@ struct CatalogFilterTests {
         #expect(result.map(\.bundleIdentifier) == ["com.c", "com.a", "com.b"])
     }
 
+    @Test("filteredRows drops the excluded pid's rows; filteredApps keeps the app (#190)")
+    func excludedPidDropsTheApp() {
+        var cfg = config(showHidden: false)
+        cfg.excludedPid = NSRunningApplication.current.pid
+        let rows = [launchRow("com.a"), SwitcherRow(app: .current, window: nil, windowTitle: "", isMinimized: false), launchRow("com.b")]
+        #expect(CatalogFilter.filteredRows(rows, cfg).map(\.bundleIdentifier) == ["com.a", "com.b"])
+        #expect(CatalogFilter.filteredApps([.current], cfg) == [.current])
+    }
+
     // MARK: - sort order
 
     @Test("dock sort puts kept apps in Dock order, then the rest by pid, keeping an app's rows together")

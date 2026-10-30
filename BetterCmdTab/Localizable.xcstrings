@@ -3728,6 +3728,46 @@
         }
       }
     },
+    "Current app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelle App"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App actual"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App active"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bieżąca aplikacja"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текущее приложение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前应用"
+          }
+        }
+      }
+    },
     "Current app's windows" : {
       "localizations" : {
         "de" : {
@@ -4605,6 +4645,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "输入一个尚未使用的 A 到 Z 字母。"
+          }
+        }
+      }
+    },
+    "Exclude the current app" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelle App ausschließen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excluir la app actual"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exclure l’app active"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pomijaj bieżącą aplikację"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исключать текущее приложение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排除当前应用"
           }
         }
       }
@@ -17342,6 +17422,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文字大小"
+          }
+        }
+      }
+    },
+    "The list shows only other apps, so the first press always goes to another app." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Liste zeigt nur andere Apps, daher führt der erste Tastendruck immer zu einer anderen App."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lista solo muestra otras apps, así que la primera pulsación siempre va a otra app."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La liste n’affiche que les autres apps, donc le premier appui mène toujours à une autre app."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista pokazuje tylko inne aplikacje, więc pierwsze naciśnięcie zawsze przełącza na inną aplikację."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В списке только другие приложения, поэтому первое нажатие всегда переключает на другое приложение."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列表只显示其他应用，因此第一次按下总会切换到另一个应用。"
           }
         }
       }

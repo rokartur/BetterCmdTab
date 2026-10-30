@@ -36,7 +36,12 @@ enum CatalogFilter {
         /// Not per-shortcut overridable, so `overlay` passes it through.
         let sinkMinimizedWindows: Bool
 
-        /// No filtering and no reordering — lets callers skip work entirely.
+        /// The frontmost app when the shortcut excludes it (#190), set per trigger. `filteredRows`
+        /// drops its rows; `filteredApps` keeps it so the switcher can record its primed index first.
+        var excludedPid: pid_t?
+
+        /// No preference filtering and no reordering, so the filters skip that
+        /// work. `filteredRows` still drops `excludedPid`.
         var isIdentity: Bool {
             hideModes.isEmpty && pinned.isEmpty && showMinimized && showHidden && showWindowless && spaceScope == .allSpaces && sortOrder == .mru
         }
@@ -94,10 +99,12 @@ enum CatalogFilter {
         )
     }
 
-    /// Drop apps hidden by their exception and (optionally) minimized/hidden
-    /// windows, then move pinned apps to the front in pin order. Placeholders
-    /// (cache-warm rows) are never filtered or reordered.
+    /// Drop the excluded app's rows (#190), apps hidden by their exception and
+    /// (optionally) minimized/hidden windows, then move pinned apps to the front in
+    /// pin order. Other placeholders (cache-warm rows) are never filtered or reordered.
     static func filteredRows(_ rows: [SwitcherRow], _ cfg: Config) -> [SwitcherRow] {
+        var rows = rows
+        if let pid = cfg.excludedPid { rows.removeAll { $0.pid == pid } }
         // Resolve Space membership once and share it across both Space-based
         // filters so a reveal never queries the same window's Space twice. A
         // narrowing Space scope needs every window's Space; the phantom filter
@@ -114,7 +121,7 @@ enum CatalogFilter {
             ? resolveSpacesMemoized(rows, scope: cfg.spaceScope)
             : .unavailable
 
-        // Drop Electron-style phantom windows first, unconditionally. These are
+        // Drop Electron-style phantom windows, unconditionally. These are
         // never-shown helper windows the user can't reach (not a preference), so
         // they're removed even under an identity config that skips the rest.
         let phantomFiltered = filterPhantomWindows(rows, spaces)

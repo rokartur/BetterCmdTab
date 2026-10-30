@@ -48,7 +48,8 @@ their natural types. The generated `schema.json` enforces this, so your editor w
 flag it.
 </Callout>
 
-Any field you omit inherits the global setting. An override with nothing but a
+Any field you omit inherits the global setting, except `excludeCurrentApp`, which has
+no global key and is off when omitted. An override with nothing but a
 `target` is the same as having no override at all, and is dropped when the file is
 next written.
 
