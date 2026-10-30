@@ -460,6 +460,8 @@ enum ConfigSchemaDocs {
             count: Preferences.directActivationSlotCount,
             // A bundle ID, or "" for an unused slot.
             item: ConfigItemSchema("string", pattern: "^[A-Za-z0-9.\\-_]*$")),
+        "directActivationCyclesWindows": ConfigSettingDoc(
+            "boolean", "Pressing a direct-activation hotkey again while its app is frontmost raises that app's next window."),
         "scopedShortcutList": ConfigSettingDoc(
             "array", "Scoped switcher shortcuts — each opens the panel already filtered to one subset of windows.",
             item: ConfigItemSchema(

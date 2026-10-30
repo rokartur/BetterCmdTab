@@ -13,6 +13,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     private var directButtons: [NSButton] = []
     private var directSlotSheet: AppsPickerSheetWindowController?
 
+    private let cycleAppWindowsSwitch = PreferenceSwitch(bind: \.directActivationCyclesWindows)
     private let cycleWidthsSwitch = PreferenceSwitch(bind: \.cycleTileWidths)
 
     // "Hide all windows" exclusion list: a row whose subtitle shows the count and
@@ -34,7 +35,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         addRow(
             to: direct,
             title: String(localized: "Jump straight to an app"),
-            subtitle: String(localized: "Give a shortcut to one app — it focuses that app, opening it first if needed. Press it again to cycle through that app's windows."),
+            subtitle: String(localized: "Give a shortcut to one app — it focuses that app, opening it first if needed."),
             searchItemID: SearchID.directActivation
         )
         for (index, name) in BetterShortcuts.Name.directActivate.enumerated() {
@@ -50,6 +51,13 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
             addRow(to: direct, title: String(localized: "Slot \(index + 1)"), accessory: stack)
             directButtons.append(button)
         }
+        addRow(
+            to: direct,
+            title: String(localized: "Cycle app windows"),
+            subtitle: String(localized: "Press an app's shortcut again while the app is in front to step through its windows."),
+            accessory: cycleAppWindowsSwitch,
+            searchItemID: SearchID.directActivationCyclesWindows
+        )
     }
 
     private func buildArrangeSection() {
@@ -109,6 +117,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     override func viewWillAppear() {
         super.viewWillAppear()
         refreshDirectSlots()
+        cycleAppWindowsSwitch.sync()
         cycleWidthsSwitch.sync()
         // Another pane (e.g. Import settings) can rewrite the list while this
         // cached controller is off screen — re-sync the subtitle on appear.

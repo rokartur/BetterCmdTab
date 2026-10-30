@@ -234,12 +234,13 @@ enum Activator {
     }
 
     /// Focus the app with the given bundle ID, launching it if it isn't running.
-    /// Backs the direct-activation hotkeys (jump straight to a chosen app). A
-    /// press while the app is already frontmost raises its next window (#217).
+    /// Backs the direct-activation hotkeys (jump straight to a chosen app). With
+    /// `directActivationCyclesWindows` on, a press while the app is already
+    /// frontmost raises its next window (#217).
     @MainActor
     static func activateOrLaunch(bundleID: String) {
         if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
-            if running.isActive {
+            if running.isActive, Preferences.shared.directActivationCyclesWindows {
                 raiseRearmostWindow(of: running)
             } else {
                 activateApp(running)

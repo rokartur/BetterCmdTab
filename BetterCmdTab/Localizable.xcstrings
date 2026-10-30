@@ -3968,6 +3968,46 @@
         }
       }
     },
+    "Cycle app windows" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenster der App durchschalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alternar ventanas de la app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faire défiler les fenêtres de l’app"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączaj okna aplikacji"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключение окон приложения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "循环切换应用窗口"
+          }
+        }
+      }
+    },
     "Cycle tile widths" : {
       "localizations" : {
         "de" : {
@@ -5609,42 +5649,42 @@
         }
       }
     },
-    "Give a shortcut to one app — it focuses that app, opening it first if needed. Press it again to cycle through that app's windows." : {
+    "Give a shortcut to one app — it focuses that app, opening it first if needed." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Weise einer App einen Kurzbefehl zu — er aktiviert diese App und öffnet sie zunächst, falls nötig. Drücke ihn erneut, um durch die Fenster der App zu wechseln."
+            "value" : "Weise einer App einen Kurzbefehl zu — er aktiviert diese App und öffnet sie zunächst, falls nötig."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Asigna un atajo a una app: enfoca esa app y la abre primero si es necesario. Púlsalo otra vez para recorrer las ventanas de la app."
+            "value" : "Asigna un atajo a una app: enfoca esa app y la abre primero si es necesario."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Attribuez un raccourci à une app — il active cette app, en l’ouvrant d’abord si nécessaire. Appuyez de nouveau pour parcourir les fenêtres de l’app."
+            "value" : "Attribuez un raccourci à une app — il active cette app, en l’ouvrant d’abord si nécessaire."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przypisz skrót do jednej aplikacji — aktywuje on tę aplikację, otwierając ją najpierw, jeśli to konieczne. Naciśnij go ponownie, aby przełączać okna tej aplikacji."
+            "value" : "Przypisz skrót do jednej aplikacji — aktywuje on tę aplikację, otwierając ją najpierw, jeśli to konieczne."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Назначьте сочетание клавиш одному приложению: оно активирует приложение, предварительно запустив его при необходимости. Нажмите его снова, чтобы переключаться между окнами приложения."
+            "value" : "Назначьте сочетание клавиш одному приложению: оно активирует приложение, предварительно запустив его при необходимости."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "给某个应用分配快捷键 — 聚焦该应用，必要时先打开它。再次按下可在该应用的窗口之间循环切换。"
+            "value" : "给某个应用分配快捷键 — 聚焦该应用，必要时先打开它。"
           }
         }
       }
@@ -12450,6 +12490,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "再次按“平铺到左侧/右侧”可让窗口在该侧的 ½ → ⅔ → ⅓ 屏幕宽度之间切换。"
+          }
+        }
+      }
+    },
+    "Press an app's shortcut again while the app is in front to step through its windows." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drücke den Kurzbefehl einer App erneut, während sie im Vordergrund ist, um durch ihre Fenster zu wechseln."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsa otra vez el atajo de una app mientras está al frente para recorrer sus ventanas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez de nouveau sur le raccourci d’une app quand elle est au premier plan pour parcourir ses fenêtres."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naciśnij ponownie skrót aplikacji, gdy jest na wierzchu, aby przełączać jej okna."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите сочетание клавиш приложения ещё раз, когда оно на переднем плане, чтобы переключаться между его окнами."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当应用位于最前面时，再次按下它的快捷键可在其窗口之间切换。"
           }
         }
       }

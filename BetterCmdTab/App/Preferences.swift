@@ -1112,6 +1112,7 @@ final class Preferences: ObservableObject {
         /// `SpaceScope` raw value — which Spaces the switcher shows (#57).
         static let spaceScope = "Switcher.spaceScope"
         static let directActivationBindings = "Switcher.directActivationBindings"
+        static let directActivationCyclesWindows = "Switcher.directActivationCyclesWindows"
         static let scopedShortcutScopes = "Switcher.scopedShortcutScopes"
         /// The dynamic scoped-switch list (#74), as `[[String: String]]` of
         /// `ScopedShortcut.dictionary`. Supersedes the fixed `scopedShortcutScopes`
@@ -2136,6 +2137,15 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// A repeat press of a direct-activation hotkey while its app is frontmost
+    /// raises that app's rearmost window (#217). Default off.
+    @Published var directActivationCyclesWindows: Bool {
+        didSet {
+            guard oldValue != directActivationCyclesWindows else { return }
+            UserDefaults.standard.set(directActivationCyclesWindows, forKey: Keys.directActivationCyclesWindows)
+        }
+    }
+
     /// Scope for each scoped-switch shortcut slot, as `SwitchScope` raw values.
     /// Index maps to the slot number. Always normalized to
     /// `scopedShortcutSlotCount` entries; an unset slot defaults to `.allAppsAllSpaces`.
@@ -2835,6 +2845,7 @@ final class Preferences: ObservableObject {
         self.selectionColorHex = defaults.string(forKey: Keys.selectionColorHex)
         self.spaceScope = Self.storedSpaceScope(defaults)
         self.directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
+        self.directActivationCyclesWindows = defaults.object(forKey: Keys.directActivationCyclesWindows) as? Bool ?? false
         let legacyScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
         self.scopedShortcutScopes = legacyScopes
         // Dynamic scoped list (#74): use the stored list if present, else migrate
@@ -3000,6 +3011,7 @@ final class Preferences: ObservableObject {
         selectionColorHex = defaults.string(forKey: Keys.selectionColorHex)
         spaceScope = Self.storedSpaceScope(defaults)
         directActivationBindings = Self.normalizeBindings(defaults.stringArray(forKey: Keys.directActivationBindings) ?? [])
+        directActivationCyclesWindows = defaults.object(forKey: Keys.directActivationCyclesWindows) as? Bool ?? false
         let reloadedScopes = Self.loadScopes(defaults.stringArray(forKey: Keys.scopedShortcutScopes))
         scopedShortcutScopes = reloadedScopes
         if let raw = defaults.array(forKey: Keys.scopedShortcutList) as? [[String: String]] {
