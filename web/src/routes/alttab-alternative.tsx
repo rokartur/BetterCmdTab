@@ -94,8 +94,8 @@ function AltTabAlternative() {
       <ul>
         <li>
           You want the app in your language. AltTab is translated into far more languages;
-          BetterCmdTab ships in English, German, Spanish, French, Polish, Russian and Simplified
-          Chinese.
+          BetterCmdTab ships in English, German, Spanish, French, Japanese, Polish, Russian and
+          Simplified Chinese.
         </li>
         <li>
           You value a long track record. AltTab has around 16,000 GitHub stars and millions of
