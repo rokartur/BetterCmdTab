@@ -22,6 +22,12 @@
             "value" : "Toujours utiliser la disposition de clavier anglaise"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常に英語キー配列を使用"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -61,6 +67,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Utiliser la disposition anglaise (États-Unis) pour les raccourcis et la recherche dans le sélecteur, quelle que soit la langue de saisie."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力言語に関係なく、スイッチャーのショートカットと検索に英語（US）のキー配列を使います。"
           }
         },
         "pl" : {
@@ -103,6 +115,12 @@
             "value" : " Ajouter une app…"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " アプリを追加…"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -141,6 +159,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ depuis %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（%@から）"
           }
         },
         "pl" : {
@@ -183,6 +207,12 @@
             "value" : "%@ depuis un autre appareil"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（ほかのデバイスから）"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -221,6 +251,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "100 % correspond à la taille du sélecteur de macOS, sur tous les écrans."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "100%でmacOS標準のスイッチャーと同じサイズになります（すべてのディスプレイで同じ）。"
           }
         },
         "pl" : {
@@ -263,6 +299,12 @@
             "value" : "Une page ou un document ouvert sur vos autres appareils Apple s’affiche sous forme de vignette. Sélectionnez-la pour l’ouvrir sur ce Mac."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのAppleデバイスで開いているページや書類がタイルとして表示されます。選択するとこのMacで開きます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -301,6 +343,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Une vibration lorsque vous sélectionnez une app. Trackpads Force Touch uniquement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを選んだときに振動で知らせます。感圧タッチトラックパッドのみ。"
           }
         },
         "pl" : {
@@ -343,6 +391,12 @@
             "value" : "À propos"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "情報"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -381,6 +435,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accès à l’Accessibilité"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセシビリティ"
           }
         },
         "pl" : {
@@ -424,6 +484,12 @@
             "value" : "L'accès à l'Accessibilité a été désactivé"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセシビリティのアクセス権がオフになりました"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -463,6 +529,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exécuter le clic au relâchement du bouton, comme dans un menu : glissez vers une autre ligne pour la choisir, ou relâchez hors des lignes pour annuler. Choisir une ligne nécessite « Sélectionner la fenêtre au clic »."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メニューのように、ボタンを離した時点でクリックとして扱います。別の行までドラッグするとその行を選び、行の外で離すとキャンセルします。行を選ぶには「クリックでウインドウを選択」をオンにする必要があります。"
           }
         },
         "pl" : {
@@ -505,6 +577,12 @@
             "value" : "Boutons d’action au survol"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホバー時に操作ボタンを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -543,6 +621,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Touches d’action pendant le changement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切り替え中の操作キー"
           }
         },
         "pl" : {
@@ -585,6 +669,12 @@
             "value" : "Activer l’app"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリをアクティブにする"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -623,6 +713,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajouter"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加"
           }
         },
         "pl" : {
@@ -665,6 +761,12 @@
             "value" : "Ajouter une app"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを追加"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -703,6 +805,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajouter une app…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを追加…"
           }
         },
         "pl" : {
@@ -745,6 +853,12 @@
             "value" : "Ajouter un raccourci"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカットを追加"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -783,6 +897,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajouter des fragments de titre…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルの語句を追加…"
           }
         },
         "pl" : {
@@ -825,6 +945,12 @@
             "value" : "Toutes"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -863,6 +989,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tous les espaces"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての操作スペース"
           }
         },
         "pl" : {
@@ -905,6 +1037,12 @@
             "value" : "« Tous les espaces » affiche tout ; « Espace actuel » uniquement l'espace affiché ; « Espaces visibles » ce qui est à l'écran sur tous vos moniteurs."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「すべての操作スペース」はすべてを、「現在の操作スペース」は表示中の操作スペースのみを、「表示中の操作スペース」はすべてのディスプレイに映っているものを表示します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -943,6 +1081,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toutes les fenêtres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのウインドウ"
           }
         },
         "pl" : {
@@ -985,6 +1129,12 @@
             "value" : "Alphabétique"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前順"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1023,6 +1173,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Affiche aussi les apps correspondantes qui ne sont pas encore en cours d’exécution."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ起動していないアプリも、一致すれば表示します。"
           }
         },
         "pl" : {
@@ -1065,6 +1221,12 @@
             "value" : "Affiche aussi l'étagère quand l'app en surbrillance n'a qu'une fenêtre."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハイライト中のアプリのウインドウが1つだけでもシェルフを表示します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1103,6 +1265,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rester ouvert aussi après une pression rapide"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "素早いタップ後も開いたままにする"
           }
         },
         "pl" : {
@@ -1145,6 +1313,12 @@
             "value" : "Toujours"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常に"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1183,6 +1357,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Animations"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アニメーション"
           }
         },
         "pl" : {
@@ -1225,6 +1405,12 @@
             "value" : "Règles d’apps"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリのルール"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1263,6 +1449,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apparence"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外観"
           }
         },
         "pl" : {
@@ -1305,6 +1497,12 @@
             "value" : "Accès Apple Events pour les onglets du navigateur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザタブ用のApple Eventsアクセス"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1343,6 +1541,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Applications uniquement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリのみ"
           }
         },
         "pl" : {
@@ -1385,6 +1589,12 @@
             "value" : "S’applique aux dispositions Grille et Aperçus."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グリッドとプレビューのレイアウトに適用されます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1423,6 +1633,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apps"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリ"
           }
         },
         "pl" : {
@@ -1465,6 +1681,12 @@
             "value" : "Apps gardées visibles : %lld."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示したままにするアプリ: %lld個"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1503,6 +1725,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Organiser la fenêtre active"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォーカス中のウインドウを配置"
           }
         },
         "pl" : {
@@ -1545,6 +1773,12 @@
             "value" : "Organiser la fenêtre"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウの配置"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1583,6 +1817,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nombre maximal d’entrées d’onglet par fenêtre de navigateur (2–16), l’onglet actif restant visible. Réglez sur 0 pour afficher tous les onglets."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザのウインドウごとに表示するタブの上限（2〜16）。アクティブなタブは常に表示されます。0にするとすべてのタブを表示します。"
           }
         },
         "pl" : {
@@ -1625,6 +1865,12 @@
             "value" : "Auto"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1663,6 +1909,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Automatique"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動"
           }
         },
         "pl" : {
@@ -1705,6 +1957,12 @@
             "value" : "Autorisation Automatisation requise"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オートメーションの許可が必要です"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1743,6 +2001,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Matériau d’arrière-plan"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景マテリアル"
           }
         },
         "pl" : {
@@ -1785,6 +2049,12 @@
             "value" : "Sauvegarde"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1823,6 +2093,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajoute au favicon de chaque entrée d’onglet l’icône de l’app du navigateur d’origine, pour savoir à quel navigateur appartient un onglet lorsque le même site est ouvert dans plusieurs."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各タブ項目のファビコンに元のブラウザのアイコンを重ねて表示します。同じサイトを複数のブラウザで開いているときに、どのブラウザのタブか見分けられます。"
           }
         },
         "pl" : {
@@ -1865,6 +2141,12 @@
             "value" : "Début"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先頭"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1903,6 +2185,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Comportement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動作"
           }
         },
         "pl" : {
@@ -1946,6 +2234,12 @@
             "value" : "BetterCmdTab a besoin de l'autorisation d'Accessibilité pour gérer ⌘Tab. Réactive-la dans Réglages Système et le sélecteur se réactive automatiquement."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BetterCmdTabが⌘Tabを処理するには、アクセシビリティのアクセス権が必要です。システム設定で再度オンにすると、スイッチャーは自動的に再開します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1984,6 +2278,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bleu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブルー"
           }
         },
         "pl" : {
@@ -2026,6 +2326,12 @@
             "value" : "Titre sélectionné en gras"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択中のタイトルを太字に"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2064,6 +2370,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rétablir toutes les apps masquées."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示にしたアプリをすべて元に戻します。"
           }
         },
         "pl" : {
@@ -2106,6 +2418,12 @@
             "value" : "Accès aux onglets du navigateur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザタブへのアクセス"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2146,6 +2464,12 @@
             "value" : "L’accès aux onglets du navigateur fonctionne"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザタブへのアクセスは正常です"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2184,6 +2508,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aperçus des onglets du navigateur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザタブのプレビュー"
           }
         },
         "pl" : {
@@ -2227,6 +2557,12 @@
             "value" : "Onglets du navigateur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザのタブ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2265,6 +2601,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Onglets de navigateur à afficher"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示するブラウザタブの数"
           }
         },
         "pl" : {
@@ -2307,6 +2649,12 @@
             "value" : "Les navigateurs ont besoin du consentement Apple Events pour lister leurs onglets. Cliquez pour vérifier chaque navigateur en cours d’exécution (Safari, Chrome, Arc, Brave, Edge…) — macOS demande le consentement là où il manque encore. À faire avec cette fenêtre ouverte."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザのタブを一覧表示するには、Apple Eventsの許可が必要です。クリックすると起動中の各ブラウザ（Safari、Chrome、Arc、Brave、Edge…）を確認し、まだ許可していないものがあればmacOSが許可を求めます。このウインドウを開いたまま実行してください。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2345,6 +2693,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Annuler"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
           }
         },
         "pl" : {
@@ -2387,6 +2741,12 @@
             "value" : "Capture l’onglet actif du navigateur pour la disposition Aperçus. Les onglets en arrière-plan utilisent une image mise en cache auparavant ou leur favicon."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビューのレイアウト用に、アクティブなブラウザタブを取り込みます。バックグラウンドのタブは以前にキャッシュした画像かファビコンを使います。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2425,6 +2785,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Centrer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央"
           }
         },
         "pl" : {
@@ -2467,6 +2833,12 @@
             "value" : "Vérifier l’accès…"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセスを確認…"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2505,6 +2877,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rechercher les mises à jour"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデートを確認"
           }
         },
         "pl" : {
@@ -2547,6 +2925,12 @@
             "value" : "Rechercher les mises à jour"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデートを確認"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2585,6 +2969,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cochées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チェックあり"
           }
         },
         "pl" : {
@@ -2627,6 +3017,12 @@
             "value" : "Recherche en cours…"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認中…"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2665,6 +3061,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisir"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択"
           }
         },
         "pl" : {
@@ -2707,6 +3109,12 @@
             "value" : "Choisir un son personnalisé…"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタムサウンドを選択…"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2745,6 +3153,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisir une app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを選択"
           }
         },
         "pl" : {
@@ -2787,6 +3201,12 @@
             "value" : "Choisissez une app à qui donner une lettre fixe ou à ignorer dans les lettres de saut."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定の文字を割り当てる、または文字ヒントから除外するアプリを選択します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2825,6 +3245,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisissez une app pour définir ses règles de sélecteur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーのルールを設定するアプリを選択します。"
           }
         },
         "pl" : {
@@ -2867,6 +3293,12 @@
             "value" : "Choisissez l’app que ce raccourci active."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このショートカットで前面に出すアプリを選択します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2905,6 +3337,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisissez les apps qui apparaissent dans le sélecteur, et laissez certaines apps conserver ⌘Tab pour elles-mêmes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーに表示するアプリを選び、一部のアプリには⌘Tabをそのアプリ自身で使わせることができます。"
           }
         },
         "pl" : {
@@ -2947,6 +3385,12 @@
             "value" : "Choisissez sur quel écran le sélecteur s’ouvre lorsque vous avez plusieurs écrans."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスプレイが複数あるときに、スイッチャーをどのディスプレイに表示するかを選択します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2985,6 +3429,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisir…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択…"
           }
         },
         "pl" : {
@@ -3027,6 +3477,12 @@
             "value" : "Les apps choisies restent visibles lorsque vous déclenchez « Masquer toutes les fenêtres »."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「すべてのウインドウを隠す」を実行しても、選んだアプリは表示されたままになります。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3065,6 +3521,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Effacer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消去"
           }
         },
         "pl" : {
@@ -3107,6 +3569,12 @@
             "value" : "Cliquez sur une ligne pour passer à cette fenêtre. Désactivé, les clics dans le sélecteur sont ignorés et la souris ne peut pas choisir de fenêtre — la bande d’onglets et les actions au survol fonctionnent toujours."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行をクリックするとそのウインドウに切り替えます。オフにするとスイッチャー内のクリックを無視し、マウスでウインドウを選べなくなります（タブストリップとホバー時の操作は引き続き使えます）。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3145,6 +3613,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cliquez n’importe où à l’extérieur du sélecteur pour le fermer, en laissant la fenêtre actuelle active."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーの外側をクリックすると閉じ、現在のウインドウにフォーカスしたままにします。"
           }
         },
         "pl" : {
@@ -3188,6 +3662,12 @@
             "value" : "Cliquer au relâchement du bouton"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マウスボタンを離したときにクリック"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3226,6 +3706,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cliquer à l’extérieur pour fermer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外側をクリックして閉じる"
           }
         },
         "pl" : {
@@ -3268,6 +3754,12 @@
             "value" : "Cliquez pour copier les informations de version"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリックしてバージョン情報をコピー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3306,6 +3798,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fermer la fenêtre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウを閉じる"
           }
         },
         "pl" : {
@@ -3348,6 +3846,12 @@
             "value" : "Couleur de la surbrillance autour de la fenêtre sélectionnée et des lettres de saut rapide. Suit la couleur d'accentuation macOS par défaut."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択中のウインドウを囲むハイライトと、クイックジャンプ文字の色。デフォルトではmacOSのアクセントカラーに従います。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3386,6 +3890,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fichier de configuration"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定ファイル"
           }
         },
         "pl" : {
@@ -3428,6 +3938,12 @@
             "value" : "Contenu"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示内容"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3466,6 +3982,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Détermine si cette app apparaît dans le sélecteur.\n\n• Toujours — toujours répertoriée.\n• Avec des fenêtres ouvertes — répertoriée uniquement lorsqu’elle possède au moins une fenêtre ouverte.\n• Jamais — jamais répertoriée (masquée du sélecteur)."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリをスイッチャーに表示するかどうかを設定します。\n\n• 常に — 常に表示します。\n• ウインドウがあるとき — 開いているウインドウが1つ以上あるときだけ表示します。\n• しない — 表示しません（スイッチャーから隠します）。"
           }
         },
         "pl" : {
@@ -3508,6 +4030,12 @@
             "value" : "Rayon des coins"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "角の丸み"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3546,6 +4074,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossible de créer le fichier de configuration"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定ファイルを作成できませんでした"
           }
         },
         "pl" : {
@@ -3588,6 +4122,12 @@
             "value" : "Impossible d’exporter les réglages"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を書き出せませんでした"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3626,6 +4166,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossible d’importer les réglages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を読み込めませんでした"
           }
         },
         "pl" : {
@@ -3668,6 +4214,12 @@
             "value" : "Créer…"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作成…"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3706,6 +4258,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Espace actuel"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の操作スペース"
           }
         },
         "pl" : {
@@ -3748,6 +4306,12 @@
             "value" : "App active"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のアプリ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3786,6 +4350,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fenêtres de l’app active"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のアプリのウインドウ"
           }
         },
         "pl" : {
@@ -3828,6 +4398,12 @@
             "value" : "Personnalisé"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタム"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3866,6 +4442,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lettres d’app personnalisées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリごとの文字割り当て"
           }
         },
         "pl" : {
@@ -3908,6 +4490,12 @@
             "value" : "Associations d’app personnalisées"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリごとの文字割り当て"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3946,6 +4534,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Personnalisé : %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタム: %@"
           }
         },
         "pl" : {
@@ -3988,6 +4582,12 @@
             "value" : "Personnalisé…"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタム…"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4026,6 +4626,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Faire défiler les fenêtres de l’app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリのウインドウを順に切り替え"
           }
         },
         "pl" : {
@@ -4068,6 +4674,12 @@
             "value" : "Faire défiler les largeurs de mosaïque"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置幅を順に切り替え"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4108,6 +4720,12 @@
             "value" : "Sombre"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダーク"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4146,6 +4764,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Par défaut"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルト"
           }
         },
         "pl" : {
@@ -4189,6 +4813,12 @@
             "value" : "Réglages par défaut de tous les raccourcis"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全ショートカット共通のデフォルト"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4227,6 +4857,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activation directe"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリ直接切り替え"
           }
         },
         "pl" : {
@@ -4269,6 +4905,12 @@
             "value" : "Activation directe %lld"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリ直接切り替え %lld"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4307,6 +4949,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Distance depuis le haut"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上端からの距離"
           }
         },
         "pl" : {
@@ -4349,6 +4997,12 @@
             "value" : "Ordre du Dock"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dockの順序"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4387,6 +5041,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ne pas masquer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隠さない"
           }
         },
         "pl" : {
@@ -4429,6 +5089,12 @@
             "value" : "Ne pas regarder mes fenêtres"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面共有や録画に映さない"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4467,6 +5133,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
           }
         },
         "pl" : {
@@ -4509,6 +5181,12 @@
             "value" : "Téléchargement %d%%"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード中 %d%%"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4547,6 +5225,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Faites glisser pour réorganiser"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ドラッグで並べ替え"
           }
         },
         "pl" : {
@@ -4589,6 +5273,12 @@
             "value" : "Position des points de suspension"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "省略記号の位置"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4627,6 +5317,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fin"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "末尾"
           }
         },
         "pl" : {
@@ -4669,6 +5365,12 @@
             "value" : "Saisissez une lettre inutilisée de A à Z."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ使われていないA〜Zの文字を1つ入力してください。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4707,6 +5409,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exclure l’app active"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のアプリを除外"
           }
         },
         "pl" : {
@@ -4749,6 +5457,12 @@
             "value" : "Développer les onglets du navigateur comme fenêtres"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザのタブをウインドウとして展開"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4787,6 +5501,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exporter"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出す"
           }
         },
         "pl" : {
@@ -4829,6 +5549,12 @@
             "value" : "Exporter les réglages"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を書き出す"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4867,6 +5593,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exporter les réglages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を書き出す"
           }
         },
         "pl" : {
@@ -4909,6 +5641,12 @@
             "value" : "Exporter…"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出す…"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4947,6 +5685,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Très grand"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "特大"
           }
         },
         "pl" : {
@@ -4989,6 +5733,12 @@
             "value" : "Très petit"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "極小"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5027,6 +5777,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fondu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フェード"
           }
         },
         "pl" : {
@@ -5069,6 +5825,12 @@
             "value" : "Apparition en fondu"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フェードイン"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5107,6 +5869,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disparition en fondu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フェードアウト"
           }
         },
         "pl" : {
@@ -5149,6 +5917,12 @@
             "value" : "Un changement de fenêtre plus rapide pour macOS"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOSのウインドウ切り替えを、もっと速く"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5187,6 +5961,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Retour"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィードバック"
           }
         },
         "pl" : {
@@ -5229,6 +6009,12 @@
             "value" : "Doigts"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指の本数"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5267,6 +6053,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "En premier"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先頭"
           }
         },
         "pl" : {
@@ -5309,6 +6101,12 @@
             "value" : "Le premier ⌘Tab sélectionne"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の⌘Tabで選ぶ項目"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5347,6 +6145,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Police"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォント"
           }
         },
         "pl" : {
@@ -5389,6 +6193,12 @@
             "value" : "Forcer à quitter l’app"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを強制終了"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5427,6 +6237,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "depuis %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@から"
           }
         },
         "pl" : {
@@ -5469,6 +6285,12 @@
             "value" : "depuis un autre appareil"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのデバイスから"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5507,6 +6329,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accès complet au disque"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フルディスクアクセス"
           }
         },
         "pl" : {
@@ -5549,6 +6377,12 @@
             "value" : "Plein écran"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フルスクリーン"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5587,6 +6421,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plein écran"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フルスクリーン"
           }
         },
         "pl" : {
@@ -5629,6 +6469,12 @@
             "value" : "Fenêtre en plein écran"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フルスクリーンのウインドウ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5667,6 +6513,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Général"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一般"
           }
         },
         "pl" : {
@@ -5709,6 +6561,12 @@
             "value" : "Obtenez les versions préliminaires en avance. Elles peuvent être instables."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレリリース版をいち早く受け取ります。不安定な場合があります。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5747,6 +6605,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Attribuez un raccourci à une app — il active cette app, en l’ouvrant d’abord si nécessaire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1つのアプリにショートカットを割り当てます。押すとそのアプリを前面に出し、起動していなければ起動します。"
           }
         },
         "pl" : {
@@ -5789,6 +6653,12 @@
             "value" : "Donnez à une app une lettre fixe ou ignorez-la pour que sa lettre se libère pour une autre app. Distinct des raccourcis globaux d’Activation directe."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリに固定の文字を割り当てるか、スキップしてその文字をほかのアプリに譲ります。全体共通のアプリ直接切り替えショートカットとは別の設定です。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5827,6 +6697,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Donnez à une app une lettre fixe, ou cochez « Ignorer » pour qu’elle n’en reçoive aucune et que sa lettre se libère pour une autre app. Une lettre fixe l’emporte sur une action du panneau utilisant la même touche tant que cette app est visible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリに固定の文字を割り当てるか、「スキップ」にチェックを入れて文字を割り当てず、その文字をほかのアプリに譲ります。そのアプリが表示されている間は、同じキーのパネル操作より固定の文字が優先されます。"
           }
         },
         "pl" : {
@@ -5869,6 +6745,12 @@
             "value" : "Autoriser l’accès"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセスを許可"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5907,6 +6789,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accordez l’accès Automatisation à %@ dans Réglages Système ▸ Confidentialité"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム設定 ▸ プライバシーで、%@へのオートメーションのアクセスを許可してください"
           }
         },
         "pl" : {
@@ -5949,6 +6837,12 @@
             "value" : "Accordé"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可済み"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5987,6 +6881,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Graphite"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グラファイト"
           }
         },
         "pl" : {
@@ -6029,6 +6929,12 @@
             "value" : "Vert"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グリーン"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6067,6 +6973,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Grille"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グリッド"
           }
         },
         "pl" : {
@@ -6109,6 +7021,12 @@
             "value" : "Colonnes de la grille"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グリッドの列数"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6147,6 +7065,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Regroupe les apps masquées à la fin de la liste. Désactivez cette option pour les laisser à leur position habituelle."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示のアプリをリストの末尾にまとめます。オフにすると通常の位置のままにします。"
           }
         },
         "pl" : {
@@ -6189,6 +7113,12 @@
             "value" : "Regroupe les fenêtres réduites à la fin de la liste. Désactivez cette option pour les laisser à leur position d’utilisation la plus récente."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小化されたウインドウをリストの末尾にまとめます。オフにすると最近使った順の位置のままにします。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6224,6 +7154,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Handoff"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Handoff"
@@ -6269,6 +7205,12 @@
             "value" : "Masquer ou ignorer certaines apps"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "特定のアプリを隠す・無視する"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6307,6 +7249,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raccourcis qui n’ouvrent pas le sélecteur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを開かないショートカット"
           }
         },
         "pl" : {
@@ -6349,6 +7297,12 @@
             "value" : "HUD (par défaut)"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD（デフォルト）"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6387,6 +7341,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Retour haptique lors du changement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切り替え時に触覚フィードバック"
           }
         },
         "pl" : {
@@ -6429,6 +7389,12 @@
             "value" : "App masquée"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示のアプリ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6467,6 +7433,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Masquer l’aperçu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビューを隠す"
           }
         },
         "pl" : {
@@ -6509,6 +7481,12 @@
             "value" : "Masquer toutes les fenêtres"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのウインドウを隠す"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6547,6 +7525,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "« Masquer toutes les fenêtres » masque toutes les apps, Finder compris. Choisissez les apps à garder visibles."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「すべてのウインドウを隠す」は、Finderを含むすべてのアプリを隠します。表示したままにするアプリを選んでください。"
           }
         },
         "pl" : {
@@ -6589,6 +7573,12 @@
             "value" : "Masquer l’app"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを隠す"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6627,6 +7617,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Masquer toutes les apps pour afficher le bureau. Fonctionne sur tout le système."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのアプリを隠してデスクトップを表示します。システム全体で使えます。"
           }
         },
         "pl" : {
@@ -6669,6 +7665,12 @@
             "value" : "Masquez uniquement les fenêtres dont le titre contient l’une de ces expressions. La correspondance ignore la casse et les accents ; les autres fenêtres de l’app restent disponibles. Appuyez sur Retour ou saisissez une virgule après chaque expression."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルにいずれかの語句を含むウインドウだけを隠します。大文字と小文字、アクセント記号は区別しません。そのアプリのほかのウインドウはそのまま使えます。語句ごとにReturnキーを押すか、カンマを入力してください。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6707,6 +7709,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Masquer les titres contenant"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次を含むタイトルを隠す"
           }
         },
         "pl" : {
@@ -6749,6 +7757,12 @@
             "value" : "Indices du côté de ⌘"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "押している⌘側のヒントのみ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6787,6 +7801,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Masquer l’icône de la barre des menus"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メニューバーアイコンを隠す"
           }
         },
         "pl" : {
@@ -6829,6 +7849,12 @@
             "value" : "Masque le nom de l’application dans toutes les dispositions ; identifiez les apps par leur icône."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのレイアウトでアプリ名を隠し、アイコンでアプリを見分けます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6867,6 +7893,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Masque le sélecteur dans les enregistrements d’écran et les écrans partagés (Zoom, Meet, Teams). Nécessite macOS 14.6 ou ultérieur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面収録や画面共有（Zoom、Meet、Teams）にスイッチャーを映さないようにします。macOS 14.6以降が必要です。"
           }
         },
         "pl" : {
@@ -6909,6 +7941,12 @@
             "value" : "Masque l’icône ⌘. Rouvrez cette fenêtre depuis Spotlight."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘アイコンを隠します。このウインドウはSpotlightから再度開けます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6947,6 +7985,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Maintenez le modificateur (⌘ par défaut) et appuyez pour avancer pas à pas."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修飾キー（デフォルトは⌘）を押したままタップして順に移動します。"
           }
         },
         "pl" : {
@@ -6989,6 +8033,12 @@
             "value" : "Maintenir ⌘"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘を押し続ける"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7027,6 +8077,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Maintenir ⌘ : relâchez pour sélectionner. Rester ouvert : sélectionnez avec Retour ou la souris."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘を押し続ける: 離すと選択。開いたままにする: Returnキーまたはマウスで選択。"
           }
         },
         "pl" : {
@@ -7070,6 +8126,12 @@
             "value" : "Actions au survol"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホバー時の操作"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7108,6 +8170,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Distance à parcourir pour avancer d’une app. Plus la valeur est élevée, plus un court glissement progresse loin."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1アプリ分移動するのに必要なスライド量。値を大きくすると、短いスライドでより先まで移動します。"
           }
         },
         "pl" : {
@@ -7150,6 +8218,12 @@
             "value" : "Durée pendant laquelle une séquence de lettres saisie reste active. À son expiration, la surbrillance disparaît et la liste retrouve son ordre d’origine."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力した文字の並びが有効な時間。時間が切れるとハイライトが消え、リストが元の順序に戻ります。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7188,6 +8262,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Durée de l’apparition en fondu du panneau à l’ouverture du sélecteur. À 0, il s’affiche instantanément."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを開くときにパネルがフェードインする時間。0にするとすぐに表示します。"
           }
         },
         "pl" : {
@@ -7230,6 +8310,12 @@
             "value" : "Durée de la disparition en fondu du panneau à la fermeture du sélecteur. À 0, il se masque instantanément."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを閉じるときにパネルがフェードアウトする時間。0にするとすぐに隠します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7268,6 +8354,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nombre d’éléments récemment fermés à lister."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近閉じた項目をいくつ表示するか。"
           }
         },
         "pl" : {
@@ -7310,6 +8402,12 @@
             "value" : "Fréquence de vérification automatique. Le canal bêta vérifie toujours toutes les heures."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動で確認する頻度。ベータチャンネルは常に1時間ごとに確認します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7348,6 +8446,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rapidité de mise à jour des titres de fenêtres dans le sélecteur ouvert lorsqu’une app les modifie. Plus bas est plus réactif ; plus haut économise du travail quand les titres changent rapidement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリがウインドウタイトルを変更してから、開いているスイッチャーのタイトルに反映されるまでの速さ。低いほど反応が速く、高いほどタイトルが頻繁に変わるときの負荷を抑えます。"
           }
         },
         "pl" : {
@@ -7390,6 +8494,12 @@
             "value" : "Importer"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込む"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7428,6 +8538,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Importer les réglages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を読み込む"
           }
         },
         "pl" : {
@@ -7470,6 +8586,12 @@
             "value" : "Importer les réglages"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を読み込む"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7508,6 +8630,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Importer…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込む…"
           }
         },
         "pl" : {
@@ -7550,6 +8678,12 @@
             "value" : "En mode applications uniquement, appuyez sur ↓ ou \\ sur une app ayant plusieurs fenêtres pour afficher ses fenêtres dans une bande sous le sélecteur et en choisir une."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリのみのモードで、複数のウインドウを持つアプリの上で↓または\\を押すと、スイッチャーの下の帯にそのウインドウが並び、そこから選べます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7588,6 +8722,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "En mode applications uniquement, les fenêtres de l'app en surbrillance apparaissent dans leur propre bloc sous le sélecteur. Appuyez sur \\ pour y entrer, ou pointez et cliquez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリのみのモードでは、ハイライト中のアプリのウインドウがスイッチャーの下に別のブロックとして表示されます。\\を押すとそこへ移動できます。マウスでポイントしてクリックしても選べます。"
           }
         },
         "pl" : {
@@ -7630,6 +8770,12 @@
             "value" : "En plein écran"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フルスクリーン時"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7668,6 +8814,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dans la disposition Aperçus, les miniatures se rafraîchissent en continu tant que le sélecteur est ouvert et montrent ce qui se passe dans chaque fenêtre en temps réel. Consomme davantage de CPU et de GPU pendant que le panneau est affiché."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビューのレイアウトで、スイッチャーを開いている間サムネールを更新し続け、各ウインドウの今の様子を表示します。パネル表示中はCPUとGPUを余分に使います。"
           }
         },
         "pl" : {
@@ -7710,6 +8862,12 @@
             "value" : "Touches dans le panneau"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パネル内のキー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7748,6 +8906,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inclure les versions bêta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ベータ版を含める"
           }
         },
         "pl" : {
@@ -7790,6 +8954,12 @@
             "value" : "Saisie"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7828,6 +8998,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Langue de saisie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力言語"
           }
         },
         "pl" : {
@@ -7870,6 +9046,12 @@
             "value" : "Installation %d%%"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インストール中 %d%%"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7908,6 +9090,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accéder directement à une app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリへ直接ジャンプ"
           }
         },
         "pl" : {
@@ -7950,6 +9138,12 @@
             "value" : "Garder des apps visibles"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示したままにするアプリ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7988,6 +9182,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conserve les réglages dans %@. Les modifications du fichier s'appliquent immédiatement et celles faites ici y sont réécrites."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を%@に保存します。ファイルを編集するとすぐに反映され、ここで行った変更もファイルに書き戻されます。"
           }
         },
         "pl" : {
@@ -8030,6 +9230,12 @@
             "value" : "Le sélecteur reste à l’écran même quand le raccourci est pressé et relâché en une pression rapide — pour les raccourcis associés à des boutons de souris ou à des gestes. Nécessite « Rester ouvert après le relâchement du modificateur »."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカットを素早く押して離した場合でも、スイッチャーを画面に表示したままにします。マウスボタンやジェスチャに割り当てたショートカット向けです。「修飾キーを離しても開いたままにする」をオンにする必要があります。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8068,6 +9274,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le sélecteur reste à l’écran quand vous relâchez le déclencheur — choisissez avec Retour, une lettre de saut ou la souris ; Échap ferme. Une pression rapide bascule toujours instantanément."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トリガーを離してもスイッチャーを画面に表示したままにします。Returnキー、クイックジャンプ文字、またはマウスで選び、Escキーで閉じます。素早くタップした場合は今までどおり即座に切り替わります。"
           }
         },
         "pl" : {
@@ -8110,6 +9322,12 @@
             "value" : "Clavier"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーボード"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8148,6 +9366,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raccourci clavier"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーボードショートカット"
           }
         },
         "pl" : {
@@ -8190,6 +9414,12 @@
             "value" : "Étiquettes"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラベル"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8230,6 +9460,12 @@
             "value" : "Grand"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8268,6 +9504,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "En dernier"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "末尾"
           }
         },
         "pl" : {
@@ -8311,6 +9553,12 @@
             "value" : "Plus tard"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あとで"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8349,6 +9597,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrir"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動"
           }
         },
         "pl" : {
@@ -8391,6 +9645,12 @@
             "value" : "Lancer l’app"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを起動"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8429,6 +9689,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lancer des apps depuis la recherche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索からアプリを起動"
           }
         },
         "pl" : {
@@ -8471,6 +9737,12 @@
             "value" : "Lancer à l’ouverture de session"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン時に起動"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8509,6 +9781,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ordre de lancement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動順"
           }
         },
         "pl" : {
@@ -8551,6 +9829,12 @@
             "value" : "Disposition"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイアウト"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8589,6 +9873,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "À gauche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左"
           }
         },
         "pl" : {
@@ -8631,6 +9921,12 @@
             "value" : "⌘ gauche n’affiche que des lettres de la main gauche, ⌘ droite que celles de la main droite, pour que la main qui tient ⌘ atteigne chaque indice."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左の⌘では左手側の文字だけ、右の⌘では右手側の文字だけを表示し、⌘を押している手ですべてのヒントに届くようにします。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8669,6 +9965,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permet à BetterCmdTab de capturer le raccourci et de lire vos fenêtres ouvertes. Requis pour fonctionner."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BetterCmdTabがショートカットを受け取り、開いているウインドウを読み取れるようにします。動作に必須です。"
           }
         },
         "pl" : {
@@ -8711,6 +10013,12 @@
             "value" : "Permet à BetterCmdTab de lire le stockage des favicons de Safari pour que les entrées d'onglets Safari affichent les icônes des sites. Facultatif — les autres navigateurs n'en ont pas besoin."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BetterCmdTabがSafariのファビコン保存領域を読み取れるようにし、Safariのタブ項目にサイトのアイコンを表示します。任意です。ほかのブラウザでは不要です。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8749,6 +10057,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permet à l’app de conserver ⌘Tab pour elle-même : le raccourci est transmis à l’app au lieu d’ouvrir le sélecteur. Utile pour les apps disposant de leur propre changement de fenêtre — machines virtuelles, bureau à distance, certains jeux.\n\n• Jamais — le sélecteur s’ouvre toujours.\n• Toujours — l’app conserve ⌘Tab dès qu’elle est active.\n• En plein écran — uniquement lorsque l’app est en plein écran."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリに⌘Tabをそのまま使わせます。スイッチャーを開かずに、キーの組み合わせをアプリに渡します。独自のウインドウ切り替えを持つアプリ（仮想マシン、リモートデスクトップ、一部のゲーム）に便利です。\n\n• しない — 常にスイッチャーを開きます。\n• 常に — このアプリがフォーカスされている間は常に⌘Tabを渡します。\n• フルスクリーン時 — アプリがフルスクリーンのときだけ渡します。"
           }
         },
         "pl" : {
@@ -8791,6 +10105,12 @@
             "value" : "Délai de la séquence de lettres"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字入力の受付時間"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8829,6 +10149,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Indices de lettres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字ヒント"
           }
         },
         "pl" : {
@@ -8872,6 +10198,12 @@
             "value" : "Saut par lettre"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字ジャンプ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8910,6 +10242,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Levez vos doigts pour passer à l’app en surbrillance. Lorsque c’est désactivé, sélectionnez avec un clic ou Retour."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指を離すとハイライト中のアプリに切り替えます。オフの場合は、クリックまたはReturnキーで選びます。"
           }
         },
         "pl" : {
@@ -8952,6 +10290,12 @@
             "value" : "Clair"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライト"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8990,6 +10334,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Limitez ce raccourci à l'espace actuel ou aux espaces visibles, ou affichez tous les espaces."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このショートカットの対象を、現在の操作スペース、表示中のすべての操作スペース、またはすべての操作スペースに設定します。"
           }
         },
         "pl" : {
@@ -9032,6 +10382,12 @@
             "value" : "Liste"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リスト"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9070,6 +10426,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Affiche chaque onglet d’une fenêtre de navigateur (Safari, Chrome, Arc, Brave, Edge, …) sur sa propre ligne, aux côtés des autres fenêtres, au lieu d’une seule fenêtre regroupée. Nécessite l’accès Apple Events, accordé dans « Confidentialité › Autorisations » ; désactivé, garde une ligne par fenêtre — affichez plutôt ses onglets."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザ（Safari、Chrome、Arc、Brave、Edge…）のウインドウを1つにまとめず、各タブをほかのウインドウと並ぶ独立した行として表示します。Apple Eventsのアクセスが必要です（「プライバシー › アクセス権」で許可します）。オフの場合はウインドウごとに1行のままで、代わりにタブ一覧で確認できます。"
           }
         },
         "pl" : {
@@ -9112,6 +10474,12 @@
             "value" : "Affiche chaque onglet d’une fenêtre à onglets natifs (Finder, Terminal, TextEdit, …) sur sa propre ligne, au lieu d’une seule fenêtre regroupée. Désactivé, garde une ligne par fenêtre — affichez plutôt ses onglets."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ネイティブタブを持つウインドウ（Finder、ターミナル、テキストエディット…）を1つにまとめず、各タブを独立した行として表示します。オフの場合はウインドウごとに1行のままで、代わりにタブ一覧で確認できます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9150,6 +10518,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Liste les apps et fenêtres que vous venez de fermer afin que vous puissiez les rouvrir."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じたばかりのアプリやウインドウを一覧表示し、再度開けるようにします。"
           }
         },
         "pl" : {
@@ -9192,6 +10566,12 @@
             "value" : "Aperçus de fenêtres en direct"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブウインドウプレビュー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9230,6 +10610,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Écran principal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メインディスプレイ"
           }
         },
         "pl" : {
@@ -9272,6 +10658,12 @@
             "value" : "Met en gras le titre de l’élément en surbrillance dans les dispositions Grille et Aperçus. Désactivé, il est seulement éclairci."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グリッドとプレビューのレイアウトで、ハイライト中の項目のタイトルを太字にします。オフの場合は明るくするだけです。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9310,6 +10702,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gérer…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理…"
           }
         },
         "pl" : {
@@ -9352,6 +10750,12 @@
             "value" : "Beaucoup d'entre elles peuvent être remplacées par raccourci dans « Raccourcis du sélecteur »."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらの多くは「スイッチャーショートカット」でショートカットごとに上書きできます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9390,6 +10794,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Marque d’un petit symbole les entrées masquées, réduites, en plein écran et sans fenêtre. Les indicateurs audio, Ouvrir et Rouvrir restent toujours visibles."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示、最小化、フルスクリーン、ウインドウなしの項目に小さな記号を付けます。オーディオ、起動、再度開くの表示は常に出ます。"
           }
         },
         "pl" : {
@@ -9432,6 +10842,12 @@
             "value" : "Agrandir"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大化"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9470,6 +10886,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Largeur maximale de la liste"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リストの最大幅"
           }
         },
         "pl" : {
@@ -9512,6 +10934,12 @@
             "value" : "Menu"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メニュー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9550,6 +10978,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Milieu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央"
           }
         },
         "pl" : {
@@ -9592,6 +11026,12 @@
             "value" : "App du milieu"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央のアプリ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9630,6 +11070,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "« App du milieu » compte les apps, pas les lignes de fenêtres. S’applique aux tris qui restent en place lorsque vous changez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「中央のアプリ」はウインドウの行数ではなくアプリの数で数えます。切り替えても順序が変わらない並び順に適用されます。"
           }
         },
         "pl" : {
@@ -9672,6 +11118,12 @@
             "value" : "Réduire la fenêtre"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウを最小化"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9710,6 +11162,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fenêtre réduite"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小化されたウインドウ"
           }
         },
         "pl" : {
@@ -9752,6 +11210,12 @@
             "value" : "Fenêtres réduites"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小化されたウインドウ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9790,6 +11254,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Écran avec l’app active"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクティブなアプリがあるディスプレイ"
           }
         },
         "pl" : {
@@ -9832,6 +11302,12 @@
             "value" : "Écran avec le pointeur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポインタがあるディスプレイ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9870,6 +11346,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "À chasse fixe"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等幅"
           }
         },
         "pl" : {
@@ -9912,6 +11394,12 @@
             "value" : "Plus d’infos"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細情報"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9950,6 +11438,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Récemment utilisé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近使った順"
           }
         },
         "pl" : {
@@ -9992,6 +11486,12 @@
             "value" : "Récemment utilisé (fenêtres)"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近使った順（ウインドウ）"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10030,6 +11530,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Récemment utilisé conserve l’ordre classique de ⌘Tab ; Récemment utilisé (fenêtres) intercale les fenêtres de toutes les apps selon leur dernière utilisation ; les autres restent en place lorsque vous changez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「最近使った順」は従来の⌘Tabの順序のままです。「最近使った順（ウインドウ）」はすべてのアプリのウインドウを最後にフォーカスした順に並べます。それ以外は切り替えても順序が変わりません。"
           }
         },
         "pl" : {
@@ -10072,6 +11578,12 @@
             "value" : "Récemment utilisé conserve l’ordre classique de ⌘Tab ; les autres restent en place."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「最近使った順」は従来の⌘Tabの順序のままです。それ以外は順序が変わりません。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10110,6 +11622,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Souris"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マウス"
           }
         },
         "pl" : {
@@ -10152,6 +11670,12 @@
             "value" : "Relâchement du bouton"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マウスボタンを離したとき"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10190,6 +11714,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Déplacer les apps masquées en bas"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示のアプリを末尾に移動"
           }
         },
         "pl" : {
@@ -10232,6 +11762,12 @@
             "value" : "Déplacer les fenêtres réduites en bas"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小化されたウインドウを末尾に移動"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10270,6 +11806,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Déplacer le pointeur vers l’écran de la fenêtre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポインタをウインドウのディスプレイへ移動"
           }
         },
         "pl" : {
@@ -10312,6 +11854,12 @@
             "value" : "Déplacer la sélection vers le bas"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択を下へ移動"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10350,6 +11898,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Déplacer la sélection vers la gauche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択を左へ移動"
           }
         },
         "pl" : {
@@ -10392,6 +11946,12 @@
             "value" : "Déplacer la sélection vers la droite"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択を右へ移動"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10432,6 +11992,12 @@
             "value" : "Déplacer la sélection vers le haut"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択を上へ移動"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10470,6 +12036,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Déplace la sélection vers la ligne sous le pointeur. Désactivé, la sélection au clavier reste en place et la souris ne peut pas la changer par accident."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポインタが重なっている行に選択を移動します。オフの場合はキーボードでの選択を固定し、マウスで誤って変わらないようにします。"
           }
         },
         "pl" : {
@@ -10513,6 +12085,12 @@
             "value" : "Onglets natifs"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ネイティブタブ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10551,6 +12129,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jamais"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "しない"
           }
         },
         "pl" : {
@@ -10593,6 +12177,12 @@
             "value" : "App suivante"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次のアプリ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10631,6 +12221,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucune app ajoutée pour l’instant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだアプリが追加されていません。"
           }
         },
         "pl" : {
@@ -10673,6 +12269,12 @@
             "value" : "Aucune correspondance"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一致する項目なし"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10711,6 +12313,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucun réglage correspondant"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一致する設定はありません"
           }
         },
         "pl" : {
@@ -10753,6 +12361,12 @@
             "value" : "Aucune fenêtre ouverte"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開いているウインドウなし"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10791,6 +12405,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucune fenêtre ouverte"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開いているウインドウなし"
           }
         },
         "pl" : {
@@ -10833,6 +12453,12 @@
             "value" : "Aucune app épinglée pour l’instant."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピン留めしたアプリはまだありません。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10871,6 +12497,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucun navigateur pris en charge n’est en cours d’exécution"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応しているブラウザが起動していません"
           }
         },
         "pl" : {
@@ -10913,6 +12545,12 @@
             "value" : "Non accordé"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未許可"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10948,6 +12586,12 @@
           }
         },
         "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
@@ -10993,6 +12637,12 @@
             "value" : "Désactivé"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11031,6 +12681,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Désactivées par défaut. Elles peuvent changer ou cesser de fonctionner."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルトではオフです。変更されたり動かなくなったりする場合があります。"
           }
         },
         "pl" : {
@@ -11073,6 +12729,12 @@
             "value" : "Activé"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11111,6 +12773,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Une ligne par app au lieu d’une par fenêtre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウごとではなく、アプリごとに1行で表示します。"
           }
         },
         "pl" : {
@@ -11153,6 +12821,12 @@
             "value" : "Saut par lettre à une main"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "片手で文字ジャンプ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11191,6 +12865,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ne s’applique que lorsque « Rester ouvert après le relâchement du modificateur » est activé pour ce raccourci."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このショートカットで「修飾キーを離しても開いたままにする」がオンのときだけ適用されます。"
           }
         },
         "pl" : {
@@ -11233,6 +12913,12 @@
             "value" : "Ouvrir"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開く"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11271,6 +12957,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrir %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を開く"
           }
         },
         "pl" : {
@@ -11314,6 +13006,12 @@
             "value" : "Ouvrir les réglages d'Accessibilité"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセシビリティ設定を開く"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11352,6 +13050,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvre BetterCmdTab automatiquement à l’ouverture de votre session."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン時にBetterCmdTabを自動的に開きます。"
           }
         },
         "pl" : {
@@ -11394,6 +13098,12 @@
             "value" : "Ouvrir Réglages Système"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム設定を開く"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11432,6 +13142,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrez un navigateur pris en charge (Safari, Chrome, Arc, Brave, Edge, Vivaldi, Opera, Dia…) puis cliquez de nouveau sur le bouton."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応しているブラウザ（Safari、Chrome、Arc、Brave、Edge、Vivaldi、Opera、Dia…）を開いてから、もう一度ボタンをクリックしてください。"
           }
         },
         "pl" : {
@@ -11474,6 +13190,12 @@
             "value" : "Ouvrir la recherche"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索を開く"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11512,6 +13234,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrir le sélecteur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを開く"
           }
         },
         "pl" : {
@@ -11554,6 +13282,12 @@
             "value" : "Ouvrir le sélecteur : faites défiler les apps (validez avec Retour/clic, Échap pour annuler). Changer d’espace : passez à l’espace de ce côté, un par pas. Bascule rapide : basculez vers votre dernière app, comme une pression rapide sur ⌘Tab — balayez de nouveau pour revenir."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを開く: アプリを順になぞって選びます（Returnキーかクリックで確定、Escキーでキャンセル）。操作スペースを切り替える: その方向の操作スペースへ1つずつ移動します。クイック切り替え: ⌘Tabを素早くタップしたときのように直前のアプリへ切り替えます。もう一度スワイプすると戻ります。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11592,6 +13326,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvre le sélecteur de ce raccourci. Maintenez le modificateur et appuyez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このショートカットのスイッチャーを開きます。修飾キーを押したままタップします。"
           }
         },
         "pl" : {
@@ -11634,6 +13374,12 @@
             "value" : "Orange"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オレンジ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11672,6 +13418,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Classe les résultats selon leur pertinence plutôt que par utilisation récente, afin que la meilleure correspondance soit sélectionnée en premier."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近使った順ではなく一致度の高い順に結果を並べ、最も近いものを最初に選択します。"
           }
         },
         "pl" : {
@@ -11714,6 +13466,12 @@
             "value" : "Panneau"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パネル"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11752,6 +13510,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opacité du panneau"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パネルの不透明度"
           }
         },
         "pl" : {
@@ -11794,6 +13558,12 @@
             "value" : "Le panneau, les vignettes et la barre d’onglets glissent d’un état à l’autre. Désactivé, ou avec Réduire les animations de macOS, le changement est instantané."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パネル、タイル、タブストリップを状態間でなめらかに動かします。オフ、またはmacOSの「視差効果を減らす」がオンの場合は即座に切り替わります。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11832,6 +13602,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Transmettre ⌘Tab à l’app au lieu d’ouvrir le sélecteur — pour les apps disposant de leur propre changement de fenêtre (machines virtuelles, bureau à distance, certains jeux)."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを開かずに、⌘Tabをアプリに渡します。独自のウインドウ切り替えを持つアプリ（仮想マシン、リモートデスクトップ、一部のゲーム）向けです。"
           }
         },
         "pl" : {
@@ -11874,6 +13650,12 @@
             "value" : "Aperçu des onglets"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブ一覧"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11912,6 +13694,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher les fenêtres avec ↓"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↓でウインドウを一覧表示"
           }
         },
         "pl" : {
@@ -11954,6 +13742,12 @@
             "value" : "Autorisations"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセス権"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11992,6 +13786,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisissez avec Retour, une lettre de saut ou la souris ; Échap ferme."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Returnキー、クイックジャンプ文字、またはマウスで選び、Escキーで閉じます。"
           }
         },
         "pl" : {
@@ -12034,6 +13834,12 @@
             "value" : "Sélectionner une app sur un autre espace ou en plein écran y bascule instantanément, sans animation de glissement. S’applique aussi au changement au clavier."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別の操作スペースやフルスクリーンにあるアプリを選ぶと、スライドのアニメーションなしで即座に移動します。キーボードでの切り替えにも適用されます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12072,6 +13878,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rose"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピンク"
           }
         },
         "pl" : {
@@ -12114,6 +13926,12 @@
             "value" : "Épinglé"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピン留め"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12152,6 +13970,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apps épinglées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピン留めしたアプリ"
           }
         },
         "pl" : {
@@ -12194,6 +14018,12 @@
             "value" : "Apps épinglées"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピン留めしたアプリ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12232,6 +14062,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Les apps épinglées sont placées en tête du sélecteur, avant les récentes. Faites-les glisser pour définir leur ordre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピン留めしたアプリは、最近使ったアプリより前、スイッチャーの先頭に固定されます。ドラッグで順序を設定できます。"
           }
         },
         "pl" : {
@@ -12274,6 +14110,12 @@
             "value" : "Emplacement"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12312,6 +14154,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jouer un son lorsque vous sélectionnez une app."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを選んだときにサウンドを再生します。"
           }
         },
         "pl" : {
@@ -12354,6 +14202,12 @@
             "value" : "Lecture audio en cours"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オーディオ再生中"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12392,6 +14246,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Popover"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポップオーバー"
           }
         },
         "pl" : {
@@ -12434,6 +14294,12 @@
             "value" : "Position du titre sous chaque vignette des Aperçus."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビューの各タイルの下に表示するタイトルの位置。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12472,6 +14338,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Appuyez sur %@ dans le sélecteur pour filtrer par nom d’app ou de fenêtre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーで%@を押すと、アプリ名やウインドウ名で絞り込めます。"
           }
         },
         "pl" : {
@@ -12514,6 +14386,12 @@
             "value" : "Appuyez sur %@ pour choisir un onglet dans la bande sous le sélecteur. Les onglets natifs utilisent l’Accessibilité ; les navigateurs utilisent Apple Events."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を押すと、スイッチャーの下のタブストリップからタブを選べます。ネイティブタブはアクセシビリティを、ブラウザはApple Eventsを使います。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12552,6 +14430,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Appuyez de nouveau sur Moitié gauche / Moitié droite pour faire passer la fenêtre par ½ → ⅔ → ⅓ de l’écran de ce côté."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「左半分に配置」/「右半分に配置」をもう一度押すと、ウインドウの幅がその側の画面の ½ → ⅔ → ⅓ と切り替わります。"
           }
         },
         "pl" : {
@@ -12594,6 +14478,12 @@
             "value" : "Appuyez de nouveau sur le raccourci d’une app quand elle est au premier plan pour parcourir ses fenêtres."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリが最前面にあるときにそのアプリのショートカットをもう一度押すと、ウインドウを順に切り替えます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12632,6 +14522,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aperçu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビュー"
           }
         },
         "pl" : {
@@ -12674,6 +14570,12 @@
             "value" : "Aperçus"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビュー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12712,6 +14614,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confidentialité"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシー"
           }
         },
         "pl" : {
@@ -12754,6 +14662,12 @@
             "value" : "Violet"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パープル"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12792,6 +14706,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bascule rapide (2 dernières apps)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイック切り替え（直前の2つのアプリ）"
           }
         },
         "pl" : {
@@ -12834,6 +14754,12 @@
             "value" : "Délai de bascule rapide"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイック切り替えの判定時間"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12872,6 +14798,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quitter BetterCmdTab"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BetterCmdTabを終了"
           }
         },
         "pl" : {
@@ -12914,6 +14846,12 @@
             "value" : "Quitter l’app"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを終了"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12952,6 +14890,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Classer les résultats"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一致度順に並べる"
           }
         },
         "pl" : {
@@ -12995,6 +14939,12 @@
             "value" : "Réactive ⌘Tab et ⌘` du système — par exemple s'ils sont restés désactivés après un plantage. BetterCmdTab les rend à macOS jusqu'au prochain redémarrage."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システムの⌘Tabと⌘`を再度有効にします。クラッシュ後にオフのままになった場合などに使います。BetterCmdTabは次に再起動するまで、これらをmacOSに返します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13033,6 +14983,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Éléments récemment fermés à afficher"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近閉じた項目の表示数"
           }
         },
         "pl" : {
@@ -13076,6 +15032,12 @@
             "value" : "Récupération"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復旧"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13114,6 +15076,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rouge"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レッド"
           }
         },
         "pl" : {
@@ -13156,6 +15124,12 @@
             "value" : "Voir aussi"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "関連"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13194,6 +15168,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Versions"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リリース"
           }
         },
         "pl" : {
@@ -13236,6 +15216,12 @@
             "value" : "Supprimer"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13274,6 +15260,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Retirer des épinglées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピン留めを解除"
           }
         },
         "pl" : {
@@ -13316,6 +15308,12 @@
             "value" : "Supprimer la règle"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ルールを削除"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13354,6 +15352,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Supprimer le raccourci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカットを削除"
           }
         },
         "pl" : {
@@ -13396,6 +15400,12 @@
             "value" : "Supprimer cette règle"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このルールを削除"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13434,6 +15444,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rouvrir"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再度開く"
           }
         },
         "pl" : {
@@ -13476,6 +15492,12 @@
             "value" : "Rouvrir les éléments récemment fermés"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近閉じた項目を再度開く"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13514,6 +15536,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Appuis répétés"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繰り返し押したとき"
           }
         },
         "pl" : {
@@ -13556,6 +15584,12 @@
             "value" : "Remplace vos réglages actuels par ceux d’un fichier exporté précédemment."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以前に書き出したファイルの設定で、現在の設定を置き換えます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13594,6 +15628,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Signaler un problème"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "問題を報告"
           }
         },
         "pl" : {
@@ -13636,6 +15676,12 @@
             "value" : "Requis"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必須"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13674,6 +15720,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redémarrer pour mettre à jour"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再起動してアップデート"
           }
         },
         "pl" : {
@@ -13717,6 +15769,12 @@
             "value" : "Restaurer"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復元"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13756,6 +15814,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restaurer les raccourcis clavier de macOS"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOSのキーボードショートカットを復元"
           }
         },
         "pl" : {
@@ -13798,6 +15862,12 @@
             "value" : "Restaurer la taille précédente"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元のサイズに戻す"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13836,6 +15906,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Affiche des boutons rapides sur la ligne survolée par le pointeur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポインタが重なっている行にクイックボタンを表示します。"
           }
         },
         "pl" : {
@@ -13878,6 +15954,12 @@
             "value" : "Inverser le sens de défilement"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクロール方向を反転"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13916,6 +15998,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inverser le sens du balayage"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スワイプ方向を反転"
           }
         },
         "pl" : {
@@ -13958,6 +16046,12 @@
             "value" : "À droite"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13996,6 +16090,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Arrondie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラウンド"
           }
         },
         "pl" : {
@@ -14038,6 +16138,12 @@
             "value" : "Arrondi des coins du panneau. Le mode automatique suit la taille du panneau ; « Carré » désactive l'arrondi."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パネルの角の丸み。「自動」はパネルのサイズに合わせ、「角丸なし」は丸みをなくします。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14076,6 +16182,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apps en cours d’exécution sans fenêtre ouverte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開いているウインドウがない実行中のアプリ。"
           }
         },
         "pl" : {
@@ -14118,6 +16230,12 @@
             "value" : "Enregistre tous vos réglages dans un fichier que vous pouvez sauvegarder ou transférer sur un autre Mac."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての設定をファイルに保存します。バックアップや別のMacへの移行に使えます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14156,6 +16274,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raccourci ciblé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "絞り込みショートカット"
           }
         },
         "pl" : {
@@ -14198,6 +16322,12 @@
             "value" : "Raccourci ciblé %lld"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "絞り込みショートカット %lld"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14236,6 +16366,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raccourcis ciblés"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "絞り込みショートカット"
           }
         },
         "pl" : {
@@ -14278,6 +16414,12 @@
             "value" : "Partage d’écran"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面共有"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14316,6 +16458,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Défiler vers le haut pour avancer au lieu de vers le bas."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下ではなく上にスクロールすると次へ進みます。"
           }
         },
         "pl" : {
@@ -14358,6 +16506,12 @@
             "value" : "Faites défiler vers le haut/bas avec la molette de la souris pour déplacer la sélection lorsque le sélecteur est ouvert. Les trackpads utilisent plutôt le balayage à trois doigts."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを開いている間、マウスホイールを上下にスクロールして選択を移動します。トラックパッドでは代わりに3本指のスワイプを使います。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14396,6 +16550,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rechercher"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索"
           }
         },
         "pl" : {
@@ -14438,6 +16598,12 @@
             "value" : "Rechercher des apps…"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを検索…"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14476,6 +16642,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rechercher dans les onglets du navigateur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザのタブを検索"
           }
         },
         "pl" : {
@@ -14518,6 +16690,12 @@
             "value" : "La recherche trouve n’importe quel onglet du navigateur par son titre, pas seulement l’onglet actif de chaque fenêtre. Les onglets correspondants apparaissent comme lignes temporaires tant que le champ de recherche est actif et disparaissent quand vous quittez la recherche. Inutile si « Afficher les onglets du navigateur comme entrées distinctes » liste déjà tous les onglets."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各ウインドウのアクティブなタブだけでなく、すべてのブラウザタブをタイトルで検索します。一致したタブは検索フィールドを使っている間だけ一時的な行として表示され、検索を終えると消えます。「ブラウザのタブを個別の項目として表示」ですでにすべてのタブを一覧表示している場合は不要です。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14556,6 +16734,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionner la fenêtre au clic"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリックでウインドウを選択"
           }
         },
         "pl" : {
@@ -14598,6 +16782,12 @@
             "value" : "Sélectionner la fenêtre au survol"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホバーでウインドウを選択"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14636,6 +16826,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sélectionné"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択中"
           }
         },
         "pl" : {
@@ -14678,6 +16874,12 @@
             "value" : "Les apps sélectionnées sont placées en tête du sélecteur, avant les récentes."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだアプリは、最近使ったアプリより前、スイッチャーの先頭に固定されます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14716,6 +16918,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couleur de sélection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択色"
           }
         },
         "pl" : {
@@ -14758,6 +16966,12 @@
             "value" : "Envoie SIGKILL — pour les apps bloquées qui ignorent Quitter. ⌘+⌥+Q fonctionne toujours, quoi qu’il arrive."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SIGKILLを送ります。「終了」に応答しないアプリ向けです。⌘+⌥+Qはこの設定に関係なく常に使えます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14798,6 +17012,12 @@
             "value" : "Sérif"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セリフ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14836,6 +17056,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Réglages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
           }
         },
         "pl" : {
@@ -14885,6 +17111,12 @@
             "value" : "Système"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14923,6 +17155,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raccourci %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカット %lld"
           }
         },
         "pl" : {
@@ -14965,6 +17203,12 @@
             "value" : "Raccourcis qui ouvrent le sélecteur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを開くショートカット"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15003,6 +17247,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示"
           }
         },
         "pl" : {
@@ -15045,6 +17295,12 @@
             "value" : "Afficher les détails"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細を表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15083,6 +17339,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher Handoff depuis d’autres appareils"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのデバイスからのHandoffを表示"
           }
         },
         "pl" : {
@@ -15125,6 +17387,12 @@
             "value" : "Afficher l’aperçu"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビューを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15163,6 +17431,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Affiche une lettre sur chaque fenêtre et y accède lorsque vous tapez cette lettre. Désactivez-le pour filtrer la liste en tapant directement, sans appuyer sur %@ — les touches d’action assignées comme ⌘W ou ⌘Q agissent toujours sur la fenêtre en surbrillance ; appuyez d’abord sur %@ pour taper ces lettres."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各ウインドウに文字を表示し、その文字を入力してジャンプします。オフにすると、%@を押さなくても入力を始めるだけでリストを絞り込めます。⌘Wや⌘Qなどの操作キーは引き続きハイライト中のウインドウに作用します。それらの文字を入力するには、先に%@を押してください。"
           }
         },
         "pl" : {
@@ -15205,6 +17479,12 @@
             "value" : "Afficher toutes les fenêtres"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのウインドウを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15243,6 +17523,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher les noms des applications"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリ名を表示"
           }
         },
         "pl" : {
@@ -15285,6 +17571,12 @@
             "value" : "Afficher les apps sans fenêtre"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウのないアプリを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15323,6 +17615,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher l’icône du navigateur sur les entrées d’onglets"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブ項目にブラウザのアイコンを表示"
           }
         },
         "pl" : {
@@ -15365,6 +17663,12 @@
             "value" : "Afficher les onglets du navigateur comme entrées distinctes"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザのタブを個別の項目として表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15403,6 +17707,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Affiche le nombre de la pastille du Dock de chaque app (par ex. les messages non lus de Mail) sur sa ligne."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各アプリの行に、Dockのバッジの数（メールの未読数など）を表示します。"
           }
         },
         "pl" : {
@@ -15445,6 +17755,12 @@
             "value" : "Affiche le titre de chaque fenêtre sous l’icône dans les dispositions Grille et Aperçus."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グリッドとプレビューのレイアウトで、アイコンの下に各ウインドウのタイトルを表示します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15483,6 +17799,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher pour une seule fenêtre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウが1つでも表示"
           }
         },
         "pl" : {
@@ -15525,6 +17847,12 @@
             "value" : "Afficher les apps masquées"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示のアプリを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15563,6 +17891,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher dans le Finder"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finderに表示"
           }
         },
         "pl" : {
@@ -15605,6 +17939,12 @@
             "value" : "Afficher les fenêtres réduites"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小化されたウインドウを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15643,6 +17983,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Affiche une ligne par app au lieu d’une par fenêtre — ⌘Tab classique."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウごとではなく、アプリごとに1行で表示します（従来の⌘Tab）。"
           }
         },
         "pl" : {
@@ -15685,6 +18031,12 @@
             "value" : "Afficher les lettres de saut"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイックジャンプ文字を表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15723,6 +18075,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher les apps récemment fermées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近閉じたアプリを表示"
           }
         },
         "pl" : {
@@ -15765,6 +18123,12 @@
             "value" : "Afficher les icônes d’état"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステータスアイコンを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15803,6 +18167,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher le sélecteur sur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを表示するディスプレイ"
           }
         },
         "pl" : {
@@ -15845,6 +18215,12 @@
             "value" : "Afficher les onglets comme entrées distinctes"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブを個別の項目として表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15883,6 +18259,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher les pastilles de non-lus"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未読バッジを表示"
           }
         },
         "pl" : {
@@ -15925,6 +18307,12 @@
             "value" : "Afficher le titre de la fenêtre"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウタイトルを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15963,6 +18351,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher les fenêtres de"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示するウインドウの範囲"
           }
         },
         "pl" : {
@@ -16005,6 +18399,12 @@
             "value" : "Afficher les fenêtres sous le sélecteur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーの下にウインドウを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16043,6 +18443,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Réduit les icônes pour garder toutes les fenêtres sur une seule ligne au lieu d'ouvrir une deuxième rangée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2行目に折り返さず、アイコンを縮小してすべてのウインドウを1行に収めます。"
           }
         },
         "pl" : {
@@ -16085,6 +18491,12 @@
             "value" : "Barre latérale"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16123,6 +18535,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Une seule rangée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1行に収める"
           }
         },
         "pl" : {
@@ -16165,6 +18583,12 @@
             "value" : "Taille"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイズ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16203,6 +18627,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Taille des noms et des titres, indépendante de la taille du panneau."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前とタイトルの文字サイズ。パネルのサイズとは別に設定できます。"
           }
         },
         "pl" : {
@@ -16245,6 +18675,12 @@
             "value" : "Ignorer"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スキップ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16283,6 +18719,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ignore les lettres de saut pour cette app afin que sa lettre se libère pour une autre app."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリを文字ヒントから除外し、その文字をほかのアプリに譲ります。"
           }
         },
         "pl" : {
@@ -16325,6 +18767,12 @@
             "value" : "Faites glisser vers la droite pour aller à gauche et vers la gauche pour aller à droite."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右にスライドすると左へ、左にスライドすると右へ移動します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16363,6 +18811,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Faites glisser horizontalement sur le trackpad le nombre de doigts choisi ci-dessous. Lit directement le trackpad, donc aucun réglage système n’est nécessaire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下で設定した本数の指で、トラックパッドを横方向にスライドします。トラックパッドを直接読み取るため、システム設定の変更は不要です。"
           }
         },
         "pl" : {
@@ -16405,6 +18859,12 @@
             "value" : "Emplacement %lld"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スロット %lld"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16443,6 +18903,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Petit"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小"
           }
         },
         "pl" : {
@@ -16485,6 +18951,12 @@
             "value" : "Ordre de tri"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並び順"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16523,6 +18995,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Son lors du changement"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切り替え時にサウンドを再生"
           }
         },
         "pl" : {
@@ -16565,6 +19043,12 @@
             "value" : "Code source"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソースコード"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16603,6 +19087,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Espaces"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作スペース"
           }
         },
         "pl" : {
@@ -16645,6 +19135,12 @@
             "value" : "Carré"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "角丸なし"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16683,6 +19179,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Démarrage"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動"
           }
         },
         "pl" : {
@@ -16725,6 +19227,12 @@
             "value" : "Rester ouvert après le relâchement du modificateur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修飾キーを離しても開いたままにする"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16763,6 +19271,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rester ouvert jusqu’au choix"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選ぶまで開いたまま"
           }
         },
         "pl" : {
@@ -16805,6 +19319,12 @@
             "value" : "Action de balayage"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スワイプの動作"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16843,6 +19363,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geste de balayage"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スワイプジェスチャ"
           }
         },
         "pl" : {
@@ -16885,6 +19411,12 @@
             "value" : "Sensibilité du balayage"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スワイプの感度"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16923,6 +19455,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Changer d’espace"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作スペースを切り替える"
           }
         },
         "pl" : {
@@ -16965,6 +19503,12 @@
             "value" : "Changer d’espace sans animation"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アニメーションなしで操作スペースを切り替える"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17003,6 +19547,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Changer d’app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを切り替える"
           }
         },
         "pl" : {
@@ -17045,6 +19595,12 @@
             "value" : "Changer au relâchement"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指を離したときに切り替える"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17085,6 +19641,12 @@
             "value" : "Changer de fenêtre"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウを切り替える"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17123,6 +19685,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Changer avec la molette de la souris"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マウススクロールで切り替える"
           }
         },
         "pl" : {
@@ -17166,6 +19734,12 @@
             "value" : "Sélecteur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17204,6 +19778,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raccourcis du sélecteur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーショートカット"
           }
         },
         "pl" : {
@@ -17246,6 +19826,12 @@
             "value" : "Raccourcis du sélecteur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーショートカット"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17284,6 +19870,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Système"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム"
           }
         },
         "pl" : {
@@ -17326,6 +19918,12 @@
             "value" : "L’accès aux onglets a échoué pour : %@. Cela signifie généralement que le consentement Automatisation a été refusé auparavant — macOS ne le demande qu’une seule fois. Vérifiez les navigateurs sous « osascript » dans Réglages Système → Confidentialité et sécurité → Automatisation."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次のブラウザのタブにアクセスできませんでした: %@。通常は、以前にオートメーションの許可を拒否したことが原因です（macOSは一度しか確認せず、その後は表示しません）。システム設定 → プライバシーとセキュリティ → オートメーションの「osascript」の下にあるブラウザを確認してください。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17364,6 +19962,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Onglets"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブ"
           }
         },
         "pl" : {
@@ -17406,6 +20010,12 @@
             "value" : "Les onglets peuvent être listés pour : %@."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブを一覧表示できるブラウザ: %@。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17444,6 +20054,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Appuyer sur Maj pour reculer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shiftキーのタップで戻る"
           }
         },
         "pl" : {
@@ -17486,6 +20102,12 @@
             "value" : "Appuyez pour changer instantanément ; maintenez plus longtemps pour ouvrir le sélecteur."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップすると即座に切り替え、長押しするとスイッチャーを開きます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17524,6 +20146,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Taille du texte"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字サイズ"
           }
         },
         "pl" : {
@@ -17566,6 +20194,12 @@
             "value" : "La liste n’affiche que les autres apps, donc le premier appui mène toujours à une autre app."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リストにはほかのアプリだけが表示されるので、最初に押すと必ず別のアプリに移動します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17604,6 +20238,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le fichier sélectionné n’est pas un son pris en charge."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したファイルは対応しているサウンドではありません。"
           }
         },
         "pl" : {
@@ -17646,6 +20286,12 @@
             "value" : "Elles agissent lorsque le sélecteur est ouvert. ⌘ est maintenu en permanence, donc le modificateur que vous enregistrez est ignoré dans le panneau. En effacer une désactive cette touche."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらはスイッチャーを開いている間に使えます。その間は⌘を押し続けているため、記録した修飾キーはパネル内では無視されます。消去するとそのキーはオフになります。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17684,6 +20330,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ces fonctionnalités sont instables"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらの機能は不安定です"
           }
         },
         "pl" : {
@@ -17726,6 +20378,12 @@
             "value" : "Cet espace uniquement"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この操作スペースのみ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17764,6 +20422,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ce fichier n'est pas un export de réglages BetterCmdTab valide."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルは有効なBetterCmdTabの設定ファイルではありません。"
           }
         },
         "pl" : {
@@ -17806,6 +20470,12 @@
             "value" : "Ce fichier de réglages utilise un format plus récent (version %lld) que celui que cette version de BetterCmdTab peut lire. Mettez l'app à jour et réessayez."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この設定ファイルは、このバージョンのBetterCmdTabでは読み込めない新しい形式（バージョン%lld）です。アプリをアップデートしてからもう一度お試しください。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17844,6 +20514,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Coin inférieur gauche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左下隅に配置"
           }
         },
         "pl" : {
@@ -17886,6 +20562,12 @@
             "value" : "Coin inférieur droit"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右下隅に配置"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17924,6 +20606,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Moitié gauche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左半分に配置"
           }
         },
         "pl" : {
@@ -17966,6 +20654,12 @@
             "value" : "Moitié droite"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右半分に配置"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18004,6 +20698,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Placez la fenêtre de premier plan sur une moitié ou un coin, agrandissez-la ou centrez-la. Fonctionne dans tout le système."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最前面のウインドウを画面の半分や四隅に配置したり、最大化や中央に配置したりします。システム全体で使えます。"
           }
         },
         "pl" : {
@@ -18046,6 +20746,12 @@
             "value" : "Coin supérieur gauche"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左上隅に配置"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18084,6 +20790,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Coin supérieur droit"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右上隅に配置"
           }
         },
         "pl" : {
@@ -18127,6 +20839,12 @@
             "value" : "Délais"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイミング"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18165,6 +20883,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alignement du titre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルの配置"
           }
         },
         "pl" : {
@@ -18207,6 +20931,12 @@
             "value" : "Délai d’actualisation des titres"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトル更新の遅延"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18245,6 +20975,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "En haut"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上"
           }
         },
         "pl" : {
@@ -18287,6 +21023,12 @@
             "value" : "« En haut » garde le panneau en place pendant que la recherche affine la liste."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「上」にすると、検索でリストが絞り込まれてもパネルの位置が変わりません。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18325,6 +21067,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Suivre l’ordre d’utilisation des onglets du navigateur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウザのタブも使用履歴に含める"
           }
         },
         "pl" : {
@@ -18367,6 +21115,12 @@
             "value" : "Trackpad"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラックパッド"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18405,6 +21159,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Balayage du trackpad"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラックパッドのスワイプ"
           }
         },
         "pl" : {
@@ -18447,6 +21207,12 @@
             "value" : "Translucidité du panneau du sélecteur."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーパネルの透明度。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18485,6 +21251,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Transparent"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "透明"
           }
         },
         "pl" : {
@@ -18527,6 +21299,12 @@
             "value" : "Déclencheur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トリガー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18565,6 +21343,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activez d’abord « Afficher les apps masquées » juste au-dessus."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先に上の「非表示のアプリを表示」をオンにしてください。"
           }
         },
         "pl" : {
@@ -18607,6 +21391,12 @@
             "value" : "Activez d’abord « Afficher les fenêtres réduites » juste au-dessus."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先に上の「最小化されたウインドウを表示」をオンにしてください。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18645,6 +21435,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activez d’abord « Rester ouvert après le relâchement du modificateur » juste au-dessus."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先に上の「修飾キーを離しても開いたままにする」をオンにしてください。"
           }
         },
         "pl" : {
@@ -18687,6 +21483,12 @@
             "value" : "Activez d'abord « Recherche par saisie » dans « Clavier »."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先に「キーボード」で「入力で絞り込み検索」をオンにしてください。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18725,6 +21527,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recherche par saisie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力で絞り込み検索"
           }
         },
         "pl" : {
@@ -18767,6 +21575,12 @@
             "value" : "Police des noms et des titres."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前とタイトルに使う書体。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18805,6 +21619,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Non cochées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チェックなし"
           }
         },
         "pl" : {
@@ -18847,6 +21667,12 @@
             "value" : "Sous la fenêtre"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウの下"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18885,6 +21711,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sans titre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称未設定"
           }
         },
         "pl" : {
@@ -18927,6 +21759,12 @@
             "value" : "Mises à jour"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデート"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18965,6 +21803,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choisissez quatre pour garder le glissement à trois doigts pour déplacer les fenêtres."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウの移動に3本指のドラッグを使い続けたい場合は、4本を選んでください。"
           }
         },
         "pl" : {
@@ -19007,6 +21851,12 @@
             "value" : "Utiliser la valeur globale par défaut"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全体のデフォルトを使用"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19045,6 +21895,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Utilisez h / j / k / l comme les touches fléchées lorsque le sélecteur est ouvert. h remplace le raccourci Masquer et j / k / l remplacent le saut de lettre ; le mode recherche saisit toujours ces lettres."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを開いている間、h / j / k / lを矢印キーのように使えます。hは「隠す」の割り当てより、j / k / lは文字ジャンプより優先されます。検索モードでは通常どおりこれらの文字を入力できます。"
           }
         },
         "pl" : {
@@ -19087,6 +21943,12 @@
             "value" : "Utiliser le raccourci de changement de fenêtre pour reculer"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウ切り替えショートカットで戻る"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19125,6 +21987,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Position verticale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "縦方向の位置"
           }
         },
         "pl" : {
@@ -19167,6 +22035,12 @@
             "value" : "Touches vim (h j k l)"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vimキー（h j k l）"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19205,6 +22079,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Espaces visibles"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示中の操作スペース"
           }
         },
         "pl" : {
@@ -19247,6 +22127,12 @@
             "value" : "En plein écran"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フルスクリーン時"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19285,6 +22171,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quand aucune fenêtre n’est ouverte"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウがないとき"
           }
         },
         "pl" : {
@@ -19327,6 +22219,12 @@
             "value" : "Lors de la recherche"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索中"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19365,6 +22263,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Si la fenêtre vers laquelle vous basculez est sur un autre écran, le pointeur se place au centre de cet écran."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切り替え先のウインドウが別のディスプレイにある場合、ポインタをそのディスプレイの中央に移動します。"
           }
         },
         "pl" : {
@@ -19407,6 +22311,12 @@
             "value" : "Lorsque cette app apparaît dans le sélecteur"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリをスイッチャーに表示する条件"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19445,6 +22355,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quelle partie d'un titre long est raccourcie par des points de suspension."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "長いタイトルのどの部分を省略記号で短くするか。"
           }
         },
         "pl" : {
@@ -19487,6 +22403,12 @@
             "value" : "Les fenêtres sur lesquelles ce raccourci s’ouvre."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このショートカットで開いたときに表示するウインドウ。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19525,6 +22447,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lorsque le sélecteur d’apps est ouvert, appuyez sur votre raccourci de changement de fenêtre (⌘` par défaut) pour reculer parmi les apps. Ouvrir le sélecteur avec ce raccourci continue de parcourir les fenêtres."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリスイッチャーを開いている間にウインドウ切り替えショートカット（デフォルトは⌘`）を押すと、アプリを逆順に移動します。そのショートカットでスイッチャーを開いた場合は、今までどおりウインドウを順に切り替えます。"
           }
         },
         "pl" : {
@@ -19567,6 +22495,12 @@
             "value" : "Lorsque le sélecteur est ouvert, une pression sur la touche Maj recule la sélection d’un cran et maintenir Maj continue de reculer jusqu’à ce que vous relâchiez, comme une touche Tab maintenue. Désactivez cette option pour reculer uniquement en maintenant Maj tout en appuyant sur la touche de changement (⌘⇧Tab)."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スイッチャーを開いている間、Shiftキーをタップすると選択が1つ戻り、押し続けると離すまで戻り続けます（Tabキーを押し続けたときと同じです）。オフにすると、切り替えキーと一緒にShiftキーを押したとき（⌘⇧Tab）だけ戻ります。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19605,6 +22539,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Largeur de la disposition Liste par rapport à l'automatique — réduisez-la pour rétrécir le panneau sur les grands écrans."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動で決まる幅に対するリストレイアウトの幅。大きなディスプレイでパネルを狭くしたいときは下げてください。"
           }
         },
         "pl" : {
@@ -19647,6 +22587,12 @@
             "value" : "Étagère de fenêtres"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウシェルフ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19685,6 +22631,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raccourcis des fenêtres"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウショートカット"
           }
         },
         "pl" : {
@@ -19727,6 +22679,12 @@
             "value" : "Fenêtres"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19765,6 +22723,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fenêtres de cet espace"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この操作スペースのウインドウ"
           }
         },
         "pl" : {
@@ -19807,6 +22771,12 @@
             "value" : "Avec des fenêtres ouvertes"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウがあるとき"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19845,6 +22815,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avec « En haut », l’espace au-dessus du panneau en pourcentage de la hauteur utile de l’écran."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「上」のときの、画面の使用可能な高さに対するパネル上部の余白の割合。"
           }
         },
         "pl" : {
@@ -19887,6 +22863,12 @@
             "value" : "Avec « Afficher les onglets du navigateur comme entrées distinctes » et le tri « Récemment utilisé (fenêtres) » activés, ⌘Tab revient à l’onglet utilisé en dernier, pas seulement à la dernière fenêtre. Nécessite une surveillance permanente de vos navigateurs, ce qui consomme un peu d’énergie."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「ブラウザのタブを個別の項目として表示」をオンにし、並び順を「最近使った順（ウインドウ）」にすると、⌘Tabで直前のウインドウだけでなく最後に使ったタブに戻ります。ブラウザを常に監視する必要があるため、電力を少し多く消費します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19925,6 +22907,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Jaune"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "イエロー"
           }
         },
         "pl" : {
@@ -19967,6 +22955,12 @@
             "value" : "Vous êtes à jour !"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新バージョンです！"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20005,6 +22999,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zoomer la fenêtre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウを拡大/縮小"
           }
         },
         "pl" : {
@@ -20047,6 +23047,12 @@
             "value" : "Couleur d'accentuation macOS"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOSのアクセントカラー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20085,6 +23091,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "« Ouvrir la recherche »"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「検索を開く」キー"
           }
         },
         "pl" : {
@@ -20127,6 +23139,12 @@
             "value" : "la touche Aperçu des onglets"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「タブ一覧」キー"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20165,6 +23183,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ce navigateur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このブラウザ"
           }
         },
         "pl" : {
@@ -20207,6 +23231,12 @@
             "value" : "v%@  ·  Build %@"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@  ·  ビルド %@"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20245,6 +23275,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "v%@ — Afficher la mise à jour"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%@ — アップデートを表示"
           }
         },
         "pl" : {
@@ -20287,6 +23323,12 @@
             "value" : "Associées : %lld, ignorées : %lld. Les apps ignorées n'ont pas de lettre ; une lettre associée l'emporte sur une action du panneau utilisant la même touche."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "割り当て: %lld件、スキップ: %lld件。スキップしたアプリには文字が付きません。割り当てた文字は、同じキーのパネル操作より優先されます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20327,6 +23369,12 @@
             "value" : "Associations configurées : %lld. Une lettre associée l'emporte sur une action du panneau utilisant la même touche tant que cette app est visible."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定済みの割り当て: %lld件。そのアプリが表示されている間は、割り当てた文字が同じキーのパネル操作より優先されます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20365,6 +23413,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apps ignorées : %lld. Elles n'affichent aucune lettre de saut et n'en réservent aucune, ce qui libère cette lettre pour les autres."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スキップしたアプリ: %lld個。ジャンプ用の文字を表示せず予約もしないので、その文字をほかのアプリが使えます。"
           }
         },
         "pl" : {

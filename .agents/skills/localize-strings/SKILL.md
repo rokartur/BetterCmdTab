@@ -5,7 +5,7 @@ description: Keep the string catalogs (Localizable.xcstrings, InfoPlist.xcstring
 
 # Localize strings
 
-Every user-facing string ships translated in six locales. The catalog is
+Every user-facing string ships translated in seven locales. The catalog is
 version-controlled JSON and `LocalizationCatalogTests` pins full coverage —
 an English-only key fails the suite, it does not silently ship.
 
@@ -17,7 +17,7 @@ too. A bare literal in UI code ships untranslated — wrap it.
 ## 2. Add the catalog entries
 
 Edit `BetterCmdTab/Localizable.xcstrings` directly (it is JSON). For each new
-key add translations for **all** of: `de`, `es`, `fr`, `pl`, `ru`, `zh-Hans`.
+key add translations for **all** of: `de`, `es`, `fr`, `ja`, `pl`, `ru`, `zh-Hans`.
 Copy the exact JSON shape of a neighboring entry, keep keys sorted where the
 surrounding file is sorted, and keep format specifiers (`%@`, `%d`, …)
 identical across every locale — specifier drift is a test failure. Remove
@@ -50,5 +50,5 @@ xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' test \
   -only-testing:BetterCmdTabTests/LocalizationCatalogTests
 ```
 
-**Complete when:** the suite passes with the new keys present in all six
+**Complete when:** the suite passes with the new keys present in all seven
 locales.

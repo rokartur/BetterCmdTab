@@ -7,7 +7,7 @@ import Testing
 @Suite("Localization catalog")
 struct LocalizationCatalogTests {
 
-    private static let locales = ["de", "es", "fr", "pl", "ru", "zh-Hans"]
+    private static let locales = ["de", "es", "fr", "ja", "pl", "ru", "zh-Hans"]
     private static let catalogNames = ["Localizable", "InfoPlist"]
 
     private struct CatalogError: Error, CustomStringConvertible {
