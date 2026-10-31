@@ -28,6 +28,12 @@
             "value" : "Réglages BetterCmdTab"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BetterCmdTabの設定"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -73,6 +79,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "BetterCmdTab liste les onglets des navigateurs (Safari, Chrome, Arc, Brave, Edge, Vivaldi) et bascule entre eux lorsque vous développez une ligne."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行を展開したときに、BetterCmdTabがブラウザ（Safari、Chrome、Arc、Brave、Edge、Vivaldi）のタブを一覧表示して切り替えます。"
           }
         },
         "pl" : {
