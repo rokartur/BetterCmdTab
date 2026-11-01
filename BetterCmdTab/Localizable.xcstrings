@@ -10638,6 +10638,52 @@
         }
       }
     },
+    "Lists this app once in the switcher instead of once per window, as “Applications only” does for every app. With “Peek windows with ↓” or the window shelf on, its windows stay one step away. ⌘` still lists each window." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt diese App im Umschalter als einen Eintrag statt eines pro Fenster, wie „Nur Apps“ es für alle Apps tut. Mit „Fenster mit ↓ einblenden“ oder der Fensterablage bleiben ihre Fenster einen Schritt entfernt. ⌘` listet weiterhin jedes Fenster."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra esta aplicación una sola vez en el selector en lugar de una vez por ventana, como hace «Solo aplicaciones» con todas. Con «Ver ventanas con ↓» o la bandeja de ventanas activadas, sus ventanas quedan a un paso. ⌘` sigue mostrando cada ventana."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche cette app une seule fois dans le sélecteur au lieu d’une fois par fenêtre, comme « Applications uniquement » le fait pour toutes les apps. Avec « Afficher les fenêtres avec ↓ » ou l’étagère de fenêtres activés, ses fenêtres restent à portée. ⌘` liste toujours chaque fenêtre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリをウインドウごとではなく1つの項目としてスイッチャーに表示します。「アプリのみ」がすべてのアプリに行うのと同じです。「↓でウインドウを一覧表示」またはウインドウシェルフがオンなら、そのウインドウにもすぐ移動できます。⌘`では引き続き各ウインドウが表示されます。"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje tę aplikację w przełączniku raz zamiast raz na okno, tak jak „Tylko aplikacje” robi to dla wszystkich aplikacji. Z włączonym „Podejrzyj okna klawiszem ↓” albo półką okien jej okna są o krok dalej. ⌘` nadal pokazuje każde okno."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывает это приложение в переключателе одной записью, а не по одной на окно, как «Только приложения» делает для всех приложений. С включённым «Предпросмотр окон с помощью ↓» или полкой окон его окна в одном шаге. ⌘` по-прежнему показывает каждое окно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在切换器中将此应用显示为一个条目，而不是每个窗口一个，就像“仅应用”对所有应用所做的那样。开启“按 ↓ 查看窗口”或窗口栏后，其窗口仍可一步到达。⌘` 仍会列出每个窗口。"
+          }
+        }
+      }
+    },
     "Live window previews" : {
       "localizations" : {
         "de" : {
@@ -17731,6 +17777,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示无窗口应用"
+          }
+        }
+      }
+    },
+    "Show as one entry" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als ein Eintrag anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar como una entrada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher comme une seule entrée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1つの項目として表示"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż jako jedną pozycję"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать одной записью"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示为一个条目"
           }
         }
       }

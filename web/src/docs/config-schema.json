@@ -25,6 +25,14 @@
             "pattern" : "^[A-Za-z0-9.\\-_]+$",
             "type" : "string"
           },
+          "groupWindows" : {
+            "description" : "\"true\" shows this app as one entry instead of one per window, as applicationsOnly does for every app. Its windows stay in the window shelf, ↓ and ⌘`.",
+            "enum" : [
+              "true",
+              "false"
+            ],
+            "type" : "string"
+          },
           "hide" : {
             "description" : "Whether this app is hidden from the switcher.",
             "enum" : [

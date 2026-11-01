@@ -375,6 +375,9 @@ enum ConfigSchemaDocs {
                     "ignore": ConfigSettingDoc(
                         "string", "Whether the switcher shortcut is passed through to this app instead of opening the panel.",
                         values: ConfigValues(IgnoreShortcutsMode.self, \.displayName)),
+                    "groupWindows": ConfigSettingDoc(
+                        "string", "\"true\" shows this app as one entry instead of one per window, as applicationsOnly does for every app. Its windows stay in the window shelf, ↓ and ⌘`.",
+                        values: ["true", "false"]),
                 ],
                 required: ["bundleID"])),
         "quickJumpMappings": ConfigSettingDoc(

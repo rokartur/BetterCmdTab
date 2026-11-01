@@ -7,8 +7,8 @@ final class AppRuleRowView: NSView, NSTokenFieldDelegate {
 
     let bundleID: String
 
-    /// Fired after any control changes, with the row's new modes and title fragments.
-    var onChange: ((HideWindowsMode, IgnoreShortcutsMode, [String]) -> Void)?
+    /// Fired after any control changes, with the row's new modes, title fragments and grouping.
+    var onChange: ((HideWindowsMode, IgnoreShortcutsMode, [String], Bool) -> Void)?
     /// Fired when the remove button is clicked.
     var onRemove: (() -> Void)?
 
@@ -17,10 +17,12 @@ final class AppRuleRowView: NSView, NSTokenFieldDelegate {
     private var hide: HideWindowsMode
     private var ignore: IgnoreShortcutsMode
     private var windowTitleContains: [String]
+    private var groupWindows: Bool
 
     private let showPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let shortcutPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let titleTokens = NSTokenField()
+    private let groupCheckbox = NSButton(checkboxWithTitle: String(localized: "Show as one entry"), target: nil, action: nil)
     private let iconView = NSImageView()
     private let nameLabel = NSTextField(labelWithString: "")
 
@@ -38,6 +40,7 @@ final class AppRuleRowView: NSView, NSTokenFieldDelegate {
         hide: HideWindowsMode,
         ignore: IgnoreShortcutsMode,
         windowTitleContains: [String],
+        groupWindows: Bool,
         showOptions: [(mode: HideWindowsMode, title: String)],
         shortcutOptions: [(mode: IgnoreShortcutsMode, title: String)]
     ) {
@@ -45,6 +48,7 @@ final class AppRuleRowView: NSView, NSTokenFieldDelegate {
         self.hide = hide
         self.ignore = ignore
         self.windowTitleContains = windowTitleContains
+        self.groupWindows = groupWindows
         self.showOptions = showOptions
         self.shortcutOptions = shortcutOptions
         super.init(frame: .zero)
@@ -104,8 +108,22 @@ final class AppRuleRowView: NSView, NSTokenFieldDelegate {
         top.spacing = 10
         top.setCustomSpacing(14, after: showGroup)
 
+        groupCheckbox.controlSize = .small
+        groupCheckbox.font = .systemFont(ofSize: 11)
+        groupCheckbox.state = groupWindows ? .on : .off
+        groupCheckbox.target = self
+        groupCheckbox.action = #selector(groupChanged)
+        groupCheckbox.setContentCompressionResistancePriority(.required, for: .horizontal)
+        let groupGroup = NSStackView(views: [groupCheckbox, InfoButton(text: Self.groupInfo)])
+        groupGroup.spacing = 3
+        groupGroup.setHuggingPriority(.required, for: .horizontal)
+
         let titleGroup = captionedControl(String(localized: "Hide titles containing"), info: Self.titleInfo, titleTokens)
-        let stack = NSStackView(views: [top, titleGroup])
+        let secondLine = NSStackView(views: [titleGroup, groupGroup])
+        secondLine.orientation = .horizontal
+        secondLine.alignment = .centerY
+        secondLine.spacing = 14
+        let stack = NSStackView(views: [top, secondLine])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 6
@@ -116,7 +134,7 @@ final class AppRuleRowView: NSView, NSTokenFieldDelegate {
             iconView.widthAnchor.constraint(equalToConstant: 26),
             iconView.heightAnchor.constraint(equalToConstant: 26),
             top.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            titleGroup.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            secondLine.widthAnchor.constraint(equalTo: stack.widthAnchor),
             titleTokens.widthAnchor.constraint(greaterThanOrEqualToConstant: 180),
             stack.topAnchor.constraint(equalTo: topAnchor, constant: 3),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -3),
@@ -165,6 +183,8 @@ final class AppRuleRowView: NSView, NSTokenFieldDelegate {
         String(localized: "Lets the app keep ⌘Tab for itself: the chord is passed through to the app instead of opening the switcher. Useful for apps with their own window switching — virtual machines, remote desktop, some games.\n\n• Never — the switcher always opens.\n• Always — the app keeps ⌘Tab whenever it's focused.\n• In full screen — only while the app is in full screen.")
     private static let titleInfo =
         String(localized: "Hide only windows whose title contains one of these phrases. Matching ignores capitalization and accents; the app's other windows remain available. Press Return or type a comma after each phrase.")
+    private static let groupInfo =
+        String(localized: "Lists this app once in the switcher instead of once per window, as “Applications only” does for every app. With “Peek windows with ↓” or the window shelf on, its windows stay one step away. ⌘` still lists each window.")
 
     // MARK: - Actions
 
@@ -196,8 +216,13 @@ final class AppRuleRowView: NSView, NSTokenFieldDelegate {
         notifyChange()
     }
 
+    @objc private func groupChanged() {
+        groupWindows = groupCheckbox.state == .on
+        notifyChange()
+    }
+
     private func notifyChange() {
-        onChange?(hide, ignore, windowTitleContains)
+        onChange?(hide, ignore, windowTitleContains, groupWindows)
     }
 
     @objc private func removeClicked() {

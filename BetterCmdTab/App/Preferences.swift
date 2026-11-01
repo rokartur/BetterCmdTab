@@ -817,23 +817,29 @@ enum IgnoreShortcutsMode: String, CaseIterable, Sendable {
 }
 
 /// A per-app entry in the switcher's Exceptions list, identified by bundle ID.
-/// Carries the hide-windows and ignore-shortcuts overrides shown in the
+/// Carries the hide-windows, ignore-shortcuts and group-windows overrides shown in the
 /// Exceptions editor. Persisted as a `[String: String]` dictionary so both the
 /// main-actor `Preferences` and the off-main `CatalogFilter` can read it.
 struct AppException: Equatable, Sendable {
     var bundleID: String
     var hide: HideWindowsMode
     var ignore: IgnoreShortcutsMode
+    /// One switcher entry for the whole app, as "Applications only" does for every app (#253).
+    var groupWindows: Bool
 
-    init(bundleID: String, hide: HideWindowsMode = .dontHide, ignore: IgnoreShortcutsMode = .never) {
+    init(bundleID: String, hide: HideWindowsMode = .dontHide, ignore: IgnoreShortcutsMode = .never, groupWindows: Bool = false) {
         self.bundleID = bundleID
         self.hide = hide
         self.ignore = ignore
+        self.groupWindows = groupWindows
     }
 
-    /// Plist-friendly representation for UserDefaults.
+    /// Plist-friendly representation for UserDefaults. `groupWindows` is written only when
+    /// on, so rules without it export exactly as before.
     var dictionary: [String: String] {
-        ["bundleID": bundleID, "hide": hide.rawValue, "ignore": ignore.rawValue]
+        var d = ["bundleID": bundleID, "hide": hide.rawValue, "ignore": ignore.rawValue]
+        if groupWindows { d["groupWindows"] = "true" }
+        return d
     }
 
     /// Parse one stored dictionary. Missing/unknown modes fall back to the
@@ -843,6 +849,7 @@ struct AppException: Equatable, Sendable {
         self.bundleID = bid
         self.hide = dictionary["hide"].flatMap(HideWindowsMode.init) ?? .dontHide
         self.ignore = dictionary["ignore"].flatMap(IgnoreShortcutsMode.init) ?? .never
+        self.groupWindows = dictionary["groupWindows"] == "true"
     }
 }
 

@@ -240,12 +240,22 @@ enum CatalogFilter {
     /// inside `filteredRows`, so the cache stays a canonical per-window list that
     /// the windows-only (⌘`) and current-app-windows scope paths can still read in
     /// full.
-    static func collapseToApplications(_ rows: [SwitcherRow], preferVisible: Bool) -> [SwitcherRow] {
-        keptApplicationIndices(pids: rows.map(\.pid),
+    ///
+    /// `onlyBundleIDs` collapses just those apps (#253); every other app keeps a row per
+    /// window. nil collapses every app.
+    static func collapseToApplications(_ rows: [SwitcherRow], onlyBundleIDs: Set<String>? = nil, preferVisible: Bool) -> [SwitcherRow] {
+        keptApplicationIndices(pids: collapsiblePids(rows.map { ($0.pid, $0.bundleIdentifier) }, onlyBundleIDs: onlyBundleIDs),
                                placeholders: rows.map(\.isPlaceholder),
                                minimized: rows.map(\.isMinimized),
                                preferVisible: preferVisible)
             .map { rows[$0] }
+    }
+
+    /// A nil pid passes through `keptApplicationIndices` untouched, so blanking the pid of an
+    /// app outside `onlyBundleIDs` keeps each of its windows as its own row.
+    static func collapsiblePids(_ apps: [(pid: pid_t?, bundleID: String?)], onlyBundleIDs: Set<String>?) -> [pid_t?] {
+        guard let onlyBundleIDs else { return apps.map(\.pid) }
+        return apps.map { app in app.bundleID.map(onlyBundleIDs.contains) == true ? app.pid : nil }
     }
 
     /// Pure index-level core of `collapseToApplications`, split out so it can be
