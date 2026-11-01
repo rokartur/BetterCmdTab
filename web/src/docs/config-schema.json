@@ -309,6 +309,10 @@
       "description" : "Hide the menu-bar icon.",
       "type" : "boolean"
     },
+    "homeRowLetterHints" : {
+      "description" : "Give each window its own single hint letter, home row keys first, instead of letters from the app name.",
+      "type" : "boolean"
+    },
     "hoverActionsEnabled" : {
       "description" : "Show action buttons on the entry under the pointer.",
       "type" : "boolean"

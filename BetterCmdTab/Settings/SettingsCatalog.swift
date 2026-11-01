@@ -54,6 +54,7 @@ enum SettingsAnchor {
     static let keyboard = "keyboard.keyboard"
     static let letterJump = "keyboard.letterJump"
     static let oneHandHints = "keyboard.oneHandHints"
+    static let homeRowHints = "keyboard.homeRowHints"
     static let inputLanguage = "keyboard.inputLanguage"
     static let search = "keyboard.search"
     // Mouse
@@ -140,6 +141,7 @@ enum SearchID {
     static let quickJumpMappings = "keyboard.quickJumpMappings"
     static let letterChainTimeout = "keyboard.letterChainTimeout"
     static let oneHandHints = "keyboard.oneHandHints"
+    static let homeRowHints = "keyboard.homeRowHints"
     static let fuzzy = "keyboard.fuzzy"
     static let rankResults = "keyboard.rankResults"
     static let launcher = "keyboard.launcher"
@@ -496,6 +498,8 @@ enum SettingsCatalog {
              String(localized: "Letter chain timeout"), ["letter", "chain", "timeout", "reset", "jump", "delay", "prefix", "sequence", "expire"]),
         item(SearchID.oneHandHints, .keyboard, SettingsAnchor.oneHandHints, String(localized: "Keyboard"), String(localized: "One-hand letter jump"),
              String(localized: "Hints on the ⌘ side"), ["one hand", "single hand", "left", "right", "command", "trackpad", "letter", "hint", "jump"]),
+        item(SearchID.homeRowHints, .keyboard, SettingsAnchor.homeRowHints, String(localized: "Keyboard"), String(localized: "Home row letter jump"),
+             String(localized: "One letter per window"), ["home row", "asdf", "single letter", "window", "letter", "hint", "jump"]),
         // Keyboard · Search
         item(SearchID.fuzzy, .keyboard, SettingsAnchor.search, String(localized: "Keyboard"), String(localized: "Search"),
              String(localized: "Type-to-filter search"), ["search", "filter", "fuzzy", "type"]),

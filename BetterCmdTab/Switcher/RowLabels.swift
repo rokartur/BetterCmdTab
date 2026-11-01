@@ -42,6 +42,13 @@ enum RowLabels {
         offHandStore.withLock { $0 = letters }
     }
 
+    /// Keyboard letters by reach, set by `SwitcherController` for each switch session
+    /// while home-row hints are on (#252), empty otherwise.
+    private static let homeRowStore = OSAllocatedUnfairLock<[Character]>(initialState: [])
+    static func setHomeRowLetters(_ letters: [Character]) {
+        homeRowStore.withLock { $0 = letters }
+    }
+
     /// Full a–z pool for disambiguation suffixes; reserved letters are filtered
     /// out at the point of use so the pool tracks the dynamic reservation.
     static let suffixAlphabet: [Character] = Array("abcdefghijklmnopqrstuvwxyz")
@@ -64,11 +71,13 @@ enum RowLabels {
         let mappings = customStore.withLock { $0 }
         let excluded = excludedStore.withLock { $0 }
         let offHand = offHandStore.withLock { $0 }
+        let homeRow = homeRowStore.withLock { $0 }
         return labels(
             forInputs: rows.map(input(for:)),
             customMappings: mappings,
             excludedBundleIDs: excluded,
-            offHandLetters: offHand
+            offHandLetters: offHand,
+            homeRowLetters: homeRow
         )
     }
 
@@ -82,7 +91,8 @@ enum RowLabels {
         forInputs rows: [Input],
         customMappings: [String: Character] = [:],
         excludedBundleIDs: Set<String> = [],
-        offHandLetters: Set<Character> = []
+        offHandLetters: Set<Character> = [],
+        homeRowLetters: [Character] = []
     ) -> [String] {
         var labels = [String](repeating: "", count: rows.count)
         guard !rows.isEmpty else { return labels }
@@ -123,6 +133,17 @@ enum RowLabels {
         }
         let noLetterIndices = rows.indices.filter { !rows[$0].takesLetter }
         let skipIndices = customIndices.union(excludedIndices).union(noLetterIndices)
+
+        if !homeRowLetters.isEmpty {
+            var pool = homeRowLetters.filter { !reserved.contains($0) }.makeIterator()
+            for i in rows.indices where !skipIndices.contains(i) {
+                // A longer label would share a one-letter label's prefix and delay that jump,
+                // so rows past the pool stay unlabeled.
+                guard let letter = pool.next() else { break }
+                labels[i] = String(letter)
+            }
+            return labels
+        }
 
         var firstLetterCount: [Character: Int] = [:]
         var firstLetters = [Character?](repeating: nil, count: rows.count)

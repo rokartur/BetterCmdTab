@@ -5253,6 +5253,52 @@
         }
       }
     },
+    "Each window gets its own letter, home row keys first, instead of letters from the app name." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedes Fenster erhält einen eigenen Buchstaben, zuerst die Tasten der Grundreihe, statt Buchstaben aus dem App-Namen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada ventana recibe su propia letra, primero las teclas de la fila central, en lugar de letras del nombre de la app."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque fenêtre reçoit sa propre lettre, d’abord les touches de la rangée de repos, au lieu des lettres du nom de l’app."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリ名の文字の代わりに、各ウインドウにホームポジションのキーから順に専用の1文字を割り当てます。"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każde okno dostaje własną literę, najpierw z klawiszy rzędu środkowego, zamiast liter z nazwy aplikacji."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каждое окно получает свою букву, сначала с клавиш основного ряда, вместо букв из названия приложения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个窗口获得各自的字母，优先使用主行按键，而不是取自应用名称的字母。"
+          }
+        }
+      }
+    },
     "Ellipsis position" : {
       "localizations" : {
         "de" : {
@@ -8101,6 +8147,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "按住 ⌘：松开即选择。保持打开：用 Return 或鼠标选择。"
+          }
+        }
+      }
+    },
+    "Home row letter jump" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buchstabensprung über die Grundreihe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salto por letra en la fila central"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saut par lettre sur la rangée de repos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホームポジションで文字ジャンプ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skok literą z rzędu środkowego"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переход по буквам основного ряда"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主行字母跳转"
           }
         }
       }
@@ -12751,6 +12843,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "开启"
+          }
+        }
+      }
+    },
+    "One letter per window" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Buchstabe pro Fenster"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una letra por ventana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une lettre par fenêtre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウごとに1文字"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedna litera na okno"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Одна буква на окно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个窗口一个字母"
           }
         }
       }

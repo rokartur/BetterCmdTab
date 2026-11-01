@@ -132,6 +132,7 @@ const sections: { title: string; keys: string[] }[] = [
       "letterHintExcludedBundleIDs",
       "letterChainTimeoutMs",
       "oneHandLetterHints",
+      "homeRowLetterHints",
     ],
   },
   {
@@ -263,6 +264,7 @@ const defaults: Record<string, string> = {
   hideAllExcludedBundleIDs: "[]",
   hideFromScreenSharing: "false",
   hideMenuBarIcon: "false",
+  homeRowLetterHints: "false",
   hoverActionsEnabled: "false",
   hoverShowClose: "true",
   hoverShowForceQuit: "false",

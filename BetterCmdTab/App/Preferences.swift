@@ -1135,6 +1135,7 @@ final class Preferences: ObservableObject {
         static let alwaysUseEnglishKeyboard = "Switcher.alwaysUseEnglishKeyboard"
         static let vimNavigationEnabled = "Switcher.vimNavigationEnabled"
         static let oneHandLetterHints = "Switcher.oneHandLetterHints"
+        static let homeRowLetterHints = "Switcher.homeRowLetterHints"
         static let shiftTapStepsBackward = "Switcher.shiftTapStepsBackward"
         static let backtickReversesAppSwitching = "Switcher.backtickReversesAppSwitching"
         static let switcherDisplayMode = "Switcher.displayMode"
@@ -1709,6 +1710,15 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != oneHandLetterHints else { return }
             UserDefaults.standard.set(oneHandLetterHints, forKey: Keys.oneHandLetterHints)
+        }
+    }
+
+    /// Every row gets its own single letter, home row first, in place of letters
+    /// from the app name (#252).
+    @Published var homeRowLetterHints: Bool {
+        didSet {
+            guard oldValue != homeRowLetterHints else { return }
+            UserDefaults.standard.set(homeRowLetterHints, forKey: Keys.homeRowLetterHints)
         }
     }
 
@@ -2799,6 +2809,7 @@ final class Preferences: ObservableObject {
         self.alwaysUseEnglishKeyboard = defaults.bool(forKey: Keys.alwaysUseEnglishKeyboard)
         self.vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
         self.oneHandLetterHints = defaults.object(forKey: Keys.oneHandLetterHints) as? Bool ?? false
+        self.homeRowLetterHints = defaults.object(forKey: Keys.homeRowLetterHints) as? Bool ?? false
         self.shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true
         self.backtickReversesAppSwitching = defaults.object(forKey: Keys.backtickReversesAppSwitching) as? Bool ?? false
         self.cycleTileWidths = defaults.object(forKey: Keys.cycleTileWidths) as? Bool ?? false
@@ -2969,6 +2980,7 @@ final class Preferences: ObservableObject {
         alwaysUseEnglishKeyboard = defaults.bool(forKey: Keys.alwaysUseEnglishKeyboard)
         vimNavigationEnabled = defaults.object(forKey: Keys.vimNavigationEnabled) as? Bool ?? false
         oneHandLetterHints = defaults.object(forKey: Keys.oneHandLetterHints) as? Bool ?? false
+        homeRowLetterHints = defaults.object(forKey: Keys.homeRowLetterHints) as? Bool ?? false
         shiftTapStepsBackward = defaults.object(forKey: Keys.shiftTapStepsBackward) as? Bool ?? true
         backtickReversesAppSwitching = defaults.object(forKey: Keys.backtickReversesAppSwitching) as? Bool ?? false
         mouseHoverSelectionEnabled = defaults.object(forKey: Keys.mouseHoverSelectionEnabled) as? Bool ?? true
