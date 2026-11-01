@@ -10,8 +10,7 @@ extension SettingsTabViewController {
     /// defaults and a profile can override many of them (#74).
     func addGlobalDefaultNote() {
         let note = addSection(title: nil, anchor: nil)
-        addRow(to: note, icon: "slider.horizontal.3",
-               title: SettingsCatalog.globalDefaultNoteTitle,
+        addRow(to: note, title: SettingsCatalog.globalDefaultNoteTitle,
                subtitle: SettingsCatalog.globalDefaultNoteSubtitle,
                accessory: makeTabLink(to: SettingsTabID.switcherShortcuts))
     }
