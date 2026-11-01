@@ -33,6 +33,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/spm
+          key: spm-${{ hashFiles('BetterCmdTab.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+
       # The tests run inside the app (TEST_HOST), so the host must be signed for
       # the bundle to load. Ad-hoc signing works without the team's certificate.
       - name: Test
@@ -42,7 +47,9 @@ jobs:
         run: |
           xcodebuild -project BetterCmdTab.xcodeproj -scheme "BetterCmdTab Debug" \
             -destination 'platform=macOS' -resultBundlePath TestResults.xcresult \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             test | xcbeautify --renderer github-actions
 
       - name: Upload results
