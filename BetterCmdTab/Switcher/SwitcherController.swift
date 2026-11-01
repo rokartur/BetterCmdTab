@@ -2063,8 +2063,10 @@ final class SwitcherController: SwitcherViewDelegate {
                     secureInputMonitor.stop()
                     heldPress = nil
                     RowLabels.setOffHandLetters([])
+                    RowLabels.setHomeRowLetters([])
                 } else {
                     RowLabels.setOffHandLetters(sessionOffHandLetters())
+                    RowLabels.setHomeRowLetters(Preferences.shared.homeRowLetterHints ? KeyboardLayout.lettersByReach() : [])
                     Activator.beginActivation()
                     secureInputMonitor.start()
                     cache.retryFailedAXObservers()

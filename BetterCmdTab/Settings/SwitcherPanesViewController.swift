@@ -109,6 +109,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let englishKeyboardSwitch = PreferenceSwitch(bind: \.alwaysUseEnglishKeyboard)
     private let vimNavSwitch = PreferenceSwitch(bind: \.vimNavigationEnabled)
     private let oneHandHintsSwitch = PreferenceSwitch(bind: \.oneHandLetterHints)
+    private let homeRowHintsSwitch = PreferenceSwitch(bind: \.homeRowLetterHints)
 
     // Mouse
     private let scrollSwitch = NSSwitch()
@@ -144,6 +145,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
             buildEnglishKeyboardSection()
             buildLetterJumpSection()
             buildOneHandHintsSection()
+            buildHomeRowHintsSection()
             buildSearchSection()
         case .mouse:
             addGlobalDefaultNote()
@@ -354,6 +356,16 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                accessory: oneHandHintsSwitch, searchItemID: SearchID.oneHandHints)
     }
 
+    private func buildHomeRowHintsSection() {
+        let homeRow = addSection(title: String(localized: "Home row letter jump"), anchor: SettingsAnchor.homeRowHints)
+        addRow(to: homeRow, icon: "flask.fill",
+               title: String(localized: "These features are unstable"),
+               subtitle: String(localized: "Off by default. They may change or break."))
+        addRow(to: homeRow, title: String(localized: "One letter per window"),
+               subtitle: String(localized: "Each window gets its own letter, home row keys first, instead of letters from the app name."),
+               accessory: homeRowHintsSwitch, searchItemID: SearchID.homeRowHints)
+    }
+
     /// Search — type-to-filter behavior. “Search browser tabs” lives with the
     /// other browser-tab rows under Tabs.
     private func buildSearchSection() {
@@ -540,6 +552,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         letterTimeoutSlider.isEnabled = prefs.letterHintsEnabled
         letterTimeoutValueField.isEnabled = prefs.letterHintsEnabled
         oneHandHintsSwitch.sync()
+        homeRowHintsSwitch.sync()
 
         fuzzySwitch.state = prefs.fuzzySearchEnabled ? .on : .off
         fuzzyRow?.update(subtitle: Self.fuzzySubtitle())
