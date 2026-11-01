@@ -91,17 +91,22 @@ final class BrowserTabMRUTracker {
         var rank: [Key: Int] = [:]
         rank.reserveCapacity(order.count)
         for (i, k) in order.enumerated() { rank[k] = i }
-        // Built on the first exact miss only, so a reveal where every tab hits its
+        // Built on the first exact miss only, so a reveal where every row hits its
         // key — Safari, single-profile Chromium — pays nothing extra.
         var tabRanks: [CGWindowID: [(rank: Int, title: String)]]?
         let indexed = rows.enumerated().map { offset, row -> (rank: Int, offset: Int, row: SwitcherRow) in
             guard let key = Self.key(for: row) else { return (Int.max, offset, row) }
             if let exact = rank[key] { return (exact, offset, row) }
-            guard case .tab(let wid, let tabTitle) = key else { return (Int.max, offset, row) }
             let byWindow = tabRanks ?? Self.tabRanksByWindow(order)
             tabRanks = byWindow
-            let matched = byWindow[wid]?.first { BrowserTabs.windowTitle($0.title, matchesTab: tabTitle) }
-            return (matched?.rank ?? Int.max, offset, row)
+            switch key {
+            case .window(let wid):
+                // A browser window shown whole (tabs not scanned yet, or grouped by its rule, #253) ranks as its newest tab.
+                return (byWindow[wid]?.first?.rank ?? Int.max, offset, row)
+            case .tab(let wid, let tabTitle):
+                let matched = byWindow[wid]?.first { BrowserTabs.windowTitle($0.title, matchesTab: tabTitle) }
+                return (matched?.rank ?? Int.max, offset, row)
+            }
         }
         return indexed.sorted { lhs, rhs in
             lhs.rank != rhs.rank ? lhs.rank < rhs.rank : lhs.offset < rhs.offset

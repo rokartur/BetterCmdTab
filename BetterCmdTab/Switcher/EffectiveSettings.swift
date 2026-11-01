@@ -49,6 +49,8 @@ struct EffectiveSettings {
     // Behavioral values applied on the main-actor reveal path (the rest ride
     // `CatalogFilter.Config` into the off-main catalog filter).
     let applicationsOnly: Bool
+    /// Apps whose rule groups their windows into one entry (#253). Not per-shortcut overridable.
+    let groupedBundleIDs: Set<String>
     let windowShelf: WindowShelf
     let expandBrowserTabsAsWindows: Bool
     let sortOrder: SwitcherSortOrder
@@ -96,6 +98,7 @@ extension Preferences {
             showUnreadBadges: override.showUnreadBadges ?? showUnreadBadges,
             letterHintsEnabled: override.letterHintsEnabled ?? letterHintsEnabled,
             applicationsOnly: override.applicationsOnly ?? applicationsOnly,
+            groupedBundleIDs: Set(appExceptions.lazy.filter(\.groupWindows).map(\.bundleID)),
             windowShelf: override.windowShelf ?? windowShelf,
             expandBrowserTabsAsWindows: override.expandBrowserTabsAsWindows ?? expandBrowserTabsAsWindows,
             sortOrder: override.sortOrder ?? sortOrder,

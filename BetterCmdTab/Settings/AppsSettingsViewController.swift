@@ -173,16 +173,18 @@ final class AppsSettingsViewController: SettingsTabViewController {
             hide: exception.hide,
             ignore: exception.ignore,
             windowTitleContains: titleExclusions[exception.bundleID] ?? [],
+            groupWindows: exception.groupWindows,
             showOptions: showOptions,
             shortcutOptions: shortcutOptions
         )
         let bundleID = exception.bundleID
-        row.onChange = { [weak self] hide, ignore, windowTitleContains in
+        row.onChange = { [weak self] hide, ignore, windowTitleContains, groupWindows in
             self?.updateRule(
                 bundleID: bundleID,
                 hide: hide,
                 ignore: ignore,
-                windowTitleContains: windowTitleContains
+                windowTitleContains: windowTitleContains,
+                groupWindows: groupWindows
             )
         }
         row.onRemove = { [weak self] in
@@ -201,11 +203,13 @@ final class AppsSettingsViewController: SettingsTabViewController {
         bundleID: String,
         hide: HideWindowsMode,
         ignore: IgnoreShortcutsMode,
-        windowTitleContains: [String]
+        windowTitleContains: [String],
+        groupWindows: Bool
     ) {
         guard let idx = exceptions.firstIndex(where: { $0.bundleID == bundleID }) else { return }
         exceptions[idx].hide = hide
         exceptions[idx].ignore = ignore
+        exceptions[idx].groupWindows = groupWindows
         titleExclusions[bundleID] = windowTitleContains.isEmpty ? nil : windowTitleContains
         persist()
     }

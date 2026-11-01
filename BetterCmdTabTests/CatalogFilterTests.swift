@@ -401,4 +401,44 @@ struct CatalogFilterCollapseTests {
             preferVisible: true)
         #expect(kept == [0, 3])
     }
+
+    @Test("a group-windows rule collapses only its own app (#253)")
+    func groupWindowsRuleCollapsesOnlyItsApp() {
+        let pids = CatalogFilter.collapsiblePids(
+            [(7, "com.apple.finder"), (9, "com.apple.Terminal"), (7, "com.apple.finder"), (9, "com.apple.Terminal"), (nil, nil)],
+            onlyBundleIDs: ["com.apple.finder"])
+        #expect(pids == [7, nil, 7, nil, nil])
+        let kept = CatalogFilter.keptApplicationIndices(
+            pids: pids,
+            placeholders: [false, false, false, false, false],
+            minimized: [false, false, false, false, false],
+            preferVisible: true)
+        #expect(kept == [0, 1, 3, 4])
+
+        let everyApp = CatalogFilter.collapsiblePids([(7, "com.apple.finder"), (9, nil)], onlyBundleIDs: nil)
+        #expect(everyApp == [7, 9])
+    }
+
+    @Test("groupWindows survives the stored-dictionary round trip and is omitted when off")
+    func groupWindowsRoundTrip() throws {
+        let grouped = AppException(bundleID: "com.apple.finder", groupWindows: true)
+        #expect(grouped.dictionary["groupWindows"] == "true")
+        #expect(try #require(AppException(dictionary: grouped.dictionary)) == grouped)
+        let plain = AppException(bundleID: "com.apple.finder")
+        #expect(plain.dictionary["groupWindows"] == nil)
+        #expect(AppException(dictionary: plain.dictionary)?.groupWindows == false)
+    }
+}
+
+@Suite("Browser tab MRU")
+@MainActor
+struct BrowserTabMRUWholeWindowTests {
+    @Test("a browser window shown whole ranks as its newest tab (#253)")
+    func wholeWindowTakesNewestTabRank() {
+        let tracker = BrowserTabMRUTracker()
+        tracker.bump(.window(1))
+        tracker.bump(.tab(2, "Docs"))
+        let rows = [1, 2].map { SwitcherRow(app: .current, window: nil, windowTitle: "", isMinimized: false, cgWindowID: CGWindowID($0)) }
+        #expect(tracker.sortRows(rows).map(\.cgWindowID) == [2, 1])
+    }
 }

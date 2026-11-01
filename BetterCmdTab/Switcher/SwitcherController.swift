@@ -2250,9 +2250,14 @@ final class SwitcherController: SwitcherViewDelegate {
     /// minimized scopes keep every window so they stay useful even while the
     /// global toggle is on (that's the whole point of ⌘` — see the user's per-app
     /// vs per-window split). All other scopes (and plain ⌘Tab) collapse.
+    /// Apps whose rule groups their windows (#253) collapse on the same paths, alone.
     private func applyApplicationsOnly(_ rows: [SwitcherRow]) -> [SwitcherRow] {
-        guard applicationsCollapseActive else { return rows }
-        return CatalogFilter.collapseToApplications(rows, preferVisible: sinksMinimizedWindows)
+        guard appCollapseScope else { return rows }
+        if effective.applicationsOnly {
+            return CatalogFilter.collapseToApplications(rows, preferVisible: sinksMinimizedWindows)
+        }
+        guard !effective.groupedBundleIDs.isEmpty else { return rows }
+        return CatalogFilter.collapseToApplications(rows, onlyBundleIDs: effective.groupedBundleIDs, preferVisible: sinksMinimizedWindows)
     }
 
     /// #159's sink switch. Governs whether a collapsed app row is upgraded past a
@@ -2267,11 +2272,21 @@ final class SwitcherController: SwitcherViewDelegate {
         Preferences.shared.sinkMinimizedWindows
     }
 
-    /// True when the visible list is collapsed to one row per app — the exact
-    /// gate `applyApplicationsOnly` applies. The window drill (#80) only makes
-    /// sense then: everywhere else each window already has its own row.
+    /// True when the whole visible list is collapsed to one row per app. A grouped app
+    /// alone (#253) is `collapsesApp(bundleID:)`, which gates the window drill.
     private var applicationsCollapseActive: Bool {
-        guard effective.applicationsOnly, !windowsOnlyMode else { return false }
+        effective.applicationsOnly && appCollapseScope
+    }
+
+    /// Whether this app's rows collapse to one: the whole list does, or its rule groups it (#253).
+    private func collapsesApp(bundleID: String?) -> Bool {
+        guard appCollapseScope else { return false }
+        return effective.applicationsOnly || bundleID.map(effective.groupedBundleIDs.contains) == true
+    }
+
+    /// The reveal paths that may collapse at all: never ⌘`, the current-app or the minimized scope.
+    private var appCollapseScope: Bool {
+        guard !windowsOnlyMode else { return false }
         switch activeScope {
         case .currentAppWindows, .minimizedOnly: return false
         case .allAppsAllSpaces, .allAppsCurrentSpace, .none: return true
@@ -4119,7 +4134,8 @@ final class SwitcherController: SwitcherViewDelegate {
         // browser into per-tab rows would defeat it, so leave the rows untouched.
         guard effective.expandBrowserTabsAsWindows,
               !applicationsCollapseActive else { return source }
-        return expandBrowserTabsCore(source, limit: Preferences.shared.browserTabRowLimit)
+        let grouped = appCollapseScope ? effective.groupedBundleIDs : []
+        return expandBrowserTabsCore(source, limit: Preferences.shared.browserTabRowLimit, keepingWhole: grouped)
     }
 
     /// Pref-free expansion: replace each collapsed browser-window row with one
@@ -4128,7 +4144,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// idempotent (already-expanded tab rows pass through untouched).
     /// `limit > 0` caps each window to its `SwitcherRow.visibleTabRange` slice
     /// (#144); the search path passes 0 so typing still finds every tab.
-    private func expandBrowserTabsCore(_ source: [SwitcherRow], limit: Int = 0) -> [SwitcherRow] {
+    /// `keepingWhole` lists browsers whose rule groups their windows (#253): their row stays the app's.
+    private func expandBrowserTabsCore(_ source: [SwitcherRow], limit: Int = 0, keepingWhole: Set<String> = []) -> [SwitcherRow] {
         var out: [SwitcherRow] = []
         out.reserveCapacity(source.count)
         for row in source {
@@ -4140,6 +4157,7 @@ final class SwitcherController: SwitcherViewDelegate {
             guard row.browserTab == nil,
                   let window = row.window,
                   BrowserTabs.Family.from(bundleID: row.bundleIdentifier) != nil,
+                  !keepingWhole.contains(row.bundleIdentifier ?? ""),
                   let cached = browserTabsCache[AXRef(element: window)],
                   !cached.tabs.isEmpty else { out.append(row); continue }
             out.append(contentsOf: row.browserTabRows(
@@ -4485,7 +4503,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let requiresWindow = scope == .allSpaces
         return Self.primedTargetIndex(
             count: rows.count,
-            preferVisible: applicationsCollapseActive && sinksMinimizedWindows,
+            preferVisible: collapsesApp(bundleID: app.bundleIdentifier) && sinksMinimizedWindows,
             eligible: { rows[$0].pid == pid && (!requiresWindow || rows[$0].window != nil) },
             isMinimized: { rows[$0].isMinimized }
         ).map { rows[$0] }
@@ -5021,8 +5039,9 @@ final class SwitcherController: SwitcherViewDelegate {
 
     /// The highlighted app's windows: warm cache, the panel's filter, window-MRU order.
     private func windowsOfSelectedApp() -> [SwitcherRow] {
-        guard applicationsCollapseActive, rows.indices.contains(index) else { return [] }
+        guard rows.indices.contains(index) else { return [] }
         let row = rows[index]
+        guard collapsesApp(bundleID: row.bundleIdentifier) else { return [] }
         // An inline browser-tab row is already a leaf (mirrors enterTabDrill),
         // and a windowless app has nothing to list.
         guard row.browserTab == nil, row.window != nil, let pid = row.pid else { return [] }
