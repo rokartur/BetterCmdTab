@@ -502,6 +502,17 @@ enum Activator {
 
         let wid = resolvedWindowID(cached: cachedWid) { PrivateAPI.cgWindowId(of: window) }
 
+        // Our own window (Settings): only raise it. Making it key while the switcher panel
+        // holds key hands key over during a transient app deactivation, and AppKit then
+        // draws the window inactive (gray sidebar) for good. The panel's order-out passes key.
+        if app.pid == getpid(), let own = NSApp.windows.first(where: { $0.windowNumber == Int(wid) }) {
+            if own.isMiniaturized { own.deminiaturize(nil) }
+            own.orderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            completion()
+            return
+        }
+
         // Jump to the window's Space instantly (no slide) before raising. The
         // synthetic Dock-swipe lands asynchronously, so focus waits for it.
         if instantSpace && wid != 0 && PrivateAPI.switchToSpace(ofWindow: wid) {
