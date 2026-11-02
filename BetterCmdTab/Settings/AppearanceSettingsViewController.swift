@@ -71,19 +71,17 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Choose which monitor the switcher opens on when you have more than one display."),
                accessory: displayMonitorPopup, searchItemID: SearchID.displayMonitor)
 
-        let position = addSection(title: String(localized: "Position"), anchor: SettingsAnchor.appearancePosition)
-        position.addUnstableNotice()
-        addRow(to: position, title: String(localized: "Move pointer to the window's display"),
+        addRow(to: placement, title: String(localized: "Move pointer to the window's display"),
                subtitle: String(localized: "When the window you switch to is on another display, move the pointer to the center of that display."),
                accessory: movePointerSwitch, searchItemID: SearchID.movePointerAcrossDisplays)
 
         configurePopup(verticalPositionPopup, titles: verticalPositions.map(\.displayName), action: #selector(verticalPositionChanged))
-        addRow(to: position, title: String(localized: "Vertical position"),
+        addRow(to: placement, title: String(localized: "Vertical position"),
                subtitle: String(localized: "Top keeps the panel in place while search narrows the list."),
                accessory: verticalPositionPopup, searchItemID: SearchID.verticalPosition)
 
         let topOffsetTitle = String(localized: "Distance from top")
-        addRow(to: position, title: topOffsetTitle,
+        addRow(to: placement, title: topOffsetTitle,
                subtitle: String(localized: "With “Top”, the gap above the panel as a percentage of the usable screen height."),
                accessory: makeValueSlider(topOffsetSlider, field: topOffsetValueField, range: Preferences.topOffsetPercentRange,
                                           unit: "%", label: topOffsetTitle, sliderAction: #selector(topOffsetChanged(_:)),
