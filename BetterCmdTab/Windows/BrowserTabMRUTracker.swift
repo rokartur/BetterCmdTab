@@ -91,14 +91,45 @@ final class BrowserTabMRUTracker {
     /// behave identically apart from the richer key.
     func sortRows(_ rows: [SwitcherRow]) -> [SwitcherRow] {
         guard !order.isEmpty, rows.count > 1 else { return rows }
-        let ranking = ranking()
-        let indexed = rows.enumerated().map { offset, row -> (rank: Int, offset: Int, row: SwitcherRow) in
-            guard let key = Self.key(for: row) else { return (Int.max, offset, row) }
-            return (ranking.rank(for: key) ?? Int.max, offset, row)
+        return rankedIndices(rows).map { rows[$0] }
+    }
+
+    /// App recency keeps the application's slots; only browser entries within
+    /// those slots are reordered. Ordinary apps retain their window-MRU order.
+    func sortRowsWithinApps(_ rows: [SwitcherRow], browserPids: Set<pid_t>, priorities: [Int]) -> [SwitcherRow] {
+        guard !order.isEmpty, rows.count > 1, !browserPids.isEmpty else { return rows }
+        return Self.appSlotOrder(pids: rows.map(\.pid), priorities: priorities, rankedIndices: rankedIndices(rows),
+                                 includedPids: browserPids).map { rows[$0] }
+    }
+
+    /// Preserve app order even when status buckets split an app's entries.
+    static func appSlotOrder(pids: [pid_t?], priorities: [Int], rankedIndices: [Int], includedPids: Set<pid_t>) -> [Int] {
+        struct Slot: Hashable { let pid: pid_t; let priority: Int }
+        var bySlot: [Slot: [Int]] = [:]
+        for index in rankedIndices {
+            if let pid = pids[index], includedPids.contains(pid) {
+                bySlot[Slot(pid: pid, priority: priorities[index]), default: []].append(index)
+            }
         }
-        return indexed.sorted { lhs, rhs in
-            lhs.rank != rhs.rank ? lhs.rank < rhs.rank : lhs.offset < rhs.offset
-        }.map(\.row)
+        var offsets: [Slot: Int] = [:]
+        return pids.indices.map { index in
+            guard let pid = pids[index] else { return index }
+            let slot = Slot(pid: pid, priority: priorities[index])
+            guard let ranked = bySlot[slot] else { return index }
+            let offset = offsets[slot, default: 0]
+            offsets[slot] = offset + 1
+            return ranked[offset]
+        }
+    }
+
+    private func rankedIndices(_ rows: [SwitcherRow]) -> [Int] {
+        let ranking = ranking()
+        let ranks = rows.map { row in
+            Self.key(for: row).flatMap { ranking.rank(for: $0) } ?? Int.max
+        }
+        return rows.indices.sorted { lhs, rhs in
+            ranks[lhs] != ranks[rhs] ? ranks[lhs] < ranks[rhs] : lhs < rhs
+        }
     }
 
     /// A read-only index shared by candidate selection and display sorting. A
