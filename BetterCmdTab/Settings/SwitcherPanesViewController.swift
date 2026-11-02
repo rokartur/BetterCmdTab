@@ -270,13 +270,13 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                               action: #selector(browserTabLimitCommitted(_:)),
                               accessibilityLabel: browserTabLimitTitle)
         addRow(to: tabs, title: browserTabLimitTitle,
-               subtitle: String(localized: "At most this many tab entries per browser window (2–16), keeping the active tab visible. Set to 0 to show every tab."),
+               subtitle: String(localized: "With tab recency and “Most recent (windows)”, this limit applies to each browser across its windows. Other modes limit each window and keep its active tab visible. Set to 0 for no limit (otherwise 2–16)."),
                accessory: browserTabLimitField, searchItemID: SearchID.browserTabLimit)
         addRow(to: tabs, title: String(localized: "Show browser icon on tab entries"),
                subtitle: String(localized: "Badge each tab entry's favicon with the source browser's app icon, so you can tell which browser a tab belongs to when the same site is open in more than one."),
                accessory: browserIconOnTabsSwitch, searchItemID: SearchID.browserIconOnTabs)
         addRow(to: tabs, title: String(localized: "Track browser tabs in recency"),
-               subtitle: String(localized: "With “Show browser tabs as separate entries” and the “Most recent (windows)” sort order on, ⌘Tab returns to the tab you last used, not just the last window. Needs always-on monitoring of your browsers, so it costs a little energy."),
+               subtitle: String(localized: "With “Show browser tabs as separate entries” and “Most recent (windows)”, ⌘Tab follows the last-used tabs across windows. Only tabs observed since launch are listed; without history, a browser window stays available. Monitoring browsers uses a little energy."),
                accessory: browserTabMRUSwitch, searchItemID: SearchID.browserTabMRU)
         addRow(to: tabs, title: String(localized: "Browser tab previews"),
                subtitle: String(localized: "Capture the active browser tab for the Previews layout. Background tabs use an earlier cached image or their favicon."),
