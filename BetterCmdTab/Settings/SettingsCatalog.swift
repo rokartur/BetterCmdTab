@@ -70,7 +70,6 @@ enum SettingsAnchor {
     static let pinned = "apps.pinned"
     // Appearance
     static let appearancePlacement = "appearance.placement"
-    static let appearancePosition = "appearance.position"
     static let appearanceLayout = "appearance.layoutSection"
     static let appearanceLabels = "appearance.labels"
     static let appearancePanel = "appearance.panel"
@@ -557,11 +556,11 @@ enum SettingsCatalog {
         // Appearance · Layout
         item(SearchID.displayMonitor, .appearance, SettingsAnchor.appearancePlacement, String(localized: "Appearance"), String(localized: "Placement"),
              String(localized: "Show switcher on"), ["display", "monitor", "screen", "multi monitor", "cursor", "main display", "active app", "active space"]),
-        item(SearchID.movePointerAcrossDisplays, .appearance, SettingsAnchor.appearancePosition, String(localized: "Appearance"), String(localized: "Position"),
+        item(SearchID.movePointerAcrossDisplays, .appearance, SettingsAnchor.appearancePlacement, String(localized: "Appearance"), String(localized: "Placement"),
              String(localized: "Move pointer to the window's display"), ["pointer", "cursor", "mouse", "follow", "display", "monitor", "multi monitor"]),
-        item(SearchID.verticalPosition, .appearance, SettingsAnchor.appearancePosition, String(localized: "Appearance"), String(localized: "Position"),
+        item(SearchID.verticalPosition, .appearance, SettingsAnchor.appearancePlacement, String(localized: "Appearance"), String(localized: "Placement"),
              String(localized: "Vertical position"), ["position", "vertical", "top", "center", "higher", "align", "placement"]),
-        item(SearchID.topOffset, .appearance, SettingsAnchor.appearancePosition, String(localized: "Appearance"), String(localized: "Position"),
+        item(SearchID.topOffset, .appearance, SettingsAnchor.appearancePlacement, String(localized: "Appearance"), String(localized: "Placement"),
              String(localized: "Distance from top"), ["top", "offset", "margin", "padding", "gap", "percent", "higher", "lower"]),
         item(SearchID.layout, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Layout"), ["layout", "grid", "list", "preview"]),
