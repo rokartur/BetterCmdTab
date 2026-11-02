@@ -48,6 +48,52 @@
         }
       }
     },
+    "Most recent (apps) keeps apps together by last use; Most recent (windows) orders entries across apps. Other sorts stay put." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Zuletzt verwendet (Apps)“ gruppiert Apps nach letzter Nutzung; „Zuletzt verwendet (Fenster)“ ordnet Einträge appübergreifend. Andere Sortierungen bleiben unverändert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Más reciente (aplicaciones)» agrupa las apps por su último uso; «Más reciente (ventanas)» ordena las entradas entre apps. Los demás órdenes no cambian."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Récemment utilisé (applications) » regroupe les apps par dernière utilisation ; « Récemment utilisé (fenêtres) » ordonne les entrées de toutes les apps. Les autres tris restent fixes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「最近使った順（アプリ）」はアプリごとに最近使った順に並べます。「最近使った順（ウインドウ）」はアプリをまたいで各項目を並べます。それ以外の並び順は固定です。"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Ostatnio używane (aplikacje)” grupuje aplikacje według ostatniego użycia; „Ostatnio używane (okna)” porządkuje pozycje ze wszystkich aplikacji. Pozostałe kolejności są stałe."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Недавние (приложения)» группирует приложения по последнему использованию; «Недавние (окна)» упорядочивает элементы всех приложений. Остальные порядки не меняются."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“最近使用（应用）”按最后使用时间排列应用；“最近使用（窗口）”按最后使用时间混排各应用的条目。其他排序保持固定。"
+          }
+        }
+      }
+    },
     "Use English (US) keys for shortcuts and search in the switcher, regardless of your input language." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11600,52 +11646,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最近使用（窗口）"
-          }
-        }
-      }
-    },
-    "Most recent keeps the classic ⌘Tab order; the others stay put." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "„Zuletzt verwendet“ behält die klassische ⌘Tab-Reihenfolge bei; die anderen bleiben unverändert."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "«Más reciente» mantiene el orden clásico de ⌘Tab; los demás no cambian."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Récemment utilisé conserve l’ordre classique de ⌘Tab ; les autres restent en place."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「最近使った順」は従来の⌘Tabの順序のままです。それ以外は順序が変わりません。"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ostatnio używane zachowuje klasyczną kolejność ⌘Tab; pozostałe pozostają na miejscu."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Режим «Недавние» сохраняет классический порядок ⌘Tab; остальные остаются на месте."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“最近使用”保持经典 ⌘Tab 顺序；其他排序保持不变。"
           }
         }
       }
