@@ -1,43 +1,13 @@
 import AppKit
 
-/// Editor for per-app switcher letters: give an app a fixed jump letter, or skip
-/// it so it gets no letter and reserves none (#183). These are panel hints, not
-/// Direct Activation shortcuts — no global hotkey is registered. A fixed letter
-/// and a skip are the two answers to the same per-app question, so they live in
-/// one list; an app is in one state or the other, never both.
-@MainActor
-final class QuickJumpMappingsSheetWindowController: NSWindowController {
-    private let content = QuickJumpMappingsSheetViewController()
-    private var hasDismissed = false
-    var onDidDismiss: (() -> Void)?
-
-    init() {
-        let window = NSWindow(contentViewController: content)
-        window.styleMask = [.titled, .closable]
-        window.title = String(localized: "Custom App Letters")
-        window.titlebarAppearsTransparent = true
-        window.isReleasedWhenClosed = false
-        window.setContentSize(NSSize(width: 520, height: 460))
-        super.init(window: window)
-        content.onClose = { [weak self] in self?.dismissSheet() }
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
-
-    func present(asSheetFor parent: NSWindow) {
-        guard let window else { return }
-        parent.beginSheet(window)
-    }
-
-    private func dismissSheet() {
-        guard !hasDismissed, let window else { return }
-        hasDismissed = true
-        if let parent = window.sheetParent {
-            parent.endSheet(window)
-        } else {
-            window.orderOut(nil)
-        }
-        onDidDismiss?()
+/// Per-app panel jump letters, or Skip for no letter (#183). No global hotkey is registered.
+extension SheetWindowController {
+    static func quickJumpMappings() -> SheetWindowController {
+        let content = QuickJumpMappingsSheetViewController()
+        let controller = SheetWindowController(content: content, title: String(localized: "Custom App Letters"),
+                                               size: NSSize(width: 520, height: 460))
+        content.onClose = { [weak controller] in controller?.dismissSheet() }
+        return controller
     }
 }
 
@@ -62,7 +32,7 @@ private final class QuickJumpMappingsSheetViewController: NSViewController {
 
     private var mappings = Preferences.shared.quickJumpMappings
     private var excluded = Preferences.shared.letterHintExcludedBundleIDs
-    private var appPicker: AppsPickerSheetWindowController?
+    private var appPicker: SheetWindowController?
     private let rowsStack = NSStackView()
     private let emptyLabel = NSTextField(labelWithString: "")
 
@@ -263,14 +233,13 @@ private final class QuickJumpMappingsSheetViewController: NSViewController {
         return letter.flatMap { QuickJumpMapping(bundleID: bundleID, letter: String($0)) }
     }
 
-    /// h/j/k/l move the selection when vim navigation is on, so they cannot jump.
     private static var vimReservedLetters: Set<Character> {
-        Preferences.shared.vimNavigationEnabled ? HotkeyTap.vimNavigationLetters : []
+        Preferences.quickJumpBlockedLetters(vimEnabled: Preferences.shared.vimNavigationEnabled)
     }
 
     @objc private func addApp() {
         guard let window = view.window, appPicker == nil else { return }
-        let picker = AppsPickerSheetWindowController(
+        let picker = SheetWindowController.appsPicker(
             title: String(localized: "Choose an App"),
             prompt: String(localized: "Choose an app to give a fixed letter or skip from letter hints."),
             selectedBundleIDs: [],
@@ -385,7 +354,7 @@ private final class QuickJumpMappingRowView: NSView, NSTextFieldDelegate {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let info = AppsSettingsViewController.appInfo(for: bundleID)
             DispatchQueue.main.async {
-                guard let self, self.bundleID == bundleID else { return }
+                guard let self else { return }
                 self.name.stringValue = info.name
                 self.icon.image = info.icon
             }

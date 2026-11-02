@@ -21,9 +21,7 @@ final class TrackpadSettingsViewController: SettingsTabViewController {
 
     private func buildSwipeSection() {
         let swipe = addSection(title: String(localized: "Trackpad swipe"), anchor: SettingsAnchor.swipe)
-        addRow(to: swipe, icon: "flask.fill",
-               title: String(localized: "These features are unstable"),
-               subtitle: String(localized: "Off by default. They may change or break."))
+        swipe.addUnstableNotice()
 
         configureSwitch(swipeSwitch, action: #selector(toggleSwipe(_:)))
         addRow(to: swipe, title: String(localized: "Swipe gesture"),

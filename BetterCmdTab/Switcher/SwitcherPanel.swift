@@ -405,6 +405,16 @@ final class SwitcherPanel: NSPanel {
         visible.height * CGFloat(100 - topOffsetPercent) / 100
     }
 
+    /// Tallest panel, shelf included, that `origin` places without sliding the switcher row.
+    /// `.center` keeps the row centered, so the shelf needs its own height again above it.
+    static func room(in visible: NSRect, position: SwitcherVerticalPosition, topOffsetPercent: Int,
+                     hanging: CGFloat) -> CGFloat {
+        switch position {
+        case .top: topRoom(in: visible, topOffsetPercent: topOffsetPercent)
+        case .center: visible.height - hanging
+        }
+    }
+
     func activeScreen() -> NSScreen {
         targetScreen ?? Self.preferredScreen()
     }

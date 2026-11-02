@@ -80,7 +80,7 @@ cp ~/.config/bettercmdtab/schema.json web/src/docs/config-schema.json
 Then add the key to `sections` and its `reloadFromDefaults()` value to
 `defaults` in `web/src/docs/config-reference.ts`.
 
-**Complete when:** `ConfigSchemaDocsTests` passes and `cd docs && bun run build`
+**Complete when:** `ConfigSchemaDocsTests` passes and `cd web && bun run build`
 passes; the build fails and names any key missing from either map.
 
 ## 7. Verify

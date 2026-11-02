@@ -42,6 +42,15 @@ struct SwitcherPanelOriginTests {
         #expect(SwitcherPanel.topRoom(in: visible, topOffsetPercent: 0) == 1000)
     }
 
+    @Test func centeredPanelAtItsRoomKeepsTheRowCentered() {
+        let hanging: CGFloat = 300
+        let room = SwitcherPanel.room(in: visible, position: .center, topOffsetPercent: 0, hanging: hanging)
+        let panel = NSSize(width: 400, height: room)
+        let origin = SwitcherPanel.origin(of: panel, in: visible, position: .center, topOffsetPercent: 0, hanging: hanging)
+        #expect(origin.y >= visible.minY)
+        #expect(origin.y + panel.height - (panel.height - hanging) / 2 == visible.midY)
+    }
+
     @Test func offsetMeasuresFromVisibleFrameNotScreenOrigin() {
         let shifted = NSRect(x: 100, y: 50, width: 1000, height: 1000)
         let origin = SwitcherPanel.origin(of: size, in: shifted, position: .top, topOffsetPercent: 10)

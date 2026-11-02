@@ -82,6 +82,15 @@ enum KeyboardLayout {
         }
     }
 
+    /// The keycode that types `character` unmodified in the frontmost app. Ignores the English mapping
+    /// preference: a posted key event is read on the target app's active layout. Main thread only.
+    static func activeKeyCode(typing character: Character) -> CGKeyCode? {
+        let current = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue()
+        let ascii = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue()
+        let data = current.flatMap(layoutData(from:)) ?? ascii.flatMap(layoutData(from:))
+        return (0 as CGKeyCode..<128).first { translate($0, in: data) == character }
+    }
+
     /// The a–z jump letters under `hand`, by touch-typing key position.
     static func letters(under hand: KeyboardHand) -> Set<Character> {
         var letters = Set<Character>()

@@ -84,6 +84,16 @@ struct SwipeGestureTests {
         #expect(actions.allSatisfy { $0.steps == 0 && $0.rows == 0 && !$0.commit })
     }
 
+    @Test("a fourth finger after the swipe stepped still commits on lift")
+    func extraFingerAfterAStepStillCommits() {
+        startScrubbing(fingers: 3)
+        let step = MTGesture.stepDistance(forLevel: MTGesture.defaultSensitivityLevel)
+        _ = frame(fingers: 3, x: 0.1, at: 0)
+        #expect(frame(fingers: 3, x: 0.1 + step * 1.1, at: 0.06).steps == 1)
+        _ = frame(fingers: 4, x: 0.1 + step * 2, at: 0.08)
+        #expect(frame(fingers: 0, at: 0.1).commit)
+    }
+
     @Test("the next three-finger touch after a rejected one steps again")
     func rejectionEndsAtLift() {
         startScrubbing(fingers: 3)

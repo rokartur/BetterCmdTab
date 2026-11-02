@@ -17,8 +17,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             addItem(to: menu, String(localized: "Open Accessibility Settings"), #selector(openAccessibilitySettings))
             menu.addItem(.separator())
         }
-        addItem(to: menu, String(localized: "Check for Updates"), #selector(checkForUpdates))
-        addItem(to: menu, String(localized: "Settings"), #selector(openSettings), keyEquivalent: ",")
+        addItem(to: menu, String(localized: "Check for Updates…"), #selector(checkForUpdates))
+        addItem(to: menu, String(localized: "Settings…"), #selector(openSettings), keyEquivalent: ",")
         addItem(to: menu, String(localized: "Quit BetterCmdTab"), #selector(quit), keyEquivalent: "q")
     }
 
@@ -50,4 +50,3 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         NSApp.terminate(nil)
     }
 }
-

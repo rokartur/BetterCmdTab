@@ -183,8 +183,10 @@ final class AppRuleRowView: NSView, NSTokenFieldDelegate {
         String(localized: "Lets the app keep ⌘Tab for itself: the chord is passed through to the app instead of opening the switcher. Useful for apps with their own window switching — virtual machines, remote desktop, some games.\n\n• Never — the switcher always opens.\n• Always — the app keeps ⌘Tab whenever it's focused.\n• In full screen — only while the app is in full screen.")
     private static let titleInfo =
         String(localized: "Hide only windows whose title contains one of these phrases. Matching ignores capitalization and accents; the app's other windows remain available. Press Return or type a comma after each phrase.")
-    private static let groupInfo =
-        String(localized: "Lists this app once in the switcher instead of once per window, as “Applications only” does for every app. With “Peek windows with ↓” or the window shelf on, its windows stay one step away. ⌘` still lists each window.")
+    // Unstable like every new feature (CODING_STANDARDS, Preferences); the notice opens its info text.
+    private static let groupInfo = String(localized: "These features are unstable") + "\n"
+        + String(localized: "Off by default. They may change or break.") + "\n\n"
+        + String(localized: "Lists this app once in the switcher instead of once per window, as “Applications only” does for every app. With “Peek windows with ↓” or the window shelf on, its windows stay one step away. ⌘` still lists each window.")
 
     // MARK: - Actions
 

@@ -274,6 +274,8 @@ enum MTGesture {
         /// Set once more than `fingerCount` fingers touch: that touch is another
         /// gesture, such as a four-finger Space swipe (#259), until every finger lifts.
         var rejected = false
+        /// This touch moved the selection, so its lift still commits after an extra finger rejects it.
+        var stepped = false
         /// The touch on the pad, or the last one to lift, is this gesture's. Kept past the
         /// lift, briefly: a system Space swipe can send phases after the fingers leave.
         var ownsTouch = false
@@ -378,6 +380,7 @@ enum MTGesture {
                 state.tracking = false
                 state.active = false
                 state.rejected = false
+                state.stepped = false
                 state.accumulator = 0
                 state.rowAccumulator = 0
                 state.fired = false
@@ -424,10 +427,12 @@ enum MTGesture {
                     guard !state.fired else { return .none }
                     if state.accumulator >= oneShotThreshold {
                         state.fired = true
+                        state.stepped = true
                         return Action(steps: rightward, generation: state.generation)
                     }
                     if state.accumulator <= -oneShotThreshold {
                         state.fired = true
+                        state.stepped = true
                         return Action(steps: -rightward, generation: state.generation)
                     }
                     return .none
@@ -438,10 +443,14 @@ enum MTGesture {
                 let physicalSteps = takeWholeSteps(from: &state.accumulator, distance: state.stepDistance)
                 if physicalSteps != 0 {
                     state.rowAccumulator = 0
+                    state.stepped = true
                     return Action(steps: physicalSteps * rightward, generation: state.generation)
                 }
                 let rowSteps = takeWholeSteps(from: &state.rowAccumulator, distance: state.stepDistance)
-                if rowSteps != 0 { state.accumulator = 0 }
+                if rowSteps != 0 {
+                    state.accumulator = 0
+                    state.stepped = true
+                }
                 // Normalized y grows upward, so an upward slide is a row up (-1).
                 return Action(rows: -rowSteps, generation: state.generation)
             }
@@ -449,10 +458,11 @@ enum MTGesture {
             if !state.active, contactCount > 0 { state.ownsTouch = false }
             state.tracking = false
             guard contactCount == 0 else { return .none }
-            let shouldCommit = state.active && state.commitOnRelease
+            let shouldCommit = (state.active || state.stepped) && state.commitOnRelease
             if state.active { state.ownedLiftAt = DispatchTime.now().uptimeNanoseconds }
             state.active = false
             state.rejected = false
+            state.stepped = false
             state.accumulator = 0
             state.rowAccumulator = 0
             state.fired = false

@@ -264,7 +264,7 @@ extension Preferences {
         // presence: a hand-written `null`/string is skipped by the plist guard
         // above, so honoring it would drop the local key and read back the default.
         for graduated in Preferences.GraduatedPreference.allCases
-        where values[graduated.legacyKey] as? Bool != nil && values[graduated.key] == nil {
+        where values[graduated.legacyKey] is Bool && values[graduated.key] == nil {
             defaults.removeObject(forKey: graduated.key)
         }
         reloadFromDefaults()

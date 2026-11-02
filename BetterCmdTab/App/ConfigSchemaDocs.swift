@@ -346,9 +346,9 @@ enum ConfigSchemaDocs {
         "sinkMinimizedWindows": ConfigSettingDoc("boolean", "Move minimized windows to the bottom of the list instead of leaving them in their most-recently-used position."),
         "showWindowlessApps": ConfigSettingDoc("boolean", "Include running apps that have no open window."),
         "applicationsOnly": ConfigSettingDoc("boolean", "Show one entry per app instead of one per window."),
-        "windowDrillEnabled": ConfigSettingDoc("boolean", "Peek the highlighted app's windows with ↓ while \"applications only\" is on."),
+        "windowDrillEnabled": ConfigSettingDoc("boolean", "Peek the highlighted app's windows with ↓ while \"applications only\" is on, or for an app whose rule sets groupWindows."),
         "windowShelf": ConfigSettingDoc(
-            "string", "While \"applications only\" is on, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
+            "string", "While \"applications only\" is on, or for an app whose rule sets groupWindows, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
             values: ConfigValues(WindowShelf.self, \.displayName)),
         "windowShelfSingleWindow": ConfigSettingDoc("boolean", "Show the window shelf for an app with only one window."),
         "handoffPlacement": ConfigSettingDoc(

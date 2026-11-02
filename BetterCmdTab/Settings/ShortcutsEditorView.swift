@@ -112,7 +112,7 @@ final class ShortcutsEditorView: NSView {
     /// for items that no longer exist. Plain selection changes go through
     /// `showSelected` and reuse the cache, so they stay instant.
     func rebuildTabs(select index: Int) {
-        targets = Self.profileTargets
+        targets = [.switchApps, .switchWindows] + Preferences.shared.scopedShortcuts.map { .scoped($0.id) }
 
         // Drop cached panels whose target is gone (removed scoped shortcut).
         let valid = Set(targets.map(\.storageKey))
@@ -135,11 +135,7 @@ final class ShortcutsEditorView: NSView {
         list.reload(items: Self.listItems(for: targets), selectedIndex: selectedIndex)
     }
 
-    static var profileTargets: [SwitchTarget] {
-        [.switchApps, .switchWindows] + Preferences.shared.scopedShortcuts.map { .scoped($0.id) }
-    }
-
-    static func listItems(for targets: [SwitchTarget]) -> [ShortcutsListView.Item] {
+    private static func listItems(for targets: [SwitchTarget]) -> [ShortcutsListView.Item] {
         targets.enumerated().map { index, target in
             ShortcutsListView.Item(
                 icon: icon(for: target),

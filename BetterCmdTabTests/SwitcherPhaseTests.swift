@@ -320,13 +320,13 @@ struct PrimedTargetIndexTests {
 @Suite("Switcher primed start (#251)")
 struct SwitcherPrimedStartTests {
     @Test func nextApp_stepsOneFromFrontmost() {
-        #expect(SwitcherController.primedStart(count: 5, delta: 1, anchor: 3, startsInMiddle: false) == (4, 1))
-        #expect(SwitcherController.primedStart(count: 5, delta: -1, anchor: 3, startsInMiddle: false) == (2, -1))
+        #expect(PrimedSelection.start(count: 5, delta: 1, anchor: 3, startsInMiddle: false) == (4, 1))
+        #expect(PrimedSelection.start(count: 5, delta: -1, anchor: 3, startsInMiddle: false) == (2, -1))
     }
 
     @Test func excludedCurrentApp_startsOnItsNeighbors() {
         func start(delta: Int, excludedAt: Int) -> (Int, Int) {
-            SwitcherController.primedStart(count: 4, delta: delta, anchor: nil, startsInMiddle: false, excludedAt: excludedAt)
+            PrimedSelection.start(count: 4, delta: delta, anchor: nil, startsInMiddle: false, excludedAt: excludedAt)
         }
         // Most recent sorts: the current app led the list.
         #expect(start(delta: 1, excludedAt: 0) == (0, 0))
@@ -337,34 +337,34 @@ struct SwitcherPrimedStartTests {
         #expect(start(delta: 1, excludedAt: 4) == (0, 0))
         #expect(start(delta: -1, excludedAt: 4) == (3, -1))
         // Middle mode starts on the middle app even with the current app excluded.
-        #expect(SwitcherController.primedStart(count: 4, delta: 1, anchor: nil, startsInMiddle: true, excludedAt: 0) == (2, 0))
+        #expect(PrimedSelection.start(count: 4, delta: 1, anchor: nil, startsInMiddle: true, excludedAt: 0) == (2, 0))
     }
 
     @Test func middle_landsOnMiddleAppWithNoStep() {
-        #expect(SwitcherController.primedStart(count: 5, delta: 1, anchor: 4, startsInMiddle: true) == (2, 0))
-        #expect(SwitcherController.primedStart(count: 5, delta: -1, anchor: 0, startsInMiddle: true) == (2, 0))
-        #expect(SwitcherController.primedStart(count: 4, delta: 1, anchor: nil, startsInMiddle: true) == (2, 0))
-        #expect(SwitcherController.primedStart(count: 0, delta: 1, anchor: nil, startsInMiddle: true) == (0, 0))
-        #expect(SwitcherController.primedStart(count: 1, delta: 1, anchor: 0, startsInMiddle: true) == (0, 0))
+        #expect(PrimedSelection.start(count: 5, delta: 1, anchor: 4, startsInMiddle: true) == (2, 0))
+        #expect(PrimedSelection.start(count: 5, delta: -1, anchor: 0, startsInMiddle: true) == (2, 0))
+        #expect(PrimedSelection.start(count: 4, delta: 1, anchor: nil, startsInMiddle: true) == (2, 0))
+        #expect(PrimedSelection.start(count: 0, delta: 1, anchor: nil, startsInMiddle: true) == (0, 0))
+        #expect(PrimedSelection.start(count: 1, delta: 1, anchor: 0, startsInMiddle: true) == (0, 0))
     }
 
     @Test func middle_stepsPastMiddleWhenItIsFrontmost() {
-        #expect(SwitcherController.primedStart(count: 5, delta: 1, anchor: 2, startsInMiddle: true) == (3, 0))
-        #expect(SwitcherController.primedStart(count: 5, delta: -1, anchor: 2, startsInMiddle: true) == (1, 0))
-        #expect(SwitcherController.primedStart(count: 2, delta: 1, anchor: 1, startsInMiddle: true) == (0, 0))
+        #expect(PrimedSelection.start(count: 5, delta: 1, anchor: 2, startsInMiddle: true) == (3, 0))
+        #expect(PrimedSelection.start(count: 5, delta: -1, anchor: 2, startsInMiddle: true) == (1, 0))
+        #expect(PrimedSelection.start(count: 2, delta: 1, anchor: 1, startsInMiddle: true) == (0, 0))
     }
 
     @Test(arguments: SwitcherSortOrder.allCases)
     func middle_onlyUnderSortsThatStayPut(sort: SwitcherSortOrder) {
         let staysPut: Set<SwitcherSortOrder> = [.alphabetical, .launchOrder, .dock]
-        #expect(SwitcherController.startsPrimedInMiddle(sort: sort, selection: .middle) == staysPut.contains(sort))
-        #expect(!SwitcherController.startsPrimedInMiddle(sort: sort, selection: .nextApp))
+        #expect(PrimedSelection.startsInMiddle(sort: sort, selection: .middle) == staysPut.contains(sort))
+        #expect(!PrimedSelection.startsInMiddle(sort: sort, selection: .nextApp))
     }
 
     @Test func middle_scopedRemapAnchorsOnMiddleEligibleApp() {
         let pids: [pid_t] = [10, 20, 30, 40, 50]
         func remap(_ eligible: Set<pid_t>, front: pid_t, direction: Int, taps: Int = 0) -> pid_t? {
-            SwitcherController.eligiblePrimedIndex(
+            PrimedSelection.eligibleIndex(
                 primedPids: pids, eligiblePids: eligible, step: taps, direction: direction,
                 anchorPid: front, startsInMiddle: true
             ).map { pids[$0] }
@@ -385,14 +385,14 @@ struct SwitcherPrimedStartTests {
     }
 
     @Test func nextApp_scopedRemapStepsFromEligibleFrontmost() {
-        #expect(SwitcherController.eligiblePrimedIndex(
+        #expect(PrimedSelection.eligibleIndex(
             primedPids: [10, 20, 30, 40, 50], eligiblePids: [20, 30, 50], step: 1, direction: 1,
             anchorPid: 20, startsInMiddle: false) == 2)
     }
 
     @Test func excludedCurrentApp_scopedRemapStartsOnTheNextEligibleApp() {
         func remap(step: Int, excludedAt: Int) -> Int? {
-            SwitcherController.eligiblePrimedIndex(
+            PrimedSelection.eligibleIndex(
                 primedPids: [10, 20, 30, 40], eligiblePids: [10, 40], step: step, direction: 1,
                 anchorPid: nil, startsInMiddle: false, excludedAt: excludedAt)
         }
@@ -400,7 +400,7 @@ struct SwitcherPrimedStartTests {
         #expect(remap(step: -1, excludedAt: 2) == 0)
         #expect(remap(step: 0, excludedAt: 4) == 0)
         // Middle mode remaps on the middle eligible app, not the excluded app's neighbor.
-        #expect(SwitcherController.eligiblePrimedIndex(
+        #expect(PrimedSelection.eligibleIndex(
             primedPids: [10, 20, 30, 40], eligiblePids: [10, 20, 30, 40], step: 0, direction: 1,
             anchorPid: 99, startsInMiddle: true, excludedAt: 0) == 2)
     }
@@ -428,10 +428,10 @@ struct SwitcherPrimedFrontSlotTests {
         let pins = [try #require(pinned.bundleIdentifier)]
         let primed = CatalogFilter.ordered([front, previous, pinned], sort: .mru, pinned: pins)
         #expect(primed == [pinned, front, previous])
-        let slot = SwitcherController.primedFrontSlot(of: front, in: primed, sort: .mru, pinned: pins)
+        let slot = PrimedSelection.frontSlot(of: front, in: primed, sort: .mru, pinned: pins)
         #expect(slot.anchor == 1 && slot.missingAt == nil)
         func target(_ delta: Int) -> NSRunningApplication {
-            primed[SwitcherController.primedStart(
+            primed[PrimedSelection.start(
                 count: primed.count, delta: delta, anchor: slot.anchor, startsInMiddle: false, excludedAt: slot.missingAt).index]
         }
         #expect(target(1) == previous)
@@ -444,18 +444,18 @@ struct SwitcherPrimedFrontSlotTests {
         let pins = [try #require(pinned.bundleIdentifier)]
         // A windowless Finder hidden by its exception: the list holds every app but it.
         let primed = CatalogFilter.ordered([previous, pinned], sort: .mru, pinned: pins)
-        let slot = SwitcherController.primedFrontSlot(of: front, in: primed, sort: .mru, pinned: pins)
+        let slot = PrimedSelection.frontSlot(of: front, in: primed, sort: .mru, pinned: pins)
         #expect(slot.anchor == nil && slot.missingAt == 1)
-        #expect(SwitcherController.primedFrontSlot(of: front, in: [previous, pinned], sort: .mru, pinned: []).missingAt == 0)
+        #expect(PrimedSelection.frontSlot(of: front, in: [previous, pinned], sort: .mru, pinned: []).missingAt == 0)
         // Sorts that stay put place it by their key: apps are in name order, so between the other two.
         let named = CatalogFilter.ordered([apps[0], apps[2]], sort: .alphabetical, pinned: [])
-        #expect(SwitcherController.primedFrontSlot(of: apps[1], in: named, sort: .alphabetical, pinned: []).missingAt == 1)
-        #expect(SwitcherController.primedFrontSlot(of: nil, in: primed, sort: .mru, pinned: pins) == (nil, nil))
+        #expect(PrimedSelection.frontSlot(of: apps[1], in: named, sort: .alphabetical, pinned: []).missingAt == 1)
+        #expect(PrimedSelection.frontSlot(of: nil, in: primed, sort: .mru, pinned: pins) == (nil, nil))
     }
 
     @Test func recencyRows_countFromTheFrontmostAppsNewestRow() {
         func row(_ rowPids: [pid_t?], step: Int, appsAhead: [pid_t]? = nil) -> Int {
-            SwitcherController.recencyRowIndex(rowPids: rowPids, front: 5, appsAhead: appsAhead, step: step)
+            PrimedSelection.recencyRowIndex(rowPids: rowPids, front: 5, appsAhead: appsAhead, step: step)
         }
         // Pinned app 1 with two windows ahead of the current window.
         #expect(row([1, 1, 5, 7, 8], step: 1) == 3)
@@ -468,7 +468,7 @@ struct SwitcherPrimedFrontSlotTests {
 
     @Test func recencyRows_skipAFrontmostAppThePrimedListLeavesOut() {
         func row(_ rowPids: [pid_t?], step: Int, appsAhead: [pid_t]) -> Int {
-            SwitcherController.recencyRowIndex(rowPids: rowPids, front: 5, appsAhead: appsAhead, step: step)
+            PrimedSelection.recencyRowIndex(rowPids: rowPids, front: 5, appsAhead: appsAhead, step: step)
         }
         // Excluded or filtered: no rows of its own; step 0 lands past the pinned app.
         #expect(row([1, 7, 8], step: 0, appsAhead: [1]) == 1)

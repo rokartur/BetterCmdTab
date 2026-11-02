@@ -71,17 +71,19 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
                subtitle: String(localized: "Choose which monitor the switcher opens on when you have more than one display."),
                accessory: displayMonitorPopup, searchItemID: SearchID.displayMonitor)
 
-        addRow(to: placement, title: String(localized: "Move pointer to the window's display"),
+        let position = addSection(title: String(localized: "Position"), anchor: SettingsAnchor.appearancePosition)
+        position.addUnstableNotice()
+        addRow(to: position, title: String(localized: "Move pointer to the window's display"),
                subtitle: String(localized: "When the window you switch to is on another display, move the pointer to the center of that display."),
                accessory: movePointerSwitch, searchItemID: SearchID.movePointerAcrossDisplays)
 
         configurePopup(verticalPositionPopup, titles: verticalPositions.map(\.displayName), action: #selector(verticalPositionChanged))
-        addRow(to: placement, title: String(localized: "Vertical position"),
+        addRow(to: position, title: String(localized: "Vertical position"),
                subtitle: String(localized: "Top keeps the panel in place while search narrows the list."),
                accessory: verticalPositionPopup, searchItemID: SearchID.verticalPosition)
 
         let topOffsetTitle = String(localized: "Distance from top")
-        addRow(to: placement, title: topOffsetTitle,
+        addRow(to: position, title: topOffsetTitle,
                subtitle: String(localized: "With “Top”, the gap above the panel as a percentage of the usable screen height."),
                accessory: makeValueSlider(topOffsetSlider, field: topOffsetValueField, range: Preferences.topOffsetPercentRange,
                                           unit: "%", label: topOffsetTitle, sliderAction: #selector(topOffsetChanged(_:)),
@@ -222,9 +224,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
                accessory: previewButton, searchItemID: SearchID.preview)
 
         let fade = addSection(title: String(localized: "Fade"), anchor: SettingsAnchor.appearanceFade)
-        addRow(to: fade, icon: "flask.fill",
-               title: String(localized: "These features are unstable"),
-               subtitle: String(localized: "Off by default. They may change or break."))
+        fade.addUnstableNotice()
         let fadeInTitle = String(localized: "Fade in")
         let fadeInStack = makeValueSlider(fadeInSlider, field: fadeInValueField,
                                           range: Preferences.fadeDurationRange, unit: "ms",
@@ -335,7 +335,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .store(in: &cancellables)
         prefs.$panelScalePercent
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.applyScale($0) }
+            .sink { [scaleSlider, scaleValueField] in Self.applyInteger($0, slider: scaleSlider, field: scaleValueField) }
             .store(in: &cancellables)
         prefs.$panelAppearance
             .receive(on: DispatchQueue.main)
@@ -355,7 +355,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .store(in: &cancellables)
         prefs.$listWidthPercent
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.applyListWidth($0) }
+            .sink { [listWidthSlider, listWidthValueField] in Self.applyInteger($0, slider: listWidthSlider, field: listWidthValueField) }
             .store(in: &cancellables)
         prefs.$gridSingleRow
             .receive(on: DispatchQueue.main)
@@ -403,7 +403,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .store(in: &cancellables)
         prefs.$panelOpacity
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.applyOpacity($0) }
+            .sink { [opacitySlider, opacityValueField] in Self.applyInteger($0, slider: opacitySlider, field: opacityValueField) }
             .store(in: &cancellables)
         prefs.$panelCornerRadius
             .receive(on: DispatchQueue.main)
@@ -438,16 +438,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         super.viewWillDisappear()
         hidePreview()
         cancellables.removeAll()
-        // The shared color panel keeps a non-zeroing target/action. The settings
-        // window is `.releaseOnClose`, so leaving this wired would let a later
-        // color change message a deallocated controller (EXC_BAD_ACCESS). Detach
-        // ourselves whenever we own the panel (NSColorPanel exposes no target
-        // getter, so we track ownership explicitly).
+        // NSColorPanel's target is non-zeroing and this window is .releaseOnClose: detach or crash.
         if ownsColorPanel {
             NSColorPanel.shared.setTarget(nil)
             NSColorPanel.shared.setAction(nil)
-            // `showsAlpha` is state on the process-wide shared panel; leave it
-            // as found rather than pinned to this pane's preference.
             NSColorPanel.shared.showsAlpha = restoreShowsAlpha
             ownsColorPanel = false
         }
@@ -464,13 +458,13 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         Self.applyInteger(prefs.topOffsetPercent, slider: topOffsetSlider, field: topOffsetValueField)
         applyTopOffsetEnabled(prefs.verticalPosition)
         selectLayout(prefs.switcherLayoutMode)
-        applyScale(prefs.panelScalePercent)
+        Self.applyInteger(prefs.panelScalePercent, slider: scaleSlider, field: scaleValueField)
         selectAppearance(prefs.panelAppearance)
         selectGrid(prefs.gridMaxColumns)
         gridSingleRowSwitch.sync()
         movePointerSwitch.sync()
         livePreviewSwitch.sync()
-        applyListWidth(prefs.listWidthPercent)
+        Self.applyInteger(prefs.listWidthPercent, slider: listWidthSlider, field: listWidthValueField)
         windowTitleSwitch.sync()
         selectTitleAlignment(prefs.previewTitleAlignment)
         selectTruncationMode(prefs.titleTruncationMode)
@@ -480,7 +474,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         appNamesSwitch.sync()
         statusIconsSwitch.sync()
         animationsSwitch.sync()
-        applyOpacity(prefs.panelOpacity)
+        Self.applyInteger(prefs.panelOpacity, slider: opacitySlider, field: opacityValueField)
         Self.applyInteger(prefs.fadeInDurationMs, slider: fadeInSlider, field: fadeInValueField)
         Self.applyInteger(prefs.fadeOutDurationMs, slider: fadeOutSlider, field: fadeOutValueField)
         applyRadius(prefs.panelCornerRadius)
@@ -500,28 +494,20 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         if choice == .custom { presentColorPanel() }
     }
 
-    /// Small filled-circle swatch shown beside each selection-color menu item.
-    /// `.system` is drawn with the live accent color so it always previews the
-    /// user's macOS setting, and `.custom` with the stored hex so it tracks
-    /// their pick rather than the accent fallback. `.transparent` is left
-    /// unfilled — it resolves to the accent for letter hints, so filling it would
-    /// show a color the selection plate never paints.
+    /// Filled circle beside each selection-color item, drawn on demand so `.system` follows an
+    /// accent change; `.transparent` stays unfilled because the plate never paints it.
     private static func swatch(for color: SwitcherSelectionColor) -> NSImage {
-        let size = NSSize(width: 12, height: 12)
-        let image = NSImage(size: size)
-        image.isTemplate = false
-        image.lockFocus()
-        let rect = NSRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5)
-        let path = NSBezierPath(ovalIn: rect)
-        if color != .transparent {
-            color.nsColor(customHex: Preferences.shared.selectionColorHex).setFill()
-            path.fill()
+        NSImage(size: NSSize(width: 12, height: 12), flipped: false) { bounds in
+            let path = NSBezierPath(ovalIn: bounds.insetBy(dx: 0.5, dy: 0.5))
+            if color != .transparent {
+                color.nsColor(customHex: Preferences.shared.selectionColorHex).setFill()
+                path.fill()
+            }
+            NSColor.black.withAlphaComponent(0.15).setStroke()
+            path.lineWidth = 1
+            path.stroke()
+            return true
         }
-        NSColor.black.withAlphaComponent(0.15).setStroke()
-        path.lineWidth = 1
-        path.stroke()
-        image.unlockFocus()
-        return image
     }
 
     /// Repaints the custom menu item's swatch from the stored hex.
@@ -529,8 +515,6 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         guard let i = selectionColors.firstIndex(of: .custom) else { return }
         selectionColorPopup.item(at: i)?.image = Self.swatch(for: .custom)
     }
-
-    // MARK: - Custom selection color
 
     /// Tracks whether we currently own the shared color panel's target/action,
     /// so `viewWillDisappear` can detach before this controller is released.
@@ -540,10 +524,6 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     private func presentColorPanel() {
         let panel = NSColorPanel.shared
-        // Left continuous (the default) so the live switcher preview tracks the
-        // drag. `schedulePreviewRefresh` already coalesces to one render per
-        // runloop turn, and the only other per-frame work is a UserDefaults set
-        // and a 12×12 swatch.
         restoreShowsAlpha = panel.showsAlpha
         panel.showsAlpha = false
         if let hex = Preferences.shared.selectionColorHex, let color = NSColor(hexString: hex) {
@@ -613,38 +593,18 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     @objc private func listWidthChanged(_ sender: NSSlider) {
         Preferences.shared.listWidthPercent = sender.integerValue
-        applyListWidth(sender.integerValue)
     }
 
     @objc private func listWidthValueCommitted(_ sender: NSTextField) {
-        guard let value = committedInteger(from: sender) else {
-            applyListWidth(Preferences.shared.listWidthPercent)
-            return
-        }
-        let clamped = Preferences.clampListWidthPercent(value)
-        Preferences.shared.listWidthPercent = clamped
-        applyListWidth(clamped)
-    }
-
-    private func applyListWidth(_ value: Int) {
-        if listWidthSlider.integerValue != value { listWidthSlider.integerValue = value }
-        let text = String(value)
-        if listWidthValueField.stringValue != text { listWidthValueField.stringValue = text }
+        commitInteger(sender, to: \.listWidthPercent, clamp: Preferences.clampListWidthPercent)
     }
 
     @objc private func scaleChanged(_ sender: NSSlider) {
         Preferences.shared.panelScalePercent = sender.integerValue
-        applyScale(sender.integerValue)
     }
 
     @objc private func scaleValueCommitted(_ sender: NSTextField) {
-        guard let value = committedInteger(from: sender) else {
-            applyScale(Preferences.shared.panelScalePercent)
-            return
-        }
-        let clamped = Preferences.clampPanelScalePercent(value)
-        Preferences.shared.panelScalePercent = clamped
-        applyScale(clamped)
+        commitInteger(sender, to: \.panelScalePercent, clamp: Preferences.clampPanelScalePercent)
     }
 
     @objc private func displayModeChanged() {
@@ -689,17 +649,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
 
     @objc private func opacityChanged(_ sender: NSSlider) {
         Preferences.shared.panelOpacity = sender.integerValue
-        applyOpacity(sender.integerValue)
     }
 
     @objc private func opacityValueCommitted(_ sender: NSTextField) {
-        guard let value = committedInteger(from: sender) else {
-            applyOpacity(Preferences.shared.panelOpacity)
-            return
-        }
-        let clamped = Preferences.clampOpacity(value)
-        Preferences.shared.panelOpacity = clamped
-        applyOpacity(clamped)
+        commitInteger(sender, to: \.panelOpacity, clamp: Preferences.clampOpacity)
     }
 
     @objc private func fadeInChanged(_ sender: NSSlider) {
@@ -737,22 +690,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         return value == 0 ? String(localized: "Auto") : "\(value) pt"
     }
 
-    private func applyOpacity(_ value: Int) {
-        if opacitySlider.integerValue != value { opacitySlider.integerValue = value }
-        let text = String(value)
-        if opacityValueField.stringValue != text { opacityValueField.stringValue = text }
-    }
-
     private static func applyInteger(_ value: Int, slider: NSSlider, field: NSTextField) {
         if slider.integerValue != value { slider.integerValue = value }
         let text = String(value)
         if field.stringValue != text { field.stringValue = text }
-    }
-
-    private func applyScale(_ value: Int) {
-        if scaleSlider.integerValue != value { scaleSlider.integerValue = value }
-        let text = String(value)
-        if scaleValueField.stringValue != text { scaleValueField.stringValue = text }
     }
 
     private func applyRadius(_ value: Int) {

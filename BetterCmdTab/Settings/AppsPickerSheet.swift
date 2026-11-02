@@ -6,56 +6,25 @@ import AppKit
 /// accent checkmarks and hover highlighting, rather than a bezeled table of
 /// switches. The app list combines a scan of the Applications folders with the
 /// currently-running apps.
-@MainActor
-final class AppsPickerSheetWindowController: NSWindowController {
-    private let content: AppsPickerSheetViewController
-    private var hasDismissed = false
-
-    /// Called once after the sheet is dismissed (confirm or cancel) so the owner
-    /// can drop its reference.
-    var onDidDismiss: (() -> Void)?
-
-    init(
+extension SheetWindowController {
+    static func appsPicker(
         title: String,
         prompt: String,
         selectedBundleIDs: Set<String>,
         singleSelection: Bool = false,
         confirmTitle: String = "Done",
         onDone: @escaping (Set<String>) -> Void
-    ) {
-        content = AppsPickerSheetViewController(
+    ) -> SheetWindowController {
+        let content = AppsPickerSheetViewController(
             prompt: prompt,
             selectedBundleIDs: selectedBundleIDs,
             singleSelection: singleSelection,
             confirmTitle: confirmTitle,
             onDone: onDone
         )
-        let window = NSWindow(contentViewController: content)
-        window.styleMask = [.titled, .closable]
-        window.title = title
-        window.titlebarAppearsTransparent = true
-        window.isReleasedWhenClosed = false
-        window.setContentSize(NSSize(width: 460, height: 560))
-        super.init(window: window)
-        content.onClose = { [weak self] in self?.dismissSheet() }
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
-
-    func present(asSheetFor parent: NSWindow) {
-        guard let window else { return }
-        parent.beginSheet(window)
-    }
-
-    private func dismissSheet() {
-        guard !hasDismissed, let window else { return }
-        hasDismissed = true
-        if let parent = window.sheetParent {
-            parent.endSheet(window)
-        } else {
-            window.orderOut(nil)
-        }
-        onDidDismiss?()
+        let controller = SheetWindowController(content: content, title: title, size: NSSize(width: 460, height: 560))
+        content.onClose = { [weak controller] in controller?.dismissSheet() }
+        return controller
     }
 }
 

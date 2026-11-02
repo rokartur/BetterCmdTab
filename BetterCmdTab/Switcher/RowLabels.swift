@@ -19,34 +19,36 @@ enum RowLabels {
         reservedStore.withLock { $0 = letters }
     }
 
-    /// User-chosen app mappings, mirrored from Preferences once on launch and
-    /// whenever they change. Keeping a lock-backed snapshot here avoids a
-    /// UserDefaults/main-actor read in the repeated row-label generation path.
-    private static let customStore = OSAllocatedUnfairLock<[String: Character]>(initialState: [:])
+    /// Per-app and per-session letter settings, mirrored here so label generation reads one
+    /// lock instead of UserDefaults or main-actor state.
+    private struct HintSettings {
+        /// User-chosen app letters, from Preferences.
+        var customMappings: [String: Character] = [:]
+        /// Apps removed from letter hints: empty label, no reserved letter.
+        var excludedBundleIDs: Set<String> = []
+        /// Letters off the hand holding the trigger while one-hand hints are on (#198).
+        var offHandLetters: Set<Character> = []
+        /// Keyboard letters by reach while home-row hints are on (#252).
+        var homeRowLetters: [Character] = []
+    }
+    private static let settings = OSAllocatedUnfairLock(initialState: HintSettings())
+
     static func setCustomMappings(_ mappings: [String: Character]) {
-        customStore.withLock { $0 = mappings }
+        settings.withLock { $0.customMappings = mappings }
     }
 
-    /// Bundle IDs the user removed from letter hints, mirrored from Preferences
-    /// the same way as `customStore`. A row for one of these apps gets an empty
-    /// label — no hint, no reserved letter — so its letter stays free for others.
-    private static let excludedStore = OSAllocatedUnfairLock<Set<String>>(initialState: [])
     static func setExcludedBundleIDs(_ ids: Set<String>) {
-        excludedStore.withLock { $0 = ids }
+        settings.withLock { $0.excludedBundleIDs = ids }
     }
 
-    /// Letters off the hand holding the trigger while one-hand hints are on (#198),
-    /// set by `SwitcherController` for each switch session, empty otherwise.
-    private static let offHandStore = OSAllocatedUnfairLock<Set<Character>>(initialState: [])
+    /// Set by `SwitcherController` for each switch session, empty otherwise.
     static func setOffHandLetters(_ letters: Set<Character>) {
-        offHandStore.withLock { $0 = letters }
+        settings.withLock { $0.offHandLetters = letters }
     }
 
-    /// Keyboard letters by reach, set by `SwitcherController` for each switch session
-    /// while home-row hints are on (#252), empty otherwise.
-    private static let homeRowStore = OSAllocatedUnfairLock<[Character]>(initialState: [])
+    /// Set by `SwitcherController` for each switch session, empty otherwise.
     static func setHomeRowLetters(_ letters: [Character]) {
-        homeRowStore.withLock { $0 = letters }
+        settings.withLock { $0.homeRowLetters = letters }
     }
 
     /// Full a–z pool for disambiguation suffixes; reserved letters are filtered
@@ -68,16 +70,13 @@ enum RowLabels {
     }
 
     static func labels(for rows: [SwitcherRow]) -> [String] {
-        let mappings = customStore.withLock { $0 }
-        let excluded = excludedStore.withLock { $0 }
-        let offHand = offHandStore.withLock { $0 }
-        let homeRow = homeRowStore.withLock { $0 }
+        let hints = settings.withLock { $0 }
         return labels(
             forInputs: rows.map(input(for:)),
-            customMappings: mappings,
-            excludedBundleIDs: excluded,
-            offHandLetters: offHand,
-            homeRowLetters: homeRow
+            customMappings: hints.customMappings,
+            excludedBundleIDs: hints.excludedBundleIDs,
+            offHandLetters: hints.offHandLetters,
+            homeRowLetters: hints.homeRowLetters
         )
     }
 
@@ -118,21 +117,15 @@ enum RowLabels {
             if let letter = customMappings[bundleID] { labels[index] = String(letter) }
         }
 
-        // Excluded apps drop out of hint generation: their label stays empty and
-        // they never enter the dynamic passes, so no letter is reserved on their
-        // behalf and their first letter stays available to another app. A row the
-        // user also gave a custom letter keeps that letter — an explicit mapping
-        // wins over exclusion.
-        var excludedIndices = Set<Int>()
-        if !excludedBundleIDs.isEmpty {
-            for (index, row) in rows.enumerated() where !customIndices.contains(index) {
-                if let bundleID = row.bundleID, excludedBundleIDs.contains(bundleID) {
-                    excludedIndices.insert(index)
-                }
+        // Rows that never enter the dynamic passes: custom letters, Handoff rows, and
+        // excluded apps, whose empty label reserves nothing so their letter stays free.
+        // A custom letter wins over exclusion.
+        var skipIndices = customIndices
+        for (index, row) in rows.enumerated() where !customIndices.contains(index) {
+            if !row.takesLetter || row.bundleID.map({ excludedBundleIDs.contains($0) }) == true {
+                skipIndices.insert(index)
             }
         }
-        let noLetterIndices = rows.indices.filter { !rows[$0].takesLetter }
-        let skipIndices = customIndices.union(excludedIndices).union(noLetterIndices)
 
         if !homeRowLetters.isEmpty {
             var pool = homeRowLetters.filter { !reserved.contains($0) }.makeIterator()

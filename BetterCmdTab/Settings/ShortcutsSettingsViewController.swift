@@ -11,7 +11,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     // Direct-activation slots: a "choose app" button + shortcut recorder per slot
     // (a global hotkey that jumps straight to a chosen app, bypassing the switcher).
     private var directButtons: [NSButton] = []
-    private var directSlotSheet: AppsPickerSheetWindowController?
+    private var directSlotSheet: SheetWindowController?
 
     private let cycleAppWindowsSwitch = PreferenceSwitch(bind: \.directActivationCyclesWindows)
     private let cycleWidthsSwitch = PreferenceSwitch(bind: \.cycleTileWidths)
@@ -19,7 +19,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     // "Hide all windows" exclusion list: a row whose subtitle shows the count and
     // a picker sheet to edit which apps stay visible.
     private var excludedHideAppsRow: SettingsRowView?
-    private var excludedHideAppsSheet: AppsPickerSheetWindowController?
+    private var excludedHideAppsSheet: SheetWindowController?
 
     override func setupContent() {
         buildDirectActivationSection()
@@ -57,9 +57,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     /// Repeat presses of a direct-activation hotkey (#217): new, so off by default and unstable.
     private func buildCycleAppWindowsSection() {
         let cycle = addSection(title: String(localized: "Repeat presses"), anchor: SettingsAnchor.directActivationCycle)
-        addRow(to: cycle, icon: "flask.fill",
-               title: String(localized: "These features are unstable"),
-               subtitle: String(localized: "Off by default. They may change or break."))
+        cycle.addUnstableNotice()
         addRow(
             to: cycle,
             title: String(localized: "Cycle app windows"),
@@ -149,7 +147,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
     @objc private func chooseExcludedHideApps() {
         guard let window = view.window, excludedHideAppsSheet == nil else { return }
         let current = Set(Preferences.shared.hideAllExcludedBundleIDs)
-        let controller = AppsPickerSheetWindowController(
+        let controller = SheetWindowController.appsPicker(
             title: String(localized: "Keep apps visible"),
             prompt: String(localized: "Chosen apps stay visible when you trigger Hide all windows."),
             selectedBundleIDs: current,
@@ -193,7 +191,7 @@ final class ShortcutsSettingsViewController: SettingsTabViewController {
         guard let window = view.window, directSlotSheet == nil else { return }
         let current = Preferences.shared.directActivationBindings
         let selected: Set<String> = (current.indices.contains(slot) && !current[slot].isEmpty) ? [current[slot]] : []
-        let controller = AppsPickerSheetWindowController(
+        let controller = SheetWindowController.appsPicker(
             title: String(localized: "Activate App"),
             prompt: String(localized: "Choose the app this shortcut focuses."),
             selectedBundleIDs: selected,

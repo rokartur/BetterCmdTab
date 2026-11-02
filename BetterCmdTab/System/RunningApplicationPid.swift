@@ -9,15 +9,21 @@ extension NSRunningApplication {
         let reported = processIdentifier
         guard reported == -1, let path = executableURL?.path, let launchDate else { return reported }
         let key = "\(path)@\(launchDate.timeIntervalSinceReferenceDate)"
-        if let recovered = Self.recoveredPids.withLock({ $0[key] }) { return recovered }
-        guard let found = Self.pidOfProcess(executablePath: path, startedNear: launchDate) else { return reported }
-        Self.recoveredPids.withLock { $0[key] = found }
+        let now = ProcessInfo.processInfo.systemUptime
+        if let cached = Self.recoveredPids.withLock({ $0[key] }),
+           cached.pid != reported || now - cached.at < Self.missRetryInterval {
+            return cached.pid
+        }
+        let found = Self.pidOfProcess(executablePath: path, startedNear: launchDate) ?? reported
+        Self.recoveredPids.withLock { $0[key] = (found, now) }
         return found
     }
 
-    // A process-table scan costs ~1 ms and `pid` is read many times per ⌘Tab.
+    // A process-table scan costs ~1 ms and `pid` is read many times per ⌘Tab, so a miss is
+    // cached too and rescanned at most once a second.
     // ponytail: entries outlive their process, one per launch of such an app; evict on termination if that ever adds up.
-    private static let recoveredPids = OSAllocatedUnfairLock<[String: pid_t]>(initialState: [:])
+    private static let recoveredPids = OSAllocatedUnfairLock<[String: (pid: pid_t, at: TimeInterval)]>(initialState: [:])
+    private static let missRetryInterval: TimeInterval = 1
 
     /// Several instances can share one executable (Parall, `open -n`), so the closest start wins.
     /// The 2 s window keeps an instance that quit before its first read from resolving to a live sibling.

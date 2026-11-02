@@ -98,7 +98,7 @@ enum IconCache {
     static func evict(bundleIdentifier: String) {
         bundleCache.removeObject(forKey: bundleIdentifier as NSString)
         for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier) {
-            evict(app.processIdentifier)
+            evict(app.pid)
         }
     }
 

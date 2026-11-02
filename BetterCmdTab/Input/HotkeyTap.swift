@@ -1443,7 +1443,6 @@ final class HotkeyTap: @unchecked Sendable {
                                     ?? .searchInput(ch))
                             return nil
                         }
-                        break
                     }
                 } else {
                     // Rebindable window-management chords (#7): if the current
@@ -1629,7 +1628,6 @@ final class HotkeyTap: @unchecked Sendable {
                                 }
                             }
                         }
-                        break
                     }
                 }
             }

@@ -4,7 +4,8 @@ description: Jak działa config.json — lokalizacja, włączanie, dwukierunkowa
 icon: Braces
 ---
 
-BetterCmdTab może przechowywać każde ustawienie w zwykłym pliku JSON, który
+BetterCmdTab może przechowywać swoje ustawienia (poza nagranymi kombinacjami skrótów i
+stanem konkretnego Maca, wymienionymi niżej) w zwykłym pliku JSON, który
 synchronizuje się w obie strony z oknem ustawień. Zmień plik, a zmiana zostanie
 zastosowana na żywo; zmień coś w aplikacji, a plik zostanie zaktualizowany. Plik
 zaprojektowano tak, aby nadawał się do repozytorium z plikami konfiguracyjnymi.
@@ -147,7 +148,7 @@ Niektóre dane są celowo wykluczone i nie są ani eksportowane, ani importowane
 | `disabledSymbolicHotKeys` | Rejestr natywnych skrótów wyłączonych na *tym* Macu — import kopii z innego Maca mógłby trwale wyłączyć natywny ⌘Tab |
 | `recentlyClosed` | Historia sesji, a nie konfiguracja |
 | `customCommitSoundFilename` | Plik dźwiękowy znajduje się w katalogu Application Support tego Maca |
-| `accentChoice`, `customAccentHex` | Wycofane w 26.7 i zastąpione przez `selectionColor` / `selectionColorHex`, które są eksportowane normalnie |
+| `accentChoice`, `customAccentHex` | Wycofane w 26.7; 26.8 dodaje `selectionColor` / `selectionColorHex`, które są eksportowane normalnie |
 
 Skróty o ograniczonym zakresie są przypadkiem pośrednim: `scopedShortcutList` zapisuje
 identyfikator, zakres i nazwę każdej pozycji, ale sam skrót jest rejestrowany poza tym
