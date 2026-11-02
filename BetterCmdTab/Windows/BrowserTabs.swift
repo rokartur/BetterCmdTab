@@ -554,26 +554,19 @@ enum BrowserTabs {
     /// no windows or tabs. The expand-as-windows scan needs that split to surface
     /// the "grant Automation access" hint (#39) — an empty result alone can't tell
     /// "denied" from "nothing to show".
+    struct BrowserWindowTabs: Equatable, Sendable {
+        let title: String
+        let activeIndex: Int
+        let tabs: [BrowserTabInfo]
+        /// Screen bounds from AppleScript (top-left origin, y-down — the same
+        /// space as `Activator.axBounds`), the title-independent identity used
+        /// to resolve windows whose titles are duplicated or stale. Nil when
+        /// the script couldn't read them.
+        let bounds: CGRect?
+    }
+
     struct AllWindowTabs {
-        struct Window: Equatable, Sendable {
-            let title: String
-            let activeIndex: Int
-            let tabs: [BrowserTabInfo]
-            /// Screen bounds from AppleScript (top-left origin, y-down — the same
-            /// space as `Activator.axBounds`), the title-independent identity used
-            /// to resolve windows whose titles are duplicated or stale. Nil when
-            /// the script couldn't read them.
-            let bounds: CGRect?
-
-            init(title: String, activeIndex: Int, tabs: [BrowserTabInfo], bounds: CGRect? = nil) {
-                self.title = title
-                self.activeIndex = activeIndex
-                self.tabs = tabs
-                self.bounds = bounds
-            }
-        }
-
-        let windows: [Window]
+        let windows: [BrowserWindowTabs]
         /// True only when the osascript spawn itself failed (nil result) — a
         /// permission/timeout signal, not an empty browser.
         let failed: Bool
@@ -659,9 +652,9 @@ enum BrowserTabs {
         return AllWindowTabs(windows: parseAllWindowTabs(raw), failed: false)
     }
 
-    static func parseAllWindowTabs(_ raw: String) -> [AllWindowTabs.Window] {
+    static func parseAllWindowTabs(_ raw: String) -> [BrowserWindowTabs] {
         guard raw != "NOWINDOWS", !raw.isEmpty else { return [] }
-        var out: [AllWindowTabs.Window] = []
+        var out: [BrowserWindowTabs] = []
         for block in raw.components(separatedBy: "\u{1D}") {
             let parts = block.components(separatedBy: "\u{1E}")
             guard parts.count >= 3, let oneBased = Int(parts[1]) else { continue }

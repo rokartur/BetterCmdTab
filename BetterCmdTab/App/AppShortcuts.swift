@@ -62,9 +62,9 @@ extension BetterShortcuts.Name {
 
     /// Each switcher profile (switchApps / switchWindows / scoped) gets its OWN
     /// in-panel action keys, recorded with `RecorderCocoa` like the triggers and
-    /// stored under "<base>@<target.storageKey>". Each defaults to the shipped key,
-    /// so a new profile is usable immediately and clearing a recorder restores that
-    /// default. Like the legacy panel keys these have NO `onKeyDown` handler, so
+    /// stored under "<base>@<target.storageKey>". Each row action defaults to its shipped
+    /// key, so a new profile is usable immediately; the move-selection keys ship unbound, and
+    /// clearing a recorder disables that key. Like the legacy panel keys these have NO `onKeyDown` handler, so
     /// binding ⌘W never registers a global Carbon hotkey.
     static func panelClose(for key: String) -> Self { Self("panelClose@\(key)", default: .init(.w, modifiers: .command)) }
     static func panelMinimize(for key: String) -> Self { Self("panelMinimize@\(key)", default: .init(.m, modifiers: .command)) }

@@ -954,7 +954,7 @@
             "type" : "string"
           },
           "windowShelf" : {
-            "description" : "Override: While \"applications only\" is on, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
+            "description" : "Override: While \"applications only\" is on, or for an app whose rule sets groupWindows, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
             "enum" : [
               "off",
               "list",
@@ -1146,11 +1146,11 @@
       "type" : "boolean"
     },
     "windowDrillEnabled" : {
-      "description" : "Peek the highlighted app's windows with ↓ while \"applications only\" is on.",
+      "description" : "Peek the highlighted app's windows with ↓ while \"applications only\" is on, or for an app whose rule sets groupWindows.",
       "type" : "boolean"
     },
     "windowShelf" : {
-      "description" : "While \"applications only\" is on, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
+      "description" : "While \"applications only\" is on, or for an app whose rule sets groupWindows, show the highlighted app's windows in a second block under the switcher. \\ moves into it.",
       "enum" : [
         "off",
         "list",

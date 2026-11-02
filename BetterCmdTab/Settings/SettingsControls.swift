@@ -1,6 +1,50 @@
 import AppKit
 import BetterSettings
 
+/// A settings sheet around `content`; `dismissSheet` ends it once, then tells the owner.
+@MainActor
+final class SheetWindowController: NSWindowController {
+    private var hasDismissed = false
+    /// Called once after the sheet is dismissed so the owner can drop its reference.
+    var onDidDismiss: (() -> Void)?
+
+    init(content: NSViewController, title: String, size: NSSize) {
+        let window = NSWindow(contentViewController: content)
+        window.styleMask = [.titled, .closable]
+        window.title = title
+        window.titlebarAppearsTransparent = true
+        window.isReleasedWhenClosed = false
+        window.setContentSize(size)
+        super.init(window: window)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
+
+    func present(asSheetFor parent: NSWindow) {
+        guard let window else { return }
+        parent.beginSheet(window)
+    }
+
+    func dismissSheet() {
+        guard !hasDismissed, let window else { return }
+        hasDismissed = true
+        if let parent = window.sheetParent {
+            parent.endSheet(window)
+        } else {
+            window.orderOut(nil)
+        }
+        onDidDismiss?()
+    }
+}
+
+extension SettingsSectionView {
+    /// Heads a section of off-by-default features that may still change (CODING_STANDARDS, Preferences).
+    func addUnstableNotice() {
+        addContent(SettingsRowView(icon: "flask.fill", title: String(localized: "These features are unstable"),
+                                   subtitle: String(localized: "Off by default. They may change or break.")))
+    }
+}
+
 /// Shared accessory builders for the settings panes — the switch/popup wiring
 /// every pane repeats, plus the "slider + editable value" rows — so styling and
 /// input parsing stay in one place.

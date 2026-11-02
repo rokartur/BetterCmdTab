@@ -26,6 +26,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: SwiftLint
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint
+        run: |
+          command -v swiftlint || brew install swiftlint
+          swiftlint lint --strict --quiet --reporter github-actions-logging
+
   test:
     name: Unit tests
     # The Liquid Glass panel needs the macOS 26 SDK; macos-26 ships Xcode 26.x.

@@ -145,7 +145,7 @@ final class ConfigFile: @unchecked Sendable {
             src.setCancelHandler { close(fd) }
             src.setEventHandler { [weak self, weak src] in
                 guard let self, let src else { return }
-                if !src.data.intersection([.delete, .rename]).isEmpty {
+                if !src.data.isDisjoint(with: [.delete, .rename]) {
                     // Atomic editor save (write temp → rename over the path)
                     // replaced the inode; re-open to follow the new file.
                     self.armWatcher()

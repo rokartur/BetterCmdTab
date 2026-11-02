@@ -1,6 +1,7 @@
 import AppKit
 import BetterSettings
 import BetterShortcuts
+import Combine
 
 /// Inline, live-persisting per-shortcut options (#74), laid out as the app's
 /// standard settings section cards + rows so it matches the Appearance pane
@@ -19,6 +20,7 @@ final class ShortcutOptionsFormView: NSView {
     private let prefs = Preferences.shared
     private let stack = NSStackView()
     private var actionTargets: [ClosureActionTarget] = []
+    private var scopeObservation: AnyCancellable?
 
     private nonisolated static let useGlobal = String(localized: "Use global default")
 
@@ -81,26 +83,32 @@ final class ShortcutOptionsFormView: NSView {
         addBoolRow(to: behavior, title: String(localized: "Expand browser tabs as windows"), current: override.expandBrowserTabsAsWindows) { [weak self] in self?.override.expandBrowserTabsAsWindows = $0; self?.persist() }
         addCard(behavior)
 
-        // MARK: Current app (#190). Not on ⌘`, whose list holds only the current app.
+        // MARK: Current app (#190). Not on ⌘`, whose list holds only the current app, nor on a
+        // "Current app's windows" scope, which clears the option when it opens.
         if target != .switchWindows {
             let currentApp = SettingsSectionView(title: String(localized: "Current app"))
-            currentApp.addContent(SettingsRowView(icon: "flask.fill", title: String(localized: "These features are unstable"),
-                                                  subtitle: String(localized: "Off by default. They may change or break.")))
+            currentApp.addUnstableNotice()
             addPopupRow(to: currentApp, title: String(localized: "Exclude the current app"),
                         subtitle: String(localized: "The list shows only other apps, so the first press always goes to another app."),
                         values: [true], titles: [String(localized: "On")], current: override.excludeCurrentApp,
                         nilTitle: String(localized: "Off")) { [weak self] in self?.override.excludeCurrentApp = $0; self?.persist() }
             addCard(currentApp)
+            if case .scoped(let id) = target {
+                scopeObservation = prefs.$scopedShortcuts.sink { shortcuts in
+                    currentApp.isHidden = shortcuts.first { $0.id == id }?.scope == .currentAppWindows
+                }
+            }
         }
 
-        // MARK: Window shelf (#211), unstable like its global setting
-        let windowShelf = SettingsSectionView(title: String(localized: "Window shelf"))
-        windowShelf.addContent(SettingsRowView(icon: "flask.fill", title: String(localized: "These features are unstable"),
-                                               subtitle: String(localized: "Off by default. They may change or break.")))
-        addEnumRow(to: windowShelf, title: String(localized: "Show windows under the switcher"),
-                   subtitle: String(localized: "In applications-only mode, the highlighted app's windows appear in their own block under the switcher. Press \\ to move into it, or point and click."),
-                   options: WindowShelf.allCases, display: { $0.displayName }, current: override.windowShelf) { [weak self] in self?.override.windowShelf = $0; self?.persist() }
-        addCard(windowShelf)
+        // MARK: Window shelf (#211), unstable like its global setting. ⌘` lists one app's windows, so no shelf.
+        if target != .switchWindows {
+            let windowShelf = SettingsSectionView(title: String(localized: "Window shelf"))
+            windowShelf.addUnstableNotice()
+            addEnumRow(to: windowShelf, title: String(localized: "Show windows under the switcher"),
+                       subtitle: String(localized: "For an app shown as one entry (Applications only, or its app rule), its windows appear in their own block under the switcher. Press \\ to move into it, or point and click."),
+                       options: WindowShelf.allCases, display: { $0.displayName }, current: override.windowShelf) { [weak self] in self?.override.windowShelf = $0; self?.persist() }
+            addCard(windowShelf)
+        }
 
         // MARK: Appearance
         let appearance = SettingsSectionView(title: String(localized: "Appearance"))
@@ -131,8 +139,8 @@ final class ShortcutOptionsFormView: NSView {
         // MARK: In-panel keys
         // This profile's keys while its switcher is open (#5): the row actions,
         // plus search and tab drill-in (#169). Recorded with BetterShortcuts like
-        // the trigger (per-profile names "<base>@<target>"); each defaults to the
-        // shipped key, so a recorder shows e.g. ⌘W until changed, and clearing one
+        // the trigger (per-profile names "<base>@<target>"); each row action defaults to its
+        // shipped key (the move keys ship unbound), so a recorder shows e.g. ⌘W until changed, and clearing one
         // disables that key rather than restoring the default. Only the keycode is
         // used in-panel (⌘ is held the whole time).
         let panelKeys = SettingsSectionView(title: String(localized: "In-panel keys"))

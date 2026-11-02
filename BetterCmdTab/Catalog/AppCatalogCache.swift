@@ -620,10 +620,8 @@ final class AppCatalogCache {
         // `AXObserverAddNotification` can stall its thread indefinitely.
         AXUIElementSetMessagingTimeout(axApp, 0.2)
         var subscribed = 0
-        for name in axNotifications {
-            if AXObserverAddNotification(observer, axApp, name as CFString, refcon) == .success {
-                subscribed += 1
-            }
+        for name in axNotifications where AXObserverAddNotification(observer, axApp, name as CFString, refcon) == .success {
+            subscribed += 1
         }
         // Retry later rather than retaining an observer with no subscriptions.
         guard subscribed > 0 else { return nil }

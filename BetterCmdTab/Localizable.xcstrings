@@ -2905,6 +2905,52 @@
         }
       }
     },
+    "Check for Updates…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Updates suchen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar actualizaciones…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher les mises à jour…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデートを確認…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź dostępność uaktualnień…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить обновления…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查更新…"
+          }
+        }
+      }
+    },
     "Check for updates" : {
       "localizations" : {
         "de" : {
@@ -8750,94 +8796,94 @@
         }
       }
     },
-    "In applications-only mode, press ↓ or \\ on an app with several windows to show its windows in a strip below the switcher and pick one." : {
+    "On an app shown as one entry (Applications only, or its app rule), press ↓ or \\ to show its windows in a strip below the switcher and pick one." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Im Nur-Apps-Modus ↓ oder \\ auf einer App mit mehreren Fenstern drücken, um ihre Fenster in einer Leiste unter dem Umschalter anzuzeigen und eines auszuwählen."
+            "value" : "Auf einer App, die als ein Eintrag erscheint (Nur Apps oder ihre App-Regel), ↓ oder \\ drücken, um ihre Fenster in einer Leiste unter dem Umschalter anzuzeigen und eines auszuwählen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En el modo de solo aplicaciones, pulsa ↓ o \\ en una app con varias ventanas para mostrar sus ventanas en una franja bajo el selector y elegir una."
+            "value" : "En una app mostrada como una entrada (Solo aplicaciones o su regla de app), pulsa ↓ o \\ para mostrar sus ventanas en una franja bajo el selector y elegir una."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En mode applications uniquement, appuyez sur ↓ ou \\ sur une app ayant plusieurs fenêtres pour afficher ses fenêtres dans une bande sous le sélecteur et en choisir une."
+            "value" : "Sur une app affichée comme une seule entrée (Applications uniquement, ou sa règle d'app), appuyez sur ↓ ou \\ pour afficher ses fenêtres dans une bande sous le sélecteur et en choisir une."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アプリのみのモードで、複数のウインドウを持つアプリの上で↓または\\を押すと、スイッチャーの下の帯にそのウインドウが並び、そこから選べます。"
+            "value" : "1つの項目として表示されるアプリ（アプリのみ、またはそのアプリのルール）の上で↓または\\を押すと、スイッチャーの下の帯にそのウインドウが並び、そこから選べます。"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "W trybie tylko aplikacje naciśnij ↓ lub \\ na aplikacji z kilkoma oknami, aby pokazać jej okna na pasku pod przełącznikiem i wybrać jedno."
+            "value" : "Na aplikacji pokazanej jako jedna pozycja (Tylko aplikacje albo jej reguła) naciśnij ↓ lub \\, aby pokazać jej okna na pasku pod przełącznikiem i wybrać jedno."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В режиме «Только приложения» нажмите ↓ или \\ на приложении с несколькими окнами, чтобы показать его окна на панели под переключателем и выбрать нужное."
+            "value" : "На приложении, показанном одной записью («Только приложения» или его правило), нажмите ↓ или \\, чтобы показать его окна на панели под переключателем и выбрать нужное."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在仅应用模式下，在有多个窗口的应用上按 ↓ 或 \\，会在切换器下方的条带中显示其窗口并从中选择。"
+            "value" : "在显示为一个条目的应用上（仅应用模式或其应用规则）按 ↓ 或 \\，会在切换器下方的条带中显示其窗口并从中选择。"
           }
         }
       }
     },
-    "In applications-only mode, the highlighted app's windows appear in their own block under the switcher. Press \\ to move into it, or point and click." : {
+    "For an app shown as one entry (Applications only, or its app rule), its windows appear in their own block under the switcher. Press \\ to move into it, or point and click." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Im Nur-Apps-Modus erscheinen die Fenster der markierten App in einem eigenen Block unter dem Umschalter. Mit \\ wechselst du hinein, oder zeige und klicke."
+            "value" : "Bei einer App, die als ein Eintrag erscheint (Nur Apps oder ihre App-Regel), erscheinen ihre Fenster in einem eigenen Block unter dem Umschalter. Mit \\ wechselst du hinein, oder zeige und klicke."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En el modo de solo aplicaciones, las ventanas de la app resaltada aparecen en su propio bloque bajo el selector. Pulsa \\ para entrar en él, o señala y haz clic."
+            "value" : "En una app mostrada como una entrada (Solo aplicaciones o su regla de app), sus ventanas aparecen en su propio bloque bajo el selector. Pulsa \\ para entrar en él, o señala y haz clic."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En mode applications uniquement, les fenêtres de l'app en surbrillance apparaissent dans leur propre bloc sous le sélecteur. Appuyez sur \\ pour y entrer, ou pointez et cliquez."
+            "value" : "Pour une app affichée comme une seule entrée (Applications uniquement, ou sa règle d'app), ses fenêtres apparaissent dans leur propre bloc sous le sélecteur. Appuyez sur \\ pour y entrer, ou pointez et cliquez."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アプリのみのモードでは、ハイライト中のアプリのウインドウがスイッチャーの下に別のブロックとして表示されます。\\を押すとそこへ移動できます。マウスでポイントしてクリックしても選べます。"
+            "value" : "1つの項目として表示されるアプリ（アプリのみ、またはそのアプリのルール）では、そのウインドウがスイッチャーの下に別のブロックとして表示されます。\\を押すとそこへ移動できます。マウスでポイントしてクリックしても選べます。"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "W trybie tylko aplikacje okna podświetlonej aplikacji pojawiają się we własnym bloku pod przełącznikiem. Naciśnij \\, aby do niego przejść, albo wskaż i kliknij."
+            "value" : "Dla aplikacji pokazanej jako jedna pozycja (Tylko aplikacje albo jej reguła) jej okna pojawiają się we własnym bloku pod przełącznikiem. Naciśnij \\, aby do niego przejść, albo wskaż i kliknij."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В режиме «Только приложения» окна выделенного приложения показываются отдельным блоком под переключателем. Нажмите \\, чтобы перейти в него, или наведите и щёлкните."
+            "value" : "Для приложения, показанного одной записью («Только приложения» или его правило), его окна показываются отдельным блоком под переключателем. Нажмите \\, чтобы перейти в него, или наведите и щёлкните."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在仅应用模式下，高亮应用的窗口会显示在切换器下方的独立区块中。按 \\ 进入该区块，或用鼠标指向并点击。"
+            "value" : "对于显示为一个条目的应用（仅应用模式或其应用规则），其窗口会显示在切换器下方的独立区块中。按 \\ 进入该区块，或用鼠标指向并点击。"
           }
         }
       }
@@ -14458,6 +14504,52 @@
         }
       }
     },
+    "Position" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posición"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozycja"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позиция"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位"
+          }
+        }
+      }
+    },
     "Position of the title under each Previews tile." : {
       "localizations" : {
         "de" : {
@@ -16670,48 +16762,48 @@
         }
       }
     },
-    "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the three-finger swipe instead." : {
+    "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the swipe gesture instead." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scrolle mit dem Mausrad nach oben/unten, um die Auswahl bei geöffnetem Umschalter zu verschieben. Trackpads verwenden stattdessen das Streichen mit drei Fingern."
+            "value" : "Scrolle mit dem Mausrad nach oben/unten, um die Auswahl bei geöffnetem Umschalter zu verschieben. Trackpads verwenden stattdessen die Streichgeste."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Desplázate hacia arriba o abajo con la rueda del ratón para mover la selección mientras el selector está abierto. Los trackpads usan el deslizamiento con tres dedos en su lugar."
+            "value" : "Desplázate hacia arriba o abajo con la rueda del ratón para mover la selección mientras el selector está abierto. Los trackpads usan el gesto de deslizamiento en su lugar."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faites défiler vers le haut/bas avec la molette de la souris pour déplacer la sélection lorsque le sélecteur est ouvert. Les trackpads utilisent plutôt le balayage à trois doigts."
+            "value" : "Faites défiler vers le haut/bas avec la molette de la souris pour déplacer la sélection lorsque le sélecteur est ouvert. Les trackpads utilisent plutôt le geste de balayage."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "スイッチャーを開いている間、マウスホイールを上下にスクロールして選択を移動します。トラックパッドでは代わりに3本指のスワイプを使います。"
+            "value" : "スイッチャーを開いている間、マウスホイールを上下にスクロールして選択を移動します。トラックパッドでは代わりにスワイプジェスチャを使います。"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przewijaj w górę/w dół kółkiem myszy, aby przesuwać zaznaczenie, gdy przełącznik jest otwarty. Gładziki używają zamiast tego przesunięcia trzema palcami."
+            "value" : "Przewijaj w górę/w dół kółkiem myszy, aby przesuwać zaznaczenie, gdy przełącznik jest otwarty. Gładziki używają zamiast tego gestu przesunięcia."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Прокрутка вверх/вниз колёсиком мыши для перемещения выделения при открытом переключателе. На трекпадах используется свайп тремя пальцами."
+            "value" : "Прокрутка вверх/вниз колёсиком мыши для перемещения выделения при открытом переключателе. На трекпадах используется жест смахивания."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切换器打开时，用鼠标滚轮上下滚动来移动选择。触控板请使用三指滑动。"
+            "value" : "切换器打开时，用鼠标滚轮上下滚动来移动选择。触控板请使用轻扫手势。"
           }
         }
       }
@@ -17222,48 +17314,48 @@
         }
       }
     },
-    "Settings" : {
+    "Settings…" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einstellungen"
+            "value" : "Einstellungen…"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajustes"
+            "value" : "Ajustes…"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réglages"
+            "value" : "Réglages…"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "設定"
+            "value" : "設定…"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ustawienia"
+            "value" : "Ustawienia…"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Настройки"
+            "value" : "Настройки…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "设置"
+            "value" : "设置…"
           }
         }
       }
@@ -19387,6 +19479,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "直角"
+          }
+        }
+      }
+    },
+    "Starting selection" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Startauswahl"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selección inicial"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélection initiale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の選択"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Początkowy wybór"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Начальный выбор"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "初始选择"
           }
         }
       }

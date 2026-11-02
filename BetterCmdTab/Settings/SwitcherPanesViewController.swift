@@ -86,7 +86,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     /// Kept so `viewWillAppear` can re-render the subtitle after a rebind.
     private var letterHintsRow: SettingsRowView?
     private var quickJumpMappingsRow: SettingsRowView?
-    private var quickJumpMappingsSheet: QuickJumpMappingsSheetWindowController?
+    private var quickJumpMappingsSheet: SheetWindowController?
     private let letterTimeoutSlider = NSSlider()
     private let letterTimeoutValueField = NSTextField()
     private let fuzzySwitch = NSSwitch()
@@ -206,7 +206,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                subtitle: String(localized: "Show one row per app instead of one per window — classic ⌘Tab."),
                accessory: applicationsOnlySwitch, searchItemID: SearchID.applicationsOnly)
         addRow(to: contents, title: String(localized: "Peek windows with ↓"),
-               subtitle: String(localized: "In applications-only mode, press ↓ or \\ on an app with several windows to show its windows in a strip below the switcher and pick one."),
+               subtitle: String(localized: "On an app shown as one entry (Applications only, or its app rule), press ↓ or \\ to show its windows in a strip below the switcher and pick one."),
                accessory: windowDrillSwitch, searchItemID: SearchID.windowDrill)
         addRow(to: contents, title: String(localized: "Show unread badges"),
                subtitle: String(localized: "Show each app's Dock badge count (e.g. Mail's unread mail) on its row."),
@@ -222,10 +222,6 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         addRow(to: contents, title: String(localized: "Sort order"),
                subtitle: String(localized: "Most recent keeps the classic ⌘Tab order; Most recent (windows) interleaves windows from all apps by last focus; the others stay put as you switch."),
                accessory: sortOrderPopup, searchItemID: SearchID.sortOrder)
-        configurePopup(initialSelectionPopup, titles: initialSelections.map(\.displayName), action: #selector(initialSelectionChanged))
-        addRow(to: contents, title: String(localized: "First ⌘Tab selects"),
-               subtitle: String(localized: "Middle app counts apps, not window rows. Applies to sorts that stay put as you switch."),
-               accessory: initialSelectionPopup, searchItemID: SearchID.initialSelection)
         configureSwitch(recentlyClosedSwitch, action: #selector(toggleRecentlyClosed(_:)))
         addRow(to: contents, title: String(localized: "Show recently closed apps"),
                subtitle: String(localized: "Lists apps and windows you just closed so you can reopen them."),
@@ -237,6 +233,13 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         addRow(to: contents, title: recentlyClosedLimitTitle,
                subtitle: String(localized: "How many recently closed items to list."),
                accessory: recentlyClosedLimitField, searchItemID: SearchID.recentlyClosedLimit)
+
+        let start = addSection(title: String(localized: "Starting selection"), anchor: SettingsAnchor.startingSelection)
+        start.addUnstableNotice()
+        configurePopup(initialSelectionPopup, titles: initialSelections.map(\.displayName), action: #selector(initialSelectionChanged))
+        addRow(to: start, title: String(localized: "First ⌘Tab selects"),
+               subtitle: String(localized: "Middle app counts apps, not window rows. Applies to sorts that stay put as you switch."),
+               accessory: initialSelectionPopup, searchItemID: SearchID.initialSelection)
     }
 
     /// Native tabs — windows that use macOS system tabs (Finder, Terminal,
@@ -323,12 +326,10 @@ final class SwitcherPanesViewController: SettingsTabViewController {
 
     private func buildWindowShelfSection() {
         let section = addSection(title: String(localized: "Window shelf"), anchor: SettingsAnchor.windowShelf)
-        addRow(to: section, icon: "flask.fill",
-               title: String(localized: "These features are unstable"),
-               subtitle: String(localized: "Off by default. They may change or break."))
+        section.addUnstableNotice()
         configurePopup(windowShelfPopup, titles: windowShelves.map(\.displayName), action: #selector(windowShelfChanged))
         addRow(to: section, title: String(localized: "Show windows under the switcher"),
-               subtitle: String(localized: "In applications-only mode, the highlighted app's windows appear in their own block under the switcher. Press \\ to move into it, or point and click."),
+               subtitle: String(localized: "For an app shown as one entry (Applications only, or its app rule), its windows appear in their own block under the switcher. Press \\ to move into it, or point and click."),
                accessory: windowShelfPopup, searchItemID: SearchID.windowShelf)
         addRow(to: section, title: String(localized: "Show for a single window"),
                subtitle: String(localized: "Also show the shelf when the highlighted app has only one window."),
@@ -337,9 +338,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
 
     private func buildHandoffSection() {
         let section = addSection(title: String(localized: "Handoff"), anchor: SettingsAnchor.handoff)
-        addRow(to: section, icon: "flask.fill",
-               title: String(localized: "These features are unstable"),
-               subtitle: String(localized: "Off by default. They may change or break."))
+        section.addUnstableNotice()
         configurePopup(handoffPopup, titles: handoffPlacements.map(\.displayName), action: #selector(handoffPlacementChanged))
         addRow(to: section, title: String(localized: "Show Handoff from other devices"),
                subtitle: String(localized: "A page or document open on your other Apple devices shows as a tile. Select it to open it on this Mac."),
@@ -348,9 +347,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
 
     private func buildOneHandHintsSection() {
         let oneHand = addSection(title: String(localized: "One-hand letter jump"), anchor: SettingsAnchor.oneHandHints)
-        addRow(to: oneHand, icon: "flask.fill",
-               title: String(localized: "These features are unstable"),
-               subtitle: String(localized: "Off by default. They may change or break."))
+        oneHand.addUnstableNotice()
         addRow(to: oneHand, title: String(localized: "Hints on the ⌘ side"),
                subtitle: String(localized: "Left ⌘ shows only left-hand letters, right ⌘ only right-hand letters, so the hand holding ⌘ reaches every hint."),
                accessory: oneHandHintsSwitch, searchItemID: SearchID.oneHandHints)
@@ -358,9 +355,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
 
     private func buildHomeRowHintsSection() {
         let homeRow = addSection(title: String(localized: "Home row letter jump"), anchor: SettingsAnchor.homeRowHints)
-        addRow(to: homeRow, icon: "flask.fill",
-               title: String(localized: "These features are unstable"),
-               subtitle: String(localized: "Off by default. They may change or break."))
+        homeRow.addUnstableNotice()
         addRow(to: homeRow, title: String(localized: "One letter per window"),
                subtitle: String(localized: "Each window gets its own letter, home row keys first, instead of letters from the app name."),
                accessory: homeRowHintsSwitch, searchItemID: SearchID.homeRowHints)
@@ -388,9 +383,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
 
     private func buildEnglishKeyboardSection() {
         let english = addSection(title: String(localized: "Input language"), anchor: SettingsAnchor.inputLanguage)
-        addRow(to: english, icon: "flask.fill",
-               title: String(localized: "These features are unstable"),
-               subtitle: String(localized: "Off by default. They may change or break."))
+        english.addUnstableNotice()
         addRow(to: english, title: String(localized: "Always use English keyboard mapping"),
                subtitle: String(localized: "Use English (US) keys for shortcuts and search in the switcher, regardless of your input language."),
                accessory: englishKeyboardSwitch, searchItemID: SearchID.englishKeyboard)
@@ -424,7 +417,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         let mouse = addSection(title: String(localized: "Mouse"), anchor: SettingsAnchor.mouse)
         configureSwitch(scrollSwitch, action: #selector(toggleScroll(_:)))
         addRow(to: mouse, title: String(localized: "Switch with mouse scroll"),
-               subtitle: String(localized: "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the three-finger swipe instead."),
+               subtitle: String(localized: "Scroll up/down on a mouse wheel to move the selection while the switcher is open. Trackpads use the swipe gesture instead."),
                accessory: scrollSwitch, searchItemID: SearchID.scroll)
         addRow(to: mouse, title: String(localized: "Reverse scroll direction"),
                subtitle: String(localized: "Scroll up to move forward instead of down."),
@@ -440,9 +433,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                accessory: clickSelectSwitch, searchItemID: SearchID.selectOnClick)
 
         let release = addSection(title: String(localized: "Mouse release"), anchor: SettingsAnchor.mouseRelease)
-        addRow(to: release, icon: "flask.fill",
-               title: String(localized: "These features are unstable"),
-               subtitle: String(localized: "Off by default. They may change or break."))
+        release.addUnstableNotice()
         addRow(to: release, title: String(localized: "Click on mouse release"),
                subtitle: String(localized: "Act on a click when you release the button, like a menu: drag to another row to pick it instead, or release away from the rows to cancel. Picking a row requires “Select window on click”."),
                accessory: clickOnMouseUpSwitch, searchItemID: SearchID.clickOnMouseUp)
@@ -788,7 +779,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
 
     @objc private func manageQuickJumpMappings() {
         guard let window = view.window, quickJumpMappingsSheet == nil else { return }
-        let controller = QuickJumpMappingsSheetWindowController()
+        let controller = SheetWindowController.quickJumpMappings()
         controller.onDidDismiss = { [weak self] in self?.quickJumpMappingsSheet = nil }
         quickJumpMappingsSheet = controller
         trackForRelease(controller)

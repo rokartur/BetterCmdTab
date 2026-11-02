@@ -49,7 +49,7 @@ On first launch, grant **Accessibility** in System Settings → Privacy & Securi
 
 **Filtering**
 
-- Sort by recent apps, recent windows, name, or launch order.
+- Sort by recent apps, recent windows, name, launch order, or Dock order.
 - Show all Spaces, the current one, or only what's visible on your displays.
 - Pin favorites, hide apps, or let an app skip ⌘Tab (always or in fullscreen).
 - Scoped hotkeys open a pre-filtered switcher with its own layout and rules.
@@ -61,7 +61,7 @@ On first launch, grant **Accessibility** in System Settings → Privacy & Securi
 - Reopen recently quit apps. Instant Space switching with no animation.
 - Keeps working while a password field holds Secure Event Input.
 - Hidden from screen sharing and recordings (macOS 14.6+).
-- Opacity, corner radius, material, size, and grid columns. Follows your accent color and Reduce Motion.
+- Opacity, corner radius, material, size, and grid columns. Optional accent or custom selection color. Follows Reduce Motion.
 - Export settings as JSON, or sync them live with `~/.config/bettercmdtab/config.json` (a generated `schema.json` gives editors autocomplete).
 
 Every option is documented in the [docs](https://bettercmdtab.app/docs/).

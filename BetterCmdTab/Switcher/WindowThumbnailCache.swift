@@ -277,15 +277,15 @@ final class WindowThumbnailCache {
     nonisolated private static let windowServerQueue = DispatchQueue(label: "WindowThumbnailCache.windowServer", qos: .userInitiated)
 
     nonisolated private static func capture(wid: CGWindowID, pixelHeight: CGFloat) async -> NSImage? {
-        // A preview panel left open (stayOpenOnRelease) must not capture behind the lock screen (#200).
-        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
-        if session?["CGSSessionScreenIsLocked"] as? Bool == true { return nil }
         // The capture is synchronous and `capture` inherits the main actor under
         // NonisolatedNonsendingByDefault, so hop to a serial queue: the WindowServer
         // serves captures one at a time anyway, so a second queue would not speed it up.
         let captured = await withCheckedContinuation { continuation in
             windowServerQueue.async {
-                let window = captureCGS(wid: wid, pixelHeight: pixelHeight)
+                // A preview panel left open (stayOpenOnRelease) must not capture behind the lock screen (#200).
+                let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+                let window = session?["CGSSessionScreenIsLocked"] as? Bool == true
+                    ? nil : captureCGS(wid: wid, pixelHeight: pixelHeight)
                 // Downscale off the serial queue so the next window's capture starts now.
                 DispatchQueue.global(qos: .userInitiated).async {
                     continuation.resume(returning: window.map { CapturedCGImage(image: downscaled($0, toPixelHeight: pixelHeight)) })

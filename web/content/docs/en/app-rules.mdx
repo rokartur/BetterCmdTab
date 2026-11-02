@@ -21,8 +21,8 @@ objects, one per app:
 }
 ```
 
-An app with no entry follows the global settings. Both `hide` and `ignore` are
-optional — an entry can set either or both.
+An app with no entry follows the global settings. `hide`, `ignore` and `groupWindows`
+are optional — an entry can set any of them.
 
 <Callout type="info" title="Finder is seeded for you">
 On a first launch with no rules yet, BetterCmdTab writes one entry itself:
@@ -85,6 +85,21 @@ shortcut, an app hotkey, or Mission Control). Prefer `"whenFullscreen"` unless y
 are sure.
 </Callout>
 
+## `groupWindows`: one entry per app
+
+`"groupWindows": "true"` lists the app once instead of once per window, as
+[`applicationsOnly`](/docs/config-reference/#contents) does for every app. Use it for an
+app with many windows you never pick one by one. Its windows stay reachable in the
+window shelf, with <kbd>↓</kbd>, and with <kbd>⌘`</kbd>.
+
+```json title="config.json"
+{
+  "appExceptions": [
+    { "bundleID": "com.apple.Terminal", "groupWindows": "true" }
+  ]
+}
+```
+
 ## Related keys
 
 Two other lists take bare bundle IDs and are simpler than `appExceptions`:
@@ -94,10 +109,16 @@ Two other lists take bare bundle IDs and are simpler than `appExceptions`:
 - [`hideAllExcludedBundleIDs`](/docs/config-reference/#contents) — apps the "hide all
   windows" shortcut leaves alone.
 
+The Apps pane's **Hide titles containing** field writes a third key,
+[`windowTitleExclusions`](/docs/config-reference/#contents): bundle ID → title fragments.
+A window whose title contains a fragment (case- and accent-insensitive) is left out;
+the app's other windows stay.
+
 ```json title="config.json"
 {
   "pinnedBundleIDs": ["com.apple.Safari", "com.googlecode.iterm2"],
-  "hideAllExcludedBundleIDs": ["com.spotify.client"]
+  "hideAllExcludedBundleIDs": ["com.spotify.client"],
+  "windowTitleExclusions": { "com.apple.Safari": ["Private Browsing"] }
 }
 ```
 

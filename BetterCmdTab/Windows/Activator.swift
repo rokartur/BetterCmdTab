@@ -181,7 +181,7 @@ private enum CloseKeycode {
         if let hit = cached.withLock({ $0 }) { return hit }
         // Scan the layout for the key that types an unmodified 'w'; fall back
         // to ANSI W (13) when none does (e.g. an IME with no key-layout data).
-        let resolved = ((0 as CGKeyCode)..<128).first { KeyboardLayout.character(for: $0) == "w" } ?? 13
+        let resolved = KeyboardLayout.activeKeyCode(typing: "w") ?? 13
         cached.withLock { $0 = resolved }
         return resolved
     }

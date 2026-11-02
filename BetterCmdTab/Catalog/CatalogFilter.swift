@@ -39,6 +39,8 @@ enum CatalogFilter {
         /// The frontmost app when the shortcut excludes it (#190), set per trigger. `filteredRows`
         /// drops its rows; `filteredApps` keeps it and the switcher drops it from the primed list.
         var excludedPid: pid_t?
+        /// `excludedPid`'s bundle, kept from the trigger: a pid lookup misses apps whose launcher execs (#209).
+        var excludedBundleID: String?
 
         /// No preference filtering and no reordering, so the filters skip that
         /// work. `filteredRows` still drops `excludedPid`.
@@ -58,7 +60,7 @@ enum CatalogFilter {
             }
         }
         var excludedTitleFragments: [String: [String]] = [:]
-        let rawExclusions = defaults.dictionary(forKey: Preferences.Keys.windowTitleExclusions) as? [String: [String]] ?? [:]
+        let rawExclusions = (defaults.dictionary(forKey: Preferences.Keys.windowTitleExclusions) ?? [:]).compactMapValues { $0 as? [String] }
         for (bid, fragments) in rawExclusions {
             let folded = cleanedTitleFragments(fragments)
                 .map { $0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil) }

@@ -32,8 +32,8 @@ final class AppsSettingsViewController: SettingsTabViewController {
     private let pinnedList = PinnedAppsListView()
     /// Working copy of the pin order, persisted to `Preferences` on every mutation.
     private var pinned: [String] = Preferences.shared.pinnedBundleIDs
-    private var appsSheet: AppsPickerSheetWindowController?
-    private var addSheet: AppsPickerSheetWindowController?
+    private var appsSheet: SheetWindowController?
+    private var addSheet: SheetWindowController?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -228,7 +228,7 @@ final class AppsSettingsViewController: SettingsTabViewController {
 
     private func presentAddPicker() {
         guard let window = view.window, addSheet == nil else { return }
-        let controller = AppsPickerSheetWindowController(
+        let controller = SheetWindowController.appsPicker(
             title: String(localized: "Add App"),
             prompt: String(localized: "Choose an app to set switcher rules for."),
             selectedBundleIDs: [],
@@ -253,16 +253,10 @@ final class AppsSettingsViewController: SettingsTabViewController {
     override func viewWillAppear() {
         super.viewWillAppear()
         // Re-sync the working copy: another pane (e.g. Import settings) can rewrite
-        // both rule keys while this cached controller is off screen. Without this,
-        // the next add/edit/remove would persist this stale snapshot and silently
-        // clobber the imported rules.
-        let current = Preferences.shared.appExceptions
-        let currentTitles = Preferences.shared.windowTitleExclusions
-        if current != exceptions || currentTitles != titleExclusions {
-            exceptions = current
-            titleExclusions = currentTitles
-            rebuildRulesCard()
-        }
+        // both rule keys while this cached controller is off screen or on screen.
+        // A stale snapshot would be persisted by the next add/edit/remove and
+        // silently clobber the imported rules.
+        syncRulesFromPreferences()
         // Same stale-snapshot guard for the pin order (Import / other panes).
         if Preferences.shared.pinnedBundleIDs != pinned {
             pinned = Preferences.shared.pinnedBundleIDs
@@ -278,6 +272,22 @@ final class AppsSettingsViewController: SettingsTabViewController {
                 self.rebuildPinnedCard()
             }
             .store(in: &cancellables)
+        // Main-queue hop: by then both rule keys hold their new values.
+        Preferences.shared.$appExceptions.map { _ in () }
+            .merge(with: Preferences.shared.$windowTitleExclusions.map { _ in () })
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.syncRulesFromPreferences() }
+            .store(in: &cancellables)
+    }
+
+    /// Our own writes match the working copy, so only external changes rebuild the card.
+    private func syncRulesFromPreferences() {
+        let current = Preferences.shared.appExceptions
+        let currentTitles = Preferences.shared.windowTitleExclusions
+        guard current != exceptions || currentTitles != titleExclusions else { return }
+        exceptions = current
+        titleExclusions = currentTitles
+        rebuildRulesCard()
     }
 
     override func viewWillDisappear() {
@@ -287,7 +297,7 @@ final class AppsSettingsViewController: SettingsTabViewController {
 
     @objc private func managePinned() {
         guard let window = view.window, appsSheet == nil else { return }
-        let controller = AppsPickerSheetWindowController(
+        let controller = SheetWindowController.appsPicker(
             title: String(localized: "Pinned Apps"),
             prompt: String(localized: "Selected apps are forced to the front of the switcher, before recents."),
             selectedBundleIDs: Set(Preferences.shared.pinnedBundleIDs),

@@ -70,7 +70,7 @@ older version of the app will not strip overrides it doesn't understand yet.
 ## Scoped shortcuts
 
 `scopedShortcutList` defines extra global hotkeys, each opening the switcher already
-filtered. Add and remove them under **Settings → Profiles**.
+filtered. Add and remove them under **Settings → Switcher Shortcuts**.
 
 ```json title="config.json"
 {
@@ -87,7 +87,7 @@ filtered. Add and remove them under **Settings → Profiles**.
 `name` is the label the chord is *recorded under*; the chord itself lives outside the
 `Switcher.*` namespace and is not synced. Copying your config to another Mac carries
 the scoped shortcuts and their settings over — you re-record their key combinations
-there, under Settings → Profiles.
+there, under Settings → Switcher Shortcuts.
 </Callout>
 
 Ids are allocated monotonically and never reused, so an entry keeps its recorded chord

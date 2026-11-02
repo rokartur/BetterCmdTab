@@ -396,24 +396,24 @@ final class SwitcherController: SwitcherViewDelegate {
     private var lastForcedBrowserScanAt: TimeInterval = 0
     private static let forcedBrowserScanMinInterval: TimeInterval = 0.4
     private var windowsOnlyMode: Bool = false
-    private var windowsOnlyPid: pid_t? = nil
+    private var windowsOnlyPid: pid_t?
     private var windowsOnlyPrimedDelta: Int = 0
 
     /// Active scope for a scoped-shortcut open (#3). Non-nil only between a
     /// scoped open and the next return to idle; while set, every row set
     /// (`reveal`, background `applyFullSnapshot`) is post-filtered to this
     /// subset. nil for normal ⌘Tab opens, so the standard path is unaffected.
-    private var activeScope: SwitchScope? = nil
+    private var activeScope: SwitchScope?
     /// Frontmost app's pid captured when a scoped open started — used by the
     /// `.currentAppWindows` scope (we're an accessory app, so the frontmost at
     /// trigger time is the user's real app, not us).
-    private var scopeFrontPid: pid_t? = nil
+    private var scopeFrontPid: pid_t?
 
     /// Per-shortcut behavioral override (#74), resolved into a `CatalogFilter.Config`
     /// when a trigger fires and threaded into the off-main catalog filter for this
     /// reveal. `nil` when the firing shortcut has no override — the catalog then
     /// reads the global config, so the common ⌘Tab path is byte-identical.
-    private var activeFilterConfig: CatalogFilter.Config? = nil
+    private var activeFilterConfig: CatalogFilter.Config?
     /// Per-shortcut appearance + reveal-time behavioral snapshot (#74). Rebuilt at
     /// each trigger; resolves to the globals when the shortcut has no override.
     private var effective: EffectiveSettings = .defaults
@@ -758,9 +758,7 @@ final class SwitcherController: SwitcherViewDelegate {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 RowLabels.setCustomMappings(Preferences.shared.quickJumpLettersByBundleID)
-                guard let self, self.phase == .visible else { return }
-                self.baseLabels = RowLabels.labels(for: self.baseRows)
-                self.refreshDisplay()
+                self?.rebuildLabelsIfVisible()
             }
             .store(in: &cancellables)
         // Same live-mirror path for the letter-hint exclusion list: apply on
@@ -769,9 +767,7 @@ final class SwitcherController: SwitcherViewDelegate {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] ids in
                 RowLabels.setExcludedBundleIDs(Set(ids))
-                guard let self, self.phase == .visible else { return }
-                self.baseLabels = RowLabels.labels(for: self.baseRows)
-                self.refreshDisplay()
+                self?.rebuildLabelsIfVisible()
             }
             .store(in: &cancellables)
         // The tap reported a re-enable storm (it keeps getting disabled — most
@@ -961,9 +957,7 @@ final class SwitcherController: SwitcherViewDelegate {
             .sink { [weak self] enabled in
                 self?.hotkey.setVimNavigationEnabled(enabled)
                 RowLabels.setCustomMappings(Preferences.shared.quickJumpLettersByBundleID)
-                guard let self, self.phase == .visible else { return }
-                self.baseLabels = RowLabels.labels(for: self.baseRows)
-                self.refreshDisplay()
+                self?.rebuildLabelsIfVisible()
             }
             .store(in: &cancellables)
 
@@ -1730,6 +1724,13 @@ final class SwitcherController: SwitcherViewDelegate {
         onAccessibilityRevoked()
     }
 
+    /// Re-reads RowLabels' letter settings into the open panel, so a settings edit lands at once.
+    private func rebuildLabelsIfVisible() {
+        guard phase == .visible else { return }
+        baseLabels = RowLabels.labels(for: baseRows)
+        refreshDisplay()
+    }
+
     /// The tap signalled a re-enable storm (the WindowServer keeps disabling it).
     /// Runs on main. Tear the tap down so its thread stops spinning in
     /// WindowServer IPC, then either leave it down (Accessibility revoked — the
@@ -2153,7 +2154,9 @@ final class SwitcherController: SwitcherViewDelegate {
         activeFilterConfig = override.isEmpty ? nil : CatalogFilter.overlay(CatalogFilter.config(), override)
         // ⌘` lists only the current app's windows, so excluding that app would empty it.
         if override.excludeCurrentApp == true, target != .switchWindows {
-            activeFilterConfig?.excludedPid = NSWorkspace.shared.frontmostApplication?.pid
+            let frontmost = NSWorkspace.shared.frontmostApplication
+            activeFilterConfig?.excludedPid = frontmost?.pid
+            activeFilterConfig?.excludedBundleID = frontmost?.bundleIdentifier
         }
         effective = Preferences.shared.effectiveSettings(for: override)
         syncTypeToSearchEnabled()
@@ -2201,9 +2204,11 @@ final class SwitcherController: SwitcherViewDelegate {
         }
         activeScope = scope
         // "Current app's windows" lists only the app the option would exclude (#190).
-        if scope == .currentAppWindows { activeFilterConfig?.excludedPid = nil }
-        primedApps = AppCatalog.fastAppList(orderedBy: mru.order, regularApps: cache.regularApps(), filter: activeFilterConfig, windowedPids: cache.windowedPids())
-        if let pid = activeFilterConfig?.excludedPid { primedApps.removeAll { $0.pid == pid } }
+        if scope == .currentAppWindows {
+            activeFilterConfig?.excludedPid = nil
+            activeFilterConfig?.excludedBundleID = nil
+        }
+        primedApps = primedAppList()
         primedIndex = 0
         primedStepDelta = 0
         switchSessionKind = .none
@@ -2770,98 +2775,19 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
-    /// Start index for the first primed step. `anchor` is the frontmost app's
-    /// position in the primed list (#88, #278); nil reproduces the legacy
-    /// head-anchored start (step 1 → 1, step -1 → count-1).
-    nonisolated static func primedStartIndex(count: Int, step: Int, anchor: Int?) -> Int {
-        guard count > 1 else { return 0 }
-        return ((((anchor ?? 0) + step) % count) + count) % count
-    }
-
-    /// `step` seeds `primedStepDelta`. Middle mode (#251) seeds 0, so the Space remap
-    /// re-decides the frontmost skip. `excludedAt` is the slot of a frontmost app the list
-    /// leaves out (#190, #278), now held by the next app, so a forward press seeds 0.
-    nonisolated static func primedStart(
-        count: Int, delta: Int, anchor: Int?, startsInMiddle: Bool, excludedAt: Int? = nil
-    ) -> (index: Int, step: Int) {
-        let direction = delta > 0 ? 1 : -1
-        if startsInMiddle {
-            return (middleStartIndex(count: count, front: anchor, direction: direction, taps: 0), 0)
-        }
-        if let excludedAt {
-            let step = direction > 0 ? 0 : -1
-            return (primedStartIndex(count: count, step: step, anchor: excludedAt), step)
-        }
-        let step = count == 1 ? 0 : direction
-        return (primedStartIndex(count: count, step: step, anchor: anchor), step)
-    }
-
-    /// The middle app, or one step from it in the press `direction` when it is
-    /// the frontmost app, so a quick tap still switches; then `taps` more steps.
-    nonisolated static func middleStartIndex(count: Int, front: Int?, direction: Int, taps: Int) -> Int {
-        let middle = count / 2
-        let skip = count > 1 && middle == front ? direction : 0
-        return primedStartIndex(count: count, step: skip + taps, anchor: middle)
-    }
-
     private func startPrimed(delta: Int, sort: SwitcherSortOrder) {
         let frontPid = mru.order.first
         let frontApp = primedApps.first { $0.pid == frontPid }
             ?? NSWorkspace.shared.frontmostApplication.flatMap { $0.pid == frontPid ? $0 : nil }
-        let front = Self.primedFrontSlot(of: frontApp, in: primedApps, sort: sort, pinned: Preferences.shared.pinnedBundleIDs)
+        let front = PrimedSelection.frontSlot(of: frontApp, in: primedApps, sort: sort, pinned: Preferences.shared.pinnedBundleIDs)
         primedExcludedIndex = front.missingAt
-        let start = Self.primedStart(
+        let start = PrimedSelection.start(
             count: primedApps.count, delta: delta, anchor: front.anchor,
-            startsInMiddle: Self.startsPrimedInMiddle(sort: sort, selection: Preferences.shared.initialSelection),
+            startsInMiddle: PrimedSelection.startsInMiddle(sort: sort, selection: Preferences.shared.initialSelection),
             excludedAt: front.missingAt)
         primedIndex = start.index
         primedStepDelta = start.step
         primedFirstDirection = delta > 0 ? 1 : -1
-    }
-
-    /// The frontmost app's index in `primed` as `anchor`, or, when the list leaves it out
-    /// (#190's exclusion, a windowless Finder hidden by its exception), the index the list's
-    /// order would give it as `missingAt`. Pinned apps can sit ahead of it under any sort (#278).
-    nonisolated static func primedFrontSlot(
-        of front: NSRunningApplication?, in primed: [NSRunningApplication], sort: SwitcherSortOrder, pinned: [String]
-    ) -> (anchor: Int?, missingAt: Int?) {
-        guard let front else { return (nil, nil) }
-        if let index = primed.firstIndex(where: { $0.pid == front.pid }) { return (index, nil) }
-        return (nil, CatalogFilter.ordered([front] + primed, sort: sort, pinned: pinned).firstIndex { $0.pid == front.pid })
-    }
-
-    /// Most recent sorts reorder on every switch, so they have no fixed middle to start on.
-    /// Exhaustive on purpose: a new sort case must consciously pick a side.
-    nonisolated static func startsPrimedInMiddle(sort: SwitcherSortOrder, selection: InitialSelection) -> Bool {
-        switch sort {
-        case .alphabetical, .launchOrder, .dock: return selection == .middle
-        case .mru, .mruWindows: return false
-        }
-    }
-
-    /// Pure core of `eligiblePrimedApp`, split out so the Space-scope remap
-    /// (#126) can be unit-tested without constructing `NSRunningApplication`s.
-    /// Filters the primed pid list down to `eligiblePids` (apps that kept a row
-    /// after the Space-scope filter), then steps by the accumulated tap delta
-    /// exactly like `primedStartIndex` walks the full list. `anchorPid` is the
-    /// frontmost app (#88, #278); `startsInMiddle` starts on the middle eligible
-    /// app instead (#251), where `step` counts the presses after the first one,
-    /// made in `direction`.
-    /// `excludedAt`, the slot of a frontmost app the list leaves out, anchors on the
-    /// first eligible app at or after that index (#190, #278).
-    /// Returns an index into `primedPids`; nil when nothing is eligible.
-    nonisolated static func eligiblePrimedIndex(
-        primedPids: [pid_t], eligiblePids: Set<pid_t>, step: Int, direction: Int, anchorPid: pid_t?,
-        startsInMiddle: Bool, excludedAt: Int? = nil
-    ) -> Int? {
-        let eligible = primedPids.enumerated().filter { eligiblePids.contains($0.element) }
-        guard !eligible.isEmpty else { return nil }
-        let front = anchorPid.flatMap { pid in eligible.firstIndex { $0.element == pid } }
-        let next = excludedAt.map { at in eligible.firstIndex { $0.offset >= at } ?? eligible.count }
-        let index = startsInMiddle
-            ? middleStartIndex(count: eligible.count, front: front, direction: direction, taps: step)
-            : primedStartIndex(count: eligible.count, step: step, anchor: next ?? front)
-        return eligible[index].offset
     }
 
     /// Pure: initial selection for a scoped open. Row 0 unless the frontmost
@@ -2874,13 +2800,19 @@ final class SwitcherController: SwitcherViewDelegate {
         (count > 1 && firstRowPid != nil && firstRowPid == frontPid) ? 1 : 0
     }
 
+    /// The quick-tap list: the filtered fast app list without the excluded current app (#190).
+    private func primedAppList() -> [NSRunningApplication] {
+        var apps = AppCatalog.fastAppList(orderedBy: mru.order, regularApps: cache.regularApps(),
+                                          filter: activeFilterConfig, windowedPids: cache.windowedPids())
+        if let pid = activeFilterConfig?.excludedPid { apps.removeAll { $0.pid == pid } }
+        return apps
+    }
     private func advance(by delta: Int, wrap: Bool) {
         switch phase {
         case .idle:
             mru.syncFrontmost()
             resolveActiveOptions(for: .switchApps)
-            primedApps = AppCatalog.fastAppList(orderedBy: mru.order, regularApps: cache.regularApps(), filter: activeFilterConfig, windowedPids: cache.windowedPids())
-            if let pid = activeFilterConfig?.excludedPid { primedApps.removeAll { $0.pid == pid } }
+            primedApps = primedAppList()
             // No empty-list bail: with every app filtered out (e.g. a lone
             // windowless Finder under its when-no-windows exception, #112) a
             // quick tap must no-op — commit() has nothing to activate — and a
@@ -4510,7 +4442,7 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Pure index-level core of `primedAppTargetRow` (split out for unit tests,
-    /// like `eligiblePrimedIndex`). Returns the first eligible index, upgraded to
+    /// like `PrimedSelection.eligibleIndex`). Returns the first eligible index, upgraded to
     /// the first eligible non-minimized one when `preferVisible` is set and any
     /// exists. Single pass, no allocation — this is the hottest commit path.
     nonisolated static func primedTargetIndex(
@@ -4533,13 +4465,13 @@ final class SwitcherController: SwitcherViewDelegate {
             guard primedApps.indices.contains(primedIndex) else { return nil }
             return primedApps[primedIndex]
         }
-        return Self.eligiblePrimedIndex(
+        return PrimedSelection.eligibleIndex(
             primedPids: primedApps.map(\.pid),
             eligiblePids: Set(rows.compactMap(\.pid)),
             step: primedStepDelta,
             direction: primedFirstDirection,
             anchorPid: mru.order.first,
-            startsInMiddle: Self.startsPrimedInMiddle(
+            startsInMiddle: PrimedSelection.startsInMiddle(
                 sort: effective.sortOrder, selection: Preferences.shared.initialSelection),
             excludedAt: primedExcludedIndex
         ).map { primedApps[$0] }
@@ -4575,28 +4507,11 @@ final class SwitcherController: SwitcherViewDelegate {
         return sorted[primedRecencyIndex(in: sorted)]
     }
 
-    /// Row `primedStepDelta` reaches in recency-sorted rows; see `recencyRowIndex`.
+    /// Row `primedStepDelta` reaches in recency-sorted rows; see `PrimedSelection.recencyRowIndex`.
     private func primedRecencyIndex(in rows: [SwitcherRow]) -> Int {
-        Self.recencyRowIndex(
+        PrimedSelection.recencyRowIndex(
             rowPids: rows.map(\.pid), front: mru.order.first,
             appsAhead: primedExcludedIndex.map { primedApps.prefix($0).map(\.pid) }, step: primedStepDelta)
-    }
-
-    /// Row `step` reaches in a recency-sorted list, counted from the frontmost app's newest
-    /// row, which pinned apps can push off row 0 (#278). `appsAhead` is set when the primed
-    /// list leaves the frontmost app out, to the apps listed ahead of its slot: its rows are
-    /// skipped too (an accessory app has rows but no primed entry), so step 0 lands on the
-    /// first other row past them.
-    nonisolated static func recencyRowIndex(rowPids: [pid_t?], front: pid_t?, appsAhead: [pid_t]?, step: Int) -> Int {
-        guard let appsAhead else {
-            guard !rowPids.isEmpty else { return 0 }
-            let base = front.flatMap { rowPids.firstIndex(of: $0) } ?? 0
-            return ((base + step) % rowPids.count + rowPids.count) % rowPids.count
-        }
-        let others = rowPids.indices.filter { rowPids[$0] != front }
-        guard !others.isEmpty else { return 0 }
-        let base = others.prefix { index in appsAhead.contains { $0 == rowPids[index] } }.count
-        return others[((base + step) % others.count + others.count) % others.count]
     }
 
     private func bumpWindowMRUIfPossible(for row: SwitcherRow) {
@@ -4640,14 +4555,17 @@ final class SwitcherController: SwitcherViewDelegate {
         if let suggestion = row.handoff {
             // A failed press leaves us frontmost (the reveal activated us), so hand focus back.
             let previous = previousFrontmostApp
-            return {
+            let commitGeneration = revealGeneration
+            return { [weak self] in
                 let result = Activator.openHandoff(suggestion)
                 if !Activator.handoffPressOpened(result), let previous, !previous.isTerminated {
                     Activator.activateProcess(previous)
                 }
                 if result == .cannotComplete {
                     // A timed-out press the Dock never acted on leaves us frontmost with no window.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    // A switcher opened since then owns the focus.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                        guard self?.revealGeneration == commitGeneration else { return }
                         if NSApp.isActive, let previous, !previous.isTerminated { Activator.activateProcess(previous) }
                     }
                 }
@@ -4680,7 +4598,7 @@ final class SwitcherController: SwitcherViewDelegate {
             guard let self, self.revealGeneration == commitGeneration, self.phase == .idle else { return }
             self.panel.dismiss { [weak self] in self?.releaseIdleViews() }
         }
-        var pendingActivation: (() -> Void)? = nil
+        var pendingActivation: (() -> Void)?
 
         switch currentPhase {
         case .visible:
@@ -4793,12 +4711,12 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Closes the `commit` signpost once the panel is hidden. Over 100 ms means a
-    /// synchronous call blocked main between ⌘ release and the hide (#146, #272).
+    /// synchronous call blocked main between the commit (⌘ release, Return, click) and the hide (#146, #272).
     private func endCommitInterval(_ interval: OSSignpostIntervalState, startedAt start: ContinuousClock.Instant) {
         Log.reveal.endInterval("commit", interval)
         let elapsedMs = Int((ContinuousClock.now - start) / .milliseconds(1))
         if elapsedMs > 100 {
-            Log.switcher.error("Commit hid the panel \(elapsedMs) ms after ⌘ release")
+            Log.switcher.error("Commit took \(elapsedMs) ms to hide the panel")
         }
     }
 
@@ -5125,9 +5043,8 @@ final class SwitcherController: SwitcherViewDelegate {
         // Past the room, the panel would slide or clamp and the switcher row would move.
         let visible = panel.activeScreen().visibleFrame
         let prefs = Preferences.shared
-        let room = prefs.verticalPosition == .top
-            ? SwitcherPanel.topRoom(in: visible, topOffsetPercent: prefs.topOffsetPercent)
-            : visible.height
+        let room = SwitcherPanel.room(in: visible, position: prefs.verticalPosition,
+                                      topOffsetPercent: prefs.topOffsetPercent, hanging: stack.shelfExtent)
         guard stack.fittingSize.height <= room else { return hide() }
         stack.needsLayout = true
         return shelf.intrinsicContentSize != sizeBefore
@@ -5928,19 +5845,17 @@ final class SwitcherController: SwitcherViewDelegate {
                 row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
             }
             var suppressed = false
-            for (i, sig) in closedTombstones.enumerated() {
-                if signatureMatches(sig, row: row, rowWid: rowWid) {
-                    // A "closed" window that reappears while its app is now
-                    // hidden was hidden by the app, not destroyed (Electron apps
-                    // hide on last-window close). Stop suppressing it: keep the
-                    // real row so its window title survives and it shows as a
-                    // hidden window, and let the tombstone clear (don't mark it
-                    // matched) — the close has resolved into a hide.
-                    if row.isHidden { break }
-                    matchedSigIndices.insert(i)
-                    suppressed = true
-                    break
-                }
+            for (i, sig) in closedTombstones.enumerated() where signatureMatches(sig, row: row, rowWid: rowWid) {
+                // A "closed" window that reappears while its app is now
+                // hidden was hidden by the app, not destroyed (Electron apps
+                // hide on last-window close). Stop suppressing it: keep the
+                // real row so its window title survives and it shows as a
+                // hidden window, and let the tombstone clear (don't mark it
+                // matched) — the close has resolved into a hide.
+                if row.isHidden { break }
+                matchedSigIndices.insert(i)
+                suppressed = true
+                break
             }
             if !suppressed {
                 result.append(row)
@@ -6101,7 +6016,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let exceptions = Preferences.shared.appExceptions
         // Resolved lazily, once, and only when an app-level entry needs it.
         var runningBundleIDs: Set<String>?
-        let excludedBundleID = activeFilterConfig?.excludedPid.flatMap { NSRunningApplication(processIdentifier: $0)?.bundleIdentifier }
+        let excludedBundleID = activeFilterConfig?.excludedBundleID
         for entry in entries {
             // The user, or the shortcut's current-app option (#190), excluded this app from
             // the switcher entirely — its reopen rows must not resurface it.
@@ -6306,8 +6221,7 @@ final class SwitcherController: SwitcherViewDelegate {
             if Preferences.shared.searchIncludesLaunchableApps {
                 var runningBundleIDs = Set(baseRows.compactMap { $0.bundleIdentifier })
                 // The excluded current app (#190) has no row but still runs.
-                if let pid = activeFilterConfig?.excludedPid,
-                   let excludedID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier {
+                if let excludedID = activeFilterConfig?.excludedBundleID {
                     runningBundleIDs.insert(excludedID)
                 }
                 // `matches` cuts off in scan order, so any pre-scoring limit

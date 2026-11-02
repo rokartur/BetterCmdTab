@@ -169,18 +169,10 @@ enum SearchDismissMode: String, CaseIterable {
     }
 }
 
-/// Color of the switcher's selection highlight — the filled row in List, the
-/// tinted plate and its border in Grid and Window previews — and the
-/// type-to-jump letter prefix (#185). `.system` follows the user's macOS accent
-/// (`controlAccentColor`) so the switcher matches the rest of the OS; the fixed
-/// cases exist for the accents that disappear against a busy wallpaper or a
-/// screen full of same-colored windows, which is the whole complaint in #185.
+/// Selection highlight and letter-prefix color (#185). Fixed cases exist for accents lost on
+/// busy wallpapers.
 enum SwitcherSelectionColor: String, CaseIterable {
-    /// No hue on the selection plate — the neutral luminance highlight the
-    /// switcher shipped with through 26.7, and still the default: a tint is a
-    /// deliberate choice, not something an update should impose. Letter hints and
-    /// the launch/reopen glyphs keep the macOS accent; only the plate goes
-    /// colorless.
+    /// Colorless plate, the 26.7 look and the default; letter hints keep the macOS accent.
     case transparent
     /// Follows the macOS accent color.
     case system
@@ -678,7 +670,7 @@ struct ShortcutOverride: Equatable, Sendable {
     }
 }
 
-/// What a three-finger horizontal trackpad swipe does (when the experimental
+/// What a three- or four-finger (`swipeFingerCount`) horizontal trackpad swipe does (when the experimental
 /// swipe trigger is enabled).
 enum SwipeMode: String, CaseIterable {
     /// Open the switcher and scrub through apps (the original behavior).
@@ -1344,11 +1336,15 @@ final class Preferences: ObservableObject {
         Self.quickJumpLetters(quickJumpMappings, vimEnabled: vimNavigationEnabled)
     }
 
-    /// Vim navigation claims h/j/k/l ahead of quick-jump, so those mappings sit out while it is on.
+    /// Vim navigation claims h/j/k/l ahead of quick-jump, so those letters cannot jump while it is on.
+    nonisolated static func quickJumpBlockedLetters(vimEnabled: Bool) -> Set<Character> {
+        vimEnabled ? HotkeyTap.vimNavigationLetters : []
+    }
+
     nonisolated static func quickJumpLetters(
         _ mappings: [QuickJumpMapping], vimEnabled: Bool
     ) -> [String: Character] {
-        let blocked = vimEnabled ? HotkeyTap.vimNavigationLetters : []
+        let blocked = quickJumpBlockedLetters(vimEnabled: vimEnabled)
         var letters: [String: Character] = [:]
         for mapping in mappings where !blocked.contains(mapping.letter) {
             letters[mapping.bundleID] = mapping.letter
@@ -1356,12 +1352,8 @@ final class Preferences: ObservableObject {
         return letters
     }
 
-    /// Bundle identifiers left out of letter-hint generation entirely: no hint is
-    /// drawn on them and no letter is reserved for them, so their would-be letter
-    /// stays free for another app. Meant for apps already reachable by a global
-    /// shortcut (Karabiner, Direct Activation), where a second in-panel letter is
-    /// wasted (#183 follow-up). Blank and duplicate entries are dropped at the
-    /// storage boundary so a hand-edited config can't smuggle in dead values.
+    /// Apps with no hint and no reserved letter, for apps a global shortcut already reaches (#183).
+    /// Blanks and duplicates are dropped on write.
     @Published var letterHintExcludedBundleIDs: [String] {
         didSet {
             let normalized = Self.normalizeBundleIDList(letterHintExcludedBundleIDs)
@@ -1622,7 +1614,7 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// Experimental: open the switcher with a horizontal three-finger trackpad
+    /// Experimental: open the switcher with a horizontal three- or four-finger (`swipeFingerCount`) trackpad
     /// swipe. Relies on global swipe events the system may also consume, so it's
     /// best-effort and off by default. [[experimental-features]]
     @Published var experimentalSwipeTrigger: Bool {
@@ -1632,7 +1624,7 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// What the three-finger swipe does: open the switcher (default) or switch
+    /// What the trackpad swipe does: open the switcher (default) or switch
     /// Spaces left/right. Only meaningful while `experimentalSwipeTrigger` is on.
     @Published var swipeMode: SwipeMode {
         didSet {
@@ -1642,7 +1634,7 @@ final class Preferences: ObservableObject {
     }
 
     /// When false (default), sliding fingers right moves the selection right;
-    /// when true the axis is flipped. Only affects the three-finger swipe.
+    /// when true the axis is flipped. Only affects the trackpad swipe.
     @Published var swipeReverseDirection: Bool {
         didSet {
             guard oldValue != swipeReverseDirection else { return }
@@ -1650,7 +1642,7 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// When true, lifting all fingers off the trackpad commits the three-finger
+    /// When true, lifting all fingers off the trackpad commits the trackpad
     /// swipe's current selection. When false (default), the switcher stays open
     /// so you commit with a click or Return.
     @Published var swipeCommitOnRelease: Bool {
@@ -1662,7 +1654,7 @@ final class Preferences: ObservableObject {
 
     /// Step the open switcher's selection with a mouse scroll wheel. Off for
     /// trackpads — a continuous (precise) scroll is ignored, so trackpad users
-    /// keep the three-finger swipe and two-finger scrolling stays free. Only
+    /// keep the trackpad swipe and two-finger scrolling stays free. Only
     /// acts while the switcher is already showing; never opens it from idle.
     @Published var scrollToSwitch: Bool {
         didSet {
@@ -1794,7 +1786,7 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// How far fingers must slide to advance one app in the three-finger swipe,
+    /// How far fingers must slide to advance one app in the trackpad swipe,
     /// as a 1–10 level. Higher = more sensitive (shorter slide per app).
     @Published var swipeSensitivity: Int {
         didSet {
@@ -1812,6 +1804,11 @@ final class Preferences: ObservableObject {
     /// three-finger drag free to move windows (#155).
     @Published var swipeFingerCount: Int {
         didSet {
+            let clamped = Self.clampSwipeFingerCount(swipeFingerCount)
+            if clamped != swipeFingerCount {
+                swipeFingerCount = clamped
+                return
+            }
             guard oldValue != swipeFingerCount else { return }
             UserDefaults.standard.set(swipeFingerCount, forKey: Keys.swipeFingerCount)
         }
@@ -2091,9 +2088,7 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// Color of the selection highlight and the jump-letter prefix (#185).
-    /// Defaults to `.system`, which is the macOS accent — the same color the
-    /// switcher used before this setting existed.
+    /// Color of the selection highlight and the jump-letter prefix (#185). Defaults to `.transparent`.
     @Published var selectionColor: SwitcherSelectionColor {
         didSet {
             guard oldValue != selectionColor else { return }
@@ -2579,6 +2574,16 @@ final class Preferences: ObservableObject {
         return defaultPanelScalePercent
     }
 
+    /// Writes the normalized list back like `loadClamped`, so exports never carry dropped entries.
+    private static func loadQuickJumpMappings(from defaults: UserDefaults) -> [QuickJumpMapping] {
+        let raw = defaults.array(forKey: Keys.quickJumpMappings) as? [[String: String]] ?? []
+        let normalized = normalizeQuickJumpMappings(raw.compactMap(QuickJumpMapping.init(dictionary:)))
+        if raw != normalized.map(\.dictionary) {
+            defaults.set(normalized.map(\.dictionary), forKey: Keys.quickJumpMappings)
+        }
+        return normalized
+    }
+
     /// Writes the clamped value back like `loadPanelScalePercent`: when the clamp leaves the
     /// published value unchanged, didSet skips its write and exports would keep the bad one.
     private static func loadClamped(_ key: String, default fallback: Int, clamp: (Int) -> Int,
@@ -2700,7 +2705,6 @@ final class Preferences: ObservableObject {
         normalizeScopes((raw ?? []).map { SwitchScope(rawValue: $0) ?? .allAppsAllSpaces })
     }
 
-
     private init() {
         let defaults = UserDefaults.standard
 
@@ -2721,7 +2725,7 @@ final class Preferences: ObservableObject {
         self.movePointerAcrossDisplays = defaults.bool(forKey: Keys.movePointerAcrossDisplays)
         self.verticalPosition = defaults.string(forKey: Keys.verticalPosition)
             .flatMap(SwitcherVerticalPosition.init(rawValue:)) ?? .center
-        self.topOffsetPercent = Self.clampTopOffsetPercent(defaults.object(forKey: Keys.topOffsetPercent) as? Int ?? Self.defaultTopOffsetPercent)
+        self.topOffsetPercent = Self.loadClamped(Keys.topOffsetPercent, default: Self.defaultTopOffsetPercent, clamp: Self.clampTopOffsetPercent, from: defaults)
 
         let sortRaw = defaults.string(forKey: Keys.sortOrder)
         self.sortOrder = sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
@@ -2762,16 +2766,10 @@ final class Preferences: ObservableObject {
             self.appExceptions = initial
             defaults.set(initial.map(\.dictionary), forKey: Keys.appExceptions)
         }
-        let rawQuickJumps = defaults.array(forKey: Keys.quickJumpMappings) as? [[String: String]] ?? []
-        let storedQuickJumps = rawQuickJumps.compactMap(QuickJumpMapping.init(dictionary:))
-        let normalizedQuickJumps = Self.normalizeQuickJumpMappings(storedQuickJumps)
-        self.quickJumpMappings = normalizedQuickJumps
-        if rawQuickJumps != normalizedQuickJumps.map(\.dictionary) {
-            defaults.set(normalizedQuickJumps.map(\.dictionary), forKey: Keys.quickJumpMappings)
-        }
+        self.quickJumpMappings = Self.loadQuickJumpMappings(from: defaults)
         self.letterHintExcludedBundleIDs = Self.normalizeBundleIDList(
             defaults.stringArray(forKey: Keys.letterHintExcludedBundleIDs) ?? [])
-        self.windowTitleExclusions = defaults.dictionary(forKey: Keys.windowTitleExclusions) as? [String: [String]] ?? [:]
+        self.windowTitleExclusions = (defaults.dictionary(forKey: Keys.windowTitleExclusions) ?? [:]).compactMapValues { $0 as? [String] }
         self.pinnedBundleIDs = defaults.stringArray(forKey: Keys.pinnedBundleIDs) ?? []
         self.hideAllExcludedBundleIDs = defaults.stringArray(forKey: Keys.hideAllExcludedBundleIDs) ?? []
         self.showMinimizedWindows = defaults.object(forKey: Keys.showMinimizedWindows) as? Bool ?? true
@@ -2806,10 +2804,8 @@ final class Preferences: ObservableObject {
         self.swipeMode = swipeModeRaw.flatMap(SwipeMode.init(rawValue:)) ?? .openSwitcher
         self.swipeReverseDirection = defaults.object(forKey: Keys.swipeReverseDirection) as? Bool ?? false
         self.swipeCommitOnRelease = defaults.object(forKey: Keys.swipeCommitOnRelease) as? Bool ?? false
-        let sensitivity = defaults.object(forKey: Keys.swipeSensitivity) as? Int ?? Self.defaultSwipeSensitivity
-        self.swipeSensitivity = Self.clampSwipeSensitivity(sensitivity)
-        let fingerCount = defaults.object(forKey: Keys.swipeFingerCount) as? Int ?? Self.defaultSwipeFingerCount
-        self.swipeFingerCount = Self.clampSwipeFingerCount(fingerCount)
+        self.swipeSensitivity = Self.loadClamped(Keys.swipeSensitivity, default: Self.defaultSwipeSensitivity, clamp: Self.clampSwipeSensitivity, from: defaults)
+        self.swipeFingerCount = Self.loadClamped(Keys.swipeFingerCount, default: Self.defaultSwipeFingerCount, clamp: Self.clampSwipeFingerCount, from: defaults)
         self.scrollToSwitch = defaults.object(forKey: Keys.scrollToSwitch) as? Bool ?? true
         self.scrollReverseDirection = defaults.object(forKey: Keys.scrollReverseDirection) as? Bool ?? false
         self.clickOutsideToDismiss = defaults.object(forKey: Keys.clickOutsideToDismiss) as? Bool ?? true
@@ -2899,8 +2895,8 @@ final class Preferences: ObservableObject {
         self.hoverShowForceQuit = defaults.object(forKey: Keys.hoverShowForceQuit) as? Bool ?? false
         self.hideFromScreenSharing = defaults.object(forKey: Keys.hideFromScreenSharing) as? Bool ?? false
         self.animationsEnabled = defaults.object(forKey: Keys.animationsEnabled) as? Bool ?? true
-        self.fadeInDurationMs = Self.clampFadeDuration(defaults.object(forKey: Keys.fadeInDurationMs) as? Int ?? 0)
-        self.fadeOutDurationMs = Self.clampFadeDuration(defaults.object(forKey: Keys.fadeOutDurationMs) as? Int ?? 0)
+        self.fadeInDurationMs = Self.loadClamped(Keys.fadeInDurationMs, default: 0, clamp: Self.clampFadeDuration, from: defaults)
+        self.fadeOutDurationMs = Self.loadClamped(Keys.fadeOutDurationMs, default: 0, clamp: Self.clampFadeDuration, from: defaults)
     }
 
     /// Re-read every preference from `UserDefaults` into the published
@@ -2939,16 +2935,10 @@ final class Preferences: ObservableObject {
         } else {
             appExceptions = []
         }
-        let rawQuickJumps = defaults.array(forKey: Keys.quickJumpMappings) as? [[String: String]] ?? []
-        let storedQuickJumps = rawQuickJumps.compactMap(QuickJumpMapping.init(dictionary:))
-        let normalizedQuickJumps = Self.normalizeQuickJumpMappings(storedQuickJumps)
-        if rawQuickJumps != normalizedQuickJumps.map(\.dictionary) {
-            defaults.set(normalizedQuickJumps.map(\.dictionary), forKey: Keys.quickJumpMappings)
-        }
-        quickJumpMappings = normalizedQuickJumps
+        quickJumpMappings = Self.loadQuickJumpMappings(from: defaults)
         letterHintExcludedBundleIDs = Self.normalizeBundleIDList(
             defaults.stringArray(forKey: Keys.letterHintExcludedBundleIDs) ?? [])
-        windowTitleExclusions = defaults.dictionary(forKey: Keys.windowTitleExclusions) as? [String: [String]] ?? [:]
+        windowTitleExclusions = (defaults.dictionary(forKey: Keys.windowTitleExclusions) ?? [:]).compactMapValues { $0 as? [String] }
         pinnedBundleIDs = defaults.stringArray(forKey: Keys.pinnedBundleIDs) ?? []
         hideAllExcludedBundleIDs = defaults.stringArray(forKey: Keys.hideAllExcludedBundleIDs) ?? []
 

@@ -21,8 +21,8 @@ obiektów, po jednym dla każdej aplikacji:
 }
 ```
 
-Aplikacja bez wpisu stosuje ustawienia globalne. Zarówno `hide`, jak i `ignore` są
-opcjonalne — wpis może zawierać jedno z nich albo oba.
+Aplikacja bez wpisu stosuje ustawienia globalne. `hide`, `ignore` i `groupWindows` są
+opcjonalne — wpis może zawierać dowolne z nich.
 
 <Callout type="info" title="Finder ma przygotowaną regułę">
 Przy pierwszym uruchomieniu, jeśli nie ma jeszcze żadnych reguł, BetterCmdTab sam
@@ -89,6 +89,21 @@ ograniczonym zakresie, skrótu aplikacji albo Mission Control). Jeśli nie masz 
 wybierz `"whenFullscreen"`.
 </Callout>
 
+## `groupWindows`: jedna pozycja na aplikację
+
+`"groupWindows": "true"` pokazuje aplikację raz zamiast osobno dla każdego okna, tak jak
+[`applicationsOnly`](/docs/pl/config-reference/#contents) robi to dla wszystkich aplikacji.
+Przydaje się dla aplikacji z wieloma oknami, których nie wybierasz pojedynczo. Jej okna
+pozostają dostępne na półce okien, pod <kbd>↓</kbd> i pod <kbd>⌘`</kbd>.
+
+```json title="config.json"
+{
+  "appExceptions": [
+    { "bundleID": "com.apple.Terminal", "groupWindows": "true" }
+  ]
+}
+```
+
 ## Powiązane klucze
 
 Dwie inne listy przyjmują same identyfikatory pakietów i są prostsze niż `appExceptions`:
@@ -98,10 +113,16 @@ Dwie inne listy przyjmują same identyfikatory pakietów i są prostsze niż `ap
 - [`hideAllExcludedBundleIDs`](/docs/pl/config-reference/#contents) — aplikacje pomijane przez
   skrót „ukryj wszystkie okna”.
 
+Pole **Ukryj tytuły zawierające** w panelu Aplikacje zapisuje trzeci klucz,
+[`windowTitleExclusions`](/docs/pl/config-reference/#contents): identyfikator pakietu →
+fragmenty tytułów. Okno, którego tytuł zawiera fragment (bez względu na wielkość liter i
+znaki diakrytyczne), jest pomijane; pozostałe okna aplikacji zostają.
+
 ```json title="config.json"
 {
   "pinnedBundleIDs": ["com.apple.Safari", "com.googlecode.iterm2"],
-  "hideAllExcludedBundleIDs": ["com.spotify.client"]
+  "hideAllExcludedBundleIDs": ["com.spotify.client"],
+  "windowTitleExclusions": { "com.apple.Safari": ["Private Browsing"] }
 }
 ```
 
