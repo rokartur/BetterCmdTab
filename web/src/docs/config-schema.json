@@ -102,7 +102,7 @@
       "type" : "boolean"
     },
     "browserTabMRU" : {
-      "description" : "With expanded browser tabs and mruWindows, order observed tabs across windows by last use. History starts at launch; a browser window remains available without history.",
+      "description" : "With expanded browser tabs and mru or mruWindows, order observed tabs across windows by last use. mru keeps applications grouped; mruWindows interleaves entries across applications. History starts at launch; a browser window remains available without history.",
       "type" : "boolean"
     },
     "browserTabPreviews" : {
@@ -110,7 +110,7 @@
       "type" : "boolean"
     },
     "browserTabRowLimit" : {
-      "description" : "Cap on tab entries. With browserTabMRU and mruWindows, counts observed tabs per browser across its windows; otherwise per window. 0 = unlimited; anything else is taken as 2…16.",
+      "description" : "Cap on tab entries. With browserTabMRU and mru or mruWindows, counts observed tabs per browser across its windows; otherwise per window. 0 = unlimited; anything else is taken as 2…16.",
       "maximum" : 16,
       "minimum" : 0,
       "type" : "integer"
@@ -885,7 +885,7 @@
             "type" : "string"
           },
           "sortOrder" : {
-            "description" : "Override: Order apps and windows are listed in.",
+            "description" : "Override: mru orders applications by last use; mruWindows orders individual entries across applications. With browser-tab recency, tabs are ordered within each browser for mru and globally for mruWindows.",
             "enum" : [
               "mru",
               "mruWindows",
@@ -894,7 +894,7 @@
               "dock"
             ],
             "enumDescriptions" : [
-              "Most recent",
+              "Most recent (apps)",
               "Most recent (windows)",
               "Alphabetical",
               "Launch order",
@@ -1022,7 +1022,7 @@
       "type" : "boolean"
     },
     "sortOrder" : {
-      "description" : "Order apps and windows are listed in.",
+      "description" : "mru orders applications by last use; mruWindows orders individual entries across applications. With browser-tab recency, tabs are ordered within each browser for mru and globally for mruWindows.",
       "enum" : [
         "mru",
         "mruWindows",
@@ -1031,7 +1031,7 @@
         "dock"
       ],
       "enumDescriptions" : [
-        "Most recent",
+        "Most recent (apps)",
         "Most recent (windows)",
         "Alphabetical",
         "Launch order",

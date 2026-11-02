@@ -63,7 +63,16 @@ empty.
 Native tabs (Finder, Terminal, TextEdit) use Accessibility and need nothing extra.
 
 With **Show browser tabs as separate entries**, **Track browser tabs in recency**
-and **Most recent (windows)**, tabs from different windows share one recency order.
+and either recent sort, tabs from different windows share one recency order.
+
+- **Most recent (apps)** keeps applications together by last use; tabs within each
+  browser follow their last use across all its eligible windows.
+- **Most recent (windows)** mixes browser tabs and ordinary windows from all
+  applications by last use.
+
+A quick tap in app order still switches applications; when the target is a
+browser, it selects that browser's most recently used eligible tab.
+
 **Browser tabs to show** limits each browser across its eligible windows: a limit
 of 5 gives Chrome up to 5 tabs and Safari up to 5, chosen by last use rather than
 their positions in the browser. The focused tab counts toward that limit.

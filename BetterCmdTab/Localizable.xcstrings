@@ -11558,52 +11558,6 @@
         }
       }
     },
-    "Most recent" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuletzt verwendet"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Más reciente"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Récemment utilisé"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最近使った順"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ostatnio używane"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Недавние"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最近使用"
-          }
-        }
-      }
-    },
     "Most recent (windows)" : {
       "localizations" : {
         "de" : {
@@ -11646,52 +11600,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最近使用（窗口）"
-          }
-        }
-      }
-    },
-    "Most recent keeps the classic ⌘Tab order; Most recent (windows) interleaves windows from all apps by last focus; the others stay put as you switch." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "„Zuletzt verwendet“ behält die klassische ⌘Tab-Reihenfolge bei; „Zuletzt verwendet (Fenster)“ reiht Fenster aller Apps nach dem letzten Fokus ein; die anderen bleiben beim Wechseln an Ort und Stelle."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "«Más reciente» mantiene el orden clásico de ⌘Tab; «Más reciente (ventanas)» intercala las ventanas de todas las apps según el último uso; las demás permanecen en su sitio al cambiar."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Récemment utilisé conserve l’ordre classique de ⌘Tab ; Récemment utilisé (fenêtres) intercale les fenêtres de toutes les apps selon leur dernière utilisation ; les autres restent en place lorsque vous changez."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「最近使った順」は従来の⌘Tabの順序のままです。「最近使った順（ウインドウ）」はすべてのアプリのウインドウを最後にフォーカスした順に並べます。それ以外は切り替えても順序が変わりません。"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ostatnio używane zachowuje klasyczną kolejność ⌘Tab; Ostatnio używane (okna) przeplata okna wszystkich aplikacji według ostatniego użycia; pozostałe pozostają na miejscu podczas przełączania."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Режим «Недавние» сохраняет классический порядок ⌘Tab; режим «Недавние (окна)» объединяет окна всех приложений по времени последней активации; при других вариантах порядок не меняется во время переключения."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“最近使用”保持经典 ⌘Tab 顺序；“最近使用（窗口）”按最近聚焦交错排列所有应用的窗口；其他排序在切换时保持不变。"
           }
         }
       }
@@ -23717,96 +23625,190 @@
         }
       }
     },
-    "With tab recency and “Most recent (windows)”, this limit applies to each browser across its windows. Other modes limit each window and keep its active tab visible. Set to 0 for no limit (otherwise 2–16)." : {
+    "Most recent (apps)" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit Tab-Verlauf und „Zuletzt verwendet (Fenster)“ gilt dieses Limit pro Browser über alle Fenster hinweg. Andere Modi begrenzen jedes Fenster und lassen den aktiven Tab sichtbar. 0 bedeutet unbegrenzt (sonst 2–16)."
+            "value" : "Zuletzt verwendet (Apps)"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con el seguimiento de pestañas y «Más reciente (ventanas)», este límite se aplica a cada navegador entre todas sus ventanas. Los demás modos limitan cada ventana y mantienen visible su pestaña activa. Usa 0 para no limitar (en otro caso, 2–16)."
+            "value" : "Más reciente (aplicaciones)"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avec le suivi des onglets et « Récemment utilisé (fenêtres) », cette limite s’applique à chaque navigateur, toutes fenêtres confondues. Les autres modes limitent chaque fenêtre et gardent son onglet actif visible. 0 signifie sans limite (sinon 2–16)."
+            "value" : "Récemment utilisé (applications)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "タブの使用履歴と「最近使った順（ウインドウ）」が有効な場合、この上限はブラウザごとに全ウインドウを通じて適用されます。他のモードではウインドウごとに制限し、アクティブなタブを表示します。0は無制限、それ以外は2〜16です。"
+            "value" : "最近使った順（アプリ）"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przy śledzeniu kart i sortowaniu „Ostatnio używane (okna)” limit dotyczy każdej przeglądarki łącznie we wszystkich jej oknach. Inne tryby ograniczają każde okno, zachowując widoczną aktywną kartę. 0 oznacza brak limitu (w pozostałych przypadkach 2–16)."
+            "value" : "Ostatnio używane (aplikacje)"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "При отслеживании вкладок и сортировке «Недавние (окна)» лимит действует на каждый браузер суммарно по всем его окнам. В других режимах лимит действует на каждое окно, а активная вкладка остаётся видимой. 0 — без ограничения (иначе 2–16)."
+            "value" : "Недавние (приложения)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启标签页使用顺序跟踪并选择“最近使用（窗口）”时，上限按每个浏览器的所有窗口合计。其他模式按每个窗口限制，并保持活动标签页可见。设为 0 不限制数量，其他值为 2–16。"
+            "value" : "最近使用（应用）"
           }
         }
       }
     },
-    "With “Show browser tabs as separate entries” and “Most recent (windows)”, ⌘Tab follows the last-used tabs across windows. Only tabs observed since launch are listed; without history, a browser window stays available. Monitoring browsers uses a little energy." : {
+    "Most recent (apps) keeps apps together by last use. With tab recency, a browser’s tabs are ordered across its windows. Most recent (windows) mixes entries from all apps by last use. Other sorts stay put as you switch." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit „Browser-Tabs als separate Einträge anzeigen“ und „Zuletzt verwendet (Fenster)“ folgt ⌘Tab den zuletzt verwendeten Tabs über Fenster hinweg. Nur seit dem Start beobachtete Tabs werden aufgelistet; ohne Verlauf bleibt ein Browserfenster erreichbar. Die Überwachung benötigt etwas Energie."
+            "value" : "Zuletzt verwendet (Apps) hält Apps nach letzter Nutzung zusammen. Mit Tab-Verlauf werden die Tabs eines Browsers über seine Fenster hinweg geordnet. Zuletzt verwendet (Fenster) mischt Einträge aller Apps nach letzter Nutzung. Andere Sortierungen bleiben beim Wechseln unverändert."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con «Mostrar las pestañas del navegador como entradas separadas» y «Más reciente (ventanas)», ⌘Tab sigue las últimas pestañas usadas entre ventanas. Solo se muestran las observadas desde el inicio; sin historial, queda disponible una ventana del navegador. El seguimiento consume algo de energía."
+            "value" : "Más reciente (aplicaciones) agrupa las aplicaciones por su último uso. Con el seguimiento de pestañas, las de cada navegador se ordenan entre sus ventanas. Más reciente (ventanas) mezcla las entradas de todas las aplicaciones por último uso. Los demás órdenes no cambian al alternar."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avec « Afficher les onglets du navigateur comme entrées distinctes » et « Récemment utilisé (fenêtres) », ⌘Tab suit les derniers onglets utilisés, toutes fenêtres confondues. Seuls les onglets observés depuis le lancement sont listés ; sans historique, une fenêtre du navigateur reste accessible. Le suivi consomme un peu d’énergie."
+            "value" : "Récemment utilisé (applications) regroupe les applications par dernière utilisation. Avec le suivi des onglets, ceux d’un navigateur sont ordonnés entre ses fenêtres. Récemment utilisé (fenêtres) mélange les entrées de toutes les applications par dernière utilisation. Les autres tris restent fixes pendant le basculement."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「ブラウザのタブを個別の項目として表示」と「最近使った順（ウインドウ）」が有効な場合、⌘Tabはウインドウをまたいで最近使ったタブをたどります。起動後に使用が記録されたタブだけを表示し、履歴がない場合もブラウザのウインドウを残します。監視には少量の電力を使用します。"
+            "value" : "「最近使った順（アプリ）」は最後に使った順でアプリごとにまとめます。タブの使用履歴が有効なら、同じブラウザのタブをウインドウをまたいで並べます。「最近使った順（ウインドウ）」は全アプリの項目を使用順に並べます。他の並び順は切り替えても変わりません。"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przy włączonym „Pokazuj karty przeglądarki jako osobne pozycje” i sortowaniu „Ostatnio używane (okna)” ⌘Tab przechodzi według ostatniego użycia kart ze wszystkich okien. Lista obejmuje tylko karty zaobserwowane od uruchomienia; bez historii pozostaje dostępne okno przeglądarki. Śledzenie zużywa trochę energii."
+            "value" : "Ostatnio używane (aplikacje) grupuje aplikacje według ostatniego użycia. Przy śledzeniu kart karty przeglądarki są porządkowane wspólnie dla jej okien. Ostatnio używane (okna) miesza pozycje wszystkich aplikacji według użycia. Inne kolejności pozostają stałe podczas przełączania."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "При включённых «Показывать вкладки браузера как отдельные записи» и «Недавние (окна)» ⌘Tab следует порядку использования вкладок из всех окон. Отображаются только вкладки, замеченные после запуска; без истории остаётся доступным окно браузера. Отслеживание расходует немного энергии."
+            "value" : "Недавние (приложения) группирует приложения по последнему использованию. При отслеживании вкладки браузера упорядочиваются вместе из всех его окон. Недавние (окна) смешивает элементы всех приложений по использованию. Другие порядки не меняются при переключении."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启“将浏览器标签页显示为单独条目”并选择“最近使用（窗口）”时，⌘Tab 按跨窗口的标签页使用顺序切换。只列出启动后记录到的标签页；没有历史时保留浏览器窗口入口。持续监控浏览器会稍微耗电。"
+            "value" : "最近使用（应用）按应用的使用顺序排列。开启标签页使用顺序跟踪后，同一浏览器的标签页跨窗口按使用顺序排列；最近使用（窗口）则跨应用统一排列。其他排序在切换时保持位置不变。"
+          }
+        }
+      }
+    },
+    "With tab recency and either recent sort, this limit applies to each browser across its windows. Other modes limit each window and keep its active tab visible. Set to 0 for no limit (otherwise 2–16)." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Tab-Verlauf und einer der beiden Sortierungen nach letzter Nutzung gilt dieses Limit pro Browser über alle Fenster hinweg. Andere Modi begrenzen jedes Fenster und lassen den aktiven Tab sichtbar. 0 bedeutet unbegrenzt (sonst 2–16)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con el seguimiento de pestañas y cualquiera de los dos órdenes por último uso, este límite se aplica a cada navegador entre todas sus ventanas. Los demás modos limitan cada ventana y mantienen visible su pestaña activa. Usa 0 para no limitar (en otro caso, 2–16)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec le suivi des onglets et l’un des deux tris par dernière utilisation, cette limite s’applique à chaque navigateur, toutes fenêtres confondues. Les autres modes limitent chaque fenêtre et gardent son onglet actif visible. 0 signifie sans limite (sinon 2–16)."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブの使用履歴と、いずれかの「最近使った順」が有効な場合、この上限はブラウザごとに全ウインドウを通じて適用されます。他のモードではウインドウごとに制限し、アクティブなタブを表示します。0は無制限、それ以外は2〜16です。"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przy śledzeniu kart i jednym z dwóch sortowań według ostatniego użycia limit dotyczy każdej przeglądarki łącznie we wszystkich jej oknach. Inne tryby ograniczają każde okno, zachowując widoczną aktywną kartę. 0 oznacza brak limitu (w pozostałych przypadkach 2–16)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "При отслеживании вкладок и любом из двух порядков по последнему использованию лимит действует на каждый браузер суммарно по всем его окнам. В других режимах лимит действует на каждое окно, а активная вкладка остаётся видимой. 0 — без ограничения (иначе 2–16)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启标签页使用顺序跟踪并选择任一种“最近使用”排序时，上限按每个浏览器的所有窗口合计。其他模式按每个窗口限制，并保持活动标签页可见。设为 0 不限制数量，其他值为 2–16。"
+          }
+        }
+      }
+    },
+    "With “Show browser tabs as separate entries” and either recent sort, tabs across a browser’s windows follow last use. Only tabs observed since launch are listed; without history, a browser window stays available. Monitoring browsers uses a little energy." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit „Browser-Tabs als separate Einträge anzeigen“ und einer der beiden Sortierungen nach letzter Nutzung werden die Tabs eines Browsers über alle Fenster hinweg nach Nutzung geordnet. Nur seit dem Start beobachtete Tabs werden aufgelistet; ohne Verlauf bleibt ein Browserfenster erreichbar. Die Überwachung benötigt etwas Energie."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con «Mostrar las pestañas del navegador como entradas separadas» y cualquiera de los dos órdenes por último uso, las pestañas de un navegador se ordenan entre sus ventanas por uso. Solo se muestran las observadas desde el inicio; sin historial, queda disponible una ventana del navegador. El seguimiento consume algo de energía."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec « Afficher les onglets du navigateur comme entrées distinctes » et l’un des deux tris par dernière utilisation, les onglets d’un navigateur sont ordonnés entre ses fenêtres par usage. Seuls les onglets observés depuis le lancement sont listés ; sans historique, une fenêtre du navigateur reste accessible. Le suivi consomme un peu d’énergie."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「ブラウザのタブを個別の項目として表示」と、いずれかの「最近使った順」が有効な場合、同じブラウザのタブをウインドウをまたいで使用順に並べます。起動後に使用が記録されたタブだけを表示し、履歴がない場合もブラウザのウインドウを残します。監視には少量の電力を使用します。"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przy włączonym „Pokazuj karty przeglądarki jako osobne pozycje” i jednym z dwóch sortowań według ostatniego użycia karty przeglądarki są porządkowane wspólnie dla jej okien. Lista obejmuje tylko karty zaobserwowane od uruchomienia; bez historii pozostaje dostępne okno przeglądarki. Śledzenie zużywa trochę energii."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "При включённых «Показывать вкладки браузера как отдельные записи» и любом из двух порядков по последнему использованию вкладки браузера упорядочиваются вместе из всех его окон. Отображаются только вкладки, замеченные после запуска; без истории остаётся доступным окно браузера. Отслеживание расходует немного энергии."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启“将浏览器标签页显示为单独条目”并选择任一种“最近使用”排序时，同一浏览器的标签页跨窗口按使用顺序排列。只列出启动后记录到的标签页；没有历史时保留浏览器窗口入口。持续监控浏览器会稍微耗电。"
           }
         }
       }
