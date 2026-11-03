@@ -48,9 +48,9 @@ export function BetterAudioCard() {
 const footerLinks: Array<[string, string]> = [
   ["Changelog", `${REPO}/releases`],
   ["Documentation", DOCS],
-  ["Config reference", `${DOCS}config-reference/`],
-  ["AltTab alternative", "/alttab-alternative/"],
-  ["⌘Tab on Mac, explained", "/cmd-tab-mac/"],
+  ["Config reference", `${DOCS}/config-reference`],
+  ["AltTab alternative", "/alttab-alternative"],
+  ["⌘Tab on Mac, explained", "/cmd-tab-mac"],
   ["Report an issue", `${REPO}/issues`],
   ["License", `${REPO}/blob/main/LICENSE`],
 ];

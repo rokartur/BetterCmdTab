@@ -8,7 +8,7 @@
   <a href="https://github.com/rokartur/BetterCmdTab/releases"><img alt="下载量" src="https://img.shields.io/github/downloads/rokartur/BetterCmdTab/total?style=for-the-badge&color=white&labelColor=4B4960"></a>
 </p>
 
-<a href="https://bettercmdtab.app">网站</a> · <a href="https://bettercmdtab.app/docs/">文档</a> · <a href="README.md">English</a>
+<a href="https://bettercmdtab.app">网站</a> · <a href="https://bettercmdtab.app/docs">文档</a> · <a href="README.md">English</a>
 
 </div>
 
@@ -64,7 +64,7 @@ brew install --cask bettercmdtab@beta   # 测试版
 - 可调不透明度、圆角、材质、尺寸和网格列数。可选强调色或自定义选中颜色。跟随“减弱动态效果”。
 - 将设置导出为 JSON，或与 `~/.config/bettercmdtab/config.json` 实时同步（自动生成的 `schema.json` 为编辑器提供自动补全）。
 
-所有选项详见[文档](https://bettercmdtab.app/docs/)。
+所有选项详见[文档](https://bettercmdtab.app/docs)。
 
 ## 隐私
 

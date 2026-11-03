@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import {
   DocsBody,
   DocsDescription,
@@ -7,7 +7,7 @@ import {
   DocsTitle,
   MarkdownCopyButton,
   ViewOptionsPopover,
-} from "fumadocs-ui/layouts/docs/page";
+} from "fumadocs-ui/layouts/notebook/page";
 import { use } from "react";
 
 import { configReferenceToc } from "../../docs/config-reference";
@@ -98,6 +98,7 @@ function DocsRoute() {
   const { page, locale } = findPage(Route.useParams()._splat);
   const { body: MDX, toc: extractedToc } = use(page.data.load());
   const markdownUrl = getPageMarkdownUrl(page);
+  const options = baseOptions(locale);
   // The reference page's headings are rendered by <ConfigReference />, so they never reach
   // the MDX source fumadocs extracts the ToC from.
   const toc =
@@ -108,10 +109,16 @@ function DocsRoute() {
   return (
     <DocsProvider locale={locale} slugs={page.slugs}>
       <div className="flex min-h-screen flex-col">
-        <DocsLayout tree={source.getPageTree(locale)} {...baseOptions(locale)}>
+        <DocsLayout
+          tree={source.getPageTree(locale)}
+          {...options}
+          nav={{ ...options.nav, mode: "top" }}
+        >
           <DocsPage toc={toc} full={page.data.full}>
-            <DocsTitle>{page.data.title}</DocsTitle>
-            <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
+            <DocsTitle className="text-[clamp(34px,5vw,52px)] leading-[1.05] font-bold tracking-[-0.035em] text-balance">
+              {page.data.title}
+            </DocsTitle>
+            <DocsDescription className="mb-0 text-[19px]">{page.data.description}</DocsDescription>
             <div className="flex flex-row items-center gap-2 border-b pb-6">
               <MarkdownCopyButton markdownUrl={markdownUrl} />
               <ViewOptionsPopover

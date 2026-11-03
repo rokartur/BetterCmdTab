@@ -475,7 +475,7 @@ function PillRow({
       <PillDivider />
 
       <a
-        href="/docs/"
+        href="/docs"
         className="inline-flex h-9 items-center justify-center rounded-full border-0 px-3 text-[12.5px] font-medium text-stone-200 no-underline transition-[transform,background-color,color] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/8 hover:text-white focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-none active:scale-[0.96] sm:h-10 sm:px-3.5 sm:text-[13.5px]"
       >
         Docs

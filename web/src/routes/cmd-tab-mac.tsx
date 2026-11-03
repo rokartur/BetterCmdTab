@@ -6,7 +6,7 @@ import { BREW } from "../sections/Download";
 export const Route = createFileRoute("/cmd-tab-mac")({
   head: () =>
     articleHead({
-      path: "/cmd-tab-mac/",
+      path: "/cmd-tab-mac",
       title: "How Cmd+Tab Works on Mac · BetterCmdTab",
       description:
         "The built-in Command-Tab shortcuts on macOS, where the app switcher falls short, and how to switch between windows instead of apps.",
@@ -81,7 +81,7 @@ function CmdTabMac() {
       </ol>
       <p>
         To go back to the native switcher, choose Quit BetterCmdTab from its menu-bar icon. If you
-        used AltTab before, see the <a href="/alttab-alternative/">AltTab comparison</a>.
+        used AltTab before, see the <a href="/alttab-alternative">AltTab comparison</a>.
       </p>
     </Article>
   );

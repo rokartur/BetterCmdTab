@@ -1,16 +1,16 @@
 import { LiveConfig } from "./LiveConfig";
 import { H2 } from "./tokens";
 
-// Plain anchors for a full load: docs pages use their own stylesheet. Slash-terminated like
-// every docs URL: serve.ts 301s the bare form, and an internal link should not spend a redirect.
-export const DOCS = "/docs/";
+// Plain anchors for a full load: docs pages use their own stylesheet. No trailing slash like
+// every docs URL: serve.ts 301s the slashed form, and an internal link should not spend a redirect.
+export const DOCS = "/docs";
 
-// Paths are relative to DOCS; the quick start is the docs landing page.
+// Paths are appended to DOCS; the quick start is the docs landing page.
 const docsLinks: Array<[string, string, string]> = [
   ["Quick start", "Install, permissions, your first switch", ""],
-  ["Config file", "How the live two-way sync works", "configuration/"],
-  ["Config reference", "Every key, with types and defaults", "config-reference/"],
-  ["Per-shortcut overrides", "A different switcher on every hotkey", "overrides/"],
+  ["Config file", "How the live two-way sync works", "/configuration"],
+  ["Config reference", "Every key, with types and defaults", "/config-reference"],
+  ["Per-shortcut overrides", "A different switcher on every hotkey", "/overrides"],
 ];
 
 export function Docs() {

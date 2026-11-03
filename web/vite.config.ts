@@ -8,7 +8,8 @@ import { defineConfig } from "vite";
 import { docsContentFiles } from "./src/docs/content-files";
 
 const docsPages = docsContentFiles().flatMap(({ path }) => [
-  { path: `/docs/${path}` },
+  // `path` ends in a slash (`overrides/`, or empty for the quick start); page URLs do not.
+  { path: `/docs/${path}`.slice(0, -1) },
   { path: `/docs/llms.mdx/docs/${path}content.md` },
 ]);
 
@@ -22,8 +23,8 @@ export default defineConfig({
     tanstackStart({
       pages: [
         { path: "/" },
-        { path: "/alttab-alternative/" },
-        { path: "/cmd-tab-mac/" },
+        { path: "/alttab-alternative" },
+        { path: "/cmd-tab-mac" },
         // serve.ts answers any unknown path with /404.html, so the not-found
         // route is prerendered to that exact filename rather than the default
         // /404/index.html subfolder.

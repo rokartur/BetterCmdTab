@@ -8,7 +8,7 @@
   <a href="https://github.com/rokartur/BetterCmdTab/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/rokartur/BetterCmdTab/total?style=for-the-badge&color=white&labelColor=4B4960"></a>
 </p>
 
-<a href="https://bettercmdtab.app">Website</a> · <a href="https://bettercmdtab.app/docs/">Documentation</a> · <a href="README.zh-CN.md">简体中文</a>
+<a href="https://bettercmdtab.app">Website</a> · <a href="https://bettercmdtab.app/docs">Documentation</a> · <a href="README.zh-CN.md">简体中文</a>
 
 </div>
 
@@ -64,7 +64,7 @@ On first launch, grant **Accessibility** in System Settings → Privacy & Securi
 - Opacity, corner radius, material, size, and grid columns. Optional accent or custom selection color. Follows Reduce Motion.
 - Export settings as JSON, or sync them live with `~/.config/bettercmdtab/config.json` (a generated `schema.json` gives editors autocomplete).
 
-Every option is documented in the [docs](https://bettercmdtab.app/docs/).
+Every option is documented in the [docs](https://bettercmdtab.app/docs).
 
 ## Privacy
 

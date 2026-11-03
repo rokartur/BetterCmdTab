@@ -95,12 +95,12 @@ the modifier is ignored in-panel. Clearing a recorder turns that key off.
 <kbd>↓</kbd> only drills into an app's windows where it would otherwise do nothing useful — the
 grid and window-preview layouts while the panel is a single row. In the list layout,
 and in a multi-row grid, <kbd>↓</kbd> keeps moving the selection instead. It also needs
-[`windowDrillEnabled`](/docs/config-reference/#windowDrillEnabled), one row per app
-([`applicationsOnly`](/docs/config-reference/#applicationsOnly)), and an app with at least
+[`windowDrillEnabled`](/docs/config-reference#windowDrillEnabled), one row per app
+([`applicationsOnly`](/docs/config-reference#applicationsOnly)), and an app with at least
 two windows.
 
 A quick tap switches instantly without drawing anything. The panel only appears
-once you have held the shortcut for [`revealDelayMs`](/docs/config-reference/#revealDelayMs)
+once you have held the shortcut for [`revealDelayMs`](/docs/config-reference#revealDelayMs)
 (100 ms by default) — raise it if the panel flashes during fast tap-switching.
 
 ### What the icons mean
@@ -120,13 +120,13 @@ entry is in:
 
 The four window-state glyphs (hidden, minimized, no window, full-screen) can be
 turned off under **Appearance → Labels → Show status icons**
-([`showWindowStatusIcons`](/docs/config-reference/#showWindowStatusIcons)). The audio,
+([`showWindowStatusIcons`](/docs/config-reference#showWindowStatusIcons)). The audio,
 launch and reopen cues always show.
 
 Apps with no open window carry no window recency, so under either recency
-[`sortOrder`](/docs/config-reference/#sortOrder) (`mru`, `mruWindows`) they collect at the
+[`sortOrder`](/docs/config-reference#sortOrder) (`mru`, `mruWindows`) they collect at the
 end of the list. Hidden apps do the same while
-[`sinkHiddenApps`](/docs/config-reference/#sinkHiddenApps) is on. Switch `sortOrder` to
+[`sinkHiddenApps`](/docs/config-reference#sinkHiddenApps) is on. Switch `sortOrder` to
 `alphabetical` to order every entry by name instead, or pin the apps you want on
 top under **Apps**.
 
@@ -167,14 +167,14 @@ in the settings window are written back.
 }
 ```
 
-See [Configuration file](/docs/configuration/) for how the sync behaves, and the
-[config reference](/docs/config-reference/) for every key.
+See [Configuration file](/docs/configuration) for how the sync behaves, and the
+[config reference](/docs/config-reference) for every key.
 
 ## Next steps
 
 <Cards>
-  <Card title="Configuration file" href="/docs/configuration/" description="How the live sync, schema and precedence work." />
-  <Card title="Config reference" href="/docs/config-reference/" description="Every key with types, defaults and allowed values." />
-  <Card title="App rules" href="/docs/app-rules/" description="Hide apps, or pass ⌘Tab through to them." />
-  <Card title="Per-shortcut overrides" href="/docs/overrides/" description="A different switcher per shortcut." />
+  <Card title="Configuration file" href="/docs/configuration" description="How the live sync, schema and precedence work." />
+  <Card title="Config reference" href="/docs/config-reference" description="Every key with types, defaults and allowed values." />
+  <Card title="App rules" href="/docs/app-rules" description="Hide apps, or pass ⌘Tab through to them." />
+  <Card title="Per-shortcut overrides" href="/docs/overrides" description="A different switcher per shortcut." />
 </Cards>
