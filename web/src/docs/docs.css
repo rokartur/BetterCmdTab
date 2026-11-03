@@ -96,6 +96,45 @@ html > body[data-scroll-locked] {
   --removed-body-scroll-bar-size: 0px !important;
 }
 
+/* Type of the guide pages (web/src/sections/Article.tsx): dim body, bold tight headings. */
+/* `:not(.prose-sm)` skips the ToC links, which fumadocs also gives `.prose`. */
+.prose:not(.prose-sm) {
+  --tw-prose-body: #57534c;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.dark .prose {
+  --tw-prose-body: #b8b2a7;
+}
+
+.prose h2 {
+  margin-top: 56px;
+  font-size: clamp(24px, 3vw, 30px);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.prose h3 {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* Sidebar as plain text, like the guide pages' link lists: no pill behind the current page. */
+#nd-sidebar a[data-active="true"],
+#nd-sidebar-mobile a[data-active="true"] {
+  background: none;
+  color: var(--color-fd-foreground);
+  font-weight: 600;
+}
+
+#nd-sidebar p,
+#nd-sidebar-mobile p {
+  color: var(--color-fd-foreground);
+  font-weight: 600;
+}
+
 /* Unlayered, so these beat the typography plugin's rounded-card tables. */
 .prose table {
   border: 0;

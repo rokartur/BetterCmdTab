@@ -8,6 +8,7 @@ import { docsPath, gitConfig } from "./source";
 
 export function baseOptions(locale: Locale): BaseLayoutProps {
   const t = messages[locale].Navigation;
+  const releaseUrl = `https://github.com/${gitConfig.user}/${gitConfig.repo}/releases/latest`;
 
   return {
     nav: {
@@ -31,11 +32,27 @@ export function baseOptions(locale: Locale): BaseLayoutProps {
     // the sidebar footer pill alongside the icon `githubUrl` generates.
     links: [
       {
+        type: "custom",
+        on: "nav",
+        children: (
+          // The guide pages' black pill, without their Motion hover so docs skip ~800 KB of JS.
+          <a
+            href={releaseUrl}
+            aria-label={t.downloadReleaseLabel}
+            className="bg-fd-foreground text-fd-background inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-[13.5px] font-semibold transition-opacity hover:opacity-85"
+          >
+            <Download className="size-4" />
+            {t.download}
+          </a>
+        ),
+      },
+      {
         type: "icon",
+        on: "menu",
         label: t.downloadReleaseLabel,
         text: t.download,
         icon: <Download />,
-        url: `https://github.com/${gitConfig.user}/${gitConfig.repo}/releases/latest`,
+        url: releaseUrl,
         external: true,
       },
       {
