@@ -51,7 +51,7 @@ mdls -name kMDItemCFBundleIdentifier -r /Applications/Safari.app
 ## `hide` vs. the global filters
 
 `hide` is evaluated on top of the global contents settings, and it only ever removes
-entries. If [`showWindowlessApps`](/docs/config-reference/#contents) is already off, an
+entries. If [`showWindowlessApps`](/docs/config-reference#contents) is already off, an
 app with no windows is absent whether or not it has a `whenNoWindows` rule.
 
 - `"dontHide"` — the default. The app is listed like any other.
@@ -63,7 +63,7 @@ app with no windows is absent whether or not it has a `whenNoWindows` rule.
 <Callout type="info">
 Hiding an app does not stop it from running, and does not remove it from search
 results if it is installed and
-[`searchIncludesLaunchableApps`](/docs/config-reference/#search) is on.
+[`searchIncludesLaunchableApps`](/docs/config-reference#search) is on.
 </Callout>
 
 ## `ignore`: passing ⌘Tab through
@@ -88,7 +88,7 @@ are sure.
 ## `groupWindows`: one entry per app
 
 `"groupWindows": "true"` lists the app once instead of once per window, as
-[`applicationsOnly`](/docs/config-reference/#contents) does for every app. Use it for an
+[`applicationsOnly`](/docs/config-reference#contents) does for every app. Use it for an
 app with many windows you never pick one by one. Its windows stay reachable in the
 window shelf, with <kbd>↓</kbd>, and with <kbd>⌘`</kbd>.
 
@@ -104,13 +104,13 @@ window shelf, with <kbd>↓</kbd>, and with <kbd>⌘`</kbd>.
 
 Two other lists take bare bundle IDs and are simpler than `appExceptions`:
 
-- [`pinnedBundleIDs`](/docs/config-reference/#contents) — apps kept at the front of the
+- [`pinnedBundleIDs`](/docs/config-reference#contents) — apps kept at the front of the
   switcher, in the order given.
-- [`hideAllExcludedBundleIDs`](/docs/config-reference/#contents) — apps the "hide all
+- [`hideAllExcludedBundleIDs`](/docs/config-reference#contents) — apps the "hide all
   windows" shortcut leaves alone.
 
 The Apps pane's **Hide titles containing** field writes a third key,
-[`windowTitleExclusions`](/docs/config-reference/#contents): bundle ID → title fragments.
+[`windowTitleExclusions`](/docs/config-reference#contents): bundle ID → title fragments.
 A window whose title contains a fragment (case- and accent-insensitive) is left out;
 the app's other windows stay.
 

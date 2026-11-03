@@ -98,13 +98,13 @@ wyłącza dany klawisz.
 <kbd>↓</kbd> przechodzi do okien aplikacji tylko tam, gdzie w innym przypadku nie wykonywałby
 użytecznej czynności — w układzie siatki i podglądu okien, gdy panel ma jeden wiersz.
 W układzie listy i wielowierszowej siatce <kbd>↓</kbd> nadal przesuwa zaznaczenie. Funkcja wymaga
-też włączenia [`windowDrillEnabled`](/docs/pl/config-reference/#windowDrillEnabled), jednego
-wiersza na aplikację ([`applicationsOnly`](/docs/pl/config-reference/#applicationsOnly)) oraz
+też włączenia [`windowDrillEnabled`](/docs/pl/config-reference#windowDrillEnabled), jednego
+wiersza na aplikację ([`applicationsOnly`](/docs/pl/config-reference#applicationsOnly)) oraz
 aplikacji z co najmniej dwoma oknami.
 
 Szybkie naciśnięcie przełącza natychmiast, bez wyświetlania czegokolwiek. Panel pojawia
 się dopiero po przytrzymaniu skrótu przez czas określony w
-[`revealDelayMs`](/docs/pl/config-reference/#revealDelayMs) (domyślnie 100 ms) — zwiększ tę
+[`revealDelayMs`](/docs/pl/config-reference#revealDelayMs) (domyślnie 100 ms) — zwiększ tę
 wartość, jeśli panel miga podczas szybkiego przełączania.
 
 ### Znaczenie ikon
@@ -124,14 +124,14 @@ pozycji:
 
 Cztery symbole stanu okna (ukryta, zminimalizowane, brak okna, pełny ekran) można
 wyłączyć w **Wygląd → Etykiety → Pokazuj ikony stanu**
-([`showWindowStatusIcons`](/docs/pl/config-reference/#showWindowStatusIcons)). Wskaźniki
+([`showWindowStatusIcons`](/docs/pl/config-reference#showWindowStatusIcons)). Wskaźniki
 dźwięku, uruchomienia i przywrócenia są zawsze widoczne.
 
 Aplikacje bez otwartego okna nie mają historii użycia okna, więc przy obu
-porządkach według użycia ([`sortOrder`](/docs/pl/config-reference/#sortOrder) `mru` i
+porządkach według użycia ([`sortOrder`](/docs/pl/config-reference#sortOrder) `mru` i
 `mruWindows`) gromadzą się na końcu listy. Ukryte aplikacje zachowują się tak samo,
 gdy włączone jest
-[`sinkHiddenApps`](/docs/pl/config-reference/#sinkHiddenApps). Ustaw `sortOrder` na
+[`sinkHiddenApps`](/docs/pl/config-reference#sinkHiddenApps). Ustaw `sortOrder` na
 `alphabetical`, aby uporządkować wszystkie pozycje alfabetycznie, albo przypnij
 wybrane aplikacje na górze w sekcji **Aplikacje**.
 
@@ -174,14 +174,14 @@ natychmiast, a zmiany w oknie ustawień zapisywane z powrotem.
 }
 ```
 
-Zobacz [Plik konfiguracyjny](/docs/pl/configuration/), aby poznać działanie synchronizacji,
-oraz [dokumentację konfiguracji](/docs/pl/config-reference/), aby przejrzeć wszystkie klucze.
+Zobacz [Plik konfiguracyjny](/docs/pl/configuration), aby poznać działanie synchronizacji,
+oraz [dokumentację konfiguracji](/docs/pl/config-reference), aby przejrzeć wszystkie klucze.
 
 ## Następne kroki
 
 <Cards>
-  <Card title="Plik konfiguracyjny" href="/docs/pl/configuration/" description="Działanie synchronizacji na żywo, schematu i pierwszeństwa ustawień." />
-  <Card title="Dokumentacja konfiguracji" href="/docs/pl/config-reference/" description="Wszystkie klucze wraz z typami, wartościami domyślnymi i dozwolonymi wartościami." />
-  <Card title="Reguły aplikacji" href="/docs/pl/app-rules/" description="Ukrywanie aplikacji lub przekazywanie im skrótu ⌘Tab." />
-  <Card title="Nadpisania dla skrótów" href="/docs/pl/overrides/" description="Inny przełącznik dla każdego skrótu." />
+  <Card title="Plik konfiguracyjny" href="/docs/pl/configuration" description="Działanie synchronizacji na żywo, schematu i pierwszeństwa ustawień." />
+  <Card title="Dokumentacja konfiguracji" href="/docs/pl/config-reference" description="Wszystkie klucze wraz z typami, wartościami domyślnymi i dozwolonymi wartościami." />
+  <Card title="Reguły aplikacji" href="/docs/pl/app-rules" description="Ukrywanie aplikacji lub przekazywanie im skrótu ⌘Tab." />
+  <Card title="Nadpisania dla skrótów" href="/docs/pl/overrides" description="Inny przełącznik dla każdego skrótu." />
 </Cards>

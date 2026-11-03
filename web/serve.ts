@@ -1,6 +1,6 @@
 import { join, sep } from "node:path";
 
-// `<dir>/index.html` for a slashed URL, a bare dir 301s to the slashed one, /404.html for
+// `<dir>/index.html` for a bare URL, a slashed one 301s to the bare form, /404.html for
 // anything missing.
 const root = join(import.meta.dir, "out");
 const notFound = () => new Response(Bun.file(join(root, "404.html")), { status: 404 });
@@ -15,11 +15,13 @@ Bun.serve({
   development: false,
   async fetch(req) {
     const { pathname, search } = new URL(req.url);
-    // "//evil.com/..%2fdocs" joins to out/docs, and the bare-dir 301 would echo it as an off-site Location.
+    // "//evil.com/..%2fdocs" joins to out/docs, and the trailing-slash 301 would echo it as an off-site Location.
     if (pathname.startsWith("//")) return notFound();
     // The Polish docs once lived at /pl/; Google still crawls those URLs.
-    if (pathname === "/pl") return redirect(`/docs/pl/${search}`);
-    if (pathname.startsWith("/pl/")) return redirect(`/docs${pathname}${search}`);
+    if (pathname === "/pl" || pathname.startsWith("/pl/"))
+      return redirect(`/docs${pathname.replace(/\/$/, "")}${search}`);
+    if (pathname !== "/" && pathname.endsWith("/"))
+      return redirect(`${pathname.slice(0, -1)}${search}`);
 
     let path: string;
     try {
@@ -30,11 +32,9 @@ Bun.serve({
     }
     if (path !== root && !path.startsWith(root + sep)) return notFound();
 
-    const file = Bun.file(pathname.endsWith("/") ? join(path, "index.html") : path);
-    if (!(await file.exists())) {
-      if (!(await Bun.file(join(path, "index.html")).exists())) return notFound();
-      return redirect(`${pathname}/${search}`);
-    }
+    let file = Bun.file(path);
+    if (!(await file.exists())) file = Bun.file(join(path, "index.html"));
+    if (!(await file.exists())) return notFound();
 
     // Vite content-hashes these, so a change gets a new URL.
     if (pathname.startsWith("/assets/")) return cached(file, "public, max-age=31536000, immutable");

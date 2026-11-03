@@ -28,10 +28,10 @@ const docs = defineDocs({
   },
 });
 
-// Slash-terminated: every page ships as <dir>/index.html, and web/serve.ts 301s the bare form.
-// fumadocs strips the slash from `page.url`; the router's `trailingSlash` puts it back on links.
+// No trailing slash: every page ships as <dir>/index.html, served at the bare URL by
+// web/serve.ts, which 301s the slashed form.
 export function docsPath(slugs: string[], locale: string | undefined) {
-  return `/${["docs", ...localizedSegments(locale, slugs)].join("/")}/`;
+  return `/${["docs", ...localizedSegments(locale, slugs)].join("/")}`;
 }
 
 // The frontmatter `icon` names. Only these ship: fumadocs' lucideIconsPlugin bundles every
@@ -89,12 +89,12 @@ export function getPageMarkdownUrl(page: Page) {
 // Markdown links and JSX `href` props (the <Card> grids) both reach the export verbatim.
 const ROOT_RELATIVE_LINK = /(\]\(|href=")(\/(?!\/)[^)"\s#?]*)/g;
 
-/** The machine-readable exports are read off-site, so root-relative links become absolute and slashed. */
+/** The machine-readable exports are read off-site, so root-relative links become absolute, without a trailing slash. */
 export function canonicalizeLLMLinks(markdown: string) {
   return markdown.replace(
     ROOT_RELATIVE_LINK,
     (_link, opener: string, path: string) =>
-      `${opener}${siteUrl}${path.endsWith("/") ? path : `${path}/`}`,
+      `${opener}${siteUrl}${path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path}`,
   );
 }
 

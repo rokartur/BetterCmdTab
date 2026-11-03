@@ -38,49 +38,49 @@
   </url>
 
   <url>
-    <loc>https://bettercmdtab.app/alttab-alternative/</loc>
+    <loc>https://bettercmdtab.app/alttab-alternative</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/cmd-tab-mac/</loc>
+    <loc>https://bettercmdtab.app/cmd-tab-mac</loc>
   </url>
 
   <!-- Documentation (docs/, built with basePath=/docs into the same origin). -->
   <url>
-    <loc>https://bettercmdtab.app/docs/</loc>
+    <loc>https://bettercmdtab.app/docs</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/configuration/</loc>
+    <loc>https://bettercmdtab.app/docs/configuration</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/config-reference/</loc>
+    <loc>https://bettercmdtab.app/docs/config-reference</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/app-rules/</loc>
+    <loc>https://bettercmdtab.app/docs/app-rules</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/overrides/</loc>
+    <loc>https://bettercmdtab.app/docs/overrides</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/contributing/</loc>
+    <loc>https://bettercmdtab.app/docs/contributing</loc>
   </url>
 
   <!-- Polish documentation. -->
   <url>
-    <loc>https://bettercmdtab.app/docs/pl/</loc>
+    <loc>https://bettercmdtab.app/docs/pl</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/pl/configuration/</loc>
+    <loc>https://bettercmdtab.app/docs/pl/configuration</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/pl/config-reference/</loc>
+    <loc>https://bettercmdtab.app/docs/pl/config-reference</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/pl/app-rules/</loc>
+    <loc>https://bettercmdtab.app/docs/pl/app-rules</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/pl/overrides/</loc>
+    <loc>https://bettercmdtab.app/docs/pl/overrides</loc>
   </url>
   <url>
-    <loc>https://bettercmdtab.app/docs/pl/contributing/</loc>
+    <loc>https://bettercmdtab.app/docs/pl/contributing</loc>
   </url>
 </urlset>

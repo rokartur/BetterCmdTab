@@ -92,7 +92,7 @@ jobs:
           # to the unprefixed English tree.
           bad_links=$(grep -rho 'href="/docs/[^"]*"' out/docs/pl --include='*.html' \
                         | sed 's/^href="//; s/"$//' \
-                        | grep -Ev '^/docs/(pl/|icon-64\.png)' \
+                        | grep -Ev '^/docs/(pl([/#]|$)|icon-64\.png)' \
                         | sort -u || true)
           if [ -n "$bad_links" ]; then
             echo "::error::Polish pages link to English docs paths:"
@@ -120,18 +120,18 @@ jobs:
           root=out
           fail=0
 
-          # serve.ts answers a URL ending in a slash with <path>/index.html and 301s the
-          # bare form to it. So every sitemap entry must end in a slash AND have that
-          # exact file, or the sitemap advertises a redirect or a 404, both worse than
-          # not listing the page at all.
+          # serve.ts answers a bare URL with <path>/index.html and 301s the slashed form
+          # to it. So no sitemap entry may end in a slash, and each must have that exact
+          # file, or the sitemap advertises a redirect or a 404, both worse than not
+          # listing the page at all.
           for u in $(grep -o '<loc>[^<]*</loc>' public/sitemap.xml \
                      | sed 's|</*loc>||g; s|https://bettercmdtab.app||'); do
             case "$u" in
-              */) ;;
-              *) echo "::error::sitemap URL '$u' has no trailing slash, serve.ts would 301 it"; fail=1; continue;;
+              /) test -f "$root/index.html" || { echo "::error::$root/index.html does not exist"; fail=1; };;
+              */) echo "::error::sitemap URL '$u' has a trailing slash, serve.ts would 301 it"; fail=1;;
+              *) test -f "${root}${u}/index.html" \
+                   || { echo "::error::sitemap lists $u but ${root}${u}/index.html does not exist"; fail=1; };;
             esac
-            test -f "${root}${u%/}/index.html" \
-              || { echo "::error::sitemap lists $u but ${root}${u%/}/index.html does not exist"; fail=1; }
           done
 
           # An internal link to a redirecting URL spends a hop and dilutes the signal it
@@ -139,9 +139,9 @@ jobs:
           for h in $(grep -oh 'href="/docs[^"]*"' $root/index.html $root/404.html $root/alttab-alternative/index.html $root/cmd-tab-mac/index.html $(find $root/docs -name index.html) \
                      | sed 's|href="||; s|"||' | sed 's|#.*||' | grep -v '\.png$' | sort -u); do
             case "$h" in
-              */) test -f "${root}${h%/}/index.html" \
-                    || { echo "::error::a page links to $h, which has no page"; fail=1; };;
-              *) echo "::error::a page links to $h without a trailing slash (301 in serve.ts)"; fail=1;;
+              */) echo "::error::a page links to $h with a trailing slash (301 in serve.ts)"; fail=1;;
+              *) test -f "${root}${h}/index.html" \
+                   || { echo "::error::a page links to $h, which has no page"; fail=1; };;
             esac
           done
 
@@ -162,8 +162,8 @@ jobs:
             slug=$(basename "$file" .mdx)
             prefix="https://bettercmdtab.app/docs"
             [ "$locale" = en ] || prefix="$prefix/$locale"
-            if [ "$slug" != index ]; then url="$prefix/$slug/"
-            else url="$prefix/"; fi
+            if [ "$slug" != index ]; then url="$prefix/$slug"
+            else url="$prefix"; fi
             grep -qF "<loc>$url</loc>" public/sitemap.xml \
               || { echo "::error::$url is missing from web/public/sitemap.xml"; fail=1; }
           done

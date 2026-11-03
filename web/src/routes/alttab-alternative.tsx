@@ -6,7 +6,7 @@ import { BREW } from "../sections/Download";
 export const Route = createFileRoute("/alttab-alternative")({
   head: () =>
     articleHead({
-      path: "/alttab-alternative/",
+      path: "/alttab-alternative",
       title: "Free AltTab Alternative for Mac · BetterCmdTab",
       description:
         "BetterCmdTab is a free, open-source AltTab alternative for macOS: search, every layout and extra shortcuts without a Pro license, plus app launching.",
@@ -87,7 +87,7 @@ function AltTabAlternative() {
       <p>
         Settings live in a JSON file as well as in the app, so a setup can be versioned and moved
         between Macs; only the recorded shortcut keys and a custom sound stay out. The{" "}
-        <a href="/docs/config-reference/">config reference</a> lists every option.
+        <a href="/docs/config-reference">config reference</a> lists every option.
       </p>
 
       <h2>When AltTab is the better pick</h2>

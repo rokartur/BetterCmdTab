@@ -76,8 +76,8 @@ If you cannot verify a claim, write the weaker sentence that is true.
    slug to `content/docs/pl/meta.json`. The build intentionally has no language
    fallback: a missing translation must fail visibly rather than publish English
    under `/pl`.
-4. List both URLs in `web/public/sitemap.xml`, slashed (`/docs/my-page/`,
-   `/docs/pl/my-page/`). The sitemap is hand-maintained and CI fails on a page
+4. List both URLs in `web/public/sitemap.xml`, without a trailing slash (`/docs/my-page`,
+   `/docs/pl/my-page`). The sitemap is hand-maintained and CI fails on a page
    it does not list.
 
 **`icon` must be in `pageIcons` in `src/docs/source.ts`.** Only those Lucide icons
@@ -89,12 +89,12 @@ ship, because the source also runs in the browser; an unknown name fails the bui
 
 ## URLs and links
 
-English pages live at `/docs/<slug>/`, Polish at `/docs/pl/<slug>/`. The router uses
-`trailingSlash: 'always'`, and every page ships as `<slug>/index.html`, so the slashed
-URL is the one that exists; `serve.ts` 301s the bare form.
+English pages live at `/docs/<slug>`, Polish at `/docs/pl/<slug>`. The router uses
+`trailingSlash: 'never'`, and every page ships as `<slug>/index.html`; `serve.ts`
+serves it at the bare URL and 301s the slashed form.
 
-**Links in content are full paths, in the page's language:** `/docs/configuration/`
-in an English page, `/docs/pl/configuration/` in a Polish one. Nothing rewrites them,
+**Links in content are full paths, in the page's language, without a trailing slash:**
+`/docs/configuration` in an English page, `/docs/pl/configuration` in a Polish one. Nothing rewrites them,
 and CI fails a Polish page that links into the English tree.
 
 `source.ts` passes its own `url` to the Fumadocs loader: the default would put the
@@ -175,8 +175,8 @@ bun run build && bun serve.ts   # serves out/ on :3000
 `Dockerfile` builds `web/` and serves `out/` with `serve.ts`, deployed on vexdock.
 There is no server-side rendering at runtime and no reverse proxy.
 
-`serve.ts` serves files: a slashed URL gets `<path>/index.html`, a bare
-directory 301s to its slashed form, `/pl/*` 301s to `/docs/pl/*`, anything
+`serve.ts` serves files: a bare URL gets `<path>/index.html`, a slashed
+one 301s to its bare form, `/pl/*` 301s to `/docs/pl/*`, anything
 missing gets `404.html`, and only hashed assets (a year), media (a week) and
 HTML (`no-cache`) get `Cache-Control`.
 Anything that would be a server rule is a property of the built tree instead:

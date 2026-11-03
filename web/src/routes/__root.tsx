@@ -181,7 +181,7 @@ const jsonLd = {
 export const Route = createRootRoute({
   // Docs pages bring their own stylesheet and metadata, see routes/docs/$.tsx.
   head: ({ matches }) =>
-    matches.some((match) => match.pathname.startsWith("/docs/"))
+    matches.some((match) => `${match.pathname}/`.startsWith("/docs/"))
       ? { meta: documentMeta }
       : {
           meta,
@@ -216,7 +216,7 @@ export function NotFound() {
         This page does not exist.
       </h1>
       <p className="m-0 text-[15px] text-muted">
-        <a href="/">Back to BetterCmdTab</a> · <a href="/docs/">Documentation</a>
+        <a href="/">Back to BetterCmdTab</a> · <a href="/docs">Documentation</a>
       </p>
     </main>
   );
@@ -226,7 +226,7 @@ function RootDocument({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   return (
     // suppressHydrationWarning: the docs theme script sets the class before hydration.
-    <html lang={pathname.startsWith("/docs/pl/") ? "pl" : "en"} suppressHydrationWarning>
+    <html lang={`${pathname}/`.startsWith("/docs/pl/") ? "pl" : "en"} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
