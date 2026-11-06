@@ -188,9 +188,14 @@ struct SwitcherRow {
     /// gives the row a favicon (+ the #131 browser badge) instead of the bare
     /// app icon. Pure — no AX messaging.
     func browserTabRows(tabs: [BrowserTabInfo], activeIndex: Int, visible: Range<Int>? = nil) -> [SwitcherRow] {
+        browserTabRows(tabs: tabs, activeIndex: activeIndex, indices: visible ?? tabs.indices)
+    }
+
+    func browserTabRows<Indices: Sequence>(tabs: [BrowserTabInfo], activeIndex: Int, indices: Indices) -> [SwitcherRow]
+        where Indices.Element == Int {
         guard case .running(let app) = subject, window != nil, !tabs.isEmpty else { return [self] }
         let parentTitle = windowTitle
-        return (visible ?? tabs.indices).map { i in
+        return indices.map { i in
             let tab = tabs[i]
             return SwitcherRow(
                 app: app,
@@ -224,17 +229,28 @@ struct SwitcherRow {
     /// Lists a tab once when several windows of one browser show it at the same index (Safari repeats
     /// pinned tabs in every window, #195). An active copy always stays: it stands for its window.
     static func droppingMirroredTabs(_ rows: [SwitcherRow]) -> [SwitcherRow] {
-        // Title too: one URL in two Chrome profiles can be two accounts (Gmail).
-        struct Copy: Hashable { let pid: pid_t?; let index: Int; let url: String; let title: String }
-        func copy(_ row: SwitcherRow) -> Copy? {
-            guard let tab = row.browserTab, !tab.url.isEmpty else { return nil }
-            return Copy(pid: row.pid, index: tab.index, url: tab.url, title: row.windowTitle)
+        func copy(_ row: SwitcherRow) -> BrowserTabCopy? {
+            guard let tab = row.browserTab else { return nil }
+            return mirroredTabKey(pid: row.pid, index: tab.index, url: tab.url, title: row.windowTitle)
         }
         var listed = Set(rows.compactMap { $0.browserTab?.isActive == true ? copy($0) : nil })
         return rows.filter { row in
             guard row.browserTab?.isActive == false, let copy = copy(row) else { return true }
             return listed.insert(copy).inserted
         }
+    }
+
+    struct BrowserTabCopy: Hashable {
+        let pid: pid_t?
+        let index: Int
+        let url: String
+        let title: String
+    }
+
+    /// Shared with MRU selection, which must remove mirrors before counting its
+    /// quota. Title too: one URL in two Chrome profiles can be two accounts.
+    static func mirroredTabKey(pid: pid_t?, index: Int, url: String, title: String) -> BrowserTabCopy? {
+        url.isEmpty ? nil : BrowserTabCopy(pid: pid, index: index, url: url, title: title)
     }
 
     func browserTabRows(tabTitles: [String]) -> [SwitcherRow] {

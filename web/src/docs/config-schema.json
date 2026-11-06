@@ -102,7 +102,7 @@
       "type" : "boolean"
     },
     "browserTabMRU" : {
-      "description" : "Track browser tabs in the recency order.",
+      "description" : "With expanded browser tabs and mruWindows, order observed tabs across windows by last use. History starts at launch; a browser window remains available without history.",
       "type" : "boolean"
     },
     "browserTabPreviews" : {
@@ -110,7 +110,7 @@
       "type" : "boolean"
     },
     "browserTabRowLimit" : {
-      "description" : "Cap on tab entries per browser window. 0 = unlimited; anything else is taken as 2…16.",
+      "description" : "Cap on tab entries. With browserTabMRU and mruWindows, counts observed tabs per browser across its windows; otherwise per window. 0 = unlimited; anything else is taken as 2…16.",
       "maximum" : 16,
       "minimum" : 0,
       "type" : "integer"
