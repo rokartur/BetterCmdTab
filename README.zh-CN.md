@@ -25,12 +25,6 @@ brew install --cask bettercmdtab@beta   # 测试版
 
 首次启动时，请在“系统设置 → 隐私与安全性 → 辅助功能”中授予权限。没有该权限，⌘Tab 不会有任何反应。
 
-## 布局
-
-| 列表 | 网格 | 预览 |
-| :-: | :-: | :-: |
-| <img src="web/public/screenshots/list.jpg" alt="列表布局" /> | <img src="web/public/screenshots/grid.jpg" alt="网格布局" /> | <img src="web/public/screenshots/preview.jpg" alt="窗口预览布局" /> |
-
 ## 功能
 
 **切换**

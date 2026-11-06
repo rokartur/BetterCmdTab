@@ -25,12 +25,6 @@ Or download the signed `.dmg` from [Releases](https://github.com/rokartur/Better
 
 On first launch, grant **Accessibility** in System Settings → Privacy & Security → Accessibility. Without it ⌘Tab does nothing.
 
-## Layouts
-
-| List | Grid | Previews |
-| :-: | :-: | :-: |
-| <img src="web/public/screenshots/list.jpg" alt="List layout" /> | <img src="web/public/screenshots/grid.jpg" alt="Grid layout" /> | <img src="web/public/screenshots/preview.jpg" alt="Window previews layout" /> |
-
 ## Features
 
 **Switching**
