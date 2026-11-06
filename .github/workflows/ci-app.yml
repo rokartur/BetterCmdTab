@@ -52,10 +52,8 @@ jobs:
         id: xcode
         run: echo "build=$(plutil -extract ProductBuildVersion raw "$(xcode-select -p)/../version.plist")" >> "$GITHUB_OUTPUT"
 
-      # Main's DerivedData makes the build incremental. Checkout leaves every file newer
-      # than the cache, so Test compares Swift sources by content hash, not mtime.
-      # PRs read it; main and manual runs refresh it. The SDK stat cache is off: the
-      # cached SDK modules make it redundant, and rebuilding it cost 8-12 s per run.
+      # Main's DerivedData makes the build incremental; PRs read it, main and manual runs refresh it.
+      # shortcut: modules from a changed build setting pile up until the Xcode build in the key changes.
       - uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/dd
@@ -69,6 +67,8 @@ jobs:
         # pass through xcbeautify as success.
         shell: bash -eo pipefail {0}
         run: |
+          # Checkout makes every file newer than the cache, so Swift compares sources by hash.
+          # The cached SDK modules make the stat cache redundant; rebuilding it cost 8-12 s.
           xcodebuild -project BetterCmdTab.xcodeproj -scheme "BetterCmdTab Debug" \
             -destination 'platform=macOS' -resultBundlePath TestResults.xcresult \
             -derivedDataPath "$RUNNER_TEMP/dd" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
