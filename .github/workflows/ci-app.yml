@@ -48,6 +48,18 @@ jobs:
           path: ${{ runner.temp }}/spm
           key: spm-${{ hashFiles('BetterCmdTab.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
 
+      - name: Xcode build version
+        id: xcode
+        run: echo "build=$(plutil -extract ProductBuildVersion raw "$(xcode-select -p)/../version.plist")" >> "$GITHUB_OUTPUT"
+
+      # Main's DerivedData makes the build incremental; PRs read it, main and manual runs refresh it.
+      # shortcut: modules from a changed build setting pile up until the Xcode build in the key changes.
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/dd
+          key: dd-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}-${{ github.sha }}
+          restore-keys: dd-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}-
+
       # The tests run inside the app (TEST_HOST), so the host must be signed for
       # the bundle to load. Ad-hoc signing works without the team's certificate.
       - name: Test
@@ -55,12 +67,21 @@ jobs:
         # pass through xcbeautify as success.
         shell: bash -eo pipefail {0}
         run: |
+          # Checkout makes every file newer than the cache, so Swift compares sources by hash.
+          # The cached SDK modules make the stat cache redundant; rebuilding it cost 8-12 s.
           xcodebuild -project BetterCmdTab.xcodeproj -scheme "BetterCmdTab Debug" \
             -destination 'platform=macOS' -resultBundlePath TestResults.xcresult \
-            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            -derivedDataPath "$RUNNER_TEMP/dd" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             COMPILER_INDEX_STORE_ENABLE=NO \
+            OTHER_SWIFT_FLAGS='$(inherited) -enable-incremental-file-hashing' SDK_STAT_CACHE_ENABLE=NO \
             test | xcbeautify --renderer github-actions
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/dd
+          key: dd-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}-${{ github.sha }}
 
       - name: Upload results
         if: failure()
