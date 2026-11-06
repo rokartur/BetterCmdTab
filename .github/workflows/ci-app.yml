@@ -54,7 +54,8 @@ jobs:
 
       # Main's DerivedData makes the build incremental. Checkout leaves every file newer
       # than the cache, so Test compares Swift sources by content hash, not mtime.
-      # PRs read it; main and manual runs refresh it.
+      # PRs read it; main and manual runs refresh it. The SDK stat cache is off: the
+      # cached SDK modules make it redundant, and rebuilding it cost 8-12 s per run.
       - uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/dd
@@ -73,7 +74,7 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/dd" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             COMPILER_INDEX_STORE_ENABLE=NO \
-            OTHER_SWIFT_FLAGS='$(inherited) -enable-incremental-file-hashing' \
+            OTHER_SWIFT_FLAGS='$(inherited) -enable-incremental-file-hashing' SDK_STAT_CACHE_ENABLE=NO \
             test | xcbeautify --renderer github-actions
 
       - if: github.event_name != 'pull_request'
