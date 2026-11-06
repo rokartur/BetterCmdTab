@@ -52,9 +52,9 @@ jobs:
         id: xcode
         run: echo "build=$(plutil -extract ProductBuildVersion raw "$(xcode-select -p)/../version.plist")" >> "$GITHUB_OUTPUT"
 
-      # Main's DerivedData makes the build incremental: checkout leaves every project
-      # file newer than the cache, so those recompile and only the packages and the
-      # ~170 SDK modules are skipped. PRs read it; main and manual runs refresh it.
+      # Main's DerivedData makes the build incremental. Checkout leaves every file newer
+      # than the cache, so Test compares Swift sources by content hash, not mtime.
+      # PRs read it; main and manual runs refresh it.
       - uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/dd
@@ -73,6 +73,7 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/dd" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             COMPILER_INDEX_STORE_ENABLE=NO \
+            OTHER_SWIFT_FLAGS='$(inherited) -enable-incremental-file-hashing' \
             test | xcbeautify --renderer github-actions
 
       - if: github.event_name != 'pull_request'
