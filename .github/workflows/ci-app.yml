@@ -52,15 +52,14 @@ jobs:
         id: xcode
         run: echo "build=$(plutil -extract ProductBuildVersion raw "$(xcode-select -p)/../version.plist")" >> "$GITHUB_OUTPUT"
 
-      # A clean build compiles ~170 SDK modules (~28 s of CPU on this runner); they
-      # depend only on the Xcode build, so they restore instead.
-      - uses: actions/cache@v4
+      # Main's DerivedData makes the build incremental: checkout leaves every project
+      # file newer than the cache, so those recompile and only the packages and the
+      # ~170 SDK modules are skipped. PRs read it; main and manual runs refresh it.
+      - uses: actions/cache/restore@v4
         with:
-          path: |
-            ${{ runner.temp }}/dd/SDKExplicitPrecompiledModules
-            ${{ runner.temp }}/dd/ModuleCache.noindex
-            ${{ runner.temp }}/dd/SDKStatCaches.noindex
-          key: sdk-modules-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}
+          path: ${{ runner.temp }}/dd
+          key: dd-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}-${{ github.sha }}
+          restore-keys: dd-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}-
 
       # The tests run inside the app (TEST_HOST), so the host must be signed for
       # the bundle to load. Ad-hoc signing works without the team's certificate.
@@ -75,6 +74,12 @@ jobs:
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             COMPILER_INDEX_STORE_ENABLE=NO \
             test | xcbeautify --renderer github-actions
+
+      - if: github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/dd
+          key: dd-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}-${{ github.sha }}
 
       - name: Upload results
         if: failure()
