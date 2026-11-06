@@ -220,7 +220,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                accessory: instantSpaceRowSwitch, searchItemID: SearchID.instantSpace)
         configurePopup(sortOrderPopup, titles: sortOrders.map(\.displayName), action: #selector(sortOrderChanged))
         addRow(to: contents, title: String(localized: "Sort order"),
-               subtitle: String(localized: "Most recent keeps the classic ⌘Tab order; Most recent (windows) interleaves windows from all apps by last focus; the others stay put as you switch."),
+               subtitle: String(localized: "Most recent (apps) keeps apps together by last use. With tab recency, a browser’s tabs are ordered across its windows. Most recent (windows) mixes entries from all apps by last use. Other sorts stay put as you switch."),
                accessory: sortOrderPopup, searchItemID: SearchID.sortOrder)
         configureSwitch(recentlyClosedSwitch, action: #selector(toggleRecentlyClosed(_:)))
         addRow(to: contents, title: String(localized: "Show recently closed apps"),
@@ -270,13 +270,13 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                               action: #selector(browserTabLimitCommitted(_:)),
                               accessibilityLabel: browserTabLimitTitle)
         addRow(to: tabs, title: browserTabLimitTitle,
-               subtitle: String(localized: "At most this many tab entries per browser window (2–16), keeping the active tab visible. Set to 0 to show every tab."),
+               subtitle: String(localized: "With tab recency and either recent sort, this limit applies to each browser across its windows. Other modes limit each window and keep its active tab visible. Set to 0 for no limit (otherwise 2–16)."),
                accessory: browserTabLimitField, searchItemID: SearchID.browserTabLimit)
         addRow(to: tabs, title: String(localized: "Show browser icon on tab entries"),
                subtitle: String(localized: "Badge each tab entry's favicon with the source browser's app icon, so you can tell which browser a tab belongs to when the same site is open in more than one."),
                accessory: browserIconOnTabsSwitch, searchItemID: SearchID.browserIconOnTabs)
         addRow(to: tabs, title: String(localized: "Track browser tabs in recency"),
-               subtitle: String(localized: "With “Show browser tabs as separate entries” and the “Most recent (windows)” sort order on, ⌘Tab returns to the tab you last used, not just the last window. Needs always-on monitoring of your browsers, so it costs a little energy."),
+               subtitle: String(localized: "With “Show browser tabs as separate entries” and either recent sort, tabs across a browser’s windows follow last use. Only tabs observed since launch are listed; without history, a browser window stays available. Monitoring browsers uses a little energy."),
                accessory: browserTabMRUSwitch, searchItemID: SearchID.browserTabMRU)
         addRow(to: tabs, title: String(localized: "Browser tab previews"),
                subtitle: String(localized: "Capture the active browser tab for the Previews layout. Background tabs use an earlier cached image or their favicon."),

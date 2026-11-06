@@ -69,7 +69,7 @@ final class ShortcutOptionsFormView: NSView {
         addBoolRow(to: behavior, title: String(localized: "Show hidden apps"), current: override.showHidden) { [weak self] in self?.override.showHidden = $0; self?.persist() }
         addBoolRow(to: behavior, title: String(localized: "Show apps without windows"), current: override.showWindowless) { [weak self] in self?.override.showWindowless = $0; self?.persist() }
         addEnumRow(to: behavior, title: String(localized: "Sort order"),
-                   subtitle: String(localized: "Most recent keeps the classic ⌘Tab order; the others stay put."),
+                   subtitle: String(localized: "Most recent (apps) keeps apps together by last use; Most recent (windows) orders entries across apps. Other sorts stay put."),
                    options: SwitcherSortOrder.allCases, display: { $0.displayName }, current: override.sortOrder) { [weak self] in self?.override.sortOrder = $0; self?.persist() }
         addBoolRow(to: behavior, title: String(localized: "Applications only"),
                    subtitle: String(localized: "One row per app instead of one per window."),
