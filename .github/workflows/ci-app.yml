@@ -48,6 +48,20 @@ jobs:
           path: ${{ runner.temp }}/spm
           key: spm-${{ hashFiles('BetterCmdTab.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
 
+      - name: Xcode build version
+        id: xcode
+        run: echo "build=$(plutil -extract ProductBuildVersion raw "$(xcode-select -p)/../version.plist")" >> "$GITHUB_OUTPUT"
+
+      # A clean build compiles ~170 SDK modules (~28 s of CPU on this runner); they
+      # depend only on the Xcode build, so they restore instead.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/dd/SDKExplicitPrecompiledModules
+            ${{ runner.temp }}/dd/ModuleCache.noindex
+            ${{ runner.temp }}/dd/SDKStatCaches.noindex
+          key: sdk-modules-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}
+
       # The tests run inside the app (TEST_HOST), so the host must be signed for
       # the bundle to load. Ad-hoc signing works without the team's certificate.
       - name: Test
@@ -57,7 +71,7 @@ jobs:
         run: |
           xcodebuild -project BetterCmdTab.xcodeproj -scheme "BetterCmdTab Debug" \
             -destination 'platform=macOS' -resultBundlePath TestResults.xcresult \
-            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            -derivedDataPath "$RUNNER_TEMP/dd" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
             COMPILER_INDEX_STORE_ENABLE=NO \
             test | xcbeautify --renderer github-actions
