@@ -9,9 +9,9 @@
   page actually changed. A build-date lastmod would just be a stamp that moves
   on every redeploy, which is exactly the kind Google learns to distrust.
 
-  Every URL ends in a slash, matching `trailingSlash: true` and the canonical
-  tags: that is the form with an index.html behind it, and web/serve.ts 301s
-  the bare form to it. A sitemap that lists redirects wastes crawl budget.
+  No URL but the root ends in a slash, matching `trailingSlash: "never"` and the
+  canonical tags: web/serve.ts serves the bare form from its index.html and 301s
+  the slashed one to it. A sitemap that lists redirects wastes crawl budget.
 -->
 <urlset
   xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
