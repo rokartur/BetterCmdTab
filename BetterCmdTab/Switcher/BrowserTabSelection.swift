@@ -16,7 +16,8 @@ enum BrowserTabSelection {
     struct Result {
         /// Original tab indices, in recency order, keyed by the input window offset.
         var indices: [Int: [Int]] = [:]
-        /// With no observed tabs, retain one window as the browser's entry point.
+        /// Windows with no selected tab stay listed as one window row, so the quota
+        /// never makes a live window unreachable.
         var fallbackWindows = Set<Int>()
     }
 
@@ -29,13 +30,13 @@ enum BrowserTabSelection {
 
     static func select(_ windows: [Window], ranking: BrowserTabMRUTracker.Ranking, limit: Int) -> Result {
         var candidates: [Candidate] = []
-        var firstWindow: [pid_t: Int] = [:]
+        // Unlimited lists every tab, unobserved ones after the observed ones.
+        let unobservedRank = limit <= 0 ? Int.max : nil
         for (offset, window) in windows.enumerated() {
-            if firstWindow[window.pid] == nil { firstWindow[window.pid] = offset }
             for (index, tab) in window.tabs.enumerated() {
                 let focused = window.focusedIndex == index
                 guard let rank = ranking.rank(for: BrowserTabMRUTracker.tabKey(wid: window.wid, title: tab.title))
-                    ?? (focused ? -1 : nil) else { continue }
+                    ?? (focused ? -1 : unobservedRank) else { continue }
                 candidates.append(Candidate(window: offset, index: index,
                                             rank: focused ? -1 : rank,
                                             priority: window.statusPriority))
@@ -73,7 +74,7 @@ enum BrowserTabSelection {
             result.indices[candidate.window, default: []].append(candidate.index)
             counts[pid, default: 0] += 1
         }
-        for (pid, offset) in firstWindow where counts[pid] == nil {
+        for offset in windows.indices where result.indices[offset] == nil {
             result.fallbackWindows.insert(offset)
         }
         return result

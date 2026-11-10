@@ -414,10 +414,10 @@ enum ConfigSchemaDocs {
         "expandTabsAsWindows": ConfigSettingDoc("boolean", "List native system tabs (Finder, Terminal, TextEdit, …) as separate entries."),
         "expandBrowserTabsAsWindows": ConfigSettingDoc("boolean", "List browser tabs (Safari, Chromium) as separate entries."),
         "browserTabRowLimit": ConfigSettingDoc(
-            "integer", "Cap on tab entries. With browserTabMRU and mruWindows, counts observed tabs per browser across its windows; otherwise per window. 0 = unlimited; anything else is taken as 2…16.",
+            "integer", "Cap on tab entries. With browserTabMRU and mruWindows, keeps the most recently used tabs per browser across its windows, and a window with none of them stays as one entry; otherwise per window. 0 = unlimited; anything else is taken as 2…16.",
             range: 0...Preferences.browserTabRowLimitRange.upperBound),
         "showBrowserIconOnTabs": ConfigSettingDoc("boolean", "Badge each browser-tab entry's favicon with the source browser's icon."),
-        "browserTabMRU": ConfigSettingDoc("boolean", "With expanded browser tabs and mruWindows, order observed tabs across windows by last use. History starts at launch; a browser window remains available without history."),
+        "browserTabMRU": ConfigSettingDoc("boolean", "With expanded browser tabs and mruWindows, order tabs across windows by last use. History starts at launch; tabs not used since then follow the used ones."),
         "experimentalBrowserTabMRU": ConfigSettingDoc(
             "boolean", "Legacy browser-tab recency flag, kept in sync with browserTabMRU for older builds. Edit browserTabMRU instead."),
 

@@ -3374,8 +3374,10 @@ final class SwitcherController: SwitcherViewDelegate {
                     guard self.phase == .visible, self.openFocusedWindow == nil else { return }
                     self.openFocusedWindow = window
                     self.openFocusedWindowTitle = title
+                    // MRU re-ranks on the focused tab even when its index is unchanged;
+                    // rowsDifferVisibly compares identity, so an unforced pass catches it.
                     if let sync = self.syncFocusedBrowserTabIndex(), sync.changed || self.browserTabMRUActive {
-                        self.reExpandBrowserTabs(force: true)
+                        self.reExpandBrowserTabs(force: sync.changed)
                     }
                 }
             }
@@ -4198,7 +4200,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// whole windows. The legacy per-window path can still invert `baseRows`.
     /// Neither keeps a second long-lived window array.
     private func collapsedBrowserSource() -> [SwitcherRow] {
-        if browserTabMRUActive {
+        // Cold reveal: placeholders stand in for a catalog that has no rows yet.
+        if browserTabMRUActive, !baseRows.contains(where: \.isPlaceholder) {
             // The display quota can omit an entire live window. Recover the
             // complete scoped source from the catalog, never from capped rows;
             // otherwise search cannot find it and a scan prunes its tab cache.
@@ -4409,7 +4412,7 @@ final class SwitcherController: SwitcherViewDelegate {
               !applicationsCollapseActive else { return }
         var source = browserTabMRUActive ? collapsedBrowserSource()
             : cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
-        if windowsOnlyMode, let pid = windowsOnlyPid {
+        if !browserTabMRUActive, windowsOnlyMode, let pid = windowsOnlyPid {
             source.removeAll { $0.pid != pid }
         }
         scanBrowserTabs(rows: source, force: false) { [weak self] in

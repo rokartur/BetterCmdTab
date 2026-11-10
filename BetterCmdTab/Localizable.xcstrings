@@ -23718,49 +23718,48 @@
         }
       }
     },
-    "With “Show browser tabs as separate entries” and “Most recent (windows)”, ⌘Tab follows the last-used tabs across windows. Only tabs observed since launch are listed; without history, a browser window stays available. Monitoring browsers uses a little energy." : {
-      "extractionState" : "manual",
+    "With “Show browser tabs as separate entries” and the “Most recent (windows)” sort order on, ⌘Tab returns to the tab you last used, not just the last window. Needs always-on monitoring of your browsers, so it costs a little energy." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit „Browser-Tabs als separate Einträge anzeigen“ und „Zuletzt verwendet (Fenster)“ folgt ⌘Tab den zuletzt verwendeten Tabs über Fenster hinweg. Nur seit dem Start beobachtete Tabs werden aufgelistet; ohne Verlauf bleibt ein Browserfenster erreichbar. Die Überwachung benötigt etwas Energie."
+            "value" : "Mit „Browser-Tabs als separate Einträge anzeigen“ und der Sortierung „Zuletzt verwendet (Fenster)“ kehrt ⌘Tab zum zuletzt genutzten Tab zurück, nicht nur zum letzten Fenster. Erfordert eine dauerhafte Überwachung deiner Browser und kostet daher etwas Energie."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con «Mostrar las pestañas del navegador como entradas separadas» y «Más reciente (ventanas)», ⌘Tab sigue las últimas pestañas usadas entre ventanas. Solo se muestran las observadas desde el inicio; sin historial, queda disponible una ventana del navegador. El seguimiento consume algo de energía."
+            "value" : "Con «Mostrar las pestañas del navegador como entradas separadas» y el orden «Más reciente (ventanas)» activados, ⌘Tab vuelve a la pestaña que usaste por última vez, no solo a la última ventana. Requiere monitorizar los navegadores de forma continua, por lo que consume algo de energía."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avec « Afficher les onglets du navigateur comme entrées distinctes » et « Récemment utilisé (fenêtres) », ⌘Tab suit les derniers onglets utilisés, toutes fenêtres confondues. Seuls les onglets observés depuis le lancement sont listés ; sans historique, une fenêtre du navigateur reste accessible. Le suivi consomme un peu d’énergie."
+            "value" : "Avec « Afficher les onglets du navigateur comme entrées distinctes » et le tri « Récemment utilisé (fenêtres) » activés, ⌘Tab revient à l’onglet utilisé en dernier, pas seulement à la dernière fenêtre. Nécessite une surveillance permanente de vos navigateurs, ce qui consomme un peu d’énergie."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「ブラウザのタブを個別の項目として表示」と「最近使った順（ウインドウ）」が有効な場合、⌘Tabはウインドウをまたいで最近使ったタブをたどります。起動後に使用が記録されたタブだけを表示し、履歴がない場合もブラウザのウインドウを残します。監視には少量の電力を使用します。"
+            "value" : "「ブラウザのタブを個別の項目として表示」をオンにし、並び順を「最近使った順（ウインドウ）」にすると、⌘Tabで直前のウインドウだけでなく最後に使ったタブに戻ります。ブラウザを常に監視する必要があるため、電力を少し多く消費します。"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przy włączonym „Pokazuj karty przeglądarki jako osobne pozycje” i sortowaniu „Ostatnio używane (okna)” ⌘Tab przechodzi według ostatniego użycia kart ze wszystkich okien. Lista obejmuje tylko karty zaobserwowane od uruchomienia; bez historii pozostaje dostępne okno przeglądarki. Śledzenie zużywa trochę energii."
+            "value" : "Z włączonymi „Pokazuj karty przeglądarki jako osobne pozycje” i kolejnością „Ostatnio używane (okna)” ⌘Tab wraca do ostatnio używanej karty, a nie tylko do ostatniego okna. Wymaga stałego monitorowania przeglądarek, więc zużywa nieco energii."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "При включённых «Показывать вкладки браузера как отдельные записи» и «Недавние (окна)» ⌘Tab следует порядку использования вкладок из всех окон. Отображаются только вкладки, замеченные после запуска; без истории остаётся доступным окно браузера. Отслеживание расходует немного энергии."
+            "value" : "Если включены «Показывать вкладки браузера как отдельные записи» и порядок «Недавние (окна)», сочетание ⌘Tab возвращает к последней использованной вкладке, а не просто к последнему окну. Для этого требуется постоянное отслеживание браузеров, что немного увеличивает расход энергии."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启“将浏览器标签页显示为单独条目”并选择“最近使用（窗口）”时，⌘Tab 按跨窗口的标签页使用顺序切换。只列出启动后记录到的标签页；没有历史时保留浏览器窗口入口。持续监控浏览器会稍微耗电。"
+            "value" : "开启“将浏览器标签页显示为单独条目”并使用“最近使用（窗口）”排序时，⌘Tab 会回到你上次使用的标签页，而不只是上一个窗口。需要持续监控浏览器，因此会稍微耗电。"
           }
         }
       }

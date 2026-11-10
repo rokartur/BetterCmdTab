@@ -276,7 +276,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                subtitle: String(localized: "Badge each tab entry's favicon with the source browser's app icon, so you can tell which browser a tab belongs to when the same site is open in more than one."),
                accessory: browserIconOnTabsSwitch, searchItemID: SearchID.browserIconOnTabs)
         addRow(to: tabs, title: String(localized: "Track browser tabs in recency"),
-               subtitle: String(localized: "With “Show browser tabs as separate entries” and “Most recent (windows)”, ⌘Tab follows the last-used tabs across windows. Only tabs observed since launch are listed; without history, a browser window stays available. Monitoring browsers uses a little energy."),
+               subtitle: String(localized: "With “Show browser tabs as separate entries” and the “Most recent (windows)” sort order on, ⌘Tab returns to the tab you last used, not just the last window. Needs always-on monitoring of your browsers, so it costs a little energy."),
                accessory: browserTabMRUSwitch, searchItemID: SearchID.browserTabMRU)
         addRow(to: tabs, title: String(localized: "Browser tab previews"),
                subtitle: String(localized: "Capture the active browser tab for the Previews layout. Background tabs use an earlier cached image or their favicon."),

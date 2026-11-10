@@ -35,24 +35,24 @@ struct BrowserTabSelectionTests {
         #expect(result.indices[2] == [7])
     }
 
-    @Test("background active tabs neither fill spare slots nor escape the quota")
+    @Test("background active tabs do not fill spare slots, their window stays listed whole")
     func historyShortage() {
         let tracker = BrowserTabMRUTracker()
         tracker.bump(.tab(1, "Tab 9"))
         let result = BrowserTabSelection.select([window(), window(wid: 2)], ranking: tracker.ranking(), limit: 5)
         #expect(result.indices[0] == [8])
         #expect(result.indices[1] == nil)
-        #expect(result.fallbackWindows.isEmpty)
+        #expect(result.fallbackWindows == [1])
     }
 
-    @Test("no tab history retains one browser window instead of invented recency")
+    @Test("no tab history keeps every browser window instead of invented recency")
     func coldStart() {
         let tracker = BrowserTabMRUTracker()
         tracker.bump(.window(1))
         let result = BrowserTabSelection.select(
             [window(), window(wid: 2), window(pid: 2, wid: 3)], ranking: tracker.ranking(), limit: 5)
         #expect(result.indices.isEmpty)
-        #expect(result.fallbackWindows == [0, 2])
+        #expect(result.fallbackWindows == [0, 1, 2])
     }
 
     @Test("the genuinely focused tab is included and counts toward the limit")
@@ -64,14 +64,17 @@ struct BrowserTabSelectionTests {
             [window(active: 8, focused: 8), window(wid: 2, active: 7)], ranking: tracker.ranking(), limit: 2)
         #expect(result.indices[0] == [8, 2])
         #expect(result.indices[1] == nil)
+        #expect(result.fallbackWindows == [1])
     }
 
-    @Test("zero removes the quota without treating unknown tabs as visits")
+    @Test("zero removes the quota and lists unobserved tabs after the observed ones")
     func unlimitedKnownHistory() {
         let tracker = BrowserTabMRUTracker()
         for n in [9, 2, 7] { tracker.bump(.tab(1, "Tab \(n)")) }
-        let result = BrowserTabSelection.select([window()], ranking: tracker.ranking(), limit: 0)
-        #expect(result.indices[0] == [6, 1, 8])
+        let result = BrowserTabSelection.select([window(), window(pid: 2, wid: 2, count: 2)], ranking: tracker.ranking(), limit: 0)
+        #expect(result.indices[0] == [6, 1, 8, 0, 2, 3, 4, 5, 7, 9])
+        #expect(result.indices[1] == [0, 1])
+        #expect(result.fallbackWindows.isEmpty)
     }
 
     @Test("a history entry on an excluded window cannot displace an eligible tab")

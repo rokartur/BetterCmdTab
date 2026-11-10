@@ -48,7 +48,7 @@ final class BrowserTabMRUTracker {
     /// Promote `key` to the front. A no-op-free move: existing occurrences are
     /// removed first so recency is exact, not duplicated.
     func bump(_ key: Key) {
-        guard key.wid != 0 else { return }
+        guard key.wid != 0, order.first != key else { return }
         cachedRanking = nil
         order.removeAll { $0 == key }
         order.insert(key, at: 0)
