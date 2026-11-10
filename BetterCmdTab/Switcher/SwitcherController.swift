@@ -3374,8 +3374,10 @@ final class SwitcherController: SwitcherViewDelegate {
                     guard self.phase == .visible, self.openFocusedWindow == nil else { return }
                     self.openFocusedWindow = window
                     self.openFocusedWindowTitle = title
-                    if self.syncFocusedBrowserTabIndex()?.changed == true {
-                        self.reExpandBrowserTabs(force: true)
+                    // MRU re-ranks on the focused tab even when its index is unchanged;
+                    // rowsDifferVisibly compares identity, so an unforced pass catches it.
+                    if let sync = self.syncFocusedBrowserTabIndex(), sync.changed || self.browserTabMRUActive {
+                        self.reExpandBrowserTabs(force: sync.changed)
                     }
                 }
             }
@@ -4067,7 +4069,53 @@ final class SwitcherController: SwitcherViewDelegate {
         guard effective.expandBrowserTabsAsWindows,
               !applicationsCollapseActive else { return source }
         let grouped = appCollapseScope ? effective.groupedBundleIDs : []
+        if browserTabMRUActive {
+            return expandBrowserTabsByRecency(source, limit: Preferences.shared.browserTabRowLimit, keepingWhole: grouped)
+        }
         return expandBrowserTabsCore(source, limit: Preferences.shared.browserTabRowLimit, keepingWhole: grouped)
+    }
+
+    /// MRU chooses from every eligible cached window before applying the browser's
+    /// quota. Only the selected indices become full rows; no AX or Apple Events.
+    private func expandBrowserTabsByRecency(_ source: [SwitcherRow], limit: Int, keepingWhole: Set<String>) -> [SwitcherRow] {
+        var windows: [BrowserTabSelection.Window] = []
+        var offsets: [Int: Int] = [:]
+        let focused = openFocusedWindow ?? prefetchedFocusedWindow
+        let focusedTitle = openFocusedWindow != nil ? openFocusedWindowTitle : prefetchedFocusedWindowTitle
+        let sinkHidden = Preferences.shared.sinkHiddenApps
+        let sinkMinimized = Preferences.shared.sinkMinimizedWindows
+        for (offset, row) in source.enumerated() {
+            guard row.browserTab == nil, let window = row.window, let pid = row.pid,
+                  BrowserTabs.Family.from(bundleID: row.bundleIdentifier) != nil,
+                  !keepingWhole.contains(row.bundleIdentifier ?? ""),
+                  let cached = browserTabsCache[AXRef(element: window)], !cached.tabs.isEmpty else { continue }
+            let focusedIndex = focused.map { CFEqual($0, window) } == true
+                ? Self.activeBrowserTabIndex(tabs: cached.tabs, windowTitle: focusedTitle) : nil
+            // Self-heal an observer miss using the chord's existing off-main AX
+            // capture. A background window's active tab is not a focused tab.
+            if let focusedIndex {
+                tabMRU.bump(BrowserTabMRUTracker.tabKey(wid: row.cgWindowID, title: cached.tabs[focusedIndex].title))
+            }
+            offsets[offset] = windows.count
+            windows.append(.init(pid: pid, wid: row.cgWindowID, tabs: cached.tabs,
+                                 activeIndex: focusedIndex ?? cached.activeIndex,
+                                 statusPriority: AppCatalogCache.statusPriority(row, sinkHiddenApps: sinkHidden,
+                                                                              sinkMinimizedWindows: sinkMinimized),
+                                 focusedIndex: focusedIndex))
+        }
+        let selected = BrowserTabSelection.select(windows, ranking: tabMRU.ranking(), limit: limit)
+        var out: [SwitcherRow] = []
+        out.reserveCapacity(source.count)
+        for (offset, row) in source.enumerated() {
+            guard let windowOffset = offsets[offset] else { out.append(row); continue }
+            if let indices = selected.indices[windowOffset] {
+                let window = windows[windowOffset]
+                out.append(contentsOf: row.browserTabRows(tabs: window.tabs, activeIndex: window.activeIndex, indices: indices))
+            } else if selected.fallbackWindows.contains(windowOffset) {
+                out.append(row)
+            }
+        }
+        return out
     }
 
     /// Pref-free expansion: replace each collapsed browser-window row with one
@@ -4112,7 +4160,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// capped slice, so search re-expands transiently to reach every tab.
     private var searchUsesExpandedTabs: Bool {
         Preferences.shared.searchExpandsBrowserTabs
-            && (!effective.expandBrowserTabsAsWindows || Preferences.shared.browserTabRowLimit > 0)
+            && (!effective.expandBrowserTabsAsWindows || Preferences.shared.browserTabRowLimit > 0 || browserTabMRUActive)
             && !applicationsCollapseActive
     }
 
@@ -4148,12 +4196,22 @@ final class SwitcherController: SwitcherViewDelegate {
     /// shuffling windows. The persisted cache means a re-open already shows tabs;
     /// this re-scan only refreshes entries older than `browserTabsCacheTTL` (or
     /// never fetched), so opening rapidly doesn't re-spawn osascript every time.
-    /// Re-derive the collapsed (one-row-per-window) source from the currently
-    /// displayed `baseRows` — the inverse of `expandBrowserTabs`. Computed on
-    /// demand so it always reflects direct `baseRows` edits (a window close, an
-    /// app quit, a title patch) and can never resurrect a row a parallel array
-    /// would have gone stale on.
+    /// MRU uses the complete scoped catalog: a browser-wide quota can exclude
+    /// whole windows. The legacy per-window path can still invert `baseRows`.
+    /// Neither keeps a second long-lived window array.
     private func collapsedBrowserSource() -> [SwitcherRow] {
+        // Cold reveal: placeholders stand in for a catalog that has no rows yet.
+        if browserTabMRUActive, !baseRows.contains(where: \.isPlaceholder) {
+            // The display quota can omit an entire live window. Recover the
+            // complete scoped source from the catalog, never from capped rows;
+            // otherwise search cannot find it and a scan prunes its tab cache.
+            var source = filterClosedTombstones(
+                filterQuitting(cache.rows(orderedBy: mru.order, filter: activeFilterConfig)),
+                resolveMissingIDs: false)
+            if let scope = activeScope { source = scopeFiltered(source, scope: scope) }
+            if windowsOnlyMode, let pid = windowsOnlyPid { source.removeAll { $0.pid != pid } }
+            return applyApplicationsOnly(applyPerAppWindowMRU(applyWindowMRUSort(source)))
+        }
         guard baseRows.contains(where: { $0.browserTab != nil }) else { return baseRows }
         var out: [SwitcherRow] = []
         out.reserveCapacity(baseRows.count)
@@ -4352,8 +4410,9 @@ final class SwitcherController: SwitcherViewDelegate {
     private func prewarmBrowserTabs() {
         guard effective.expandBrowserTabsAsWindows,
               !applicationsCollapseActive else { return }
-        var source = cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
-        if windowsOnlyMode, let pid = windowsOnlyPid {
+        var source = browserTabMRUActive ? collapsedBrowserSource()
+            : cache.rows(orderedBy: mru.order, filter: activeFilterConfig)
+        if !browserTabMRUActive, windowsOnlyMode, let pid = windowsOnlyPid {
             source.removeAll { $0.pid != pid }
         }
         scanBrowserTabs(rows: source, force: false) { [weak self] in
@@ -4378,9 +4437,9 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Whether two row sequences differ in a way the user would see — a different
     /// count, or any row whose displayed title changed. Used so a browser-tab
     /// re-scan that loaded new titles (same tab count) still re-renders.
-    private static func rowsDifferVisibly(_ a: [SwitcherRow], _ b: [SwitcherRow]) -> Bool {
+    static func rowsDifferVisibly(_ a: [SwitcherRow], _ b: [SwitcherRow]) -> Bool {
         guard a.count == b.count else { return true }
-        for (x, y) in zip(a, b) where x.windowTitle != y.windowTitle
+        for (x, y) in zip(a, b) where x.identity != y.identity || x.windowTitle != y.windowTitle
             || x.browserTab?.url != y.browserTab?.url
             || x.browserTab?.isActive != y.browserTab?.isActive { return true }
         return false
@@ -4501,7 +4560,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// be a browser-tab row, so the caller routes it through `activation(for:)`.
     private func primedBrowserTabMRUTargetRow() -> SwitcherRow? {
         let sorted = Log.reveal.withIntervalSignpost("primed.tabMRU") {
-            applyBrowserTabMRU(expandBrowserTabs(applyApplicationsOnly(applyWindowMRUSort(cache.rows(orderedBy: mru.order, filter: activeFilterConfig)))))
+            applyBrowserTabMRU(expandBrowserTabs(collapsedBrowserSource()))
         }
         guard !sorted.isEmpty else { return nil }
         return sorted[primedRecencyIndex(in: sorted)]
@@ -5810,7 +5869,7 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
-    private func filterClosedTombstones(_ snapshot: [SwitcherRow]) -> [SwitcherRow] {
+    private func filterClosedTombstones(_ snapshot: [SwitcherRow], resolveMissingIDs: Bool = true) -> [SwitcherRow] {
         if closedTombstones.isEmpty { return snapshot }
         let now = Date()
         closedTombstones.removeAll { now.timeIntervalSince($0.recordedAt) >= tombstoneTTL }
@@ -5841,9 +5900,9 @@ final class SwitcherController: SwitcherViewDelegate {
         var firstHiddenByPid: [pid_t: (app: NSRunningApplication, discovery: Int)] = [:]
         var discoveryCounter = 0
         for row in snapshot {
-            let rowWid = Activator.resolvedWindowID(cached: row.cgWindowID) {
+            let rowWid = resolveMissingIDs ? Activator.resolvedWindowID(cached: row.cgWindowID) {
                 row.window.map { PrivateAPI.cgWindowId(of: $0) } ?? 0
-            }
+            } : row.cgWindowID
             var suppressed = false
             for (i, sig) in closedTombstones.enumerated() where signatureMatches(sig, row: row, rowWid: rowWid) {
                 // A "closed" window that reappears while its app is now
@@ -6418,7 +6477,10 @@ final class SwitcherController: SwitcherViewDelegate {
         // completion only rebuilds the transient search set and re-renders — it
         // never touches `baseRows` (unlike the pref-on `reExpandBrowserTabs`).
         if searchUsesExpandedTabs {
-            scanBrowserTabs(rows: baseRows, force: false, wantExpansion: true) { [weak self] in
+            // A browser-wide MRU quota can omit whole windows. Scanning the
+            // capped rows would prune those live windows from the tab cache.
+            let source = browserTabMRUActive ? collapsedBrowserSource() : baseRows
+            scanBrowserTabs(rows: source, force: false, wantExpansion: true) { [weak self] in
                 guard let self, self.searchActive else { return }
                 self.searchExpandedValid = false
                 self.refreshDisplay()

@@ -270,7 +270,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
                               action: #selector(browserTabLimitCommitted(_:)),
                               accessibilityLabel: browserTabLimitTitle)
         addRow(to: tabs, title: browserTabLimitTitle,
-               subtitle: String(localized: "At most this many tab entries per browser window (2–16), keeping the active tab visible. Set to 0 to show every tab."),
+               subtitle: String(localized: "With tab recency and “Most recent (windows)”, this limit applies to each browser across its windows. Other modes limit each window and keep its active tab visible. Set to 0 for no limit (otherwise 2–16)."),
                accessory: browserTabLimitField, searchItemID: SearchID.browserTabLimit)
         addRow(to: tabs, title: String(localized: "Show browser icon on tab entries"),
                subtitle: String(localized: "Badge each tab entry's favicon with the source browser's app icon, so you can tell which browser a tab belongs to when the same site is open in more than one."),

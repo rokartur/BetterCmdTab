@@ -62,6 +62,20 @@ empty.
 
 Native tabs (Finder, Terminal, TextEdit) use Accessibility and need nothing extra.
 
+With **Show browser tabs as separate entries**, **Track browser tabs in recency**
+and **Most recent (windows)**, tabs from different windows share one recency order.
+**Browser tabs to show** limits each browser across its eligible windows: a limit
+of 5 gives Chrome up to 5 tabs and Safari up to 5, chosen by last use rather than
+their positions in the browser. The focused tab counts toward that limit.
+
+History starts when BetterCmdTab launches. Under a limit, only tabs used since
+then are listed, and a window with none of them stays as one entry for that
+window. A limit of 0 lists every tab, unused ones after the used ones. Enable
+**Search browser tabs** to find tabs omitted from the list.
+
+Other sort orders, or disabling tab recency, keep the positional limit per window
+and keep that window's active tab visible.
+
 ## 3. Switch
 
 | Action | Keys |
