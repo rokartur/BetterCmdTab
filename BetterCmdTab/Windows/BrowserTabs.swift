@@ -25,11 +25,32 @@ extension BrowserTabs {
         let window = windowTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         let tab = tabTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !window.isEmpty, !tab.isEmpty else { return false }
-        return window == tab
-            || window.hasPrefix(tab + " — ")
-            || window.hasPrefix(tab + " – ")
-            || window.hasPrefix(tab + " - ")
+        return window == tab || titleSeparators.contains { window.hasPrefix(tab + $0) }
     }
+
+    /// The recency index materializes the same prefix rule once per recorded
+    /// title instead of trimming/comparing up to 300 titles for every candidate.
+    /// Include exact empty titles too: explicit tab keys have always ranked them.
+    static func recencyTitleAliases(_ windowTitle: String) -> [String] {
+        let title = windowTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        var aliases = [title]
+        for separator in titleSeparators {
+            var start = title.startIndex
+            while let range = title.range(of: separator, range: start..<title.endIndex) {
+                let prefix = String(title[..<range.lowerBound])
+                // Trimming a prefix would broaden the rule: "Title  - Chrome"
+                // does not match the tab "Title" (there are two spaces).
+                if !prefix.isEmpty, prefix == prefix.trimmingCharacters(in: .whitespacesAndNewlines) {
+                    aliases.append(prefix)
+                }
+                // Separators can overlap at their space: "A - - Chrome".
+                start = title.index(after: range.lowerBound)
+            }
+        }
+        return aliases
+    }
+
+    private static let titleSeparators = [" — ", " – ", " - "]
 }
 
 // Private SPI from libsystem: detaches the spawned child's TCC

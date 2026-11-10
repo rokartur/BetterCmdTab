@@ -39,6 +39,7 @@ final class BrowserTabMRUTracker {
 
     /// Flat unified recency, newest first.
     private(set) var order: [Key] = []
+    private var cachedRanking: Ranking?
     /// Hard ceiling. `bump` only prepends, so without a cap a long session that
     /// cycles many tabs would grow unbounded. Dead entries never match a row, so
     /// the cap (plus `forgetWindow` on close) is the only cleanup.
@@ -48,6 +49,7 @@ final class BrowserTabMRUTracker {
     /// removed first so recency is exact, not duplicated.
     func bump(_ key: Key) {
         guard key.wid != 0 else { return }
+        cachedRanking = nil
         order.removeAll { $0 == key }
         order.insert(key, at: 0)
         if order.count > cap { order.removeLast(order.count - cap) }
@@ -56,6 +58,7 @@ final class BrowserTabMRUTracker {
     /// Drop every entry (window slot and all tab slots) for a closed window id.
     func forgetWindow(_ wid: CGWindowID) {
         guard wid != 0 else { return }
+        cachedRanking = nil
         order.removeAll { $0.wid == wid }
     }
 
@@ -67,7 +70,7 @@ final class BrowserTabMRUTracker {
     /// title that carries more than the tab title (Chromium's browser/profile
     /// suffix) can't be canonicalized here — the tab list it has to match isn't
     /// known at bump time — so `sortRows` reconciles that pair instead.
-    static func tabKey(wid: CGWindowID, title: String) -> Key {
+    nonisolated static func tabKey(wid: CGWindowID, title: String) -> Key {
         .tab(wid, title.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
@@ -88,40 +91,80 @@ final class BrowserTabMRUTracker {
     /// behave identically apart from the richer key.
     func sortRows(_ rows: [SwitcherRow]) -> [SwitcherRow] {
         guard !order.isEmpty, rows.count > 1 else { return rows }
-        var rank: [Key: Int] = [:]
-        rank.reserveCapacity(order.count)
-        for (i, k) in order.enumerated() { rank[k] = i }
-        // Built on the first exact miss only, so a reveal where every row hits its
-        // key — Safari, single-profile Chromium — pays nothing extra.
-        var tabRanks: [CGWindowID: [(rank: Int, title: String)]]?
-        let indexed = rows.enumerated().map { offset, row -> (rank: Int, offset: Int, row: SwitcherRow) in
-            guard let key = Self.key(for: row) else { return (Int.max, offset, row) }
-            if let exact = rank[key] { return (exact, offset, row) }
-            let byWindow = tabRanks ?? Self.tabRanksByWindow(order)
-            tabRanks = byWindow
-            switch key {
-            case .window(let wid):
-                // A browser window shown whole (tabs not scanned yet, or grouped by its rule, #253) ranks as its newest tab.
-                return (byWindow[wid]?.first?.rank ?? Int.max, offset, row)
-            case .tab(let wid, let tabTitle):
-                let matched = byWindow[wid]?.first { BrowserTabs.windowTitle($0.title, matchesTab: tabTitle) }
-                return (matched?.rank ?? Int.max, offset, row)
-            }
-        }
-        return indexed.sorted { lhs, rhs in
-            lhs.rank != rhs.rank ? lhs.rank < rhs.rank : lhs.offset < rhs.offset
-        }.map(\.row)
+        return rankedIndices(rows).map { rows[$0] }
     }
 
-    /// Tab entries grouped by their parent window id, newest first — the index
-    /// `sortRows` falls back to when a row's tab title isn't the whole AX window
-    /// title the bump recorded. Scanning only the row's own window keeps the
-    /// fallback to a handful of comparisons instead of the whole 300-entry order.
-    private static func tabRanksByWindow(_ order: [Key]) -> [CGWindowID: [(rank: Int, title: String)]] {
-        var out: [CGWindowID: [(rank: Int, title: String)]] = [:]
-        for (rank, key) in order.enumerated() {
-            if case .tab(let wid, let title) = key { out[wid, default: []].append((rank, title)) }
+    /// App recency keeps the application's slots; only browser entries within
+    /// those slots are reordered. Ordinary apps retain their window-MRU order.
+    func sortRowsWithinApps(_ rows: [SwitcherRow], browserPids: Set<pid_t>, priorities: [Int]) -> [SwitcherRow] {
+        guard !order.isEmpty, rows.count > 1, !browserPids.isEmpty else { return rows }
+        return Self.appSlotOrder(pids: rows.map(\.pid), priorities: priorities, rankedIndices: rankedIndices(rows),
+                                 includedPids: browserPids).map { rows[$0] }
+    }
+
+    /// Preserve app order even when status buckets split an app's entries.
+    static func appSlotOrder(pids: [pid_t?], priorities: [Int], rankedIndices: [Int], includedPids: Set<pid_t>) -> [Int] {
+        struct Slot: Hashable { let pid: pid_t; let priority: Int }
+        var bySlot: [Slot: [Int]] = [:]
+        for index in rankedIndices {
+            if let pid = pids[index], includedPids.contains(pid) {
+                bySlot[Slot(pid: pid, priority: priorities[index]), default: []].append(index)
+            }
         }
-        return out
+        var offsets: [Slot: Int] = [:]
+        return pids.indices.map { index in
+            guard let pid = pids[index] else { return index }
+            let slot = Slot(pid: pid, priority: priorities[index])
+            guard let ranked = bySlot[slot] else { return index }
+            let offset = offsets[slot, default: 0]
+            offsets[slot] = offset + 1
+            return ranked[offset]
+        }
+    }
+
+    private func rankedIndices(_ rows: [SwitcherRow]) -> [Int] {
+        let ranking = ranking()
+        let ranks = rows.map { row in
+            Self.key(for: row).flatMap { ranking.rank(for: $0) } ?? Int.max
+        }
+        return rows.indices.sorted { lhs, rhs in
+            ranks[lhs] != ranks[rhs] ? ranks[lhs] < ranks[rhs] : lhs < rhs
+        }
+    }
+
+    /// A read-only index shared by candidate selection and display sorting. A
+    /// missing rank means unobserved, not "least recently used"; capped MRU
+    /// selection must not fill spare slots with those tabs.
+    struct Ranking {
+        private let ranks: [Key: Int]
+
+        init(_ order: [Key]) {
+            var ranks: [Key: Int] = [:]
+            for (rank, key) in order.enumerated() {
+                if ranks[.window(key.wid)] == nil { ranks[.window(key.wid)] = rank }
+                if case .tab(let wid, let title) = key {
+                    for alias in BrowserTabs.recencyTitleAliases(title) {
+                        let aliasKey = Key.tab(wid, alias)
+                        if ranks[aliasKey] == nil { ranks[aliasKey] = rank }
+                    }
+                }
+            }
+            self.ranks = ranks
+        }
+
+        func rank(for key: Key) -> Int? {
+            switch key {
+            case .window: return ranks[key]
+            case .tab(let wid, let title):
+                return ranks[BrowserTabMRUTracker.tabKey(wid: wid, title: title)]
+            }
+        }
+    }
+
+    func ranking() -> Ranking {
+        if let cachedRanking { return cachedRanking }
+        let snapshot = Ranking(order)
+        cachedRanking = snapshot
+        return snapshot
     }
 }

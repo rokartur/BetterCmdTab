@@ -323,7 +323,8 @@ enum BackdropMaterial: String, CaseIterable {
 /// ordering that doesn't reshuffle as you switch. Read off the main actor by
 /// `CatalogFilter`, so the raw value is stored in the shared UserDefaults key.
 enum SwitcherSortOrder: String, CaseIterable {
-    /// Most-recently-used first, with the usual status buckets. Default.
+    /// Applications by last use, with windows/tabs ordered within each app.
+    /// Uses the usual status buckets. Default; persisted value remains `mru`.
     case mru
     /// Flat cross-app window recency — each window ordered by when it was last
     /// focused, regardless of app, so windows of different apps interleave.
@@ -338,7 +339,7 @@ enum SwitcherSortOrder: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .mru: return String(localized: "Most recent")
+        case .mru: return String(localized: "Most recent (apps)")
         case .mruWindows: return String(localized: "Most recent (windows)")
         case .alphabetical: return String(localized: "Alphabetical")
         case .launchOrder: return String(localized: "Launch order")

@@ -327,7 +327,7 @@ enum ConfigSchemaDocs {
 
         // Contents
         "sortOrder": ConfigSettingDoc(
-            "string", "Order apps and windows are listed in.",
+            "string", "mru orders applications by last use; mruWindows orders individual entries across applications. With browser-tab recency, tabs are ordered within each browser for mru and globally for mruWindows.",
             values: ConfigValues(SwitcherSortOrder.self, \.displayName)),
         "initialSelection": ConfigSettingDoc(
             "string", "Where the first ⌘Tab press lands under sorts that stay put as you switch. middle counts apps, not window rows.",
@@ -414,10 +414,10 @@ enum ConfigSchemaDocs {
         "expandTabsAsWindows": ConfigSettingDoc("boolean", "List native system tabs (Finder, Terminal, TextEdit, …) as separate entries."),
         "expandBrowserTabsAsWindows": ConfigSettingDoc("boolean", "List browser tabs (Safari, Chromium) as separate entries."),
         "browserTabRowLimit": ConfigSettingDoc(
-            "integer", "Cap on tab entries per browser window. 0 = unlimited; anything else is taken as 2…16.",
+            "integer", "Cap on tab entries. With browserTabMRU and mru or mruWindows, counts observed tabs per browser across its windows; otherwise per window. 0 = unlimited; anything else is taken as 2…16.",
             range: 0...Preferences.browserTabRowLimitRange.upperBound),
         "showBrowserIconOnTabs": ConfigSettingDoc("boolean", "Badge each browser-tab entry's favicon with the source browser's icon."),
-        "browserTabMRU": ConfigSettingDoc("boolean", "Track browser tabs in the recency order."),
+        "browserTabMRU": ConfigSettingDoc("boolean", "With expanded browser tabs and mru or mruWindows, order observed tabs across windows by last use. mru keeps applications grouped; mruWindows interleaves entries across applications. History starts at launch; a browser window remains available without history."),
         "experimentalBrowserTabMRU": ConfigSettingDoc(
             "boolean", "Legacy browser-tab recency flag, kept in sync with browserTabMRU for older builds. Edit browserTabMRU instead."),
 
