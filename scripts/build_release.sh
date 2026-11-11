@@ -56,7 +56,7 @@ Options:
                         When omitted on an interactive terminal, the script
                         prompts per category (Highlights, Added, Changed, Fixed,
                         Security, Removed, Known issues). Empty sections are
-                        skipped. See .agents/skills/release-changelog/SKILL.md.
+                        skipped (compose_release_notes_interactively).
   --skip-build-bump     Skip build number timestamp bump.
                         Use when re-running after a notarization failure where the
                         bump was already committed.
@@ -129,7 +129,7 @@ step() {
 # Legacy releases use synonym headings (e.g. "Changes" → "Changed",
 # "Enhancements" → "Added"). The extractor accepts known aliases per
 # canonical section so prior notes carry over even when their wording
-# predates .agents/skills/release-changelog/SKILL.md.
+# predates the headings in compose_release_notes_interactively.
 extract_bullets_under_heading() {
 	local heading="$1"
 	local file="$2"
