@@ -2621,7 +2621,7 @@ final class Preferences: ObservableObject {
         value.clamped(to: fadeDurationRange)
     }
 
-    static func clampGridColumns(_ value: Int) -> Int {
+    nonisolated static func clampGridColumns(_ value: Int) -> Int {
         value.clamped(to: gridMaxColumnsRange)
     }
 
@@ -2633,7 +2633,7 @@ final class Preferences: ObservableObject {
         value.clamped(to: topOffsetPercentRange)
     }
 
-    static func clampRecentlyClosedLimit(_ value: Int) -> Int {
+    nonisolated static func clampRecentlyClosedLimit(_ value: Int) -> Int {
         value.clamped(to: recentlyClosedLimitRange)
     }
 
