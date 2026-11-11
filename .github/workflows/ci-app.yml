@@ -9,6 +9,7 @@ on:
       - "BetterCmdTab.xcodeproj/**"
       - "web/src/docs/config-schema.json"
       - ".github/workflows/ci-app.yml"
+      - "scripts/assert_tests_ran.sh"
   pull_request:
     paths:
       - "BetterCmdTab/**"
@@ -16,6 +17,7 @@ on:
       - "BetterCmdTab.xcodeproj/**"
       - "web/src/docs/config-schema.json"
       - ".github/workflows/ci-app.yml"
+      - "scripts/assert_tests_ran.sh"
   workflow_dispatch:
 
 permissions:

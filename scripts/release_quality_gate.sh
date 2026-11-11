@@ -17,7 +17,7 @@ Usage: scripts/release_quality_gate.sh [--clean] [--fail-on-high-risk-warnings] 
 Options:
   --clean                         Run clean build before build.
   --fail-on-high-risk-warnings    Exit with non-zero status when high-risk warnings are found.
-  --skip-i18n                     Skip the localization audit (beta builds with incomplete translations).
+  --skip-i18n                     Run the unit suite without the localization audit (beta builds with incomplete translations).
   --log-path <path>               Path for raw xcodebuild log output.
 EOF
 }
@@ -86,26 +86,20 @@ fi
 
 tests_log="${log_path%.log}-tests.log"
 tests_bundle="${log_path%.log}-tests.xcresult"
-test_selector=()
+test_cmd=(xcodebuild -project "$project_path" -scheme "BetterCmdTab Debug"
+  -destination "platform=macOS" -resultBundlePath "$tests_bundle" test)
+# Floors sit below the suite size; .github/workflows/ci-app.yml holds the other copy of 300.
 minimum_tests=300
 if [[ $skip_i18n -eq 1 ]]; then
   echo "[release-quality-gate] Running unit tests without the localization audit (--skip-i18n)"
-  test_selector=(-skip-testing:BetterCmdTabTests/LocalizationCatalogTests)
+  test_cmd+=(-skip-testing:BetterCmdTabTests/LocalizationCatalogTests)
   minimum_tests=250
 else
   echo "[release-quality-gate] Running unit tests"
 fi
 # xcodebuild refuses an existing result bundle path.
-rm -rf "$tests_bundle"
-# Ad-hoc signing, as in App CI: the test host must be signed, and the gate must not need the team certificate.
-if ! xcodebuild \
-  -project "$project_path" \
-  -scheme "BetterCmdTab Debug" \
-  -destination "platform=macOS" \
-  -resultBundlePath "$tests_bundle" \
-  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
-  test ${test_selector[@]+"${test_selector[@]}"} \
-  >"$tests_log" 2>&1; then
+rm -rf -- "$tests_bundle"
+if ! "${test_cmd[@]}" >"$tests_log" 2>&1; then
   echo "[release-quality-gate] Unit tests failed. Log: $tests_log" >&2
   tail -n 40 "$tests_log" >&2 || true
   exit 1
