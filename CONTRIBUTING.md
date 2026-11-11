@@ -31,7 +31,7 @@ xcodebuild -project BetterCmdTab.xcodeproj -scheme "BetterCmdTab Debug" -configu
   CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= build
 ```
 
-The three overrides sign ad hoc, so the build works without the maintainer's Apple developer team. An ad hoc build gets a new identity each time, so macOS asks for the Accessibility grant again after a rebuild.
+The three overrides sign ad hoc, so the build works without the maintainer's Apple developer team; an ad hoc build gets a new identity each time, so macOS asks for the Accessibility grant again after a rebuild.
 
 You need the macOS 26 SDK: the Liquid Glass panel compiles against `NSGlassEffectView` with no `#if`, so an older SDK fails the build. At runtime macOS 13 to 15 fall back to `NSVisualEffectView`.
 

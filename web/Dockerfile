@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build context is the repo root: the image serves web/out, docs included.
-FROM oven/bun:1-alpine AS web
+FROM oven/bun:1.4.4-alpine AS web
 WORKDIR /app/web
 COPY web/package.json web/bun.lock ./
 RUN bun install --frozen-lockfile
@@ -13,7 +13,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
 RUN bun run build
 
 
-FROM oven/bun:1-alpine
+FROM oven/bun:1.4.4-alpine
 WORKDIR /app
 COPY --from=web /app/web/out ./out
 COPY web/serve.ts ./
