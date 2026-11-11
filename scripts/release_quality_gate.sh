@@ -4,10 +4,10 @@
 #
 # Compiles the app in Release configuration with code signing disabled and
 # fails on high-risk concurrency / Sendable / UnsafeMutableRawPointer warnings
-# so a known-bad build never burns an archive + notarization slot. Stable
-# builds also run the localization audit (LocalizationCatalogTests pins
-# catalog coverage, format-specifier parity, and shape for every locale);
-# beta builds skip it with --skip-i18n.
+# so a known-bad build never burns an archive + notarization slot. Then runs
+# the unit suite. Stable builds include the localization audit
+# (LocalizationCatalogTests pins catalog coverage, format-specifier parity,
+# and shape for every locale); beta builds skip it with --skip-i18n.
 set -euo pipefail
 
 usage() {
@@ -84,22 +84,33 @@ if ! "${build_cmd[@]}" >"$log_path" 2>&1; then
   exit 1
 fi
 
+tests_log="${log_path%.log}-tests.log"
+tests_bundle="${log_path%.log}-tests.xcresult"
+test_selector=()
+minimum_tests=300
 if [[ $skip_i18n -eq 1 ]]; then
-  echo "[release-quality-gate] Skipping localization audit (--skip-i18n)"
+  echo "[release-quality-gate] Running unit tests without the localization audit (--skip-i18n)"
+  test_selector=(-skip-testing:BetterCmdTabTests/LocalizationCatalogTests)
+  minimum_tests=250
 else
-  echo "[release-quality-gate] Running localization audit (LocalizationCatalogTests)"
-  i18n_log="${log_path%.log}-i18n.log"
-  if ! xcodebuild \
-    -project "$project_path" \
-    -scheme "BetterCmdTab Debug" \
-    -destination "platform=macOS" \
-    test -only-testing:BetterCmdTabTests/LocalizationCatalogTests \
-    >"$i18n_log" 2>&1; then
-    echo "[release-quality-gate] Localization audit failed. Log: $i18n_log" >&2
-    tail -n 40 "$i18n_log" >&2 || true
-    exit 1
-  fi
+  echo "[release-quality-gate] Running unit tests"
 fi
+# xcodebuild refuses an existing result bundle path.
+rm -rf "$tests_bundle"
+# Ad-hoc signing, as in App CI: the test host must be signed, and the gate must not need the team certificate.
+if ! xcodebuild \
+  -project "$project_path" \
+  -scheme "BetterCmdTab Debug" \
+  -destination "platform=macOS" \
+  -resultBundlePath "$tests_bundle" \
+  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+  test ${test_selector[@]+"${test_selector[@]}"} \
+  >"$tests_log" 2>&1; then
+  echo "[release-quality-gate] Unit tests failed. Log: $tests_log" >&2
+  tail -n 40 "$tests_log" >&2 || true
+  exit 1
+fi
+"$repo_root/scripts/assert_tests_ran.sh" "$tests_bundle" "$minimum_tests"
 
 total_warnings="$( (grep -c "warning:" "$log_path" || true) | tr -d ' ')"
 high_risk_pattern='warning:.*(main actor-isolated|Sendable|concurrently-executing|UnsafeMutableRawPointer)'
