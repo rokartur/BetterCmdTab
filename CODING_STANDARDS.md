@@ -35,7 +35,7 @@ Hot-path code reads `Switcher.*` keys by their string straight off `UserDefaults
 config file exports them, so a shipped key string is a contract that outlives any rename of
 its Swift property. Adding or changing a setting follows the `add-preference` skill. A fragile
 or new feature ships off by default, in its own section under a "These features are unstable"
-notice.
+notice. Adding or removing a notice updates `docs/unstable-features.md` in the same change.
 
 ## Tests
 
