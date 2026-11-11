@@ -16,18 +16,26 @@ struct SwitcherSearchRowsTests {
             appName: "Safari",
             bundleID: "com.apple.Safari",
             appURL: URL(fileURLWithPath: "/Applications/Safari.app"),
-            deviceName: "handoff",
+            deviceName: "iPhone",
             element: AXUIElementCreateSystemWide()
         ))
     }
 
-    private func titles(_ rows: [SwitcherRow]) -> [String] {
-        rows.map(\.windowTitle)
+    private func closed(_ title: String) -> SwitcherRow.Identity {
+        .recentlyClosed("test.\(title)", title)
     }
+
+    private let handoff = SwitcherRow.Identity.handoff("com.apple.Safari")
 
     @Test func matchesThatFitAreUnchanged() {
         let fitted = SwitcherController.fitSearchSlots([4, 2, 9], slots: 3) { _ in true }
         #expect(fitted == [4, 2, 9])
+        #expect(SwitcherController.fitSearchSlots([4, 2], slots: 3) { _ in true } == [4, 2])
+    }
+
+    @Test func zeroSlotsDropEveryTab() {
+        #expect(SwitcherController.fitSearchSlots([], slots: 0) { _ in true } == [])
+        #expect(SwitcherController.fitSearchSlots([1, 2], slots: 0) { _ in true } == [])
     }
 
     @Test func tabsShareTheSlotsLeftByOtherRows() {
@@ -48,31 +56,33 @@ struct SwitcherSearchRowsTests {
 
     @Test func noHandoffLeavesRowsAndIndex() {
         let placed = SwitcherController.placingHandoff(nil, in: [closedRow("a"), closedRow("b")], index: 1, placement: .first)
-        #expect(titles(placed.rows) == ["a", "b"])
+        #expect(placed.rows.map(\.identity) == [closed("a"), closed("b")])
         #expect(placed.index == 1)
     }
 
     @Test func emptyPanelGetsNoHandoffRow() {
-        let placed = SwitcherController.placingHandoff(handoffRow, in: [], index: 0, placement: .first)
-        #expect(placed.rows.isEmpty)
-        #expect(placed.index == 0)
+        for placement in [HandoffPlacement.first, .last] {
+            let placed = SwitcherController.placingHandoff(handoffRow, in: [], index: 0, placement: placement)
+            #expect(placed.rows.isEmpty)
+            #expect(placed.index == 0)
+        }
     }
 
     @Test func firstPlacementShiftsTheIndex() {
         let placed = SwitcherController.placingHandoff(handoffRow, in: [closedRow("a"), closedRow("b")], index: 1, placement: .first)
-        #expect(titles(placed.rows) == ["handoff", "a", "b"])
+        #expect(placed.rows.map(\.identity) == [handoff, closed("a"), closed("b")])
         #expect(placed.index == 2)
     }
 
     @Test func lastPlacementKeepsTheIndex() {
         let placed = SwitcherController.placingHandoff(handoffRow, in: [closedRow("a"), closedRow("b")], index: 1, placement: .last)
-        #expect(titles(placed.rows) == ["a", "b", "handoff"])
+        #expect(placed.rows.map(\.identity) == [closed("a"), closed("b"), handoff])
         #expect(placed.index == 1)
     }
 
     @Test func offPlacementAddsNothing() {
         let placed = SwitcherController.placingHandoff(handoffRow, in: [closedRow("a")], index: 0, placement: .off)
-        #expect(titles(placed.rows) == ["a"])
+        #expect(placed.rows.map(\.identity) == [closed("a")])
         #expect(placed.index == 0)
     }
 
@@ -80,6 +90,17 @@ struct SwitcherSearchRowsTests {
         let combined = SwitcherController.combinedRows(
             base: [closedRow("base")], recentlyClosed: [closedRow("closed")], handoff: handoffRow, placement: .last
         )
-        #expect(titles(combined) == ["base", "closed", "handoff"])
+        #expect(combined.map(\.identity) == [closed("base"), closed("closed"), handoff])
+    }
+
+    @Test func combinedRowsForwardThePlacement() {
+        let first = SwitcherController.combinedRows(
+            base: [closedRow("base")], recentlyClosed: [closedRow("closed")], handoff: handoffRow, placement: .first
+        )
+        #expect(first.map(\.identity) == [handoff, closed("base"), closed("closed")])
+        let none = SwitcherController.combinedRows(
+            base: [closedRow("base")], recentlyClosed: [closedRow("closed")], handoff: nil, placement: .last
+        )
+        #expect(none.map(\.identity) == [closed("base"), closed("closed")])
     }
 }
