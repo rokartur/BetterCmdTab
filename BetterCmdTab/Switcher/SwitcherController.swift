@@ -103,9 +103,9 @@ final class SwitcherController: SwitcherViewDelegate {
     private var shelfHoverGrace: (timer: Timer, index: Int, pid: pid_t?)?
     /// Screen point of the last hover over the switcher, so the grace waits only for a pointer heading down.
     private var lastHoverPoint: NSPoint?
-    /// The highlighted app's window list, so stepping through the switcher
-    /// re-reads the catalog only when the app changes.
-    private var selectedAppWindowsMemo: (pid: pid_t, windows: [SwitcherRow])?
+    /// Every app's window list by pid, so stepping through the switcher
+    /// re-reads the catalog only when the rows are rebuilt.
+    private var windowsByPidMemo: [pid_t: [SwitcherRow]]?
 
     private var _phase: Phase = .idle
     private var switchSessionKind: SwitchSessionKind = .none
@@ -4995,7 +4995,7 @@ final class SwitcherController: SwitcherViewDelegate {
             cancel()
             return
         }
-        selectedAppWindowsMemo = nil
+        windowsByPidMemo = nil
         let remaining = drillWindowRows.filter { $0.window.map { !CFEqual($0, closed) } ?? true }
         // commitTab requires the app row to still show `drillWindow`, so closing that one ends the drill.
         if let anchor = drillWindow, !CFEqual(anchor, closed), remaining.count >= 2 {
@@ -5014,13 +5014,20 @@ final class SwitcherController: SwitcherViewDelegate {
         // An inline browser-tab row is already a leaf (mirrors enterTabDrill),
         // and a windowless app has nothing to list.
         guard row.browserTab == nil, row.window != nil, let pid = row.pid else { return [] }
-        if let memo = selectedAppWindowsMemo, memo.pid == pid { return memo.windows }
+        if let memo = windowsByPidMemo { return memo[pid] ?? [] }
         // Tombstones: the cache lists a just-closed window until its AX close lands.
         let windows = filterClosedTombstones(cache.rows(orderedBy: mru.order, filter: activeFilterConfig))
-            .filter { $0.pid == pid && $0.window != nil }
-        let ordered = windowMRU.sortRows(windows, forPid: pid)
-        selectedAppWindowsMemo = (pid, ordered)
-        return ordered
+            .filter { $0.window != nil }
+        var grouped: [pid_t: [SwitcherRow]] = [:]
+        for window in windows {
+            guard let windowPid = window.pid else { continue }
+            grouped[windowPid, default: []].append(window)
+        }
+        for (windowPid, appWindows) in grouped {
+            grouped[windowPid] = windowMRU.sortRows(appWindows, forPid: windowPid)
+        }
+        windowsByPidMemo = grouped
+        return grouped[pid] ?? []
     }
 
     private var windowDrillActive: Bool { tabDrillActive && tabDrillBackend == .appWindows }
@@ -5043,14 +5050,14 @@ final class SwitcherController: SwitcherViewDelegate {
         view.releaseIdleResources()
         shelf.releaseIdleResources()
         shelf.isHidden = true
-        selectedAppWindowsMemo = nil
+        windowsByPidMemo = nil
         cancelShelfHoverGrace()
         lastHoverPoint = nil
     }
 
     /// The rows were rebuilt, so the catalog may hold new windows: re-read them.
     private func relistWindowShelf() {
-        selectedAppWindowsMemo = nil
+        windowsByPidMemo = nil
         if windowDrillActive {
             // Same windows in the same order (the strip's titles are index-aligned), fresh state such as minimized.
             let fresh = windowsOfSelectedApp()
