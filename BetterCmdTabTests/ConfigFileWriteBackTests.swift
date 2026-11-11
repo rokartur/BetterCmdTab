@@ -5,21 +5,35 @@ import Testing
 @Suite("Config file write-back")
 struct ConfigFileWriteBackTests {
     private let snapshot = Data("{\"a\":1}".utf8)
-    private let onDisk = Data("{\"a\":1,}".utf8)
+    private let fileA = Data("{\"a\":2}".utf8)
+    private let fileB = Data("{\"a\":2,}".utf8)
 
-    @Test func rejectedReadBlocksWriteBack() {
-        #expect(!ConfigFile.shouldWriteBack(watchingFile: true, lastReadRejected: true, data: snapshot, lastSynced: onDisk))
+    @Test func readBlocksWriteBackUntilItsImportSucceeds() {
+        var sync = ConfigFile.SyncState()
+        sync.read(fileB)
+        #expect(!sync.shouldWrite(snapshot))
+        sync.imported(fileB)
+        #expect(sync.shouldWrite(snapshot))
     }
 
-    @Test func acceptedReadWritesChangedSnapshot() {
-        #expect(ConfigFile.shouldWriteBack(watchingFile: true, lastReadRejected: false, data: snapshot, lastSynced: onDisk))
+    @Test func olderImportDoesNotClearANewerRead() {
+        var sync = ConfigFile.SyncState()
+        sync.read(fileA)
+        sync.read(fileB)
+        sync.imported(fileA)
+        #expect(!sync.shouldWrite(snapshot))
+    }
+
+    @Test func creatingTheFileUnblocksWriteBack() {
+        var sync = ConfigFile.SyncState()
+        sync.read(fileB)
+        sync.wrote(fileA)
+        #expect(sync.shouldWrite(snapshot))
     }
 
     @Test func unchangedSnapshotIsNotRewritten() {
-        #expect(!ConfigFile.shouldWriteBack(watchingFile: true, lastReadRejected: false, data: snapshot, lastSynced: snapshot))
-    }
-
-    @Test func dormantWithoutTheFile() {
-        #expect(!ConfigFile.shouldWriteBack(watchingFile: false, lastReadRejected: false, data: snapshot, lastSynced: nil))
+        var sync = ConfigFile.SyncState()
+        sync.wrote(snapshot)
+        #expect(!sync.shouldWrite(snapshot))
     }
 }

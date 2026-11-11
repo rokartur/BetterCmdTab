@@ -17,9 +17,9 @@ import os
 /// diverge"; preserving user formatting would mean tracking which keys the
 /// file contained.
 ///
-/// Watcher/sync state (`source`, `watchingFile`, `lastSyncedData`,
-/// `lastReadRejected`, `pendingReload`) is confined to `queue`; the `writeBack` subscription is
-/// touched only from `@MainActor start()`. That confinement is what justifies
+/// Watcher/sync state (`source`, `watchingFile`, `sync`, `pendingReload`) is
+/// confined to `queue`; the `writeBack` subscription is touched only from
+/// `@MainActor start()`. That confinement is what justifies
 /// `@unchecked Sendable`.
 final class ConfigFile: @unchecked Sendable {
     static let shared = ConfigFile()
@@ -62,12 +62,7 @@ final class ConfigFile: @unchecked Sendable {
     // Queue-confined state.
     private var source: DispatchSourceFileSystemObject?
     private var watchingFile = false
-    /// Raw bytes last read from or written to the file. The echo guard: our
-    /// own atomic write fires the watcher, the re-read compares equal and the
-    /// reload is skipped — no suppression flags needed (`configData()` is
-    /// byte-deterministic via `.sortedKeys`).
-    private var lastSyncedData: Data?
-    private var lastReadRejected = false
+    private var sync = SyncState()
     /// Bytes last written to `schemaURL`, seeded from disk on first use so an
     /// unchanged schema costs no write at launch.
     private var lastSchemaData: Data?
@@ -116,8 +111,7 @@ final class ConfigFile: @unchecked Sendable {
         // re-base by construction and end the token's usefulness with them.
         Preferences.preRebasePanelScales = nil
         queue.async { [self] in
-            lastSyncedData = data
-            lastReadRejected = false
+            sync.wrote(data)
         }
         start()
     }
@@ -195,22 +189,21 @@ final class ConfigFile: @unchecked Sendable {
     }
 
     private func reloadLocked() {
-        guard let data = try? Data(contentsOf: Self.url), data != lastSyncedData else { return }
+        guard let data = try? Data(contentsOf: Self.url), data != sync.synced else { return }
         // Remember even a malformed read so the same bad bytes aren't re-parsed
         // on every event; a fixed file differs and reloads.
-        lastSyncedData = data
-        // Held until the import succeeds, so a write-back never lands on an unparsed file.
-        lastReadRejected = true
+        sync.read(data)
         DispatchQueue.main.async { [self] in
             MainActor.assumeIsolated {
                 do {
                     try Preferences.shared.importSettings(from: data, mayPredateNativeSizing: true)
-                    // A newer read may be waiting on its own verdict; only these bytes are cleared.
-                    queue.async { [self] in if lastSyncedData == data { lastReadRejected = false } }
+                    queue.async { [self] in
+                        sync.imported(data)
+                    }
                     Log.config.info("config file applied")
                 } catch {
                     // Never wipe settings over a bad file — keep current values.
-                    Log.config.warning("config file rejected: \(error.localizedDescription, privacy: .public)")
+                    Log.config.warning("config file rejected, write-back paused until it parses: \(error.localizedDescription, privacy: .public)")
                 }
             }
         }
@@ -219,10 +212,9 @@ final class ConfigFile: @unchecked Sendable {
     /// Debounced GUI→file sync. Dormant unless the file itself is being
     /// watched — never creates the file uninvited.
     private func writeBackLocked() {
-        // watchingFile first: a dormant sync must not pay for a snapshot per settings change.
-        guard watchingFile,
+        guard watchingFile, !sync.unapplied,
               let data = try? Self.configData(),
-              Self.shouldWriteBack(watchingFile: watchingFile, lastReadRejected: lastReadRejected, data: data, lastSynced: lastSyncedData) else { return }
+              sync.shouldWrite(data) else { return }
         // A key can appear mid-session (a preference written for the first
         // time); keep the schema in step with what we're about to write.
         syncSchemaLocked()
@@ -233,14 +225,39 @@ final class ConfigFile: @unchecked Sendable {
             // Arm the echo guard only once the bytes are on disk. Arming it
             // first would make a failed write look converged, and the next
             // reload would re-import the stale file over the user's change.
-            lastSyncedData = data
+            sync.wrote(data)
         } catch {
             Log.config.warning("config write-back failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
-    nonisolated static func shouldWriteBack(watchingFile: Bool, lastReadRejected: Bool, data: Data, lastSynced: Data?) -> Bool {
-        watchingFile && !lastReadRejected && data != lastSynced
+    struct SyncState {
+        /// Raw bytes last read from or written to the file. The echo guard: our
+        /// own atomic write fires the watcher, the re-read compares equal and the
+        /// reload is skipped, no echo-suppression flag needed (`configData()` is
+        /// byte-deterministic via `.sortedKeys`).
+        private(set) var synced: Data?
+        /// True from a file read until its import succeeds, so a write-back never lands on an unparsed file.
+        private(set) var unapplied = false
+
+        mutating func read(_ data: Data) {
+            synced = data
+            unapplied = true
+        }
+
+        /// A newer read may be waiting on its own verdict; only these bytes are cleared.
+        mutating func imported(_ data: Data) {
+            if synced == data { unapplied = false }
+        }
+
+        mutating func wrote(_ data: Data) {
+            synced = data
+            unapplied = false
+        }
+
+        func shouldWrite(_ data: Data) -> Bool {
+            !unapplied && data != synced
+        }
     }
 
     /// Write the sidecar schema when its bytes changed. Only ever runs while
