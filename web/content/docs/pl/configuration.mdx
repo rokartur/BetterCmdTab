@@ -131,7 +131,8 @@ Import jest zawsze częściowy i nigdy nie niszczy danych:
   nadal zostanie zastosowana.
 - **Nieprawidłowy JSON** jest odrzucany w całości. Bieżące ustawienia zostają zachowane,
   a przyczyna trafia do dziennika; te same błędne bajty nie są ponownie analizowane przy
-  każdym zapisie, a naprawienie pliku powoduje jego zastosowanie.
+  każdym zapisie, a naprawienie pliku powoduje jego zastosowanie. Dopóki plik się nie
+  parsuje, zmiany wprowadzone w aplikacji nie są do niego zapisywane.
 - **Wartości o nieprawidłowej strukturze** — na przykład JSON `null` — są pomijane
   osobno dla każdego klucza. Ten klucz zachowuje wartość, a reszta pliku nadal jest stosowana.
 - **Liczby spoza zakresu** są ograniczane do akceptowanego zakresu widocznego w

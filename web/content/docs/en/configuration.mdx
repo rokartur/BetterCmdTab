@@ -120,7 +120,7 @@ Import is always partial and never destructive:
 - **Keys we don't recognise** are ignored, so a config from a newer version still applies.
 - **Invalid JSON** is rejected wholesale. Your current settings are kept and the reason
   is logged; the same bad bytes are not re-parsed on every save, and fixing the file
-  applies it.
+  applies it. Until the file parses, changes made in the app are not written to it.
 - **Values of the wrong shape** — a JSON `null`, say — are skipped key by key. That key
   keeps its value and the rest of the file still applies.
 - **Out-of-range numbers** are clamped to the accepted range shown in the
