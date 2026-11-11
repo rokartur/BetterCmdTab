@@ -498,11 +498,20 @@ struct ScopedShortcut: Equatable, Sendable {
     }
 
     init?(dictionary: [String: String]) {
-        guard let idStr = dictionary["id"], let id = Int(idStr), id >= 0,
+        guard let idStr = dictionary["id"], let id = Int(idStr), (0...Self.maxID).contains(id),
               let name = dictionary["name"], !name.isEmpty else { return nil }
         self.id = id
         self.scope = dictionary["scope"].flatMap(SwitchScope.init(rawValue:)) ?? .allAppsAllSpaces
         self.shortcutName = name
+    }
+
+    /// Ids come from imported files; this bound keeps `+ 1` from overflowing.
+    static let maxID = 1_000_000
+
+    static func nextID(stored: Int?, existing: [Int]) -> Int {
+        let afterExisting = (existing.max() ?? -1) + 1
+        guard let stored, (0...maxID + 1).contains(stored) else { return afterExisting }
+        return max(stored, afterExisting)
     }
 }
 
@@ -2866,7 +2875,7 @@ final class Preferences: ObservableObject {
         }
         self.scopedShortcuts = migrated
         let storedNextID = defaults.object(forKey: Keys.nextScopedShortcutID) as? Int
-        let resolvedNextID = max(storedNextID ?? 0, (migrated.map(\.id).max() ?? -1) + 1)
+        let resolvedNextID = ScopedShortcut.nextID(stored: storedNextID, existing: migrated.map(\.id))
         self.nextScopedShortcutID = resolvedNextID
         // `didSet` doesn't fire for assignments inside init, so a freshly migrated
         // list would never reach UserDefaults until the user first edits it —
@@ -3021,7 +3030,7 @@ final class Preferences: ObservableObject {
         } else {
             scopedShortcuts = Self.migrateScopedShortcuts(legacyScopes: reloadedScopes)
         }
-        nextScopedShortcutID = max(defaults.object(forKey: Keys.nextScopedShortcutID) as? Int ?? 0, (scopedShortcuts.map(\.id).max() ?? -1) + 1)
+        nextScopedShortcutID = ScopedShortcut.nextID(stored: defaults.object(forKey: Keys.nextScopedShortcutID) as? Int, existing: scopedShortcuts.map(\.id))
         let rawOverrides = defaults.array(forKey: Keys.shortcutOverrides) as? [[String: String]]
         let decodedOverrides = Self.decodeShortcutOverrides(rawOverrides)
         shortcutOverrides = decodedOverrides
