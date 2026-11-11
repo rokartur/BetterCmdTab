@@ -5,6 +5,26 @@ import Testing
 @Suite("Preferences migrations")
 struct PreferencesMigrationTests {
 
+    @MainActor
+    @Test("loadClamped returns the clamped value and writes it back",
+          arguments: [
+              (Preferences.Keys.gridMaxColumns, 99, 12),
+              (Preferences.Keys.gridMaxColumns, -3, 0),
+              (Preferences.Keys.recentlyClosedLimit, 99, 50),
+              (Preferences.Keys.recentlyClosedLimit, -3, 0),
+          ])
+    func loadClampedWritesBack(key: String, stored: Int, expected: Int) throws {
+        let suite = "loadClampedTests.\(key).\(stored)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let clamp = key == Preferences.Keys.gridMaxColumns ? Preferences.clampGridColumns : Preferences.clampRecentlyClosedLimit
+        #expect(Preferences.loadClamped(key, default: 5, clamp: clamp, from: defaults) == 5)
+
+        defaults.set(stored, forKey: key)
+        #expect(Preferences.loadClamped(key, default: 5, clamp: clamp, from: defaults) == expected)
+        #expect(defaults.integer(forKey: key) == expected)
+    }
+
     @Test("storedSpaceScope prefers the enum key, falls back to the legacy bool")
     func storedSpaceScopeMigration() throws {
         let defaults = try #require(UserDefaults(suiteName: "storedSpaceScopeMigrationTests"))

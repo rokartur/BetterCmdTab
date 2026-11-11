@@ -2586,8 +2586,8 @@ final class Preferences: ObservableObject {
 
     /// Writes the clamped value back like `loadPanelScalePercent`: when the clamp leaves the
     /// published value unchanged, didSet skips its write and exports would keep the bad one.
-    private static func loadClamped(_ key: String, default fallback: Int, clamp: (Int) -> Int,
-                                    from defaults: UserDefaults) -> Int {
+    static func loadClamped(_ key: String, default fallback: Int, clamp: (Int) -> Int,
+                            from defaults: UserDefaults) -> Int {
         guard let stored = defaults.object(forKey: key) as? Int else { return clamp(fallback) }
         let clamped = clamp(stored)
         if clamped != stored {
