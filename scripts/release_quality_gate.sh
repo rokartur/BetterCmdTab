@@ -88,8 +88,8 @@ tests_log="${log_path%.log}-tests.log"
 tests_bundle="${log_path%.log}-tests.xcresult"
 test_cmd=(xcodebuild -project "$project_path" -scheme "BetterCmdTab Debug"
   -destination "platform=macOS" -resultBundlePath "$tests_bundle" test)
-# Floors sit below the suite size; .github/workflows/ci-app.yml holds the other copy of 300.
-minimum_tests=300
+# Empty means the full-suite floor in assert_tests_ran.sh.
+minimum_tests=""
 if [[ $skip_i18n -eq 1 ]]; then
   echo "[release-quality-gate] Running unit tests without the localization audit (--skip-i18n)"
   test_cmd+=(-skip-testing:BetterCmdTabTests/LocalizationCatalogTests)

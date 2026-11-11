@@ -80,7 +80,7 @@ jobs:
             test | xcbeautify --renderer github-actions
 
       - name: Assert the tests ran
-        run: scripts/assert_tests_ran.sh TestResults.xcresult 300
+        run: scripts/assert_tests_ran.sh TestResults.xcresult
 
       - if: github.event_name != 'pull_request'
         uses: actions/cache/save@v4
