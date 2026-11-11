@@ -418,7 +418,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// each trigger; resolves to the globals when the shortcut has no override.
     private var effective: EffectiveSettings = .defaults
     /// The profile whose in-panel action keys (#5) are currently applied to the
-    /// tap. Set per trigger; read by `panelActionSpecs` (secure-input native path).
+    /// tap. Set per trigger and reset to `.switchApps` at idle; read by
+    /// `pushPanelKeyBindings` and `panelActionSpecs` (secure-input native path).
     /// Defaults to `.switchApps` — the profile the gesture-opened apps switcher uses.
     private var activeTarget: SwitchTarget = .switchApps
     /// Last keycode→action map and search / tab-drill keycodes pushed to the tap,
@@ -839,9 +840,10 @@ final class SwitcherController: SwitcherViewDelegate {
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in
-            self?.pushHotkeyConfig()
-            if let self { self.pushPanelKeyBindings(for: self.activeTarget) }
-            self?.pushWindowMgmtBindings()
+            guard let self else { return }
+            pushHotkeyConfig()
+            pushPanelKeyBindings()
+            pushWindowMgmtBindings()
         }
         .store(in: &cancellables)
         // Put the tap into recording mode while a recorder is capturing so the
@@ -1088,11 +1090,10 @@ final class SwitcherController: SwitcherViewDelegate {
     /// `panelActionKeys` bindings and push it to the tap. Only the *keycode* is
     /// used — the chord's modifier is irrelevant in-panel (⌘ is held the whole
     /// time the switcher is open), so e.g. a stored ⌘W matches the physical W
-    /// while switching. `target` selects the profile whose per-profile keys (#5) to
-    /// apply; the default `.switchApps` is the baseline used on launch, on any
-    /// shortcut change, while idle, and by the gesture-opened apps switcher.
-    private func pushPanelKeyBindings(for target: SwitchTarget = .switchApps) {
-        let key = target.storageKey
+    /// while switching. Applies the per-profile keys (#5) of `activeTarget`, which
+    /// is `.switchApps` on launch, while idle, and for the gesture-opened apps switcher.
+    private func pushPanelKeyBindings() {
+        let key = activeTarget.storageKey
         var map: [Int64: HotkeyTap.PanelActionKey] = [:]
         let pairs: [(BetterShortcuts.Name, HotkeyTap.PanelActionKey)] = [
             (.panelClose(for: key), .close),
@@ -2163,7 +2164,7 @@ final class SwitcherController: SwitcherViewDelegate {
         activeTarget = target
         // Apply this profile's in-panel action keys (#5) for the reveal; the
         // change-guard skips the tap write when the map is unchanged.
-        pushPanelKeyBindings(for: target)
+        pushPanelKeyBindings()
     }
 
     /// Open the switcher already filtered to `scope` (#3). Driven by a user
