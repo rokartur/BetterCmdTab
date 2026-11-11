@@ -54,7 +54,16 @@ struct ShortcutOverrideTests {
         #expect(ScopedShortcut(dictionary: ["id": "1", "name": "x", "scope": "bogus"])?.scope == .allAppsAllSpaces)
     }
 
-    @Test func nextIDIgnoresAStoredValueOutOfRange() {
+    @Test("SwitchTarget rejects a scoped id no ScopedShortcut can have")
+    func switchTargetBounds() {
+        #expect(SwitchTarget(storageKey: "scoped.\(ScopedShortcut.maxID)") == .scoped(ScopedShortcut.maxID))
+        #expect(SwitchTarget(storageKey: "scoped.\(ScopedShortcut.maxID + 1)") == nil)
+    }
+
+    @Test("nextID keeps an in-range stored counter and ignores the rest")
+    func nextIDBounds() {
+        #expect(ScopedShortcut.nextID(stored: ScopedShortcut.maxID + 1, existing: []) == ScopedShortcut.maxID + 1)
+        #expect(ScopedShortcut.nextID(stored: ScopedShortcut.maxID + 2, existing: [3]) == 4)
         #expect(ScopedShortcut.nextID(stored: Int.max, existing: [2, 5]) == 6)
         #expect(ScopedShortcut.nextID(stored: -4, existing: []) == 0)
         #expect(ScopedShortcut.nextID(stored: 9, existing: [2, 5]) == 9)

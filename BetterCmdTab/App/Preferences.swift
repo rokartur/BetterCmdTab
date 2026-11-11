@@ -469,7 +469,7 @@ enum SwitchTarget: Hashable, Sendable {
         default:
             guard storageKey.hasPrefix("scoped."),
                   let i = Int(storageKey.dropFirst("scoped.".count)),
-                  i >= 0 else { return nil }
+                  (0...ScopedShortcut.maxID).contains(i) else { return nil }
             self = .scoped(i)
         }
     }
@@ -510,7 +510,7 @@ struct ScopedShortcut: Equatable, Sendable {
 
     static func nextID(stored: Int?, existing: [Int]) -> Int {
         let afterExisting = (existing.max() ?? -1) + 1
-        guard let stored, (0...maxID + 1).contains(stored) else { return afterExisting }
+        guard let stored, (0...(maxID + 1)).contains(stored) else { return afterExisting }
         return max(stored, afterExisting)
     }
 }
@@ -2198,8 +2198,10 @@ final class Preferences: ObservableObject {
     /// Append a new scoped-switch entry with a fresh id and the default scope, and
     /// return it. The caller wires its BetterShortcuts handler + UI row.
     @discardableResult
-    func appendScopedShortcut(scope: SwitchScope = .allAppsAllSpaces) -> ScopedShortcut {
+    func appendScopedShortcut(scope: SwitchScope = .allAppsAllSpaces) -> ScopedShortcut? {
         let id = nextScopedShortcutID
+        // The decoder drops an id above maxID, so such an entry would vanish on the next launch.
+        guard id <= ScopedShortcut.maxID else { return nil }
         nextScopedShortcutID = id + 1
         let entry = ScopedShortcut(id: id, scope: scope, shortcutName: "scopedSwitch.\(id)")
         scopedShortcuts.append(entry)

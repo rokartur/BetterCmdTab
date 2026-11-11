@@ -280,7 +280,7 @@ final class ShortcutsEditorView: NSView {
     // MARK: - Actions
 
     private func addEntry() {
-        let entry = Preferences.shared.appendScopedShortcut()
+        guard let entry = Preferences.shared.appendScopedShortcut() else { return }
         ScopedSwitch.installHandler(for: entry)
         // The new entry lands at index == the old item count, i.e. the new last row.
         rebuildTabs(select: targets.count)
