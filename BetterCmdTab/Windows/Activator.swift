@@ -26,7 +26,7 @@ enum WindowArrangement {
     case center
 
     /// Side a repeated-press width cycle applies to, or nil if this arrangement
-    /// isn't a left/right half (corners and maximize/center never width-cycle).
+    /// isn't a left/right half (top/bottom halves, corners and maximize/center never width-cycle).
     var cyclingSide: TileSide? {
         switch self {
         case .tileLeftHalf: return .left
@@ -38,7 +38,7 @@ enum WindowArrangement {
     /// Target Cocoa frame for `window` on `screen`, given the window's current
     /// size (used by `.center`, which preserves size). `nil` arguments fall back
     /// to the visible frame. Pure function so it can be unit-tested.
-    /// Cocoa coordinates are bottom-left origin, so "top" corners sit at `midY`.
+    /// Cocoa coordinates are bottom-left origin, so "top" tiles sit at `midY`.
     static func frame(for arrangement: WindowArrangement, visibleFrame v: CGRect, windowSize: CGSize) -> CGRect {
         switch arrangement {
         case .tileLeftHalf:
@@ -98,7 +98,7 @@ enum TileCycler {
     private static var lastIndex = 0
 
     /// Clear cycle state so the next tile press restarts at ½. Called when a
-    /// non-cycling arrangement (maximize / center / a corner) intervenes — so
+    /// non-cycling arrangement (anything but a left/right half) intervenes — so
     /// tile-left → maximize → tile-left restarts at ½ rather than resuming a
     /// stale index — and used as a test seam.
     static func reset() {
@@ -1545,7 +1545,7 @@ enum Activator {
         }
         let v = screen.visibleFrame
         // Left/right halves width-cycle (½→⅔→⅓) on repeated presses when the
-        // user enabled it; corners/maximize/center always use their fixed frame.
+        // user enabled it; every other arrangement always uses its fixed frame.
         // `applyArrangement` only runs inside `DispatchQueue.main.async`, so the
         // MainActor reads (pref + cycle state) are safe via `assumeIsolated`. The
         // cycle is tracked by window id, not re-derived from the resulting frame,
@@ -1557,7 +1557,7 @@ enum Activator {
             let fraction = MainActor.assumeIsolated { TileCycler.nextFraction(windowId: wid, side: side) }
             target = WindowArrangement.tileFrame(side: side, fraction: fraction, visibleFrame: v)
         } else {
-            // A non-cycling arrangement (corner / maximize / center) breaks the
+            // A non-cycling arrangement (top/bottom half / corner / maximize / center) breaks the
             // tile cycle, so the next tile-left/right restarts at ½ rather than
             // resuming a stale index.
             MainActor.assumeIsolated { TileCycler.reset() }

@@ -72,21 +72,19 @@ struct WindowArrangementTests {
     }
 
     @Test func topAndBottomHalvesSplitTheFrame() {
-        let visible = CGRect(x: 0, y: 25, width: 1000, height: 800)
-        let top = frame(.tileTopHalf, in: visible)
-        let bottom = frame(.tileBottomHalf, in: visible)
-        #expect(top == CGRect(x: 0, y: 425, width: 1000, height: 400))
-        #expect(bottom == CGRect(x: 0, y: 25, width: 1000, height: 400))
-        #expect(bottom.maxY == top.minY)
-        #expect(top.union(bottom) == visible)
-        #expect(WindowArrangement.tileTopHalf.cyclingSide == nil)
-        #expect(WindowArrangement.tileBottomHalf.cyclingSide == nil)
+        let top = frame(.tileTopHalf, in: secondary)
+        let bottom = frame(.tileBottomHalf, in: secondary)
+        #expect(top == CGRect(x: -1920, y: 800, width: 1920, height: 500))
+        #expect(bottom == CGRect(x: -1920, y: 300, width: 1920, height: 500))
+        #expect(top.union(bottom) == secondary)
     }
 
-    @Test func onlyTheHalvesCycleWidths() {
+    @Test func onlyLeftAndRightHalvesCycleWidths() {
         #expect(WindowArrangement.tileLeftHalf.cyclingSide == .left)
         #expect(WindowArrangement.tileRightHalf.cyclingSide == .right)
-        let others: [WindowArrangement] = [.tileTopLeft, .tileTopRight, .tileBottomLeft, .tileBottomRight, .maximize, .center]
+        let others: [WindowArrangement] = [
+            .tileTopHalf, .tileBottomHalf, .tileTopLeft, .tileTopRight, .tileBottomLeft, .tileBottomRight, .maximize, .center,
+        ]
         for arrangement in others {
             #expect(arrangement.cyclingSide == nil)
         }

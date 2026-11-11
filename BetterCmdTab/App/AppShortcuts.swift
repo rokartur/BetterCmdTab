@@ -109,7 +109,8 @@ extension BetterShortcuts.Name {
     /// handler in `WindowManagement` fires them on the frontmost window when the
     /// switcher is closed). While the switcher is open the CGEvent tap consumes
     /// the same chord first and arranges the highlighted window instead, so the
-    /// global handler doesn't double-fire. Defaults are ⌃⌘ + arrows.
+    /// global handler doesn't double-fire. Defaults are ⌃⌘ + arrows; top/bottom half ship unbound
+    /// because ⌃⌘↑/↓ are maximize/center.
     static let windowTileLeft = Self("windowTileLeft", default: .init(.leftArrow, modifiers: [.control, .command]))
     static let windowTileRight = Self("windowTileRight", default: .init(.rightArrow, modifiers: [.control, .command]))
     static let windowTileTop = Self("windowTileTop")
