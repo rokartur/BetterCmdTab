@@ -18,7 +18,7 @@ import os
 /// file contained.
 ///
 /// Watcher/sync state (`source`, `watchingFile`, `lastSyncedData`,
-/// `pendingReload`) is confined to `queue`; the `writeBack` subscription is
+/// `lastReadRejected`, `pendingReload`) is confined to `queue`; the `writeBack` subscription is
 /// touched only from `@MainActor start()`. That confinement is what justifies
 /// `@unchecked Sendable`.
 final class ConfigFile: @unchecked Sendable {
@@ -67,6 +67,7 @@ final class ConfigFile: @unchecked Sendable {
     /// reload is skipped — no suppression flags needed (`configData()` is
     /// byte-deterministic via `.sortedKeys`).
     private var lastSyncedData: Data?
+    private var lastReadRejected = false
     /// Bytes last written to `schemaURL`, seeded from disk on first use so an
     /// unchanged schema costs no write at launch.
     private var lastSchemaData: Data?
@@ -114,7 +115,10 @@ final class ConfigFile: @unchecked Sendable {
         // These bytes are this build's own snapshot, so they post-date the
         // re-base by construction and end the token's usefulness with them.
         Preferences.preRebasePanelScales = nil
-        queue.async { [self] in lastSyncedData = data }
+        queue.async { [self] in
+            lastSyncedData = data
+            lastReadRejected = false
+        }
         start()
     }
 
@@ -195,10 +199,14 @@ final class ConfigFile: @unchecked Sendable {
         // Remember even a malformed read so the same bad bytes aren't re-parsed
         // on every event; a fixed file differs and reloads.
         lastSyncedData = data
-        DispatchQueue.main.async {
+        // Held until the import succeeds, so a write-back never lands on an unparsed file.
+        lastReadRejected = true
+        DispatchQueue.main.async { [self] in
             MainActor.assumeIsolated {
                 do {
                     try Preferences.shared.importSettings(from: data, mayPredateNativeSizing: true)
+                    // A newer read may be waiting on its own verdict; only these bytes are cleared.
+                    queue.async { [self] in if lastSyncedData == data { lastReadRejected = false } }
                     Log.config.info("config file applied")
                 } catch {
                     // Never wipe settings over a bad file — keep current values.
@@ -211,9 +219,10 @@ final class ConfigFile: @unchecked Sendable {
     /// Debounced GUI→file sync. Dormant unless the file itself is being
     /// watched — never creates the file uninvited.
     private func writeBackLocked() {
+        // watchingFile first: a dormant sync must not pay for a snapshot per settings change.
         guard watchingFile,
               let data = try? Self.configData(),
-              data != lastSyncedData else { return }
+              Self.shouldWriteBack(watchingFile: watchingFile, lastReadRejected: lastReadRejected, data: data, lastSynced: lastSyncedData) else { return }
         // A key can appear mid-session (a preference written for the first
         // time); keep the schema in step with what we're about to write.
         syncSchemaLocked()
@@ -228,6 +237,10 @@ final class ConfigFile: @unchecked Sendable {
         } catch {
             Log.config.warning("config write-back failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    nonisolated static func shouldWriteBack(watchingFile: Bool, lastReadRejected: Bool, data: Data, lastSynced: Data?) -> Bool {
+        watchingFile && !lastReadRejected && data != lastSynced
     }
 
     /// Write the sidecar schema when its bytes changed. Only ever runs while
