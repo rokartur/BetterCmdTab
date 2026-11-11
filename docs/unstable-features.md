@@ -1,19 +1,19 @@
 # Unstable features
 
 A settings section headed by the "These features are unstable" notice holds a
-feature that is off by default and may still change or break. Turning one on is
-safe to undo; its behavior and its setting may change in a later release.
+feature that is off by default and may still change or break. Its behavior and
+its setting may change in a later release.
 
-## Exit rule (proposed, the maintainer edits it)
+## Exit rule
 
 A section leaves the notice by one of two routes.
 
-- **Graduate**: it has shipped in 2 stable releases, has no open bug against it,
+- **Graduate**: it has shipped in 2 stable releases, has no open bug labelled against it,
   and the maintainer has used it as a daily setting. The notice is removed, and
   the default stays or flips by an explicit decision recorded in the row.
 - **Remove**: 3 stable releases with an open correctness bug and no fix planned.
-  The feature and its keys are deleted. The old key joins the `legacy` list in
-  `BetterCmdTab/App/Preferences.swift` only if a migration is needed.
+  The feature and its keys are deleted. The old key becomes a `legacy*` constant in
+  `Keys` in `BetterCmdTab/App/Preferences.swift` only if a migration is needed.
 
 A row with no decision after 3 stable releases is reviewed at the next release.
 
@@ -24,9 +24,9 @@ Every notice was added by commit `5ab7653` (2026-11-02), first tagged in
 releases starts at 26.8. Open issues are as of 2026-11-11.
 
 | Section (file under `BetterCmdTab/Settings/`) | Settings | Since | Open issues | Exit criterion | Status |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | Fade (`AppearanceSettingsViewController.swift`) | `Switcher.fadeInDurationMs`, `Switcher.fadeOutDurationMs` | 26.8-beta.10, 2026-11-02 | none | No report of a panel that stays visible or flickers on a fast ⌘Tab for 2 stable releases | unstable |
-| Trackpad swipe (`TrackpadSettingsViewController.swift`) | `Switcher.swipeMode`, `Switcher.swipeFingerCount`, `Switcher.swipeReverseDirection`, `Switcher.swipeCommitOnRelease`, `Switcher.swipeSensitivity` | 26.8-beta.10, 2026-11-02 | none | No report of a missed swipe or a swipe taken from Mission Control on macOS 26 for 2 stable releases | unstable |
+| Trackpad swipe (`TrackpadSettingsViewController.swift`) | `Switcher.experimentalSwipeTrigger`, `Switcher.swipeMode`, `Switcher.swipeFingerCount`, `Switcher.swipeReverseDirection`, `Switcher.swipeCommitOnRelease`, `Switcher.swipeSensitivity` | 26.8-beta.10, 2026-11-02 | none | No report of a missed swipe or a swipe taken from Mission Control on macOS 26 for 2 stable releases | unstable |
 | Repeat presses (`ShortcutsSettingsViewController.swift`) | `Switcher.directActivationCyclesWindows` | 26.8-beta.10, 2026-11-02 | none | No report of a repeat press landing on the wrong window for 2 stable releases | unstable |
 | Starting selection (`SwitcherPanesViewController.swift`) | `Switcher.initialSelection` | 26.8-beta.10, 2026-11-02 | none | criterion: needs maintainer | unstable |
 | Window shelf (`SwitcherPanesViewController.swift`) | `Switcher.windowShelf`, `Switcher.windowShelfSingleWindow` | 26.8-beta.10, 2026-11-02 | none | No report of a shelf listing a closed window or another app's windows for 2 stable releases | unstable |
@@ -37,5 +37,6 @@ releases starts at 26.8. Open issues are as of 2026-11-11.
 | Mouse release (`SwitcherPanesViewController.swift`) | `Switcher.clickOnMouseUp` | 26.8-beta.10, 2026-11-02 | none | criterion: needs maintainer | unstable |
 | Current app, per shortcut (`ShortcutOptionsFormView.swift`) | `excludeCurrentApp` in `Switcher.shortcutOverrides` | 26.8-beta.10, 2026-11-02 | none | criterion: needs maintainer | unstable |
 | Window shelf, per shortcut (`ShortcutOptionsFormView.swift`) | `windowShelf` in `Switcher.shortcutOverrides` | 26.8-beta.10, 2026-11-02 | none | Same feature and criterion as the Window shelf row above | unstable |
+| Show as one entry, per app (`AppRuleRow.swift`, notice in the info text) | `groupWindows` in `Switcher.appExceptions` | 26.8-beta.10, 2026-11-02 | none | criterion: needs maintainer | unstable |
 
-The release checklist reviews this table before every stable release.
+The release skill (`.agents/skills/release/SKILL.md`, step 2) reviews this table before every stable release.
