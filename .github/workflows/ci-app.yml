@@ -77,6 +77,9 @@ jobs:
             OTHER_SWIFT_FLAGS='$(inherited) -enable-incremental-file-hashing' SDK_STAT_CACHE_ENABLE=NO \
             test | xcbeautify --renderer github-actions
 
+      - name: Assert the tests ran
+        run: scripts/assert_tests_ran.sh TestResults.xcresult 300
+
       - if: github.event_name != 'pull_request'
         uses: actions/cache/save@v4
         with:
