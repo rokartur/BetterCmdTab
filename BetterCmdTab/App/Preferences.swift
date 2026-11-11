@@ -662,6 +662,7 @@ struct ShortcutOverride: Equatable, Sendable {
         fontScale = dictionary["fontScale"].flatMap(SwitcherFontScale.init(rawValue:))
         fontFace = dictionary["fontFace"].flatMap(SwitcherFontFace.init(rawValue:))
         gridMaxColumns = dictionary["gridMaxColumns"].flatMap(Int.init)
+            .map(Preferences.clampGridColumns)
         listWidthPercent = dictionary["listWidthPercent"].flatMap(Int.init)
             .map(Preferences.clampListWidthPercent)
         panelOpacity = dictionary["panelOpacity"].flatMap(Int.init)
@@ -2597,8 +2598,8 @@ final class Preferences: ObservableObject {
 
     /// Writes the clamped value back like `loadPanelScalePercent`: when the clamp leaves the
     /// published value unchanged, didSet skips its write and exports would keep the bad one.
-    private static func loadClamped(_ key: String, default fallback: Int, clamp: (Int) -> Int,
-                                    from defaults: UserDefaults) -> Int {
+    static func loadClamped(_ key: String, default fallback: Int, clamp: (Int) -> Int,
+                            from defaults: UserDefaults) -> Int {
         guard let stored = defaults.object(forKey: key) as? Int else { return clamp(fallback) }
         let clamped = clamp(stored)
         if clamped != stored {
@@ -2742,14 +2743,9 @@ final class Preferences: ObservableObject {
         self.sortOrder = sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
         self.initialSelection = defaults.string(forKey: Keys.initialSelection).flatMap(InitialSelection.init(rawValue:)) ?? .nextApp
 
-        let delay = defaults.object(forKey: Keys.revealDelayMs) as? Int ?? Self.defaultRevealDelayMs
-        self.revealDelayMs = Self.clampDelay(delay)
-
-        let letterTimeout = defaults.object(forKey: Keys.letterChainTimeoutMs) as? Int ?? Self.defaultLetterChainTimeoutMs
-        self.letterChainTimeoutMs = Self.clampLetterChainTimeout(letterTimeout)
-
-        let titleRefresh = defaults.object(forKey: Keys.titleRefreshIntervalMs) as? Int ?? Self.defaultTitleRefreshIntervalMs
-        self.titleRefreshIntervalMs = Self.clampTitleRefreshInterval(titleRefresh)
+        self.revealDelayMs = Self.loadClamped(Keys.revealDelayMs, default: Self.defaultRevealDelayMs, clamp: Self.clampDelay, from: defaults)
+        self.letterChainTimeoutMs = Self.loadClamped(Keys.letterChainTimeoutMs, default: Self.defaultLetterChainTimeoutMs, clamp: Self.clampLetterChainTimeout, from: defaults)
+        self.titleRefreshIntervalMs = Self.loadClamped(Keys.titleRefreshIntervalMs, default: Self.defaultTitleRefreshIntervalMs, clamp: Self.clampTitleRefreshInterval, from: defaults)
 
         self.panelScalePercent = Self.loadPanelScalePercent(defaults)
         self.panelAppearance = defaults.string(forKey: Keys.panelAppearance)
@@ -2758,7 +2754,7 @@ final class Preferences: ObservableObject {
         self.fontScale = defaults.string(forKey: Keys.fontScale).flatMap(SwitcherFontScale.init(rawValue:)) ?? .standard
         self.fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system
 
-        self.gridMaxColumns = defaults.object(forKey: Keys.gridMaxColumns) as? Int ?? 0
+        self.gridMaxColumns = Self.loadClamped(Keys.gridMaxColumns, default: 0, clamp: Self.clampGridColumns, from: defaults)
         self.gridSingleRow = defaults.object(forKey: Keys.gridSingleRow) as? Bool ?? true
 
         // Exceptions: honor the new key if present, otherwise build a first-run
@@ -2801,7 +2797,7 @@ final class Preferences: ObservableObject {
         self.fuzzySearchRankBestMatchFirst = defaults.object(forKey: Keys.fuzzySearchRankBestMatchFirst) as? Bool ?? false
         self.searchExpandsBrowserTabs = defaults.object(forKey: Keys.searchExpandsBrowserTabs) as? Bool ?? false
         self.showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
-        self.recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5
+        self.recentlyClosedLimit = Self.loadClamped(Keys.recentlyClosedLimit, default: 5, clamp: Self.clampRecentlyClosedLimit, from: defaults)
 
         self.hapticOnCommit = defaults.object(forKey: Keys.hapticOnCommit) as? Bool ?? false
         self.soundOnCommit = defaults.object(forKey: Keys.soundOnCommit) as? Bool ?? false
@@ -2835,7 +2831,7 @@ final class Preferences: ObservableObject {
         self.handoffPlacement = defaults.string(forKey: Keys.handoffPlacement).flatMap(HandoffPlacement.init(rawValue:)) ?? .off
         self.expandTabsAsWindows = defaults.object(forKey: Keys.expandTabsAsWindows) as? Bool ?? false
         self.expandBrowserTabsAsWindows = defaults.object(forKey: Keys.expandBrowserTabsAsWindows) as? Bool ?? false
-        self.browserTabRowLimit = Self.clampBrowserTabRowLimit(defaults.object(forKey: Keys.browserTabRowLimit) as? Int ?? 0)
+        self.browserTabRowLimit = Self.loadClamped(Keys.browserTabRowLimit, default: 0, clamp: Self.clampBrowserTabRowLimit, from: defaults)
         self.showBrowserIconOnTabs = defaults.object(forKey: Keys.showBrowserIconOnTabs) as? Bool ?? false
         self.browserTabMRU = Self.stored(.browserTabMRU, defaults)
         self.browserTabPreviews = Self.stored(.browserTabPreviews, defaults)
@@ -2850,12 +2846,9 @@ final class Preferences: ObservableObject {
         self.titleTruncationMode = defaults.string(forKey: Keys.titleTruncationMode)
             .flatMap(TitleTruncationMode.init(rawValue:)) ?? .tail
         self.boldSelectedLabel = defaults.object(forKey: Keys.boldSelectedLabel) as? Bool ?? true
-        let opacity = defaults.object(forKey: Keys.panelOpacity) as? Int ?? 100
-        self.panelOpacity = Self.clampOpacity(opacity)
-        let radius = defaults.object(forKey: Keys.panelCornerRadius) as? Int ?? 0
-        self.panelCornerRadius = Self.clampCornerRadius(radius)
-        let listWidth = defaults.object(forKey: Keys.listWidthPercent) as? Int ?? 100
-        self.listWidthPercent = Self.clampListWidthPercent(listWidth)
+        self.panelOpacity = Self.loadClamped(Keys.panelOpacity, default: 100, clamp: Self.clampOpacity, from: defaults)
+        self.panelCornerRadius = Self.loadClamped(Keys.panelCornerRadius, default: 0, clamp: Self.clampCornerRadius, from: defaults)
+        self.listWidthPercent = Self.loadClamped(Keys.listWidthPercent, default: 100, clamp: Self.clampListWidthPercent, from: defaults)
         let materialRaw = defaults.string(forKey: Keys.backdropMaterial)
         self.backdropMaterial = materialRaw.flatMap(BackdropMaterial.init(rawValue:)) ?? .hud
         let selectionColorRaw = defaults.string(forKey: Keys.selectionColor)
