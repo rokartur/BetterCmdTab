@@ -154,10 +154,11 @@ change a colour, change it in both files.**
 bun run lint
 bun run format:check
 bun run types:check
+bun run test
 bun run build
 ```
 
-All four must pass (`bun run format` fixes the second).
+All five must pass (`bun run format` fixes the second).
 The formatter skips `content/` and this file: prose is wrapped by hand, and
 oxfmt rewraps paragraphs and aligns table pipes, which buries a one-word edit
 in a whole-paragraph diff and doubles the noise on every en/pl pair. `build` is the
