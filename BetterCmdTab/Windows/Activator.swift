@@ -16,6 +16,8 @@ enum MoveDirection {
 enum WindowArrangement {
     case tileLeftHalf
     case tileRightHalf
+    case tileTopHalf
+    case tileBottomHalf
     case tileTopLeft
     case tileTopRight
     case tileBottomLeft
@@ -43,6 +45,10 @@ enum WindowArrangement {
             return CGRect(x: v.minX, y: v.minY, width: v.width / 2, height: v.height)
         case .tileRightHalf:
             return CGRect(x: v.midX, y: v.minY, width: v.width / 2, height: v.height)
+        case .tileTopHalf:
+            return CGRect(x: v.minX, y: v.midY, width: v.width, height: v.height / 2)
+        case .tileBottomHalf:
+            return CGRect(x: v.minX, y: v.minY, width: v.width, height: v.height / 2)
         case .tileTopLeft:
             return CGRect(x: v.minX, y: v.midY, width: v.width / 2, height: v.height / 2)
         case .tileTopRight:

@@ -22,6 +22,8 @@ final class HotkeyTap: @unchecked Sendable {
         case moveWindowDown
         case tileLeft
         case tileRight
+        case tileTop
+        case tileBottom
         case tileTopLeft
         case tileTopRight
         case tileBottomLeft

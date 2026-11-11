@@ -71,6 +71,18 @@ struct WindowArrangementTests {
         }
     }
 
+    @Test func topAndBottomHalvesSplitTheFrame() {
+        let visible = CGRect(x: 0, y: 25, width: 1000, height: 800)
+        let top = frame(.tileTopHalf, in: visible)
+        let bottom = frame(.tileBottomHalf, in: visible)
+        #expect(top == CGRect(x: 0, y: 425, width: 1000, height: 400))
+        #expect(bottom == CGRect(x: 0, y: 25, width: 1000, height: 400))
+        #expect(bottom.maxY == top.minY)
+        #expect(top.union(bottom) == visible)
+        #expect(WindowArrangement.tileTopHalf.cyclingSide == nil)
+        #expect(WindowArrangement.tileBottomHalf.cyclingSide == nil)
+    }
+
     @Test func onlyTheHalvesCycleWidths() {
         #expect(WindowArrangement.tileLeftHalf.cyclingSide == .left)
         #expect(WindowArrangement.tileRightHalf.cyclingSide == .right)
