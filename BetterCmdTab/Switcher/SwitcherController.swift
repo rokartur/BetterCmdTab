@@ -129,10 +129,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Canonical catalog set for the current reveal. `rows`/`labels` are the
     /// *displayed* derivation (fuzzy-filtered or letter-prefix-reordered);
     /// `baseRows`/`baseLabels` are the unfiltered source so the search query
-    /// can widen again on backspace. Kept in sync by every refresh path.
+    /// can widen again on backspace.
     private var baseRows: [SwitcherRow] = [] {
         didSet {
             baseFoldedValid = false
+            baseLabelsCache = nil
             // Folded names/titles belong to the previous row snapshot. Release
             // their strings immediately (especially on dismiss after a very
             // large tab expansion) instead of retaining them until the next
@@ -149,7 +150,14 @@ final class SwitcherController: SwitcherViewDelegate {
             tabPrefetchInFlight.removeAll()
         }
     }
-    private var baseLabels: [String] = []
+    private var baseLabelsCache: [String]?
+    /// Rebuilt lazily after `baseRows` or the letter settings change.
+    private var baseLabels: [String] {
+        if let baseLabelsCache { return baseLabelsCache }
+        let labels = RowLabels.labels(for: baseRows)
+        baseLabelsCache = labels
+        return labels
+    }
     /// Diacritic-folded (app name, window title) per `baseRows` entry, rebuilt
     /// lazily when `baseRows` changes so fuzzy search folds each row once per
     /// row-set change rather than re-folding every row on every keystroke.
@@ -651,7 +659,6 @@ final class SwitcherController: SwitcherViewDelegate {
             cancel()
             return
         }
-        baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay()
     }
 
@@ -1730,7 +1737,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Re-reads RowLabels' letter settings into the open panel, so a settings edit lands at once.
     private func rebuildLabelsIfVisible() {
         guard phase == .visible else { return }
-        baseLabels = RowLabels.labels(for: baseRows)
+        baseLabelsCache = nil
         refreshDisplay()
     }
 
@@ -1912,7 +1919,6 @@ final class SwitcherController: SwitcherViewDelegate {
         panel.dismiss { [weak self] in self?.releaseIdleViews() }
         rows.removeAll()
         baseRows.removeAll()
-        baseLabels.removeAll()
         primedApps.removeAll()
         tabPrefetchCache.removeAll()
         tabPrefetchInFlight.removeAll()
@@ -3422,7 +3428,6 @@ final class SwitcherController: SwitcherViewDelegate {
         let cachedRows = applyApplicationsOnly(sortedRows)
         if !cachedRows.isEmpty {
             baseRows = cachedRows
-            baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
             labels = baseLabels
             if activeScope != nil {
@@ -3453,7 +3458,6 @@ final class SwitcherController: SwitcherViewDelegate {
             // empty and clears them a few frames later. A genuinely cold
             // cache (no scan yet) still takes the placeholder path below.
             baseRows = []
-            baseLabels = []
             rows = []
             labels = []
             index = 0
@@ -3476,7 +3480,6 @@ final class SwitcherController: SwitcherViewDelegate {
                     isPlaceholder: true
                 )
             }
-            baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
             labels = baseLabels
             index = max(0, min(targetIdx, rows.count - 1))
@@ -3494,7 +3497,6 @@ final class SwitcherController: SwitcherViewDelegate {
             // Rebuild unconditionally — the order can change
             // even when no browser expanded (windows re-rank by their .window keys).
             baseRows = expandedAtReveal
-            baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
             labels = baseLabels
             index = primedRecencyIndex(in: rows)
@@ -3512,7 +3514,6 @@ final class SwitcherController: SwitcherViewDelegate {
             // modes intentionally keep the pid anchor.
             let selectedWindow = (inWindowMode && rows.indices.contains(index)) ? rows[index].window : nil
             baseRows = expandedAtReveal
-            baseLabels = RowLabels.labels(for: baseRows)
             rows = baseRows
             labels = baseLabels
             if let windowKey, let match = rows.firstIndex(where: { keyMatches($0, windowKey) }) {
@@ -3646,7 +3647,6 @@ final class SwitcherController: SwitcherViewDelegate {
 
         syncFocusedBrowserTabIndex()
         baseRows = applyBrowserTabMRU(expandBrowserTabs(sorted))
-        baseLabels = RowLabels.labels(for: baseRows)
         rows = baseRows
         labels = baseLabels
         index = selectedRow.flatMap {
@@ -3682,7 +3682,6 @@ final class SwitcherController: SwitcherViewDelegate {
         if fresh.isEmpty { cancel(); return }
         let sorted = windowsOnlyPid.map { windowMRU.sortRows(fresh, forPid: $0) } ?? fresh
         baseRows = applyBrowserTabMRU(expandBrowserTabs(sorted))
-        baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay()
         scheduleBrowserTabExpansion()
     }
@@ -3889,7 +3888,6 @@ final class SwitcherController: SwitcherViewDelegate {
             // empty refresh.
             if rows.allSatisfy({ $0.isPlaceholder || $0.isRecentlyClosed || $0.handoff != nil }) {
                 baseRows = []
-                baseLabels = []
                 refreshDisplay(anchorPid: anchorPid)
             } else {
                 cancel()
@@ -3918,7 +3916,6 @@ final class SwitcherController: SwitcherViewDelegate {
         // AFTER the window-MRU sort — matching `reveal()` — so the representative
         // window each app keeps is identical across the reveal→refresh transition.
         baseRows = applyBrowserTabMRU(expandBrowserTabs(applyApplicationsOnly(applyPerAppWindowMRU(applyWindowMRUSort(next)))))
-        baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay(anchorPid: anchorPid)
         scheduleBrowserTabExpansion()
     }
@@ -4032,7 +4029,6 @@ final class SwitcherController: SwitcherViewDelegate {
                     }
                     guard changed else { return }
                     self.baseRows = patched
-                    self.baseLabels = RowLabels.labels(for: self.baseRows)
                     self.refreshDisplay()
                 }
             }
@@ -4437,7 +4433,6 @@ final class SwitcherController: SwitcherViewDelegate {
         let expanded = applyBrowserTabMRU(expandBrowserTabs(collapsedBrowserSource()))
         guard force || Self.rowsDifferVisibly(expanded, baseRows) else { return }
         baseRows = expanded
-        baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay()
     }
 
@@ -4751,7 +4746,6 @@ final class SwitcherController: SwitcherViewDelegate {
         primedApps = []
         rows = []
         baseRows = []
-        baseLabels = []
         windowsOnlyMode = false
         windowsOnlyPid = nil
         windowsOnlyPrimedDelta = 0
@@ -4797,7 +4791,6 @@ final class SwitcherController: SwitcherViewDelegate {
         primedApps = []
         rows = []
         baseRows = []
-        baseLabels = []
         windowsOnlyMode = false
         windowsOnlyPid = nil
         windowsOnlyPrimedDelta = 0
@@ -4961,7 +4954,6 @@ final class SwitcherController: SwitcherViewDelegate {
             cancel()
             return
         }
-        baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay()
         scheduleVisibleRefresh(after: 0.25)
 
@@ -5524,7 +5516,6 @@ final class SwitcherController: SwitcherViewDelegate {
         primedApps = []
         rows = []
         baseRows = []
-        baseLabels = []
         // Match commit()/cancel(): a drill committed out of the ⌘` panel must
         // not leave the windows-only state armed, or the next plain ⌘Tab
         // re-opens (or fast-tap commits) the stale app's windows-only session.
@@ -5623,7 +5614,6 @@ final class SwitcherController: SwitcherViewDelegate {
                 cancel()
                 return
             }
-            baseLabels = RowLabels.labels(for: baseRows)
             refreshDisplay()
             scheduleVisibleRefresh(after: 0.25)
             return
@@ -5702,7 +5692,6 @@ final class SwitcherController: SwitcherViewDelegate {
         // separate rows, and the demotion above is filter-gated — in which case
         // `refreshDisplay()` shows the empty state until the 250ms refresh
         // re-collapses the remaining window back in. Safe either way.
-        baseLabels = RowLabels.labels(for: baseRows)
         refreshDisplay()
 
         // Reveal the "no window" glyph on the row we just demoted, after a short
@@ -5776,7 +5765,6 @@ final class SwitcherController: SwitcherViewDelegate {
                     // the last window closed — dismiss.
                     if self.rows.allSatisfy({ $0.isPlaceholder || $0.isRecentlyClosed || $0.handoff != nil }) {
                         self.baseRows = []
-                        self.baseLabels = []
                         self.refreshDisplay()
                     } else {
                         self.cancel()
@@ -5812,7 +5800,6 @@ final class SwitcherController: SwitcherViewDelegate {
                 // the window-recency sort doesn't fall back to app-grouped cache
                 // order and expanded browser tabs keep their sink/MRU order (#110).
                 self.baseRows = self.applyBrowserTabMRU(self.expandBrowserTabs(self.applyApplicationsOnly(self.applyPerAppWindowMRU(self.applyWindowMRUSort(next)))))
-                self.baseLabels = RowLabels.labels(for: self.baseRows)
                 self.refreshDisplay()
                 self.scheduleBrowserTabExpansion()
             }
@@ -6276,9 +6263,10 @@ final class SwitcherController: SwitcherViewDelegate {
             // The non-expanded path keeps its `baseLabels[idx]` (byte-identical
             // to before); the expanded path can't index `baseLabels` (its rows
             // don't map 1:1), so it uses "".
+            let sourceLabels = useExpanded ? [] : baseLabels
             for i in ordered {
                 newRows.append(srcRows[i])
-                newLabels.append(useExpanded ? "" : baseLabels[i])
+                newLabels.append(useExpanded ? "" : sourceLabels[i])
             }
             // Launcher: append matching apps that aren't running yet so the user
             // can launch them from the same search. Labels are inert in search
