@@ -56,7 +56,7 @@ Options:
                         When omitted on an interactive terminal, the script
                         prompts per category (Highlights, Added, Changed, Fixed,
                         Security, Removed, Known issues). Empty sections are
-                        skipped. See docs/agents/changelog.md.
+                        skipped (compose_release_notes_interactively).
   --skip-build-bump     Skip build number timestamp bump.
                         Use when re-running after a notarization failure where the
                         bump was already committed.
@@ -129,7 +129,7 @@ step() {
 # Legacy releases use synonym headings (e.g. "Changes" → "Changed",
 # "Enhancements" → "Added"). The extractor accepts known aliases per
 # canonical section so prior notes carry over even when their wording
-# predates docs/agents/changelog.md.
+# predates the headings in compose_release_notes_interactively.
 extract_bullets_under_heading() {
 	local heading="$1"
 	local file="$2"
@@ -253,7 +253,7 @@ compose_release_notes_interactively() {
 	local prior_file="${2:-}"
 	: >"$out_file"
 	echo "" >&2
-	echo "📝 Compose release notes. Follow docs/agents/changelog.md style." >&2
+	echo "📝 Compose release notes. Follow .agents/skills/release-changelog/SKILL.md style." >&2
 	if [[ -n "$prior_file" && -s "$prior_file" ]]; then
 		echo "   Prior notes loaded: existing bullets carry over per section." >&2
 	fi
