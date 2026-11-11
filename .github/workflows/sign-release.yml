@@ -44,8 +44,11 @@ jobs:
 
       - name: Build betterupdater CLI
         run: |
-          git clone --depth 1 https://github.com/rokartur/BetterUpdater.git /tmp/betterupdater
-          (cd /tmp/betterupdater && swift build -c release --product betterupdater)
+          # Same revision as the app's Package.resolved (betterupdater 0.2.8). Bump both together.
+          git init --quiet /tmp/betterupdater
+          git -C /tmp/betterupdater fetch --quiet --depth 1 https://github.com/rokartur/BetterUpdater.git f3a73ecfdc44641f2c8c638e2d95eb2907302f49
+          git -C /tmp/betterupdater checkout --quiet FETCH_HEAD
+          (cd /tmp/betterupdater && swift build -c release --product betterupdater --force-resolved-versions)
           echo "BU=/tmp/betterupdater/.build/release/betterupdater" >> "$GITHUB_ENV"
 
       - name: Sign manifest
