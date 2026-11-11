@@ -840,7 +840,7 @@ final class SwitcherController: SwitcherViewDelegate {
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in
             self?.pushHotkeyConfig()
-            self?.pushPanelKeyBindings()
+            if let self { self.pushPanelKeyBindings(for: self.activeTarget) }
             self?.pushWindowMgmtBindings()
         }
         .store(in: &cancellables)
