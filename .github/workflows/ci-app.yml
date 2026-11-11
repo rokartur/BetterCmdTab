@@ -9,6 +9,7 @@ on:
       - "BetterCmdTab.xcodeproj/**"
       - "web/src/docs/config-schema.json"
       - ".github/workflows/ci-app.yml"
+      - "scripts/assert_tests_ran.sh"
   pull_request:
     paths:
       - "BetterCmdTab/**"
@@ -16,6 +17,7 @@ on:
       - "BetterCmdTab.xcodeproj/**"
       - "web/src/docs/config-schema.json"
       - ".github/workflows/ci-app.yml"
+      - "scripts/assert_tests_ran.sh"
   workflow_dispatch:
 
 permissions:
@@ -76,6 +78,9 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO \
             OTHER_SWIFT_FLAGS='$(inherited) -enable-incremental-file-hashing' SDK_STAT_CACHE_ENABLE=NO \
             test | xcbeautify --renderer github-actions
+
+      - name: Assert the tests ran
+        run: scripts/assert_tests_ran.sh TestResults.xcresult
 
       - if: github.event_name != 'pull_request'
         uses: actions/cache/save@v4

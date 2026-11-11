@@ -10,11 +10,7 @@ the failure points around it.
 
 ## 1. Preflight
 
-Working tree clean on `main`, and the unit suite green:
-
-```bash
-xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' test
-```
+Working tree clean on `main`. The quality gate (Step 0 below) runs the unit suite.
 
 `scripts/set_version.sh --show` prints the current version. `MAJOR` tracks
 the macOS year; tags are bare (`26.4.3`, `26.0-beta.1` — no `v` prefix on new
@@ -47,8 +43,8 @@ scripts/build_release.sh --beta --auto-release --notes "$(cat notes.md)"   # bet
 ```
 
 Step 0 is `scripts/release_quality_gate.sh`: a Release-configuration compile
-that fails on high-risk concurrency/Sendable warnings, plus (stable only) the
-localization audit — fix the reported issue, don't bypass the gate; it exists
+that fails on high-risk concurrency/Sendable warnings, then the unit suite
+(betas skip the localization audit) — fix the reported issue, don't bypass the gate; it exists
 so a known-bad build never burns an archive + notarization slot. Signing
 needs the `Developer ID Application: Artur Rok (N529W98U62)` certificate and
 the `BetterCmdTabNotarization` notarytool profile. Without them use
