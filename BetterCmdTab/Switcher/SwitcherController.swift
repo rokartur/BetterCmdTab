@@ -103,9 +103,9 @@ final class SwitcherController: SwitcherViewDelegate {
     private var shelfHoverGrace: (timer: Timer, index: Int, pid: pid_t?)?
     /// Screen point of the last hover over the switcher, so the grace waits only for a pointer heading down.
     private var lastHoverPoint: NSPoint?
-    /// The highlighted app's window list, so stepping through the switcher
-    /// re-reads the catalog only when the app changes.
-    private var selectedAppWindowsMemo: (pid: pid_t, windows: [SwitcherRow])?
+    /// Every app's windows by pid in catalog order, read once and dropped when
+    /// the rows are rebuilt or a drilled window closes.
+    private var windowsByPidMemo: [pid_t: [SwitcherRow]]?
 
     private var _phase: Phase = .idle
     private var switchSessionKind: SwitchSessionKind = .none
@@ -5002,7 +5002,7 @@ final class SwitcherController: SwitcherViewDelegate {
             cancel()
             return
         }
-        selectedAppWindowsMemo = nil
+        windowsByPidMemo = nil
         let remaining = drillWindowRows.filter { $0.window.map { !CFEqual($0, closed) } ?? true }
         // commitTab requires the app row to still show `drillWindow`, so closing that one ends the drill.
         if let anchor = drillWindow, !CFEqual(anchor, closed), remaining.count >= 2 {
@@ -5021,13 +5021,22 @@ final class SwitcherController: SwitcherViewDelegate {
         // An inline browser-tab row is already a leaf (mirrors enterTabDrill),
         // and a windowless app has nothing to list.
         guard row.browserTab == nil, row.window != nil, let pid = row.pid else { return [] }
-        if let memo = selectedAppWindowsMemo, memo.pid == pid { return memo.windows }
+        let byPid = windowsByPidMemo ?? readWindowsByPid()
+        windowsByPidMemo = byPid
+        // Sorted per lookup: window-MRU bumps land while the panel is open.
+        return windowMRU.sortRows(byPid[pid] ?? [], forPid: pid)
+    }
+
+    private func readWindowsByPid() -> [pid_t: [SwitcherRow]] {
         // Tombstones: the cache lists a just-closed window until its AX close lands.
-        let windows = filterClosedTombstones(cache.rows(orderedBy: mru.order, filter: activeFilterConfig))
-            .filter { $0.pid == pid && $0.window != nil }
-        let ordered = windowMRU.sortRows(windows, forPid: pid)
-        selectedAppWindowsMemo = (pid, ordered)
-        return ordered
+        let windowRows = filterClosedTombstones(cache.rows(orderedBy: mru.order, filter: activeFilterConfig))
+            .filter { $0.window != nil }
+        var byPid: [pid_t: [SwitcherRow]] = [:]
+        for row in windowRows {
+            guard let pid = row.pid else { continue }
+            byPid[pid, default: []].append(row)
+        }
+        return byPid
     }
 
     private var windowDrillActive: Bool { tabDrillActive && tabDrillBackend == .appWindows }
@@ -5050,14 +5059,14 @@ final class SwitcherController: SwitcherViewDelegate {
         view.releaseIdleResources()
         shelf.releaseIdleResources()
         shelf.isHidden = true
-        selectedAppWindowsMemo = nil
+        windowsByPidMemo = nil
         cancelShelfHoverGrace()
         lastHoverPoint = nil
     }
 
     /// The rows were rebuilt, so the catalog may hold new windows: re-read them.
     private func relistWindowShelf() {
-        selectedAppWindowsMemo = nil
+        windowsByPidMemo = nil
         if windowDrillActive {
             // Same windows in the same order (the strip's titles are index-aligned), fresh state such as minimized.
             let fresh = windowsOfSelectedApp()
