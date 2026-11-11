@@ -6,7 +6,7 @@
 	  Partial Info.plist. GENERATE_INFOPLIST_FILE is still YES, so Xcode merges
 	  the build-setting-derived keys (INFOPLIST_KEY_*) on top of this file. Only
 	  declare here what those settings can't express — the exported UTI and
-	  document-type association for the .cmdtab settings export, plus the git
+	  icon-only document type (role and rank None, so Finder never opens the app) for the .cmdtab settings export, plus the git
 	  commit scripts/build_release.sh stamps in (empty for local Xcode builds).
 	-->
 	<key>GitCommit</key>
