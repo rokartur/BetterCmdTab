@@ -103,8 +103,8 @@ final class SwitcherController: SwitcherViewDelegate {
     private var shelfHoverGrace: (timer: Timer, index: Int, pid: pid_t?)?
     /// Screen point of the last hover over the switcher, so the grace waits only for a pointer heading down.
     private var lastHoverPoint: NSPoint?
-    /// Every app's window list by pid, so stepping through the switcher
-    /// re-reads the catalog only when the rows are rebuilt.
+    /// Every app's windows by pid in catalog order, read once and dropped when
+    /// the rows are rebuilt or a drilled window closes.
     private var windowsByPidMemo: [pid_t: [SwitcherRow]]?
 
     private var _phase: Phase = .idle
@@ -5014,20 +5014,22 @@ final class SwitcherController: SwitcherViewDelegate {
         // An inline browser-tab row is already a leaf (mirrors enterTabDrill),
         // and a windowless app has nothing to list.
         guard row.browserTab == nil, row.window != nil, let pid = row.pid else { return [] }
-        if let memo = windowsByPidMemo { return memo[pid] ?? [] }
+        let byPid = windowsByPidMemo ?? readWindowsByPid()
+        windowsByPidMemo = byPid
+        // Sorted per lookup: window-MRU bumps land while the panel is open.
+        return windowMRU.sortRows(byPid[pid] ?? [], forPid: pid)
+    }
+
+    private func readWindowsByPid() -> [pid_t: [SwitcherRow]] {
         // Tombstones: the cache lists a just-closed window until its AX close lands.
-        let windows = filterClosedTombstones(cache.rows(orderedBy: mru.order, filter: activeFilterConfig))
+        let windowRows = filterClosedTombstones(cache.rows(orderedBy: mru.order, filter: activeFilterConfig))
             .filter { $0.window != nil }
-        var grouped: [pid_t: [SwitcherRow]] = [:]
-        for window in windows {
-            guard let windowPid = window.pid else { continue }
-            grouped[windowPid, default: []].append(window)
+        var byPid: [pid_t: [SwitcherRow]] = [:]
+        for row in windowRows {
+            guard let pid = row.pid else { continue }
+            byPid[pid, default: []].append(row)
         }
-        for (windowPid, appWindows) in grouped {
-            grouped[windowPid] = windowMRU.sortRows(appWindows, forPid: windowPid)
-        }
-        windowsByPidMemo = grouped
-        return grouped[pid] ?? []
+        return byPid
     }
 
     private var windowDrillActive: Bool { tabDrillActive && tabDrillBackend == .appWindows }
