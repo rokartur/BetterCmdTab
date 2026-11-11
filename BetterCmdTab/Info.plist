@@ -44,9 +44,9 @@
 			<key>CFBundleTypeName</key>
 			<string>BetterCmdTab Settings</string>
 			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
+			<string>None</string>
 			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<string>None</string>
 			<key>CFBundleTypeIconFile</key>
 			<string>CmdTabDocument</string>
 			<key>LSItemContentTypes</key>
