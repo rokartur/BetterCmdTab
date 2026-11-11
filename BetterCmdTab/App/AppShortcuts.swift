@@ -109,9 +109,12 @@ extension BetterShortcuts.Name {
     /// handler in `WindowManagement` fires them on the frontmost window when the
     /// switcher is closed). While the switcher is open the CGEvent tap consumes
     /// the same chord first and arranges the highlighted window instead, so the
-    /// global handler doesn't double-fire. Defaults are ⌃⌘ + arrows.
+    /// global handler doesn't double-fire. Defaults are ⌃⌘ + arrows; top/bottom half ship unbound
+    /// because ⌃⌘↑/↓ are maximize/center.
     static let windowTileLeft = Self("windowTileLeft", default: .init(.leftArrow, modifiers: [.control, .command]))
     static let windowTileRight = Self("windowTileRight", default: .init(.rightArrow, modifiers: [.control, .command]))
+    static let windowTileTop = Self("windowTileTop")
+    static let windowTileBottom = Self("windowTileBottom")
     static let windowMaximize = Self("windowMaximize", default: .init(.upArrow, modifiers: [.control, .command]))
     static let windowCenter = Self("windowCenter", default: .init(.downArrow, modifiers: [.control, .command]))
 
@@ -150,6 +153,8 @@ extension BetterShortcuts.Name {
     static let windowMgmt: [(name: Self, title: String)] = [
         (.windowTileLeft, String(localized: "Tile left half")),
         (.windowTileRight, String(localized: "Tile right half")),
+        (.windowTileTop, String(localized: "Tile top half")),
+        (.windowTileBottom, String(localized: "Tile bottom half")),
         (.windowTileTopLeft, String(localized: "Tile top-left corner")),
         (.windowTileTopRight, String(localized: "Tile top-right corner")),
         (.windowTileBottomLeft, String(localized: "Tile bottom-left corner")),

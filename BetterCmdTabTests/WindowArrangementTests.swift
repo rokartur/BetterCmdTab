@@ -71,10 +71,20 @@ struct WindowArrangementTests {
         }
     }
 
-    @Test func onlyTheHalvesCycleWidths() {
+    @Test func topAndBottomHalvesSplitTheFrame() {
+        let top = frame(.tileTopHalf, in: secondary)
+        let bottom = frame(.tileBottomHalf, in: secondary)
+        #expect(top == CGRect(x: -1920, y: 800, width: 1920, height: 500))
+        #expect(bottom == CGRect(x: -1920, y: 300, width: 1920, height: 500))
+        #expect(top.union(bottom) == secondary)
+    }
+
+    @Test func onlyLeftAndRightHalvesCycleWidths() {
         #expect(WindowArrangement.tileLeftHalf.cyclingSide == .left)
         #expect(WindowArrangement.tileRightHalf.cyclingSide == .right)
-        let others: [WindowArrangement] = [.tileTopLeft, .tileTopRight, .tileBottomLeft, .tileBottomRight, .maximize, .center]
+        let others: [WindowArrangement] = [
+            .tileTopHalf, .tileBottomHalf, .tileTopLeft, .tileTopRight, .tileBottomLeft, .tileBottomRight, .maximize, .center,
+        ]
         for arrangement in others {
             #expect(arrangement.cyclingSide == nil)
         }

@@ -65,6 +65,8 @@ enum WindowManagement {
         [
             (.windowTileLeft, .tileLeftHalf),
             (.windowTileRight, .tileRightHalf),
+            (.windowTileTop, .tileTopHalf),
+            (.windowTileBottom, .tileBottomHalf),
             (.windowTileTopLeft, .tileTopLeft),
             (.windowTileTopRight, .tileTopRight),
             (.windowTileBottomLeft, .tileBottomLeft),

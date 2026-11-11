@@ -1147,6 +1147,8 @@ final class SwitcherController: SwitcherViewDelegate {
         let pairs: [(BetterShortcuts.Name, HotkeyTap.Event)] = [
             (.windowTileLeft, .tileLeft),
             (.windowTileRight, .tileRight),
+            (.windowTileTop, .tileTop),
+            (.windowTileBottom, .tileBottom),
             (.windowTileTopLeft, .tileTopLeft),
             (.windowTileTopRight, .tileTopRight),
             (.windowTileBottomLeft, .tileBottomLeft),
@@ -2496,6 +2498,10 @@ final class SwitcherController: SwitcherViewDelegate {
             arrangeFrontmost(.tileLeftHalf)
         case .tileRight:
             arrangeFrontmost(.tileRightHalf)
+        case .tileTop:
+            arrangeFrontmost(.tileTopHalf)
+        case .tileBottom:
+            arrangeFrontmost(.tileBottomHalf)
         case .tileTopLeft:
             arrangeFrontmost(.tileTopLeft)
         case .tileTopRight:
