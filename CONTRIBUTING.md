@@ -27,18 +27,31 @@ The codebase is small. Read these first:
 ```bash
 git clone https://github.com/rokartur/BetterCmdTab.git
 cd BetterCmdTab
-xcodebuild -scheme "BetterCmdTab Debug" -configuration Debug build
+xcodebuild -project BetterCmdTab.xcodeproj -scheme "BetterCmdTab Debug" -configuration Debug \
+  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= build
 ```
+
+The three overrides sign ad hoc, so the build works without the maintainer's Apple developer team; an ad hoc build gets a new identity each time, so macOS asks for the Accessibility grant again after a rebuild.
 
 You need the macOS 26 SDK: the Liquid Glass panel compiles against `NSGlassEffectView` with no `#if`, so an older SDK fails the build. At runtime macOS 13 to 15 fall back to `NSVisualEffectView`.
 
 ## Running tests
 
 ```bash
-xcodebuild -scheme "BetterCmdTab Debug" -destination 'platform=macOS' test
+xcodebuild -project BetterCmdTab.xcodeproj -scheme "BetterCmdTab Debug" -destination 'platform=macOS' \
+  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= test
 ```
 
 Tests live under `BetterCmdTabTests/` and cover pure logic only: hotkey override planning, catalog filtering, switcher phases, settings portability. The UI is verified manually because the switcher needs Accessibility permissions.
+
+## Lint
+
+CI fails a pull request on any SwiftLint finding. Run the same check locally:
+
+```bash
+brew install swiftlint
+swiftlint lint --strict --quiet
+```
 
 ## Pull request checklist
 

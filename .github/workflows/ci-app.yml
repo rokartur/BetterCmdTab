@@ -32,7 +32,7 @@ jobs:
     name: SwiftLint
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Lint
         run: |
           command -v swiftlint || brew install swiftlint
@@ -43,9 +43,9 @@ jobs:
     # The Liquid Glass panel needs the macOS 26 SDK; macos-26 ships Xcode 26.x.
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ runner.temp }}/spm
           key: spm-${{ hashFiles('BetterCmdTab.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
@@ -56,7 +56,7 @@ jobs:
 
       # Main's DerivedData makes the build incremental; PRs read it, main and manual runs refresh it.
       # shortcut: modules from a changed build setting pile up until the Xcode build in the key changes.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ runner.temp }}/dd
           key: dd-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}-${{ github.sha }}
@@ -83,14 +83,14 @@ jobs:
         run: scripts/assert_tests_ran.sh TestResults.xcresult
 
       - if: github.event_name != 'pull_request'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ runner.temp }}/dd
           key: dd-${{ runner.os }}-${{ runner.arch }}-${{ steps.xcode.outputs.build }}-${{ github.sha }}
 
       - name: Upload results
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: TestResults
           path: TestResults.xcresult
