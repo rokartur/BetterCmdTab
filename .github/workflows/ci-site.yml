@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   checks:
-    name: Lint, types and build
+    name: Checks
     runs-on: ubuntu-latest
     defaults:
       run:
