@@ -41,11 +41,12 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
-      - name: Lint, format and types
+      - name: Lint, format, types and tests
         run: |
           bun run lint
           bun run format:check
           bun run types:check
+          bun run test
 
       - name: Build
         run: bun run build
