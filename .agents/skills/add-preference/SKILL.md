@@ -62,7 +62,7 @@ Add the control to the matching pane view controller in
 `BetterCmdTab/Settings/` — Switcher/Controls/Tabs all live in
 `SwitcherPanesViewController`, picked by its `Pane` parameter. Fragile or new
 behavior ships off by default under a “These features are unstable” notice on
-its own section. Register the control in `SettingsCatalog.swift` if the pane
+its own section, with a row in `docs/unstable-features.md`. Register the control in `SettingsCatalog.swift` if the pane
 search should find it. All labels use
 `String(localized:)` — then follow the `localize-strings` skill for the
 catalog entries.

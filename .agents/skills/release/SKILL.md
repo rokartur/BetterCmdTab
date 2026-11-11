@@ -18,6 +18,8 @@ tags).
 
 ## 2. Bump the version (stable releases)
 
+Review each row of `docs/unstable-features.md` against its exit criterion first.
+
 ```bash
 scripts/set_version.sh <version>   # sets MARKETING_VERSION and auto-commits "chore: bump …"
 ```
