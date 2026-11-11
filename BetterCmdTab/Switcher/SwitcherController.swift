@@ -129,11 +129,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Canonical catalog set for the current reveal. `rows`/`labels` are the
     /// *displayed* derivation (fuzzy-filtered or letter-prefix-reordered);
     /// `baseRows`/`baseLabels` are the unfiltered source so the search query
-    /// can widen again on backspace. `baseLabels` is rebuilt lazily after `baseRows` changes.
+    /// can widen again on backspace.
     private var baseRows: [SwitcherRow] = [] {
         didSet {
             baseFoldedValid = false
-            baseLabelsValid = false
+            baseLabelsCache = nil
             // Folded names/titles belong to the previous row snapshot. Release
             // their strings immediately (especially on dismiss after a very
             // large tab expansion) instead of retaining them until the next
@@ -150,14 +150,13 @@ final class SwitcherController: SwitcherViewDelegate {
             tabPrefetchInFlight.removeAll()
         }
     }
-    private var baseLabelsCache: [String] = []
-    private var baseLabelsValid = false
+    private var baseLabelsCache: [String]?
+    /// Rebuilt lazily after `baseRows` or the letter settings change.
     private var baseLabels: [String] {
-        if !baseLabelsValid {
-            baseLabelsCache = RowLabels.labels(for: baseRows)
-            baseLabelsValid = true
-        }
-        return baseLabelsCache
+        if let baseLabelsCache { return baseLabelsCache }
+        let labels = RowLabels.labels(for: baseRows)
+        baseLabelsCache = labels
+        return labels
     }
     /// Diacritic-folded (app name, window title) per `baseRows` entry, rebuilt
     /// lazily when `baseRows` changes so fuzzy search folds each row once per
@@ -1735,7 +1734,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Re-reads RowLabels' letter settings into the open panel, so a settings edit lands at once.
     private func rebuildLabelsIfVisible() {
         guard phase == .visible else { return }
-        baseLabelsValid = false
+        baseLabelsCache = nil
         refreshDisplay()
     }
 
@@ -6257,9 +6256,10 @@ final class SwitcherController: SwitcherViewDelegate {
             // The non-expanded path keeps its `baseLabels[idx]` (byte-identical
             // to before); the expanded path can't index `baseLabels` (its rows
             // don't map 1:1), so it uses "".
+            let sourceLabels = useExpanded ? [] : baseLabels
             for i in ordered {
                 newRows.append(srcRows[i])
-                newLabels.append(useExpanded ? "" : baseLabels[i])
+                newLabels.append(useExpanded ? "" : sourceLabels[i])
             }
             // Launcher: append matching apps that aren't running yet so the user
             // can launch them from the same search. Labels are inert in search
