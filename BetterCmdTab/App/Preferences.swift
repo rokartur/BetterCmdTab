@@ -2747,7 +2747,7 @@ final class Preferences: ObservableObject {
         self.fontScale = defaults.string(forKey: Keys.fontScale).flatMap(SwitcherFontScale.init(rawValue:)) ?? .standard
         self.fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system
 
-        self.gridMaxColumns = defaults.object(forKey: Keys.gridMaxColumns) as? Int ?? 0
+        self.gridMaxColumns = Self.loadClamped(Keys.gridMaxColumns, default: 0, clamp: Self.clampGridColumns, from: defaults)
         self.gridSingleRow = defaults.object(forKey: Keys.gridSingleRow) as? Bool ?? true
 
         // Exceptions: honor the new key if present, otherwise build a first-run
@@ -2790,7 +2790,7 @@ final class Preferences: ObservableObject {
         self.fuzzySearchRankBestMatchFirst = defaults.object(forKey: Keys.fuzzySearchRankBestMatchFirst) as? Bool ?? false
         self.searchExpandsBrowserTabs = defaults.object(forKey: Keys.searchExpandsBrowserTabs) as? Bool ?? false
         self.showRecentlyClosed = defaults.object(forKey: Keys.showRecentlyClosed) as? Bool ?? false
-        self.recentlyClosedLimit = defaults.object(forKey: Keys.recentlyClosedLimit) as? Int ?? 5
+        self.recentlyClosedLimit = Self.loadClamped(Keys.recentlyClosedLimit, default: 5, clamp: Self.clampRecentlyClosedLimit, from: defaults)
 
         self.hapticOnCommit = defaults.object(forKey: Keys.hapticOnCommit) as? Bool ?? false
         self.soundOnCommit = defaults.object(forKey: Keys.soundOnCommit) as? Bool ?? false
