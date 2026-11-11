@@ -47,8 +47,27 @@ struct ShortcutOverrideTests {
         #expect(ScopedShortcut(dictionary: ["scope": "minimizedOnly", "name": "x"]) == nil) // no id
         #expect(ScopedShortcut(dictionary: ["id": "-1", "name": "x"]) == nil)               // negative id
         #expect(ScopedShortcut(dictionary: ["id": "1", "name": ""]) == nil)                 // empty name
+        #expect(ScopedShortcut(dictionary: ["id": String(Int.max), "name": "x"]) == nil)
+        #expect(ScopedShortcut(dictionary: ["id": String(ScopedShortcut.maxID + 1), "name": "x"]) == nil)
+        #expect(ScopedShortcut(dictionary: ["id": String(ScopedShortcut.maxID), "name": "x"]) != nil)
         // Unknown scope falls back to the default rather than dropping the entry.
         #expect(ScopedShortcut(dictionary: ["id": "1", "name": "x", "scope": "bogus"])?.scope == .allAppsAllSpaces)
+    }
+
+    @Test("SwitchTarget rejects a scoped id no ScopedShortcut can have")
+    func switchTargetBounds() {
+        #expect(SwitchTarget(storageKey: "scoped.\(ScopedShortcut.maxID)") == .scoped(ScopedShortcut.maxID))
+        #expect(SwitchTarget(storageKey: "scoped.\(ScopedShortcut.maxID + 1)") == nil)
+    }
+
+    @Test("nextID keeps an in-range stored counter and ignores the rest")
+    func nextIDBounds() {
+        #expect(ScopedShortcut.nextID(stored: ScopedShortcut.maxID + 1, existing: []) == ScopedShortcut.maxID + 1)
+        #expect(ScopedShortcut.nextID(stored: ScopedShortcut.maxID + 2, existing: [3]) == 4)
+        #expect(ScopedShortcut.nextID(stored: Int.max, existing: [2, 5]) == 6)
+        #expect(ScopedShortcut.nextID(stored: -4, existing: []) == 0)
+        #expect(ScopedShortcut.nextID(stored: 9, existing: [2, 5]) == 9)
+        #expect(ScopedShortcut.nextID(stored: nil, existing: [ScopedShortcut.maxID]) == ScopedShortcut.maxID + 1)
     }
 
     @Test("decodeScopedShortcuts drops malformed entries")

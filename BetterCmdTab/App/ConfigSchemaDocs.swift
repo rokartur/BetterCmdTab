@@ -474,8 +474,8 @@ enum ConfigSchemaDocs {
                 "object",
                 properties: [
                     "id": ConfigSettingDoc(
-                        "string", "Stable id of this entry, as a decimal string. Keys its recorded trigger and its shortcutOverrides entry — never reused.",
-                        pattern: "^[0-9]+$"),
+                        "string", "Stable id of this entry, as a decimal string from 0 to 1000000. Keys its recorded trigger and its shortcutOverrides entry — never reused.",
+                        pattern: "^(0|[1-9][0-9]{0,5}|1000000)$"),
                     "scope": ConfigSettingDoc(
                         "string", "Which windows the shortcut shows.",
                         values: ConfigValues(SwitchScope.self, \.displayName)),
