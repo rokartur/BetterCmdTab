@@ -94,7 +94,7 @@ final class DockBadgeReader {
     func apply(_ snapshot: DockSnapshot, keepBadges: Bool) -> Bool {
         // The poll re-reads the Dock every 0.6 s, so log a title once, not per scan.
         if let title = snapshot.unresolvedHandoffTitle, title != unresolvedHandoffTitle {
-            Log.switcher.info("Handoff item unresolved: '\(title, privacy: .public)'")
+            Log.switcher.info("Handoff item unresolved: '\(title)'")
         }
         unresolvedHandoffTitle = snapshot.unresolvedHandoffTitle
         let badges = keepBadges ? snapshot.badges : [:]
