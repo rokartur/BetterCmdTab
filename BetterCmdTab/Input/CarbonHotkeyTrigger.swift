@@ -39,6 +39,10 @@ final class CarbonHotkeyTrigger {
     private var registrations: [UInt32: Registration] = [:]
     private var handlerRef: EventHandlerRef?
     private var nextId: UInt32 = 1
+    /// Steps a held navigation chord (#291): Carbon sends one pressed event per
+    /// press, never a repeat. Stopped on release and on every re-registration.
+    private var repeatTimer: DispatchSourceTimer?
+    private var repeatingId: UInt32?
 
     nonisolated deinit {
         // Carbon stores an unretained pointer to this instance in its event
@@ -141,6 +145,9 @@ final class CarbonHotkeyTrigger {
     }
 
     private func unregisterAll() {
+        // A re-registration changes the ids, so the held chord's release could
+        // arrive under an id we no longer track and never stop the repeat.
+        stopRepeat()
         for (_, reg) in registrations {
             UnregisterEventHotKey(reg.ref)
         }
@@ -149,10 +156,10 @@ final class CarbonHotkeyTrigger {
 
     private func installHandlerIfNeeded() {
         guard handlerRef == nil else { return }
-        var spec = EventTypeSpec(
-            eventClass: OSType(kEventClassKeyboard),
-            eventKind: OSType(kEventHotKeyPressed)
-        )
+        var specs = [
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: OSType(kEventHotKeyPressed)),
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: OSType(kEventHotKeyReleased)),
+        ]
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
         InstallEventHandler(
             GetEventDispatcherTarget(),
@@ -191,6 +198,7 @@ final class CarbonHotkeyTrigger {
                     return OSStatus(eventNotHandledErr)
                 }
                 let id = hotKeyID.id
+                let pressed = GetEventKind(eventRef) == UInt32(kEventHotKeyPressed)
                 // Carbon dispatches hot-key events on the main run loop, so we
                 // are already on the main thread — touch MainActor state inline
                 // instead of deferring a whole run-loop turn through
@@ -198,19 +206,45 @@ final class CarbonHotkeyTrigger {
                 // tap runs on a dedicated background thread; this path does not.)
                 MainActor.assumeIsolated {
                     let me = Unmanaged<CarbonHotkeyTrigger>.fromOpaque(userData).takeUnretainedValue()
-                    me.dispatch(id: id)
+                    me.dispatch(id: id, pressed: pressed)
                 }
                 return noErr
             },
-            1,
-            &spec,
+            specs.count,
+            &specs,
             selfPtr,
             &handlerRef
         )
     }
 
-    private func dispatch(id: UInt32) {
+    private func dispatch(id: UInt32, pressed: Bool) {
+        guard pressed else {
+            if id == repeatingId { stopRepeat() }
+            return
+        }
         guard let reg = registrations[id] else { return }
+        stopRepeat()
+        // Armed before `onEvent`: if handling the event re-registers the chords
+        // (opening the panel does), `unregisterAll` cancels this repeat.
+        if HotkeyTap.repeatsWhileHeld(reg.event) { startRepeat(reg.event, id: id) }
         onEvent(reg.event)
+    }
+
+    private func startRepeat(_ event: HotkeyTap.Event, id: UInt32) {
+        guard let cadence = HotkeyTap.keyRepeatCadence() else { return }
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + cadence.initial, repeating: cadence.interval)
+        timer.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.onEvent(event) }
+        }
+        timer.resume()
+        repeatTimer = timer
+        repeatingId = id
+    }
+
+    private func stopRepeat() {
+        repeatTimer?.cancel()
+        repeatTimer = nil
+        repeatingId = nil
     }
 }
