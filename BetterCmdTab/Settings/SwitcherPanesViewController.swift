@@ -118,6 +118,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let hoverSelectSwitch = PreferenceSwitch(bind: \.mouseHoverSelectionEnabled)
     private let clickSelectSwitch = PreferenceSwitch(bind: \.mouseClickSelectionEnabled)
     private let clickOnMouseUpSwitch = PreferenceSwitch(bind: \.clickOnMouseUp)
+    private let launchedAppsNearTopSwitch = PreferenceSwitch(bind: \.launchedAppsNearTop)
 
     // Mouse — hover actions
     private let hoverSwitch = NSSwitch()
@@ -240,6 +241,12 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         addRow(to: start, title: String(localized: "First ⌘Tab selects"),
                subtitle: String(localized: "Middle app counts apps, not window rows. Applies to sorts that stay put as you switch."),
                accessory: initialSelectionPopup, searchItemID: SearchID.initialSelection)
+
+        let launched = addSection(title: String(localized: "Newly launched apps"), anchor: SettingsAnchor.launchedApps)
+        launched.addUnstableNotice()
+        addRow(to: launched, title: String(localized: "List new apps near the top"),
+               subtitle: String(localized: "An app that opens in the background lists right after your two most recent apps instead of last. Applies to Most recent."),
+               accessory: launchedAppsNearTopSwitch, searchItemID: SearchID.launchedAppsNearTop)
     }
 
     /// Native tabs — windows that use macOS system tabs (Finder, Terminal,
@@ -486,6 +493,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         instantSpaceRowSwitch.sync()
         selectSortOrder(prefs.sortOrder)
         if let index = initialSelections.firstIndex(of: prefs.initialSelection) { initialSelectionPopup.selectItem(at: index) }
+        launchedAppsNearTopSwitch.sync()
         if let index = windowShelves.firstIndex(of: prefs.windowShelf) { windowShelfPopup.selectItem(at: index) }
         windowShelfSingleWindowSwitch.sync()
         if let index = handoffPlacements.firstIndex(of: prefs.handoffPlacement) { handoffPopup.selectItem(at: index) }

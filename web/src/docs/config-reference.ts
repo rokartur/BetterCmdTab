@@ -88,6 +88,7 @@ const sections: { title: string; keys: string[] }[] = [
     keys: [
       "sortOrder",
       "initialSelection",
+      "launchedAppsNearTop",
       "spaceScope",
       "instantSpaceSwitch",
       "applicationsOnly",
@@ -274,6 +275,7 @@ const defaults: Record<string, string> = {
   hoverShowQuit: "true",
   initialSelection: '"nextApp"',
   instantSpaceSwitch: "false",
+  launchedAppsNearTop: "false",
   layoutMode: '"iconDock"',
   letterChainTimeoutMs: "1000",
   letterHintExcludedBundleIDs: "[]",

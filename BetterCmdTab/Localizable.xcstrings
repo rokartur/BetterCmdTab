@@ -1339,6 +1339,53 @@
         }
       }
     },
+    "An app that opens in the background lists right after your two most recent apps instead of last. Applies to Most recent." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine im Hintergrund geöffnete App erscheint direkt nach deinen zwei zuletzt verwendeten Apps statt am Ende. Gilt für „Zuletzt verwendet“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una app que se abre en segundo plano aparece justo después de tus dos apps más recientes, no al final. Se aplica a «Más reciente»."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une app ouverte en arrière-plan apparaît juste après vos deux apps les plus récentes au lieu de la fin. S’applique à « Récemment utilisé »."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックグラウンドで開いたアプリを、末尾ではなく最近使った2つのアプリのすぐ後に表示します。「最近使った順」に適用されます。"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikacja otwarta w tle pojawia się zaraz po dwóch ostatnio używanych aplikacjach zamiast na końcu. Dotyczy sortowania „Ostatnio używane”."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложение, открытое в фоне, показывается сразу после двух недавних приложений, а не в конце. Действует для сортировки «Недавние»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在后台打开的应用会紧跟在你最近使用的两个应用之后显示，而不是排在末尾。适用于“最近使用”。"
+          }
+        }
+      }
+    },
     "Animations" : {
       "localizations" : {
         "de" : {
@@ -10592,6 +10639,53 @@
         }
       }
     },
+    "List new apps near the top" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Apps weit oben anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar las apps nuevas cerca del principio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les nouvelles apps en haut de la liste"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいアプリをリストの上位に表示"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuj nowe aplikacje blisko początku"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать новые приложения ближе к началу"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将新应用显示在列表靠前位置"
+          }
+        }
+      }
+    },
     "Lists apps and windows you just closed so you can reopen them." : {
       "localizations" : {
         "de" : {
@@ -12291,6 +12385,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从不"
+          }
+        }
+      }
+    },
+    "Newly launched apps" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neu gestartete Apps"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps recién abiertas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps tout juste lancées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しく起動したアプリ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowo uruchomione aplikacje"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только что запущенные приложения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新启动的应用"
           }
         }
       }

@@ -20,7 +20,7 @@ A row with no decision after 3 stable releases is reviewed at the next release.
 
 ## Ledger
 
-Every notice was added by commit `5ab7653` (2026-11-02), first tagged in
+Every notice but Newly launched apps was added by commit `5ab7653` (2026-11-02), first tagged in
 `26.8-beta.10`. No stable release contains a notice yet; the count of stable
 releases starts at 26.8. Open issues are as of 2026-11-11.
 
@@ -30,6 +30,7 @@ releases starts at 26.8. Open issues are as of 2026-11-11.
 | Trackpad swipe (`TrackpadSettingsViewController.swift`) | `Switcher.experimentalSwipeTrigger`, `Switcher.swipeMode`, `Switcher.swipeFingerCount`, `Switcher.swipeReverseDirection`, `Switcher.swipeCommitOnRelease`, `Switcher.swipeSensitivity` | none | No report of a missed swipe or a swipe taken from Mission Control on macOS 26 for 2 stable releases |
 | Repeat presses (`ShortcutsSettingsViewController.swift`) | `Switcher.directActivationCyclesWindows` | none | No report of a repeat press landing on the wrong window for 2 stable releases |
 | Starting selection (`SwitcherPanesViewController.swift`) | `Switcher.initialSelection` | none | No report of a first ⌘Tab that selects a row other than the chosen setting for 2 stable releases |
+| Newly launched apps (`SwitcherPanesViewController.swift`) | `Switcher.launchedAppsNearTop` | none | No report of a launched app listed last, or of a background helper pushing a used app down, for 2 stable releases |
 | Window shelf (`SwitcherPanesViewController.swift`, per shortcut in `ShortcutOptionsFormView.swift`) | `Switcher.windowShelf`, `Switcher.windowShelfSingleWindow`, `windowShelf` in `Switcher.shortcutOverrides` | none | No report of a shelf listing a closed window or another app's windows for 2 stable releases |
 | Handoff (`SwitcherPanesViewController.swift`) | `Switcher.handoffPlacement` | none | The "Handoff item unresolved" log line is absent from every log attached to a report for 2 stable releases |
 | One-hand and home row letter jump (`SwitcherPanesViewController.swift`) | `Switcher.oneHandLetterHints`, `Switcher.homeRowLetterHints` | #194 (letter hints) | #194 closed, then no report of a letter that selects the wrong row for 2 stable releases |
