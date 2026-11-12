@@ -60,4 +60,15 @@ struct HotkeyTapTriggerMatchTests {
         #expect(!HotkeyTap.chordKeyMatches(10, 48))
         #expect(!HotkeyTap.chordKeyMatches(49, 50))
     }
+
+    // MARK: Option + arrow (#303)
+
+    @Test func optionArrowMovesWindowOnlyWhenOptionIsNotTheTrigger() {
+        let commandOption: CGEventFlags = [.maskCommand, .maskAlternate]
+        #expect(HotkeyTap.optionArrowMovesWindow(commandOption, heldTriggerModifiers: .maskCommand))
+        #expect(!HotkeyTap.optionArrowMovesWindow(.maskCommand, heldTriggerModifiers: .maskCommand))
+        // An Option-held switcher (⌥Tab) keeps its arrows for navigation.
+        #expect(!HotkeyTap.optionArrowMovesWindow(.maskAlternate, heldTriggerModifiers: .maskAlternate))
+        #expect(!HotkeyTap.optionArrowMovesWindow(commandOption, heldTriggerModifiers: commandOption))
+    }
 }
