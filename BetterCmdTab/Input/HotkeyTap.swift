@@ -380,6 +380,13 @@ final class HotkeyTap: @unchecked Sendable {
             == heldTriggerModifiers.intersection(triggerComparableMask)
     }
 
+    /// Option + arrow moves the window to another display, except when Option is
+    /// what holds the switcher open (⌥Tab): there the arrows must navigate (#303).
+    static func optionArrowMovesWindow(_ flags: CGEventFlags,
+                                       heldTriggerModifiers: CGEventFlags) -> Bool {
+        flags.contains(.maskAlternate) && !heldTriggerModifiers.contains(.maskAlternate)
+    }
+
     /// Pure step accumulator for continuous mouse-wheel scrolls (issue #68).
     /// Driver-smoothed wheels (Logitech Options, many Bluetooth mice) report
     /// a notch as a burst of line-fraction deltas instead of one discrete ±1,
@@ -1460,18 +1467,22 @@ final class HotkeyTap: @unchecked Sendable {
                             return nil
                         }
                     }
+                    let moveHeld = Self.optionArrowMovesWindow(
+                        flags,
+                        heldTriggerModifiers: (appModHeld ? cfg.appModifier : [])
+                            .union(windowModHeld ? cfg.windowModifier : []))
                     switch keyCode {
                     case Self.leftArrow:
-                        deliver(optionHeld ? .moveWindowLeft : .spatialLeft)
+                        deliver(moveHeld ? .moveWindowLeft : .spatialLeft)
                         return nil
                     case Self.rightArrow:
-                        deliver(optionHeld ? .moveWindowRight : .spatialRight)
+                        deliver(moveHeld ? .moveWindowRight : .spatialRight)
                         return nil
                     case Self.upArrow:
-                        deliver(optionHeld ? .moveWindowUp : .prevRow)
+                        deliver(moveHeld ? .moveWindowUp : .prevRow)
                         return nil
                     case Self.downArrow:
-                        deliver(optionHeld ? .moveWindowDown : .nextRow)
+                        deliver(moveHeld ? .moveWindowDown : .nextRow)
                         return nil
                     case Self.returnKey, Self.keypadEnterKey, Self.spaceKey:
                         deliver(.commit); return nil
