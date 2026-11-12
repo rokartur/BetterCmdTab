@@ -748,9 +748,9 @@ final class HotkeyTap: @unchecked Sendable {
     }
 
     /// The user's keyboard repeat cadence (System Settings → Keyboard: "Delay
-    /// Until Repeat" / "Key Repeat"), so a held Shift steps back at the same
-    /// pace as a held Tab. Both are stored as 1/60 s ticks in the global domain.
-    private func keyRepeatCadence() -> (initial: Double, interval: Double)? {
+    /// Until Repeat" / "Key Repeat"), so a held Shift and a held Carbon chord step
+    /// at the same pace as a held Tab. Both are stored as 1/60 s ticks in the global domain.
+    static func keyRepeatCadence() -> (initial: Double, interval: Double)? {
         let d = UserDefaults.standard
         return Self.repeatCadence(
             initialTicks: (d.object(forKey: "InitialKeyRepeat") as? Double) ?? 0,
@@ -777,7 +777,7 @@ final class HotkeyTap: @unchecked Sendable {
     /// switcher leaves the bare-Shift-steps-back situation, even if an explicit
     /// stop signal is missed.
     private func startShiftRepeat() {
-        guard let cadence = keyRepeatCadence() else { return }
+        guard let cadence = Self.keyRepeatCadence() else { return }
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInteractive))
         timer.schedule(deadline: .now() + cadence.initial, repeating: cadence.interval)
         timer.setEventHandler { [weak self] in
@@ -893,6 +893,19 @@ final class HotkeyTap: @unchecked Sendable {
         case .right: drilled ? .tabNext : .spatialRight
         case .up: drilled ? .tabPrev : .prevRow
         case .down: drilled ? .tabNext : .nextRow
+        }
+    }
+
+    /// Navigation steps that keep stepping while their key is held. Carbon hot keys
+    /// (the Secure Event Input path) fire once per press, so `CarbonHotkeyTrigger`
+    /// repeats these itself (#291); commit, close, quit and the rest fire once.
+    static func repeatsWhileHeld(_ event: Event) -> Bool {
+        switch event {
+        case .nextRow, .prevRow, .spatialLeft, .spatialRight, .tabNext, .tabPrev,
+             .nextApp, .prevApp, .nextWindow, .prevWindow:
+            true
+        default:
+            false
         }
     }
 
