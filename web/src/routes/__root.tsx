@@ -67,6 +67,9 @@ const meta = [
   { name: "twitter:image:alt", content: IMAGE_ALT },
 ];
 
+// Vexdock analytics, served first-party by the proxy in front of this site.
+const analytics = { src: "/_vx/script.js", defer: true };
+
 const links = [
   { rel: "stylesheet", href: appCss },
   { rel: "icon", href: "/favicon-32.png", type: "image/png", sizes: "32x32" },
@@ -182,7 +185,7 @@ export const Route = createRootRoute({
   // Docs pages bring their own stylesheet and metadata, see routes/docs/$.tsx.
   head: ({ matches }) =>
     matches.some((match) => `${match.pathname}/`.startsWith("/docs/"))
-      ? { meta: documentMeta }
+      ? { meta: documentMeta, scripts: [analytics] }
       : {
           meta,
           links: [
@@ -195,6 +198,7 @@ export const Route = createRootRoute({
           ],
           // JSON.stringify leaves "<" alone, so a "</script>" in any string would end the tag.
           scripts: [
+            analytics,
             {
               type: "application/ld+json",
               children: JSON.stringify(jsonLd).replaceAll("<", "\\u003c"),
