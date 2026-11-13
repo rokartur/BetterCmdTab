@@ -519,9 +519,10 @@ enum WindowEnumerator {
         // AX-listed — issue #10 stays safe). Shapes that rule misses (issue
         // #81) — a background tab left at its stale pre-merge frame
         // (CotEditor), or AX-listed on macOS builds that list every tab window
-        // (Sonoma) — are caught by the near-frame rule: ordered out near an
-        // ordered-in front's frame and reported spaceless. Ordered-in windows
-        // and windows that resolve to a Space are never folded (#148).
+        // (Sonoma) — are caught by the near-frame rule: ordered out near a front
+        // (ordered in and AX-listed, or on a Space when the app is hidden or on
+        // another Space, #301) and reported spaceless. Ordered-in windows and
+        // windows that resolve to a Space are never folded (#148).
         // Collapse keeps the front tab and attaches the rest as `tabWindows`
         // for the `\` peek; expand emits one row per tab. No reliance on
         // `AXTabs` (which these apps don't expose).
@@ -533,6 +534,7 @@ enum WindowEnumerator {
         // only for the windows the near-frame tab rule can act on. Empty for
         // apps without a tab-shaped group — the common case pays nothing.
         var spaceless = [Bool](repeating: false, count: raws.count)
+        var onSpace = [Bool](repeating: false, count: raws.count)
         // Under Stage Manager the near-frame rule is off (see `isStageManagerEnabled`),
         // so skip the per-window Space IPCs that only feed it.
         let stageManager = isStageManagerEnabled
@@ -543,6 +545,7 @@ enum WindowEnumerator {
             let membership = PrivateAPI.spaceMembership(forWindows: spaceQueryIndices.map { raws[$0].cgWindowID })
             for i in spaceQueryIndices {
                 spaceless[i] = membership.spaceless.contains(raws[i].cgWindowID)
+                onSpace[i] = membership.resolved[raws[i].cgWindowID] != nil
             }
         }
         let resolution = resolveTabStacks(
@@ -550,6 +553,7 @@ enum WindowEnumerator {
             fromAXList: fromAXList,
             onscreen: onscreen,
             spaceless: spaceless,
+            onSpace: onSpace,
             expand: expand,
             stageManager: stageManager
         )
@@ -616,16 +620,15 @@ enum WindowEnumerator {
     }
 
     /// Indices whose Space membership `resolveTabStacks` needs: ordered-out
-    /// windows sitting near an ordered-in AX-listed window's frame that the
-    /// exact-frame brute rule alone can't classify (AX-listed ones — the
-    /// Sonoma shape — and brute-only ones whose stale frame drifted off the
-    /// group's, the CotEditor shape). Empty — the common case — means the
+    /// windows sitting near another window's frame that the exact-frame brute
+    /// rule alone can't classify. That covers AX-listed tabs (the Sonoma shape),
+    /// brute-only tabs whose stale frame drifted off the group's (CotEditor),
+    /// and a whole group ordered out on another Space or hidden, where the front
+    /// tab is found by its Space (#301). Empty, the common case, means the
     /// caller skips the per-window `CGSCopySpacesForWindows` IPCs entirely.
     /// Pure, so the gate is unit-testable.
     static func tabSpaceQueryIndices(frames: [CGRect?], fromAXList: [Bool], onscreen: [Bool]) -> [Int] {
         let n = frames.count
-        let fronts = (0..<n).filter { fromAXList[$0] && onscreen[$0] && frames[$0] != nil }
-        guard !fronts.isEmpty else { return [] }
         // Exact frames of AX-listed windows: a brute-only window at one of these
         // is folded by the exact rule with no Space data needed.
         var axFrames = Set<String>()
@@ -636,8 +639,11 @@ enum WindowEnumerator {
         for i in 0..<n where !onscreen[i] {
             guard let f = frames[i] else { continue }
             if !fromAXList[i] && axFrames.contains(frameKey(f)) { continue }
-            guard fronts.contains(where: { isNearTabFrame(f, frames[$0]!) }) else { continue }
-            indices.append(i)
+            let hasNearPeer = (0..<n).contains { j in
+                guard j != i, let peer = frames[j] else { return false }
+                return isNearTabFrame(f, peer)
+            }
+            if hasNearPeer { indices.append(i) }
         }
         return indices
     }
@@ -651,9 +657,11 @@ enum WindowEnumerator {
     ///   lists only the front tab, so the brute scan is the only place
     ///   background tabs surface on current macOS. Two real overlapping
     ///   windows are both AX-listed, so issue #10 stays safe. Or:
-    /// - it is ordered out (`onscreen[i] == false`) *near* an ordered-in
-    ///   AX-listed front's frame (size within `tabSizeTolerance`, origin within
-    ///   `tabFrameTolerance`) and WindowServer reports it *spaceless*. This
+    /// - it is ordered out (`onscreen[i] == false`) *near* a front's frame (size
+    ///   within `tabSizeTolerance`, origin within `tabFrameTolerance`) and
+    ///   WindowServer reports it *spaceless*. A front is an ordered-in AX-listed
+    ///   window, or one that resolves to a Space (`onSpace`): a hidden app has
+    ///   nothing ordered in, and on another Space nothing is AX-listed (#301). This
     ///   catches the shapes the exact rule misses (issue #81): apps that leave
     ///   a background tab's frame at its stale pre-merge cascade offset
     ///   (CotEditor), and macOS builds that AX-list every tab window (Sonoma).
@@ -682,6 +690,7 @@ enum WindowEnumerator {
         fromAXList: [Bool],
         onscreen: [Bool],
         spaceless: [Bool],
+        onSpace: [Bool],
         expand: Bool,
         stageManager: Bool = false
     ) -> TabResolution {
@@ -698,7 +707,7 @@ enum WindowEnumerator {
                 frontForFrame[key] = i
             }
         }
-        let nearFronts = (0..<n).filter { fromAXList[$0] && onscreen[$0] && frames[$0] != nil }
+        let nearFronts = (0..<n).filter { frames[$0] != nil && (fromAXList[$0] && onscreen[$0] || onSpace[$0]) }
         var isTab = [Bool](repeating: false, count: n)
         var siblings: [Int: [Int]] = [:]
         for i in 0..<n {
