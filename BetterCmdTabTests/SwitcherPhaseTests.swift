@@ -106,6 +106,15 @@ struct SwitcherScopedModifierReleaseTests {
         #expect(SwitcherController.scopedInitialIndex(firstRowPid: nil, frontPid: nil, count: 3) == 0)
     }
 
+    @Test func appTriggerDuringWindowSessionHandsOffToAppSwitcher() {
+        // ⌘` then Tab with ⌘ held: native macOS opens the app switcher, so the
+        // app trigger must leave the window session rather than step it.
+        #expect(SwitcherController.appTriggerHandsOffToAppSwitcher(session: .windowSwitching))
+        // An app session (or no session) keeps stepping the app list as before.
+        #expect(!SwitcherController.appTriggerHandsOffToAppSwitcher(session: .appSwitching))
+        #expect(!SwitcherController.appTriggerHandsOffToAppSwitcher(session: .none))
+    }
+
     @Test func scopedOpensNeverTakeThePrimedMissedReleaseCommit() {
         // A core ⌘Tab chord whose ⌘-release was dropped during the primed delay
         // commits the primed pick outright — that pick is correct there.
