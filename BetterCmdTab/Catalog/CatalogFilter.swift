@@ -434,8 +434,8 @@ enum CatalogFilter {
     /// expanded-tab rows (the user asked for them), an app whose only windows
     /// are spaceless, and every spaceless window under Stage Manager, which
     /// parks off-stage windows spaceless (#116). The All Spaces scope skips this
-    /// filter, so there such a tab still lists: `resolveTabStacks` only folds
-    /// against an on-screen front. Degrades to a no-op without `SpaceResolution`.
+    /// filter; there `resolveTabStacks` folds such a tab under the front that
+    /// resolves to a Space (#301). Degrades to a no-op without `SpaceResolution`.
     static func filterToAllowedSpaces(
         _ rows: [SwitcherRow],
         _ spaces: SpaceResolution,
