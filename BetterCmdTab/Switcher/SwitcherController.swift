@@ -2469,9 +2469,9 @@ final class SwitcherController: SwitcherViewDelegate {
             // Secure-input Carbon parity with the tap's drill branch: while
             // drilled, the trigger chord steps the tab strip — never the app
             // list underneath, which would desync the highlight from the strip.
-            if tabDrillActive { advanceTab(by: 1) } else { advance(by: 1, wrap: true) }
+            if tabDrillActive { advanceTab(by: 1) } else { appTriggerStep(by: 1) }
         case .prevApp:
-            if tabDrillActive { advanceTab(by: -1) } else { advance(by: -1, wrap: true) }
+            if tabDrillActive { advanceTab(by: -1) } else { appTriggerStep(by: -1) }
         case .nextWindow:
             handleWindowTrigger(delta: 1)
         case .prevWindow:
@@ -2645,6 +2645,23 @@ final class SwitcherController: SwitcherViewDelegate {
         backtickReversesAppSwitching: Bool
     ) -> Bool {
         backtickReversesAppSwitching && session == .appSwitching
+    }
+
+    /// Native ⌘Tab parity: an app-trigger press during a window-switch session
+    /// (⌘` then Tab with ⌘ still held) hands off to the app switcher instead of
+    /// stepping the frontmost app's window list. Native macOS has already moved
+    /// to the next window on ⌘`, so the window pick is committed first.
+    nonisolated static func appTriggerHandsOffToAppSwitcher(session: SwitchSessionKind) -> Bool {
+        session == .windowSwitching
+    }
+
+    private func appTriggerStep(by delta: Int) {
+        if Self.appTriggerHandsOffToAppSwitcher(session: switchSessionKind), phase != .idle {
+            // commit() lands the window pick and returns to `.idle`
+            // synchronously, so advance() opens a fresh app-switch session.
+            commit()
+        }
+        advance(by: delta, wrap: true)
     }
 
     private func handleWindowTrigger(delta: Int) {
