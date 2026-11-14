@@ -978,6 +978,7 @@ final class Preferences: ObservableObject {
         static let switcherLayoutMode = "Switcher.layoutMode"
         static let sortOrder = "Switcher.sortOrder"
         static let initialSelection = "Switcher.initialSelection"
+        static let launchedAppsNearTop = "Switcher.launchedAppsNearTop"
         static let revealDelayMs = "Switcher.revealDelayMs"
         static let letterChainTimeoutMs = "Switcher.letterChainTimeoutMs"
         static let titleRefreshIntervalMs = "Switcher.titleRefreshIntervalMs"
@@ -1212,6 +1213,16 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != initialSelection else { return }
             UserDefaults.standard.set(initialSelection.rawValue, forKey: Keys.initialSelection)
+        }
+    }
+
+    /// List an app that launched without activating right after the two most
+    /// recent apps, not after every app used since launch. `MRUTracker` reads
+    /// the key straight off `UserDefaults`. Default off.
+    @Published var launchedAppsNearTop: Bool {
+        didSet {
+            guard oldValue != launchedAppsNearTop else { return }
+            UserDefaults.standard.set(launchedAppsNearTop, forKey: Keys.launchedAppsNearTop)
         }
     }
 
@@ -2742,6 +2753,7 @@ final class Preferences: ObservableObject {
         let sortRaw = defaults.string(forKey: Keys.sortOrder)
         self.sortOrder = sortRaw.flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
         self.initialSelection = defaults.string(forKey: Keys.initialSelection).flatMap(InitialSelection.init(rawValue:)) ?? .nextApp
+        self.launchedAppsNearTop = defaults.object(forKey: Keys.launchedAppsNearTop) as? Bool ?? false
 
         self.revealDelayMs = Self.loadClamped(Keys.revealDelayMs, default: Self.defaultRevealDelayMs, clamp: Self.clampDelay, from: defaults)
         self.letterChainTimeoutMs = Self.loadClamped(Keys.letterChainTimeoutMs, default: Self.defaultLetterChainTimeoutMs, clamp: Self.clampLetterChainTimeout, from: defaults)
@@ -2923,6 +2935,7 @@ final class Preferences: ObservableObject {
         topOffsetPercent = Self.loadClamped(Keys.topOffsetPercent, default: Self.defaultTopOffsetPercent, clamp: Self.clampTopOffsetPercent, from: defaults)
         sortOrder = defaults.string(forKey: Keys.sortOrder).flatMap(SwitcherSortOrder.init(rawValue:)) ?? .mru
         initialSelection = defaults.string(forKey: Keys.initialSelection).flatMap(InitialSelection.init(rawValue:)) ?? .nextApp
+        launchedAppsNearTop = defaults.object(forKey: Keys.launchedAppsNearTop) as? Bool ?? false
         revealDelayMs = Self.loadClamped(Keys.revealDelayMs, default: Self.defaultRevealDelayMs, clamp: Self.clampDelay, from: defaults)
         letterChainTimeoutMs = Self.loadClamped(Keys.letterChainTimeoutMs, default: Self.defaultLetterChainTimeoutMs, clamp: Self.clampLetterChainTimeout, from: defaults)
         titleRefreshIntervalMs = Self.loadClamped(Keys.titleRefreshIntervalMs, default: Self.defaultTitleRefreshIntervalMs, clamp: Self.clampTitleRefreshInterval, from: defaults)

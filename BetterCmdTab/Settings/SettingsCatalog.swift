@@ -48,6 +48,7 @@ enum SettingsAnchor {
     // Contents — what the panel lists.
     static let contents = "contents.contents"
     static let startingSelection = "contents.startingSelection"
+    static let launchedApps = "contents.launchedApps"
     static let windowShelf = "contents.windowShelf"
     static let handoff = "contents.handoff"
     static let timing = "contents.timing"
@@ -129,6 +130,7 @@ enum SearchID {
     static let instantSpace = "contents.instantSpace"
     static let sortOrder = "contents.sortOrder"
     static let initialSelection = "contents.initialSelection"
+    static let launchedAppsNearTop = "contents.launchedAppsNearTop"
     static let showRecentlyClosed = "contents.showRecentlyClosed"
     static let recentlyClosedLimit = "contents.recentlyClosedLimit"
     static let windowDrill = "contents.windowDrill"
@@ -466,6 +468,8 @@ enum SettingsCatalog {
              String(localized: "Sort order"), ["sort", "order", "mru", "most recent", "alphabetical", "launch order", "windows", "window recency", "dock", "dock order"]),
         item(SearchID.initialSelection, .contents, SettingsAnchor.startingSelection, String(localized: "Contents"), String(localized: "Starting selection"),
              String(localized: "First ⌘Tab selects"), ["initial selection", "first", "middle", "center", "next app", "start", "selects"]),
+        item(SearchID.launchedAppsNearTop, .contents, SettingsAnchor.launchedApps, String(localized: "Contents"), String(localized: "Newly launched apps"),
+             String(localized: "List new apps near the top"), ["launch", "launched", "new app", "background", "bottom", "top", "order", "mru"]),
         item(SearchID.showRecentlyClosed, .contents, SettingsAnchor.contents, String(localized: "Contents"), String(localized: "Contents"),
              String(localized: "Show recently closed apps"), ["recently closed", "reopen", "recent"]),
         item(SearchID.recentlyClosedLimit, .contents, SettingsAnchor.contents, String(localized: "Contents"), String(localized: "Contents"),

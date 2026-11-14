@@ -365,6 +365,10 @@
       "description" : "Switch Spaces without the macOS animation.",
       "type" : "boolean"
     },
+    "launchedAppsNearTop" : {
+      "description" : "List an app that launched without activating right after the two most recent apps instead of last. Applies to the mru sort.",
+      "type" : "boolean"
+    },
     "layoutMode" : {
       "description" : "Switcher layout: list rows, an icon grid, or window previews.",
       "enum" : [

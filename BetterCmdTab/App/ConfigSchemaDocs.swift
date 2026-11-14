@@ -332,6 +332,8 @@ enum ConfigSchemaDocs {
         "initialSelection": ConfigSettingDoc(
             "string", "Where the first ⌘Tab press lands under sorts that stay put as you switch. middle counts apps, not window rows.",
             values: ConfigValues(InitialSelection.self, \.displayName)),
+        "launchedAppsNearTop": ConfigSettingDoc(
+            "boolean", "List an app that launched without activating right after the two most recent apps instead of last. Applies to the mru sort."),
         "spaceScope": ConfigSettingDoc(
             "string", "Which Spaces windows are pulled from.",
             values: ConfigValues(SpaceScope.self, \.displayName)),
