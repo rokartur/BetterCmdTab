@@ -51,4 +51,50 @@ struct BrowserTabAppMRUTests {
         #expect(sorted.map(\.cgWindowID) == [2, 1, 2, 1])
         #expect(sorted.compactMap { $0.browserTab?.index } == [1, 1, 0, 0])
     }
+
+    @Test("a window excluded by the tab quota remains reachable in app recency")
+    func quotaKeepsWholeWindow() {
+        let tracker = BrowserTabMRUTracker()
+        let visits: [(UInt32, String)] = [(2, "B1"), (1, "A1"), (1, "A2")]
+        for (wid, title) in visits {
+            tracker.bump(.tab(wid, title))
+        }
+        let pid = NSRunningApplication.current.pid
+        let selection = BrowserTabSelection.select([
+            .init(pid: pid, wid: 1, tabs: ["A1", "A2"].map { .init(title: $0, url: $0) },
+                  activeIndex: 1, statusPriority: 0, focusedIndex: nil),
+            .init(pid: pid, wid: 2, tabs: [.init(title: "B1", url: "B1")],
+                  activeIndex: 0, statusPriority: 0, focusedIndex: nil)
+        ], ranking: tracker.ranking(), limit: 2)
+        #expect(selection.indices[0] == [1, 0])
+        #expect(selection.fallbackWindows == [1])
+        let whole = SwitcherRow(app: .current, window: nil, windowTitle: "Window B",
+                                isMinimized: false, cgWindowID: 2)
+        let tabs = ["A1", "A2"].enumerated().map { index, title in
+            SwitcherRow(app: .current, window: nil, windowTitle: title, isMinimized: false, cgWindowID: 1,
+                        browserTab: .init(index: index, parentTitle: "Window A", url: title, isActive: index == 1))
+        }
+        let sorted = tracker.sortRowsWithinApps([whole] + tabs, browserPids: [pid], priorities: [0, 0, 0])
+        #expect(sorted.map(\.windowTitle) == ["A2", "A1", "Window B"])
+        #expect(sorted.last?.browserTab == nil)
+    }
+
+    @Test("unlimited app recency keeps unobserved tabs after the used tabs")
+    func unlimitedIncludesUnobservedTabs() {
+        let tracker = BrowserTabMRUTracker()
+        tracker.bump(.tab(1, "A2"))
+        let pid = NSRunningApplication.current.pid
+        let tabs = ["A1", "A2", "A3"].map { BrowserTabInfo(title: $0, url: $0) }
+        let selection = BrowserTabSelection.select([
+            .init(pid: pid, wid: 1, tabs: tabs, activeIndex: 1, statusPriority: 0, focusedIndex: nil)
+        ], ranking: tracker.ranking(), limit: 0)
+        #expect(selection.indices[0] == [1, 0, 2])
+        #expect(selection.fallbackWindows.isEmpty)
+        let rows = tabs.enumerated().map { index, tab in
+            SwitcherRow(app: .current, window: nil, windowTitle: tab.title, isMinimized: false, cgWindowID: 1,
+                        browserTab: .init(index: index, parentTitle: "Window A", url: tab.url, isActive: index == 1))
+        }
+        let sorted = tracker.sortRowsWithinApps(rows, browserPids: [pid], priorities: [0, 0, 0])
+        #expect(sorted.map(\.windowTitle) == ["A2", "A1", "A3"])
+    }
 }
