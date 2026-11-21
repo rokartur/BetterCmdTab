@@ -30,6 +30,7 @@ struct SwitcherRow {
     /// no window (placeholder / launchable / recently-closed / Handoff). Lets MRU sorting
     /// avoid re-resolving the id via `_AXUIElementGetWindow` on every reorder.
     let cgWindowID: CGWindowID
+    let windowSize: CGSize?
     let windowTitle: String
     let isMinimized: Bool
     let isFullscreen: Bool
@@ -76,11 +77,13 @@ struct SwitcherRow {
         tabWindows: [TabWindowRef] = [],
         cgWindowID: CGWindowID = 0,
         browserTab: BrowserTabRef? = nil,
-        isTabSibling: Bool = false
+        isTabSibling: Bool = false,
+        windowSize: CGSize? = nil
     ) {
         self.subject = .running(app)
         self.window = window
         self.cgWindowID = cgWindowID
+        self.windowSize = windowSize
         self.windowTitle = windowTitle
         self.isMinimized = isMinimized
         self.isFullscreen = isFullscreen
@@ -106,7 +109,8 @@ struct SwitcherRow {
             tabs: w.tabs,
             tabWindows: w.tabWindows,
             cgWindowID: w.cgWindowID,
-            isTabSibling: w.isTabSibling
+            isTabSibling: w.isTabSibling,
+            windowSize: w.windowSize
         )
     }
 
@@ -115,6 +119,7 @@ struct SwitcherRow {
         self.subject = .launchable(launchable)
         self.window = nil
         self.cgWindowID = 0
+        self.windowSize = nil
         self.windowTitle = ""
         self.isMinimized = false
         self.isFullscreen = false
@@ -131,6 +136,7 @@ struct SwitcherRow {
         self.subject = .recentlyClosed(entry)
         self.window = nil
         self.cgWindowID = 0
+        self.windowSize = nil
         self.windowTitle = entry.title
         self.isMinimized = false
         self.isFullscreen = false
@@ -148,6 +154,7 @@ struct SwitcherRow {
         self.subject = .handoff(suggestion)
         self.window = nil
         self.cgWindowID = 0
+        self.windowSize = nil
         self.windowTitle = suggestion.deviceName ?? ""
         self.isMinimized = false
         self.isFullscreen = false
@@ -176,7 +183,8 @@ struct SwitcherRow {
             tabWindows: tabWindows,
             cgWindowID: cgWindowID,
             browserTab: browserTab,
-            isTabSibling: isTabSibling
+            isTabSibling: isTabSibling,
+            windowSize: windowSize
         )
     }
 
@@ -209,7 +217,8 @@ struct SwitcherRow {
                     parentTitle: parentTitle,
                     url: tab.url,
                     isActive: i == activeIndex
-                )
+                ),
+                windowSize: windowSize
             )
         }
     }
@@ -274,7 +283,8 @@ struct SwitcherRow {
             isMinimized: isMinimized,
             isFullscreen: isFullscreen,
             cgWindowID: cgWindowID,
-            browserTab: nil
+            browserTab: nil,
+            windowSize: windowSize
         )
     }
 

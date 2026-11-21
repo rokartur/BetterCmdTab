@@ -71,6 +71,7 @@ enum SettingsAnchor {
     // Appearance
     static let appearancePlacement = "appearance.placement"
     static let appearanceLayout = "appearance.layoutSection"
+    static let appearancePreviewWidth = "appearance.previewWidthSection"
     static let appearanceLabels = "appearance.labels"
     static let appearancePanel = "appearance.panel"
     static let appearanceFade = "appearance.fade"
@@ -178,6 +179,7 @@ enum SearchID {
     static let verticalPosition = "appearance.verticalPosition"
     static let topOffset = "appearance.topOffset"
     static let layout = "appearance.layout"
+    static let adaptivePreviewWidth = "appearance.adaptivePreviewWidth"
     static let size = "appearance.size"
     static let gridColumns = "appearance.gridColumns"
     static let selectionColor = "appearance.selectionColor"
@@ -564,6 +566,8 @@ enum SettingsCatalog {
              String(localized: "Distance from top"), ["top", "offset", "margin", "padding", "gap", "percent", "higher", "lower"]),
         item(SearchID.layout, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Layout"), ["layout", "grid", "list", "preview"]),
+        item(SearchID.adaptivePreviewWidth, .appearance, SettingsAnchor.appearancePreviewWidth, String(localized: "Appearance"), String(localized: "Previews"),
+             String(localized: "Adaptive preview width"), ["preview", "thumbnail", "aspect ratio", "width"]),
         item(SearchID.size, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Size"), ["size", "panel size", "scale", "percent", "compact", "small", "large"]),
         item(SearchID.listMaxWidth, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),

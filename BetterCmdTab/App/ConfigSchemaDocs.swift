@@ -268,6 +268,8 @@ enum ConfigSchemaDocs {
             range: Preferences.gridMaxColumnsRange),
         "gridSingleRow": ConfigSettingDoc(
             "boolean", "Keep the grid on one row, shrinking the icons to fit, instead of wrapping. Ignored while gridMaxColumns caps the columns."),
+        "adaptivePreviewWidth": ConfigSettingDoc(
+            "boolean", "Size each preview tile to its window’s aspect ratio within minimum and maximum widths."),
         "browserTabPreviews": ConfigSettingDoc("boolean", "Show thumbnails for browser tabs in the Previews layout."),
         "experimentalBrowserTabPreviews": ConfigSettingDoc(
             "boolean", "Legacy browser-tab-preview flag, kept in sync with browserTabPreviews for older builds. Edit browserTabPreviews instead."),

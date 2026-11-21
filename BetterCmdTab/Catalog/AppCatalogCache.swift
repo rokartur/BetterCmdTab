@@ -98,6 +98,7 @@ final class AppCatalogCache {
         kAXUIElementDestroyedNotification as String,
         kAXWindowMiniaturizedNotification as String,
         kAXWindowDeminiaturizedNotification as String,
+        kAXWindowResizedNotification as String,
         kAXFocusedWindowChangedNotification as String,
         // Native window tabs (Finder/Safari/Terminal/…): switching a tab manually
         // makes that tab's window frontmost. Some apps post only main-window-
@@ -585,6 +586,8 @@ final class AppCatalogCache {
         var observer: AXObserver?
         let cb: AXObserverCallback = { _, element, notification, refcon in
             guard let refcon else { return }
+            if CFEqual(notification, kAXWindowResizedNotification as CFString),
+               !UserDefaults.standard.bool(forKey: "Switcher.adaptivePreviewWidth") { return }
             let cache = Unmanaged<AppCatalogCache>.fromOpaque(refcon).takeUnretainedValue()
             var elemPid: pid_t = 0
             AXUIElementGetPid(element, &elemPid)
