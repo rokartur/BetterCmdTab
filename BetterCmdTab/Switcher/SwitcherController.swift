@@ -3936,7 +3936,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// React to a focus change without blocking the main thread: resolve the
     /// pid's focused window off-main (the AX query can stall on an unresponsive
     /// app), then bump the window MRU on main. Coalesced per pid.
-    private func handleFocusChange(pid: pid_t) {
+    private func handleFocusChange(pid: pid_t, attempt: Int = 0) {
         guard focusSync.begin(pid) else { return }
         nextFocusSyncToken &+= 1
         if nextFocusSyncToken == 0 { nextFocusSyncToken = 1 }
@@ -3958,6 +3958,17 @@ final class SwitcherController: SwitcherViewDelegate {
                 if isCurrent {
                     self.focusSyncTokens.removeValue(forKey: pid)
                     if wid != 0 { self.windowMRU.bump(pid: pid, wid: wid) }
+                    // A busy app can fail the resolve; nothing else re-asks, so
+                    // its window would stay unknown to the window MRU.
+                    let isFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+                    if let delay = FocusResolveRetry.delay(afterAttempt: attempt, resolved: wid != 0, isFrontmost: isFrontmost) {
+                        Log.mru.debug("focus resolve empty pid=\(pid, privacy: .public) attempt=\(attempt, privacy: .public)")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                            guard let self, !self.didShutdown,
+                                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
+                            self.handleFocusChange(pid: pid, attempt: attempt + 1)
+                        }
+                    }
                     if feedTabMRU, wid != 0 {
                         if isBrowser, let title = info?.title,
                            !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
