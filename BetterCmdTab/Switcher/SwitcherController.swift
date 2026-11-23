@@ -4621,14 +4621,19 @@ final class SwitcherController: SwitcherViewDelegate {
     /// of a window's tab rows share one CGWindowID, so the window MRU would be the
     /// wrong granularity. A Handoff row presses the Dock item, re-activating the
     /// previous app if the press fails; any other row raises its window. Shared by
-    /// the visible and primed commit paths so a fast tap and a held-open panel agree.
+    /// the visible and primed commit paths. With `selectTab` false a tab row only
+    /// raises its window over AX and leaves the tab MRU to the title observer.
     private func activation(
         for row: SwitcherRow,
+        selectTab: Bool,
         instantSpace: Bool,
         completion: @escaping @MainActor @Sendable () -> Void
     ) -> (() -> Void)? {
         if let pid = row.pid { mru.bump(pid) }
         if let bt = row.browserTab, let app = row.app, let window = row.window {
+            guard selectTab else {
+                return { Activator.activate(row, instantSpace: instantSpace, completion: completion) }
+            }
             bumpTabMRUIfPossible(for: row)
             let tabIndex = bt.index
             let parentTitle = bt.parentTitle
@@ -4690,7 +4695,7 @@ final class SwitcherController: SwitcherViewDelegate {
             if rows.indices.contains(index) {
                 // `activation(for:)` handles the browser-tab vs. window split and
                 // bumps the app / window / tab MRU trackers.
-                pendingActivation = activation(for: rows[index], instantSpace: instantSpace, completion: finishDismiss)
+                pendingActivation = activation(for: rows[index], selectTab: true, instantSpace: instantSpace, completion: finishDismiss)
             }
         case .primed:
             if windowsOnlyMode, let pid = windowsOnlyPid {
@@ -4710,7 +4715,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 // Tab-level fast tap-release: activate the tab/window the visible
                 // switcher would have selected, stepped by unified tab recency, so a
                 // quick ⌘⇥ returns to the previous *tab* exactly like the panel.
-                pendingActivation = activation(for: row, instantSpace: instantSpace, completion: finishDismiss)
+                pendingActivation = activation(for: row, selectTab: true, instantSpace: instantSpace, completion: finishDismiss)
             } else if effective.sortOrder == .mruWindows,
                       let row = primedWindowMRUTargetRow() {
                 // Window-level fast tap-release: activate the window the visible
@@ -4732,7 +4737,9 @@ final class SwitcherController: SwitcherViewDelegate {
                     // Under a narrowed Space scope the app-level MRU step is
                     // remapped onto apps still represented by scoped rows, so a
                     // tap can't fall back to an app on another Space.
-                    pendingActivation = activation(for: row, instantSpace: instantSpace, completion: finishDismiss)
+                    // A browser tab switches only with tab drill-in on; otherwise its window is raised.
+                    pendingActivation = activation(for: row, selectTab: Preferences.shared.tabDrillEnabled,
+                                                   instantSpace: instantSpace, completion: finishDismiss)
                 } else if scope == .allSpaces || !cache.hasCompletedFullScan,
                           primedApps.indices.contains(primedIndex) {
                     // Raw-MRU fallback: a windowless app under All Spaces, or a
