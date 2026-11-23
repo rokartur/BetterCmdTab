@@ -4682,17 +4682,24 @@ final class SwitcherController: SwitcherViewDelegate {
             let tabIndex = bt.index
             let parentTitle = bt.parentTitle
             let tabs = browserTabsCache[AXRef(element: window)]?.tabs ?? []
-            return {
+            let selectTab = {
+                BrowserTabs.commitTab(at: tabIndex, in: app, window: window, title: parentTitle)
+                completion()
+            }
+            guard !tabs.isEmpty else { return selectTab }
+            let commitGeneration = revealGeneration
+            return { [weak self] in
                 // `bt.isActive` is as stale as the last tab scan, so read the window's live title.
                 DispatchQueue.global(qos: .userInitiated).async {
                     let liveTitle = Activator.scanTitle(of: window, timeout: 0.25)
                     DispatchQueue.main.async {
+                        // A switcher opened during the read owns the focus now.
+                        guard self?.revealGeneration == commitGeneration else { return completion() }
                         if Self.raisesWindowToShowTab(at: tabIndex, tabs: tabs, liveWindowTitle: liveTitle) {
                             Activator.activate(row, instantSpace: instantSpace, completion: completion)
-                            return
+                        } else {
+                            selectTab()
                         }
-                        BrowserTabs.commitTab(at: tabIndex, in: app, window: window, title: parentTitle)
-                        completion()
                     }
                 }
             }
