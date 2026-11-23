@@ -61,14 +61,17 @@ struct HotkeyTapTriggerMatchTests {
         #expect(!HotkeyTap.chordKeyMatches(49, 50))
     }
 
-    // MARK: Option + arrow (#303)
+    // MARK: Chord modifiers beyond the switch hold (#303)
 
-    @Test func optionArrowMovesWindowOnlyWhenOptionIsNotTheTrigger() {
+    @Test func chordModifierHeldIgnoresTheModifierHoldingTheSwitcher() {
         let commandOption: CGEventFlags = [.maskCommand, .maskAlternate]
-        #expect(HotkeyTap.optionArrowMovesWindow(commandOption, heldTriggerModifiers: .maskCommand))
-        #expect(!HotkeyTap.optionArrowMovesWindow(.maskCommand, heldTriggerModifiers: .maskCommand))
-        // An Option-held switcher (⌥Tab) keeps its arrows for navigation.
-        #expect(!HotkeyTap.optionArrowMovesWindow(.maskAlternate, heldTriggerModifiers: .maskAlternate))
-        #expect(!HotkeyTap.optionArrowMovesWindow(commandOption, heldTriggerModifiers: commandOption))
+        #expect(HotkeyTap.chordModifierHeld(.maskAlternate, flags: commandOption, switchHoldModifiers: .maskCommand))
+        #expect(!HotkeyTap.chordModifierHeld(.maskAlternate, flags: .maskCommand, switchHoldModifiers: .maskCommand))
+        // An ⌥Tab or ⌃Tab switcher keeps bare arrows for navigation and the Quit key from force-quitting.
+        #expect(!HotkeyTap.chordModifierHeld(.maskAlternate, flags: .maskAlternate, switchHoldModifiers: .maskAlternate))
+        #expect(!HotkeyTap.chordModifierHeld(.maskAlternate, flags: commandOption, switchHoldModifiers: commandOption))
+        #expect(!HotkeyTap.chordModifierHeld(.maskControl, flags: .maskControl, switchHoldModifiers: .maskControl))
+        #expect(HotkeyTap.chordModifierHeld(.maskControl, flags: [.maskControl, .maskAlternate],
+                                            switchHoldModifiers: .maskAlternate))
     }
 }
