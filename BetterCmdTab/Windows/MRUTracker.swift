@@ -32,7 +32,9 @@ final class MRUTracker {
                   UserDefaults.standard.bool(forKey: Preferences.Keys.launchedAppsNearTop)
             else { return }
             let pid = app.pid
-            MainActor.assumeIsolated { self?.noteLaunch(pid) }
+            MainActor.assumeIsolated {
+                self?.noteLaunch(pid) { NSRunningApplication(processIdentifier: $0)?.activationPolicy == .regular }
+            }
         }
         termObservers.append(launchObs)
     }
@@ -77,11 +79,19 @@ final class MRUTracker {
     }
 
     /// Ranks an app that launched without activating right behind the current
-    /// and previous apps, so it lists near the top instead of after every
-    /// ranked app. Not at index 1: that is the quick ⌘Tab and swipe target.
-    func noteLaunch(_ pid: pid_t) {
+    /// and previous regular apps (the quick-tap list drops the rest), not after
+    /// every ranked app. Never ahead of the previous app: the quick ⌘Tab and swipe target.
+    func noteLaunch(_ pid: pid_t, isRegular: (pid_t) -> Bool) {
         guard !order.contains(pid) else { return }
-        order.insert(pid, at: min(2, order.count))
+        var regularSeen = 0
+        for (index, ranked) in order.enumerated() where isRegular(ranked) {
+            regularSeen += 1
+            if regularSeen == 2 {
+                order.insert(pid, at: index + 1)
+                return
+            }
+        }
+        order.append(pid)
     }
 
     private func remove(_ pid: pid_t) {
