@@ -4618,8 +4618,8 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Build the activation closure for a committed `row`, bumping every MRU
-    /// tracker so the next ⌘Tab returns here. A browser-tab row selects an inactive tab
-    /// via Apple Events (it's not a real window) and bumps only the app + tab MRU — all
+    /// tracker so the next ⌘Tab returns here. A browser-tab row selects its tab via
+    /// Apple Events (it's not a real window) and bumps only the app + tab MRU — all
     /// of a window's tab rows share one CGWindowID, so the window MRU would be the
     /// wrong granularity. A Handoff row presses the Dock item, re-activating the
     /// previous app if the press fails; any other row raises its window. Shared by
@@ -4632,11 +4632,6 @@ final class SwitcherController: SwitcherViewDelegate {
         if let pid = row.pid { mru.bump(pid) }
         if let bt = row.browserTab, let app = row.app, let window = row.window {
             bumpTabMRUIfPossible(for: row)
-            // Already the window's active tab: raising the window over AX shows it,
-            // without the osascript round trip `commitTab` costs.
-            if bt.isActive {
-                return { Activator.activate(row, instantSpace: instantSpace, completion: completion) }
-            }
             let tabIndex = bt.index
             let parentTitle = bt.parentTitle
             return {
