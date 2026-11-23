@@ -3771,8 +3771,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// Re-order expanded browser tabs within apps under `.mru`, or globally
     /// with ordinary windows under `.mruWindows`. A no-op unless `browserTabMRUActive`. Runs
     /// AFTER `expandBrowserTabs` (unlike `applyWindowMRUSort`, which runs before),
-    /// then re-buckets status and re-pins exactly like the window sort so hidden/
-    /// minimized rows still sink and pinned apps stay at the front.
+    /// then, under `.mruWindows`, re-buckets status and re-pins exactly like the window
+    /// sort so hidden/minimized rows still sink and pinned apps stay at the front.
     ///
     /// When the tab MRU is off, falls back to `sinkInactiveBrowserTabs` so a browser
     /// window's tabs don't flood the front of the window-recency list as one block
@@ -3781,26 +3781,30 @@ final class SwitcherController: SwitcherViewDelegate {
         guard browserTabMRUActive else { return sinkInactiveBrowserTabs(rows) }
         let sinkHiddenApps = Preferences.shared.sinkHiddenApps
         let sinkMinimized = Preferences.shared.sinkMinimizedWindows
-        let ranked: [SwitcherRow]
-        if effective.sortOrder == .mru {
+        return Self.tabRecencyOrder(rows, appGrouped: effective.sortOrder == .mru, tabMRU: tabMRU,
+                                    pinnedBundleIDs: Preferences.shared.pinnedBundleIDs) {
+            AppCatalogCache.statusPriority($0, sinkHiddenApps: sinkHiddenApps, sinkMinimizedWindows: sinkMinimized)
+        }
+    }
+
+    static func tabRecencyOrder(
+        _ rows: [SwitcherRow], appGrouped: Bool, tabMRU: BrowserTabMRUTracker,
+        pinnedBundleIDs: [String], statusPriority: (SwitcherRow) -> Int
+    ) -> [SwitcherRow] {
+        if appGrouped {
+            // `.mru` rows arrive bucketed and pinned; reordering only inside each
+            // (app, status) slot keeps that, and a second bucketing would not.
             let browserPids = Set(rows.compactMap { row -> pid_t? in
                 BrowserTabs.Family.from(bundleID: row.bundleIdentifier) != nil ? row.pid : nil
             })
-            let priorities = rows.map {
-                AppCatalogCache.statusPriority($0, sinkHiddenApps: sinkHiddenApps, sinkMinimizedWindows: sinkMinimized)
-            }
-            ranked = tabMRU.sortRowsWithinApps(rows, browserPids: browserPids, priorities: priorities)
-        } else {
-            ranked = tabMRU.sortRows(rows)
+            return tabMRU.sortRowsWithinApps(rows, browserPids: browserPids, priorities: rows.map(statusPriority))
         }
-        let bucketed = ranked.enumerated()
-            .sorted { lhs, rhs in
-                let lp = AppCatalogCache.statusPriority(lhs.element, sinkHiddenApps: sinkHiddenApps, sinkMinimizedWindows: sinkMinimized)
-                let rp = AppCatalogCache.statusPriority(rhs.element, sinkHiddenApps: sinkHiddenApps, sinkMinimizedWindows: sinkMinimized)
-                return lp != rp ? lp < rp : lhs.offset < rhs.offset
-            }
-            .map(\.element)
-        return CatalogFilter.pinnedToFront(bucketed, Preferences.shared.pinnedBundleIDs)
+        let ranked = tabMRU.sortRows(rows)
+        let priorities = ranked.map(statusPriority)
+        let bucketed = ranked.indices
+            .sorted { priorities[$0] != priorities[$1] ? priorities[$0] < priorities[$1] : $0 < $1 }
+            .map { ranked[$0] }
+        return CatalogFilter.pinnedToFront(bucketed, pinnedBundleIDs)
     }
 
     /// Keep only a browser window's ACTIVE tab at the window's window-recency slot

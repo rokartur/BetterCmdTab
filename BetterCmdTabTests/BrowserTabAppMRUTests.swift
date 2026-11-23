@@ -27,6 +27,16 @@ struct BrowserTabAppMRUTests {
             pids: [1, 1, 2], priorities: [0, 0, 0], rankedIndices: [2, 1, 0], includedPids: []) == [0, 1, 2])
     }
 
+    @Test("app recency keeps a non-browser app's window order across status buckets")
+    func appRecencyKeepsWindowOrder() {
+        let minimized = SwitcherRow(app: .current, window: nil, windowTitle: "w2", isMinimized: true, cgWindowID: 2)
+        let visible = SwitcherRow(app: .current, window: nil, windowTitle: "w1", isMinimized: false, cgWindowID: 1)
+        let sorted = SwitcherController.tabRecencyOrder(
+            [minimized, visible], appGrouped: true, tabMRU: BrowserTabMRUTracker(), pinnedBundleIDs: []
+        ) { $0.isMinimized ? 1 : 0 }
+        #expect(sorted.map(\.cgWindowID) == [2, 1])
+    }
+
     @Test("minimized recency cannot move another application ahead after status bucketing")
     func statusBucketsPreserveAppOrder() {
         #expect(BrowserTabMRUTracker.appSlotOrder(
