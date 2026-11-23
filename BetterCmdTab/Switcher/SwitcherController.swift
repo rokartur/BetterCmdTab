@@ -2343,13 +2343,14 @@ final class SwitcherController: SwitcherViewDelegate {
         lastVisibleActivity = Date() // #16: mouse steering keeps the panel alive
         // Screen coordinates: a re-listed shelf resizes the panel, which moves window coordinates.
         let point = NSEvent.mouseLocation
-        let headsForShelf = Self.pointerHeadsForShelf(from: lastHoverPoint, to: point)
+        let previous = lastHoverPoint
         lastHoverPoint = point
         guard rows.indices.contains(index), index != self.index else {
             cancelShelfHoverGrace()
             return
         }
-        if !shelf.isHidden, headsForShelf {
+        let graceOnThisRow = shelfHoverGrace.map { $0.timer.isValid && $0.index == index } ?? false
+        if !shelf.isHidden, Self.pointerHeadsForShelf(from: previous, to: point, graceOnThisRow: graceOnThisRow) {
             armShelfHoverGrace(for: index)
             return
         }
@@ -2358,9 +2359,10 @@ final class SwitcherController: SwitcherViewDelegate {
 
     /// Down at least as steeply as sideways (screen y grows upward). A sideways
     /// scan of the apps selects at once; only a pointer that may be on its way
-    /// to the shelf waits out the grace. Pure.
-    nonisolated static func pointerHeadsForShelf(from previous: NSPoint?, to point: NSPoint) -> Bool {
-        guard let previous else { return false }
+    /// to the shelf waits out the grace. A first sample has no direction, and a
+    /// sideways jitter inside a row already in its grace does not end it (#308). Pure.
+    nonisolated static func pointerHeadsForShelf(from previous: NSPoint?, to point: NSPoint, graceOnThisRow: Bool) -> Bool {
+        guard let previous, !graceOnThisRow else { return true }
         let drop = previous.y - point.y
         return drop > 0 && drop >= abs(point.x - previous.x)
     }
@@ -2368,10 +2370,15 @@ final class SwitcherController: SwitcherViewDelegate {
     private static let shelfHoverGraceInterval: TimeInterval = 0.15
 
     /// #211: the pointer crosses other apps' rows on its way down to the shelf;
-    /// selecting each would re-list the shelf from under it.
+    /// selecting each would re-list the shelf from under it. The grace runs from
+    /// the pointer's last move, not from entering the row: a tall List row or
+    /// Previews tile takes longer than the grace to cross (#308).
     private func armShelfHoverGrace(for index: Int) {
         let pid = rows[index].pid
-        if let pending = shelfHoverGrace, pending.timer.isValid, pending.index == index, pending.pid == pid { return }
+        if let pending = shelfHoverGrace, pending.timer.isValid, pending.index == index, pending.pid == pid {
+            pending.timer.fireDate = Date(timeIntervalSinceNow: Self.shelfHoverGraceInterval)
+            return
+        }
         cancelShelfHoverGrace()
         let generation = revealGeneration
         let timer = Timer(timeInterval: Self.shelfHoverGraceInterval, repeats: false) { [weak self] _ in
