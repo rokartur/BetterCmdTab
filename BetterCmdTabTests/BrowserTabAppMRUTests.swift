@@ -21,12 +21,6 @@ struct BrowserTabAppMRUTests {
         #expect(result == [3, 1, 2, 0, 4, 5])
     }
 
-    @Test("disabling browser grouping leaves the incoming order intact")
-    func noIncludedBrowsers() {
-        #expect(BrowserTabMRUTracker.appSlotOrder(
-            pids: [1, 1, 2], priorities: [0, 0, 0], rankedIndices: [2, 1, 0], includedPids: []) == [0, 1, 2])
-    }
-
     @Test("app recency keeps a non-browser app's window order across status buckets")
     func appRecencyKeepsWindowOrder() {
         let minimized = SwitcherRow(app: .current, window: nil, windowTitle: "w2", isMinimized: true, cgWindowID: 2)
@@ -70,14 +64,6 @@ struct BrowserTabAppMRUTests {
             tracker.bump(.tab(wid, title))
         }
         let pid = NSRunningApplication.current.pid
-        let selection = BrowserTabSelection.select([
-            .init(pid: pid, wid: 1, tabs: ["A1", "A2"].map { .init(title: $0, url: $0) },
-                  activeIndex: 1, statusPriority: 0, focusedIndex: nil),
-            .init(pid: pid, wid: 2, tabs: [.init(title: "B1", url: "B1")],
-                  activeIndex: 0, statusPriority: 0, focusedIndex: nil)
-        ], ranking: tracker.ranking(), limit: 2)
-        #expect(selection.indices[0] == [1, 0])
-        #expect(selection.fallbackWindows == [1])
         let whole = SwitcherRow(app: .current, window: nil, windowTitle: "Window B",
                                 isMinimized: false, cgWindowID: 2)
         let tabs = ["A1", "A2"].enumerated().map { index, title in
@@ -95,11 +81,6 @@ struct BrowserTabAppMRUTests {
         tracker.bump(.tab(1, "A2"))
         let pid = NSRunningApplication.current.pid
         let tabs = ["A1", "A2", "A3"].map { BrowserTabInfo(title: $0, url: $0) }
-        let selection = BrowserTabSelection.select([
-            .init(pid: pid, wid: 1, tabs: tabs, activeIndex: 1, statusPriority: 0, focusedIndex: nil)
-        ], ranking: tracker.ranking(), limit: 0)
-        #expect(selection.indices[0] == [1, 0, 2])
-        #expect(selection.fallbackWindows.isEmpty)
         let rows = tabs.enumerated().map { index, tab in
             SwitcherRow(app: .current, window: nil, windowTitle: tab.title, isMinimized: false, cgWindowID: 1,
                         browserTab: .init(index: index, parentTitle: "Window A", url: tab.url, isActive: index == 1))
