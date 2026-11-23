@@ -4682,11 +4682,11 @@ final class SwitcherController: SwitcherViewDelegate {
             let tabIndex = bt.index
             let parentTitle = bt.parentTitle
             let tabs = browserTabsCache[AXRef(element: window)]?.tabs ?? []
-            let selectTab = {
+            let selectOverAppleEvents = {
                 BrowserTabs.commitTab(at: tabIndex, in: app, window: window, title: parentTitle)
                 completion()
             }
-            guard !tabs.isEmpty else { return selectTab }
+            guard !tabs.isEmpty else { return selectOverAppleEvents }
             let commitGeneration = revealGeneration
             return { [weak self] in
                 // `bt.isActive` is as stale as the last tab scan, so read the window's live title.
@@ -4698,7 +4698,7 @@ final class SwitcherController: SwitcherViewDelegate {
                         if Self.raisesWindowToShowTab(at: tabIndex, tabs: tabs, liveWindowTitle: liveTitle) {
                             Activator.activate(row, instantSpace: instantSpace, completion: completion)
                         } else {
-                            selectTab()
+                            selectOverAppleEvents()
                         }
                     }
                 }
