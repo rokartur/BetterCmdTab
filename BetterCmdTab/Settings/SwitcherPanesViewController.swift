@@ -245,7 +245,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         let launched = addSection(title: String(localized: "Newly launched apps"), anchor: SettingsAnchor.launchedApps)
         launched.addUnstableNotice()
         addRow(to: launched, title: String(localized: "List new apps near the top"),
-               subtitle: String(localized: "An app that opens in the background lists right after your two most recent apps instead of last. Applies to Most recent."),
+               subtitle: String(localized: "An app that opens in the background with a window lists right after your two most recent apps instead of last. Applies to Most recent."),
                accessory: launchedAppsNearTopSwitch, searchItemID: SearchID.launchedAppsNearTop)
     }
 

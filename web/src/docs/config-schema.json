@@ -366,7 +366,7 @@
       "type" : "boolean"
     },
     "launchedAppsNearTop" : {
-      "description" : "List an app that launched without activating right after the two most recent apps instead of last. Applies to the mru sort.",
+      "description" : "List an app that launched without activating, with a window, right after the two most recent apps instead of last. Applies to the mru sort.",
       "type" : "boolean"
     },
     "layoutMode" : {
