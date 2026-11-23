@@ -3958,7 +3958,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 let isCurrent = !self.didShutdown && self.focusSyncTokens[pid] == token
                 if isCurrent {
                     self.focusSyncTokens.removeValue(forKey: pid)
-                    let isFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+                    let isFrontmost = NSWorkspace.shared.frontmostApplication?.pid == pid
                     let mayBump = FocusResolveRetry.mayBump(attempt: attempt, resolved: wid != 0, isFrontmost: isFrontmost)
                     if mayBump { self.windowMRU.bump(pid: pid, wid: wid) }
                     self.focusResolveRetries.removeValue(forKey: pid)?.cancel()
@@ -3990,7 +3990,7 @@ final class SwitcherController: SwitcherViewDelegate {
             guard let self else { return }
             self.focusResolveRetries.removeValue(forKey: pid)
             guard !self.didShutdown,
-                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
+                  NSWorkspace.shared.frontmostApplication?.pid == pid else { return }
             self.handleFocusChange(pid: pid, attempt: attempt + 1)
         }
         focusResolveRetries[pid] = retry
