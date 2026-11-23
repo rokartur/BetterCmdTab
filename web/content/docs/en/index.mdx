@@ -71,7 +71,9 @@ and either recent sort, tabs from different windows share one recency order.
   applications by last use.
 
 A quick tap in app order still switches applications; when the target is a
-browser, it selects that browser's most recently used eligible tab.
+browser, it selects that browser's most recently used eligible tab. With
+[`tabDrillEnabled`](/docs/config-reference#tabDrillEnabled) off, it only raises the
+browser's window and leaves its current tab.
 
 **Browser tabs to show** limits each browser across its eligible windows: a limit
 of 5 gives Chrome up to 5 tabs and Safari up to 5, chosen by last use rather than
