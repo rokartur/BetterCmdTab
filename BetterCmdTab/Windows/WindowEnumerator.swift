@@ -490,7 +490,11 @@ enum WindowEnumerator {
             let tabs = (values[1] as? [AXUIElement]) ?? []
             let minimized = (values[2] as? Bool) ?? false
             let fullscreen = (values[3] as? Bool) ?? false
-            let windowTitle = (values[4] as? String) ?? ""
+            var windowTitle = (values[4] as? String) ?? ""
+            // Walking our own AX tree off main re-enters the layout engine (see `isOwnProcess` below).
+            if windowTitle.isEmpty, pid != getpid() {
+                windowTitle = contentTitle(of: window, timeout: Self.confirmedTimeout)
+            }
             // Minimized windows legitimately share (0, 0); fullscreen windows
             // each fill the same display bounds, so two separate fullscreen
             // windows of one app (each on its own Space — recovered by the brute
@@ -730,6 +734,21 @@ enum WindowEnumerator {
         var keep = [Bool](repeating: true, count: n)
         for i in 0..<n where isTab[i] { keep[i] = false }
         return TabResolution(keep: keep, siblingIndices: siblings, tabSibling: [Bool](repeating: false, count: n))
+    }
+
+    /// Title of a window whose own AXTitle is blank, read from its first child group:
+    /// Chromium PWA windows (#317) put the page title there and leave the window's empty.
+    static func contentTitle(of window: AXUIElement, timeout: Float) -> String {
+        var children: CFArray?
+        guard AXUIElementCopyAttributeValues(window, kAXChildrenAttribute as CFString, 0, 1, &children) == .success,
+              let child = (children as? [AXUIElement])?.first else { return "" }
+        AXUIElementSetMessagingTimeout(child, timeout)
+        var valuesRef: CFArray?
+        guard AXUIElementCopyMultipleAttributeValues(child, [kAXRoleAttribute, kAXTitleAttribute] as CFArray,
+                                                     AXCopyMultipleAttributeOptions(rawValue: 0), &valuesRef) == .success,
+              let values = valuesRef as? [AnyObject], values.count == 2,
+              (values[0] as? String) == (kAXGroupRole as String) else { return "" }
+        return (values[1] as? String) ?? ""
     }
 
     /// Decode a window's (position, size) for dedup, rounded to whole pixels —

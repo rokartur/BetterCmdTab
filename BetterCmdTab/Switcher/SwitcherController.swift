@@ -4008,7 +4008,7 @@ final class SwitcherController: SwitcherViewDelegate {
                     var v: AnyObject?
                     if AXUIElementCopyAttributeValue(w, kAXTitleAttribute as CFString, &v) == .success,
                        let t = v as? String {
-                        titles[AXRef(element: w)] = t
+                        titles[AXRef(element: w)] = t.isEmpty ? WindowEnumerator.contentTitle(of: w, timeout: 0.05) : t
                     }
                 }
                 DispatchQueue.main.async {
