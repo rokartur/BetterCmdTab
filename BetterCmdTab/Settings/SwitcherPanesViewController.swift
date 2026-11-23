@@ -58,6 +58,7 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let sortOrders: [SwitcherSortOrder] = SwitcherSortOrder.allCases
     private let initialSelectionPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let initialSelections: [InitialSelection] = InitialSelection.allCases
+    private let launchedAppsNearTopSwitch = PreferenceSwitch(bind: \.launchedAppsNearTop)
     private let windowShelfPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let windowShelves: [WindowShelf] = WindowShelf.allCases
     private let windowShelfSingleWindowSwitch = PreferenceSwitch(bind: \.windowShelfSingleWindow)
@@ -118,7 +119,6 @@ final class SwitcherPanesViewController: SettingsTabViewController {
     private let hoverSelectSwitch = PreferenceSwitch(bind: \.mouseHoverSelectionEnabled)
     private let clickSelectSwitch = PreferenceSwitch(bind: \.mouseClickSelectionEnabled)
     private let clickOnMouseUpSwitch = PreferenceSwitch(bind: \.clickOnMouseUp)
-    private let launchedAppsNearTopSwitch = PreferenceSwitch(bind: \.launchedAppsNearTop)
 
     // Mouse — hover actions
     private let hoverSwitch = NSSwitch()
