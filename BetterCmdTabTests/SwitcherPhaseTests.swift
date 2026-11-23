@@ -480,3 +480,18 @@ struct SwitcherPrimedFrontSlotTests {
         #expect(row([5], step: 0, appsAhead: []) == 0)
     }
 }
+
+@Suite("Scroll step mapping")
+struct ScrollStepMappingTests {
+    @Test func scrollStepsSelectionWithoutTheAppTrigger() {
+        // The app trigger (.nextApp/.prevApp) hands a ⌘` session off to the app
+        // switcher; a scroll step must step the window rows instead.
+        func delta(_ event: HotkeyTap.Event) -> Int? {
+            if case .stepSelection(let delta) = event { delta } else { nil }
+        }
+        #expect(delta(HotkeyTap.scrollStep(delta: -1, reverse: false)) == 1)
+        #expect(delta(HotkeyTap.scrollStep(delta: 1, reverse: false)) == -1)
+        #expect(delta(HotkeyTap.scrollStep(delta: -1, reverse: true)) == -1)
+        #expect(delta(HotkeyTap.scrollStep(delta: 1, reverse: true)) == 1)
+    }
+}

@@ -10,6 +10,9 @@ final class HotkeyTap: @unchecked Sendable {
     enum Event: Sendable {
         case nextApp
         case prevApp
+        /// A bare-Shift or scroll-wheel step, kept apart from the app trigger so
+        /// it steps a ⌘` window session instead of handing off to the app list.
+        case stepSelection(Int)
         case nextWindow
         case prevWindow
         case nextRow
@@ -403,6 +406,13 @@ final class HotkeyTap: @unchecked Sendable {
         let steps = Int((acc / threshold).rounded(.towardZero))
         return (steps, acc - Double(steps) * threshold)
     }
+
+    /// With macOS natural scrolling, rolling the wheel down gives a negative
+    /// delta and should advance the selection forward.
+    static func scrollStep(delta: Int, reverse: Bool) -> Event {
+        .stepSelection((delta < 0) != reverse ? 1 : -1)
+    }
+
     /// Boot floor for the switcher trigger. `Config` can't be empty, so this
     /// mirrors BetterShortcuts' `switchApps`/`switchWindows` defaults (⌘Tab/⌘`);
     /// `SwitcherController.pushHotkeyConfig` overwrites it from BetterShortcuts
@@ -771,7 +781,7 @@ final class HotkeyTap: @unchecked Sendable {
     }
 
     /// Arm the held-Shift backward auto-repeat. The caller delivers the
-    /// immediate first `.prevApp` (so a quick tap is exactly one step); this
+    /// immediate first `.stepSelection(-1)` (so a quick tap is exactly one step); this
     /// schedules the repeats that follow once the hold passes the initial delay.
     /// Each tick re-checks live state so the repeat self-stops the instant the
     /// switcher leaves the bare-Shift-steps-back situation, even if an explicit
@@ -787,7 +797,7 @@ final class HotkeyTap: @unchecked Sendable {
                   self.shiftTapStepsBackwardFlag.withLock({ $0 }) else {
                 self.stopShiftRepeat(); return
             }
-            self.deliver(.prevApp)
+            self.deliver(.stepSelection(-1))
         }
         shiftRepeatTimer.withLock { existing in
             existing?.cancel()
@@ -1197,11 +1207,7 @@ final class HotkeyTap: @unchecked Sendable {
             if !continuous {
                 let delta = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
                 guard delta != 0 else { return Unmanaged.passUnretained(event) }
-                // With macOS natural scrolling, rolling the wheel down gives a
-                // negative delta and should advance the selection forward.
-                let reverse = scrollReverseFlag.withLock { $0 }
-                let forward = (delta < 0) != reverse
-                deliver(forward ? .nextApp : .prevApp)
+                deliver(Self.scrollStep(delta: Int(delta), reverse: scrollReverseFlag.withLock { $0 }))
                 return nil
             }
             // Continuous scrolls: trackpad and Magic Mouse gestures carry a
@@ -1231,12 +1237,11 @@ final class HotkeyTap: @unchecked Sendable {
                 return result.steps
             }
             if steps != 0 {
-                let reverse = scrollReverseFlag.withLock { $0 }
-                let forward = (steps < 0) != reverse
+                let step = Self.scrollStep(delta: steps, reverse: scrollReverseFlag.withLock { $0 })
                 // A single flick can cross several thresholds; cap the burst
                 // so one event can never flood the selection.
                 for _ in 0..<min(abs(steps), 3) {
-                    deliver(forward ? .nextApp : .prevApp)
+                    deliver(step)
                 }
             }
             return nil
@@ -1680,7 +1685,7 @@ final class HotkeyTap: @unchecked Sendable {
                 // Immediate first step (a quick tap is exactly one), then a held
                 // Shift keeps stepping back at the key-repeat pace until release
                 // — the modifier-key counterpart to a held Tab going forward.
-                deliver(.prevApp)
+                deliver(.stepSelection(-1))
                 startShiftRepeat()
             } else if wasShift && !shiftHeld {
                 // Shift released: stop the backward repeat.
