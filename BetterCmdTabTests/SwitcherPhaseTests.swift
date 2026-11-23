@@ -106,6 +106,17 @@ struct SwitcherScopedModifierReleaseTests {
         #expect(SwitcherController.scopedInitialIndex(firstRowPid: nil, frontPid: nil, count: 3) == 0)
     }
 
+    @Test func scrollStepsSelectionWithoutTheAppTrigger() {
+        // The app trigger (.nextApp/.prevApp) hands a ⌘` session off to the app
+        // switcher; a scroll step must step the window rows instead.
+        func delta(_ event: HotkeyTap.Event) -> Int? {
+            if case .stepSelection(let delta) = event { delta } else { nil }
+        }
+        #expect(delta(HotkeyTap.scrollStep(delta: -1, reverse: false)) == 1)
+        #expect(delta(HotkeyTap.scrollStep(delta: 1, reverse: false)) == -1)
+        #expect(delta(HotkeyTap.scrollStep(delta: -1, reverse: true)) == -1)
+    }
+
     @Test func scopedOpensNeverTakeThePrimedMissedReleaseCommit() {
         // A core ⌘Tab chord whose ⌘-release was dropped during the primed delay
         // commits the primed pick outright — that pick is correct there.

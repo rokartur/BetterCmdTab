@@ -2452,7 +2452,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// open and abandoned" (issue #16).
     private func noteSteeringActivity(for event: HotkeyTap.Event) {
         switch event {
-        case .nextApp, .prevApp, .nextWindow, .prevWindow, .nextRow, .prevRow,
+        case .nextApp, .prevApp, .stepSelection, .nextWindow, .prevWindow, .nextRow, .prevRow,
              .spatialLeft, .spatialRight, .letterInput, .letterInputKey,
              .searchInput, .searchInputKey, .searchBackspace, .toggleSearch,
              .enterTabDrill, .exitTabDrill, .tabPrev, .tabNext:
@@ -2472,6 +2472,8 @@ final class SwitcherController: SwitcherViewDelegate {
             if tabDrillActive { advanceTab(by: 1) } else { appTriggerStep(by: 1) }
         case .prevApp:
             if tabDrillActive { advanceTab(by: -1) } else { appTriggerStep(by: -1) }
+        case .stepSelection(let delta):
+            if tabDrillActive { advanceTab(by: delta) } else { advance(by: delta, wrap: true) }
         case .nextWindow:
             handleWindowTrigger(delta: 1)
         case .prevWindow:
