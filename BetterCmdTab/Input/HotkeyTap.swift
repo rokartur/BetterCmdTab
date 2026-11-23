@@ -380,11 +380,11 @@ final class HotkeyTap: @unchecked Sendable {
             == heldTriggerModifiers.intersection(triggerComparableMask)
     }
 
-    /// Option + arrow moves the window to another display, except when Option is
-    /// what holds the switcher open (⌥Tab): there the arrows must navigate (#303).
-    static func optionArrowMovesWindow(_ flags: CGEventFlags,
-                                       heldTriggerModifiers: CGEventFlags) -> Bool {
-        flags.contains(.maskAlternate) && !heldTriggerModifiers.contains(.maskAlternate)
+    /// A modifier counts toward a chord only when it is down and does not hold the
+    /// switcher open (#303).
+    static func chordModifierHeld(_ modifier: CGEventFlags, flags: CGEventFlags,
+                                  switchHoldModifiers: CGEventFlags) -> Bool {
+        flags.contains(modifier) && !switchHoldModifiers.contains(modifier)
     }
 
     /// Pure step accumulator for continuous mouse-wheel scrolls (issue #68).
@@ -1314,15 +1314,22 @@ final class HotkeyTap: @unchecked Sendable {
         liveTriggerHoldFlag.withLock { $0 = anyModHeld }
         let shiftHeld = flags.contains(.maskShift)
         let tabDrillNow = tabDrillFlag.withLock { $0 }
+        // While switching, the modifier that holds the panel open (⌥Tab, ⌃Tab) is
+        // not a chord modifier, or every arrow would move or tile the window (#303).
+        let switchHoldModifiers = anyModHeld && isSwitchingNow()
+            ? (appModHeld ? cfg.appModifier : []).union(windowModHeld ? cfg.windowModifier : [])
+            : []
         // Option + arrow (while the switcher is open) moves the highlighted
         // window between displays/Spaces instead of moving the selection. Option
         // is used rather than Shift because Shift already steps the selection
         // backwards (see the flagsChanged handler below).
-        let optionHeld = flags.contains(.maskAlternate)
+        let optionHeld = Self.chordModifierHeld(.maskAlternate, flags: flags,
+                                                switchHoldModifiers: switchHoldModifiers)
         // Control + arrow (while the switcher is open) arranges the highlighted
         // window on its current screen — tile to a half, maximize, or center —
         // without leaving the switcher. Distinct from Option (move to display).
-        let controlHeld = flags.contains(.maskControl)
+        let controlHeld = Self.chordModifierHeld(.maskControl, flags: flags,
+                                                 switchHoldModifiers: switchHoldModifiers)
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
 
         if type == .keyDown {
@@ -1480,22 +1487,18 @@ final class HotkeyTap: @unchecked Sendable {
                             return nil
                         }
                     }
-                    let moveHeld = Self.optionArrowMovesWindow(
-                        flags,
-                        heldTriggerModifiers: (appModHeld ? cfg.appModifier : [])
-                            .union(windowModHeld ? cfg.windowModifier : []))
                     switch keyCode {
                     case Self.leftArrow:
-                        deliver(moveHeld ? .moveWindowLeft : .spatialLeft)
+                        deliver(optionHeld ? .moveWindowLeft : .spatialLeft)
                         return nil
                     case Self.rightArrow:
-                        deliver(moveHeld ? .moveWindowRight : .spatialRight)
+                        deliver(optionHeld ? .moveWindowRight : .spatialRight)
                         return nil
                     case Self.upArrow:
-                        deliver(moveHeld ? .moveWindowUp : .prevRow)
+                        deliver(optionHeld ? .moveWindowUp : .prevRow)
                         return nil
                     case Self.downArrow:
-                        deliver(moveHeld ? .moveWindowDown : .nextRow)
+                        deliver(optionHeld ? .moveWindowDown : .nextRow)
                         return nil
                     case Self.returnKey, Self.keypadEnterKey, Self.spaceKey:
                         deliver(.commit); return nil
