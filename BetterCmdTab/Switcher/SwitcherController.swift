@@ -5547,6 +5547,11 @@ final class SwitcherController: SwitcherViewDelegate {
         drillWindowRows = []
         tabIndex = 0
         drillWindow = nil
+        // Same reset as commit(): a stale open-session capture would bump the old tab on the next quick tap.
+        openFocusedWindow = nil
+        openFocusedWindowTitle = ""
+        prefetchedFocusedWindow = nil
+        prefetchedFocusedWindowTitle = ""
         hotkey.setTabDrillActive(false)
         tabPrefetchTimer?.invalidate()
         tabPrefetchTimer = nil
