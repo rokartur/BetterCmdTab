@@ -1390,8 +1390,8 @@ final class SwitcherView: NSView {
         guard let size, size.width > 0, size.height > 0 else { return fallback }
         let ratio = size.width / size.height
         guard ratio.isFinite else { return fallback }
-        // Leave room for the title on narrow tiles and room for neighbors on wide ones.
-        return ratio.clamped(to: (fallback * 0.5)...(fallback * 1.5))
+        // 0.6 keeps a phone-shaped window's title readable; 3.2 fits a 32:10 ultrawide (#318).
+        return ratio.clamped(to: 0.6...3.2)
     }
 
     nonisolated static func fitAdaptivePreviewRows(

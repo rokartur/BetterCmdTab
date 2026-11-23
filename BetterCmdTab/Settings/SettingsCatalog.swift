@@ -567,7 +567,7 @@ enum SettingsCatalog {
         item(SearchID.layout, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Layout"), ["layout", "grid", "list", "preview"]),
         item(SearchID.adaptivePreviewWidth, .appearance, SettingsAnchor.appearancePreviewWidth, String(localized: "Appearance"), String(localized: "Previews"),
-             String(localized: "Adaptive preview width"), ["preview", "thumbnail", "aspect ratio", "width"]),
+             String(localized: "Adaptive preview width"), ["preview", "thumbnail", "aspect ratio", "width", "shape", "proportions", "portrait", "ultrawide"]),
         item(SearchID.size, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
              String(localized: "Size"), ["size", "panel size", "scale", "percent", "compact", "small", "large"]),
         item(SearchID.listMaxWidth, .appearance, SettingsAnchor.appearanceLayout, String(localized: "Appearance"), String(localized: "Layout"),
