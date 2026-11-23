@@ -270,7 +270,8 @@ final class SwitcherPanesViewController: SettingsTabViewController {
         let tabs = addSection(title: String(localized: "Browser tabs"), anchor: SettingsAnchor.browserTabs)
         configureSwitch(expandBrowserTabsSwitch, action: #selector(toggleExpandBrowserTabs(_:)))
         addRow(to: tabs, title: String(localized: "Show browser tabs as separate entries"),
-               subtitle: String(localized: "List each tab of a browser window (Safari, Chrome, Arc, Brave, Edge, …) as its own row alongside the other windows, instead of one collapsed window. Needs Apple Events access, granted under Privacy › Permissions; off keeps one row per window — peek its tabs instead."),
+               subtitle: String(localized: "List each tab of a browser window (Safari, Chrome, Arc, Brave, Edge, …) as its own row alongside the other windows, instead of one collapsed window. Needs Apple Events access, granted under Privacy › Permissions; off keeps one row per window — peek its tabs instead.")
+                   + " " + String(localized: "Safari tabs show site icons only with Full Disk Access, also under Privacy › Permissions."),
                accessory: expandBrowserTabsSwitch, searchItemID: SearchID.expandBrowserTabs)
         let browserTabLimitTitle = String(localized: "Browser tabs to show")
         configureIntegerField(browserTabLimitField,
