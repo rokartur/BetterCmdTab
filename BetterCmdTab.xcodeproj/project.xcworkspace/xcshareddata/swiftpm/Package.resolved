@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/rokartur/BetterShortcuts.git",
       "state" : {
-        "revision" : "ee013fdc72e621fcde41a062af5e56c283a693d3",
-        "version" : "0.3.8"
+        "revision" : "4f7282ad0eef07dd90aa242776a7f831049e8c12",
+        "version" : "0.3.9"
       }
     },
     {
