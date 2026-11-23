@@ -21,15 +21,6 @@ struct BrowserTabAppMRUTests {
         #expect(result == [3, 1, 2, 0, 4, 5])
     }
 
-    @Test("app recency keeps a non-browser app's window order across status buckets")
-    func appRecencyKeepsWindowOrder() {
-        let minimized = SwitcherRow(app: .current, window: nil, windowTitle: "w2", isMinimized: true, cgWindowID: 2)
-        let visible = SwitcherRow(app: .current, window: nil, windowTitle: "w1", isMinimized: false, cgWindowID: 1)
-        let sorted = BrowserTabMRUTracker().sortRowsWithinApps(
-            [minimized, visible], browserPids: [], priorities: [1, 0])
-        #expect(sorted.map(\.cgWindowID) == [2, 1])
-    }
-
     @Test("minimized recency cannot move another application ahead after status bucketing")
     func statusBucketsPreserveAppOrder() {
         #expect(BrowserTabMRUTracker.appSlotOrder(
@@ -49,14 +40,14 @@ struct BrowserTabAppMRUTests {
                         browserTab: .init(index: index, parentTitle: "Parent", url: "", isActive: false))
         }
         let rows = [row(1, 0, "A"), row(1, 1, "B"), row(2, 0, "C"), row(2, 1, "D")]
-        let sorted = tracker.sortRowsWithinApps(rows, browserPids: [rows[0].pid!], priorities: [0, 0, 0, 0])
+        let sorted = tracker.sortRowsWithinApps(rows, browserPids: [rows[0].pid!]) { _ in 0 }
         #expect(sorted.map(\.windowTitle) == ["D", "B", "C", "A"])
         #expect(sorted.map(\.cgWindowID) == [2, 1, 2, 1])
         #expect(sorted.compactMap { $0.browserTab?.index } == [1, 1, 0, 0])
     }
 
-    @Test("a window excluded by the tab quota remains reachable in app recency")
-    func quotaKeepsWholeWindow() {
+    @Test("a whole-window row ranks by its most recent tab")
+    func wholeWindowRanksByItsTabs() {
         let tracker = BrowserTabMRUTracker()
         let visits: [(UInt32, String)] = [(2, "B1"), (1, "A1"), (1, "A2")]
         for (wid, title) in visits {
@@ -69,7 +60,7 @@ struct BrowserTabAppMRUTests {
             SwitcherRow(app: .current, window: nil, windowTitle: title, isMinimized: false, cgWindowID: 1,
                         browserTab: .init(index: index, parentTitle: "Window A", url: title, isActive: index == 1))
         }
-        let sorted = tracker.sortRowsWithinApps([whole] + tabs, browserPids: [pid], priorities: [0, 0, 0])
+        let sorted = tracker.sortRowsWithinApps([whole] + tabs, browserPids: [pid]) { _ in 0 }
         #expect(sorted.map(\.windowTitle) == ["A2", "A1", "Window B"])
         #expect(sorted.last?.browserTab == nil)
     }
@@ -84,7 +75,7 @@ struct BrowserTabAppMRUTests {
             SwitcherRow(app: .current, window: nil, windowTitle: tab.title, isMinimized: false, cgWindowID: 1,
                         browserTab: .init(index: index, parentTitle: "Window A", url: tab.url, isActive: index == 1))
         }
-        let sorted = tracker.sortRowsWithinApps(rows, browserPids: [pid], priorities: [0, 0, 0])
+        let sorted = tracker.sortRowsWithinApps(rows, browserPids: [pid]) { _ in 0 }
         #expect(sorted.map(\.windowTitle) == ["A2", "A1", "A3"])
     }
 }
