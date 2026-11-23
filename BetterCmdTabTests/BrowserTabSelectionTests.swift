@@ -77,6 +77,12 @@ struct BrowserTabSelectionTests {
         #expect(result.fallbackWindows.isEmpty)
     }
 
+    @Test("with no history the window's active tab leads its unobserved tabs")
+    func unobservedActiveTabFirst() {
+        let result = BrowserTabSelection.select([window(count: 4, active: 2)], ranking: BrowserTabMRUTracker().ranking(), limit: 0)
+        #expect(result.indices[0] == [2, 0, 1, 3])
+    }
+
     @Test("a history entry on an excluded window cannot displace an eligible tab")
     func excludedWindow() {
         let tracker = BrowserTabMRUTracker()

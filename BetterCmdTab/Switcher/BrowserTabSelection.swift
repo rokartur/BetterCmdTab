@@ -55,6 +55,7 @@ enum BrowserTabSelection {
             if $0.priority != $1.priority { return $0.priority < $1.priority }
             if $0.rank != $1.rank { return $0.rank < $1.rank }
             if $0.window != $1.window { return $0.window < $1.window }
+            if isActive($0) != isActive($1) { return isActive($0) }
             return $0.index < $1.index
         }
         // Keep active mirror copies, suppress inactive duplicates, then charge
