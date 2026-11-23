@@ -3957,10 +3957,11 @@ final class SwitcherController: SwitcherViewDelegate {
                 let isCurrent = !self.didShutdown && self.focusSyncTokens[pid] == token
                 if isCurrent {
                     self.focusSyncTokens.removeValue(forKey: pid)
-                    if wid != 0 { self.windowMRU.bump(pid: pid, wid: wid) }
                     // A busy app can fail the resolve; nothing else re-asks, so
                     // its window would stay unknown to the window MRU.
                     let isFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+                    let mayBump = FocusResolveRetry.mayBump(attempt: attempt, resolved: wid != 0, isFrontmost: isFrontmost)
+                    if mayBump { self.windowMRU.bump(pid: pid, wid: wid) }
                     if let delay = FocusResolveRetry.delay(afterAttempt: attempt, resolved: wid != 0, isFrontmost: isFrontmost) {
                         Log.mru.debug("focus resolve empty pid=\(pid, privacy: .public) attempt=\(attempt, privacy: .public)")
                         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
@@ -3969,7 +3970,7 @@ final class SwitcherController: SwitcherViewDelegate {
                             self.handleFocusChange(pid: pid, attempt: attempt + 1)
                         }
                     }
-                    if feedTabMRU, wid != 0 {
+                    if feedTabMRU, mayBump {
                         if isBrowser, let title = info?.title,
                            !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             self.tabMRU.bump(BrowserTabMRUTracker.tabKey(wid: wid, title: title))

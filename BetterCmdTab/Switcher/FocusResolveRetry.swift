@@ -18,4 +18,9 @@ enum FocusResolveRetry {
         guard !resolved, isFrontmost, delays.indices.contains(attempt) else { return nil }
         return delays[attempt]
     }
+
+    /// A retry lands up to 0.25 s after it fires, so it bumps only while its app is still frontmost.
+    static func mayBump(attempt: Int, resolved: Bool, isFrontmost: Bool) -> Bool {
+        resolved && (attempt == 0 || isFrontmost)
+    }
 }

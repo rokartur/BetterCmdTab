@@ -28,4 +28,16 @@ struct FocusResolveRetryTests {
     func outOfRangeAttempt() {
         #expect(FocusResolveRetry.delay(afterAttempt: -1, resolved: false, isFrontmost: true) == nil)
     }
+
+    @Test("a retry that lands after the user left does not bump")
+    func lateRetryDoesNotBump() {
+        #expect(!FocusResolveRetry.mayBump(attempt: 1, resolved: true, isFrontmost: false))
+        #expect(FocusResolveRetry.mayBump(attempt: 1, resolved: true, isFrontmost: true))
+    }
+
+    @Test("the first resolve bumps even when the app is no longer frontmost")
+    func firstResolveBumps() {
+        #expect(FocusResolveRetry.mayBump(attempt: 0, resolved: true, isFrontmost: false))
+        #expect(!FocusResolveRetry.mayBump(attempt: 0, resolved: false, isFrontmost: true))
+    }
 }
