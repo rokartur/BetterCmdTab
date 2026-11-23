@@ -29,9 +29,9 @@ struct KeyboardLayoutKeycodeTests {
 
 @Suite("Keyboard layout jump character (#184)")
 struct KeyboardLayoutJumpCharacterTests {
-    // Russian A, Greek Q, Hebrew Q and Thai H on Apple's layouts, against US.
+    // Russian A, Greek Q, Hebrew Q, Thai H, and Arabic/Persian H and L (#304) on Apple's layouts, against US.
     @Test("a key typing no ASCII letter reads the ASCII-capable layout's letter",
-          arguments: [("ф", "a"), (";", "q"), ("/", "q"), ("\u{0E49}", "h")] as [(Character, Character)])
+          arguments: [("ф", "a"), (";", "q"), ("/", "q"), ("\u{0E49}", "h"), ("\u{0627}", "h"), ("\u{0645}", "l")] as [(Character, Character)])
     func nonLetterKeyReadsLatinLetter(_ typed: Character, _ latin: Character) {
         #expect(KeyboardLayout.jumpCharacter(typed: typed) { latin } == latin)
     }
