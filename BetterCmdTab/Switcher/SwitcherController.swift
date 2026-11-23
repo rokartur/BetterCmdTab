@@ -3962,13 +3962,9 @@ final class SwitcherController: SwitcherViewDelegate {
                     let isFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
                     let mayBump = FocusResolveRetry.mayBump(attempt: attempt, resolved: wid != 0, isFrontmost: isFrontmost)
                     if mayBump { self.windowMRU.bump(pid: pid, wid: wid) }
+                    self.focusResolveRetries.removeValue(forKey: pid)?.cancel()
                     if let delay = FocusResolveRetry.delay(afterAttempt: attempt, resolved: wid != 0, isFrontmost: isFrontmost) {
-                        Log.mru.debug("focus resolve empty pid=\(pid, privacy: .public) attempt=\(attempt, privacy: .public)")
-                        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                            guard let self, !self.didShutdown,
-                                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
-                            self.handleFocusChange(pid: pid, attempt: attempt + 1)
-                        }
+                        self.scheduleFocusResolveRetry(pid: pid, attempt: attempt, delay: delay)
                     }
                     if feedTabMRU, mayBump {
                         if isBrowser, let title = info?.title,
@@ -3984,6 +3980,22 @@ final class SwitcherController: SwitcherViewDelegate {
                 }
             }
         }
+    }
+
+    /// One pending re-ask per pid: activation and AX focus both land empty for a hung app.
+    private var focusResolveRetries: [pid_t: DispatchWorkItem] = [:]
+
+    private func scheduleFocusResolveRetry(pid: pid_t, attempt: Int, delay: TimeInterval) {
+        Log.mru.debug("focus resolve empty pid=\(pid, privacy: .public) attempt=\(attempt, privacy: .public)")
+        let retry = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.focusResolveRetries.removeValue(forKey: pid)
+            guard !self.didShutdown,
+                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
+            self.handleFocusChange(pid: pid, attempt: attempt + 1)
+        }
+        focusResolveRetries[pid] = retry
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: retry)
     }
 
     private var visibleTitleRefreshScheduled = false
