@@ -393,7 +393,10 @@ enum CatalogFilter {
     }
 
     static func resolveSpaces(_ rows: [SwitcherRow], scope: SpaceScope) -> SpaceResolution {
-        guard let active = PrivateAPI.activeSpace() else { return .unavailable }
+        let displayMode = UserDefaults.standard.string(forKey: Preferences.Keys.switcherDisplayMode)
+            .flatMap(SwitcherDisplayMode.init(rawValue:)) ?? .mouseCursor
+        let cursorSpace = displayMode == .mouseCursor ? PrivateAPI.spaceUnderCursor() : nil
+        guard let active = cursorSpace ?? PrivateAPI.activeSpace() else { return .unavailable }
         var allowed: Set<UInt64> = [active]
         if scope == .visibleSpaces {
             allowed.formUnion(PrivateAPI.visibleSpaces())
