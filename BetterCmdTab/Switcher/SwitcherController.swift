@@ -108,6 +108,9 @@ final class SwitcherController: SwitcherViewDelegate {
     private var windowsByPidMemo: [pid_t: [SwitcherRow]]?
 
     private var _phase: Phase = .idle
+    /// Set while a ⌘` session hands off to the app switcher, so reopening does
+    /// not bump the activation generation and cancel the just-committed window raise.
+    private var handingOffWindowPick = false
     private var switchSessionKind: SwitchSessionKind = .none
     private var primedApps: [NSRunningApplication] = []
     private var primedIndex: Int = 0
@@ -2077,7 +2080,7 @@ final class SwitcherController: SwitcherViewDelegate {
                 } else {
                     RowLabels.setOffHandLetters(sessionOffHandLetters())
                     RowLabels.setHomeRowLetters(Preferences.shared.homeRowLetterHints ? KeyboardLayout.lettersByReach() : [])
-                    Activator.beginActivation()
+                    if !handingOffWindowPick { Activator.beginActivation() }
                     secureInputMonitor.start()
                     cache.retryFailedAXObservers()
                 }
@@ -2658,8 +2661,10 @@ final class SwitcherController: SwitcherViewDelegate {
             // commit() lands the window pick and returns to `.idle`
             // synchronously, so advance() opens a fresh app-switch session.
             commit()
+            handingOffWindowPick = true
         }
         advance(by: delta, wrap: true)
+        handingOffWindowPick = false
     }
 
     private func handleWindowTrigger(delta: Int) {
