@@ -2649,14 +2649,10 @@ final class SwitcherController: SwitcherViewDelegate {
 
     /// Native ⌘Tab parity: an app-trigger press during a window-switch session
     /// (⌘` then Tab with ⌘ still held) hands off to the app switcher instead of
-    /// stepping the frontmost app's window list. Native macOS has already moved
-    /// to the next window on ⌘`, so the window pick is committed first.
-    nonisolated static func appTriggerHandsOffToAppSwitcher(session: SwitchSessionKind) -> Bool {
-        session == .windowSwitching
-    }
-
+    /// stepping the frontmost app's window list. The window pick (the primed step
+    /// or the highlighted row) is committed first, as native ⌘` has already switched.
     private func appTriggerStep(by delta: Int) {
-        if Self.appTriggerHandsOffToAppSwitcher(session: switchSessionKind), phase != .idle {
+        if switchSessionKind == .windowSwitching {
             // commit() lands the window pick and returns to `.idle`
             // synchronously, so advance() opens a fresh app-switch session.
             commit()
