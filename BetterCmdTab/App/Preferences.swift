@@ -959,8 +959,8 @@ final class Preferences: ObservableObject {
     /// Upper bound on recently-closed entries surfaced in search. `0` disables.
     nonisolated static let recentlyClosedLimitRange: ClosedRange<Int> = 0...50
     /// Valid per-window browser-tab row caps when a limit is set (#144).
-    /// `0` (outside this range) means unlimited.
-    nonisolated static let browserTabRowLimitRange: ClosedRange<Int> = 2...16
+    /// `0` (outside this range) means unlimited; `1` shows only the active tab, with its favicon (#299).
+    nonisolated static let browserTabRowLimitRange: ClosedRange<Int> = 1...16
 
     /// Number of direct-activation hotkey slots. Each slot binds a recorded
     /// shortcut (stored by BetterShortcuts) to a target app bundle ID.
@@ -1079,7 +1079,7 @@ final class Preferences: ObservableObject {
         /// NSWindows, so the rows are built from an async Apple Events tab scan.
         static let expandBrowserTabsAsWindows = "Switcher.expandBrowserTabsAsWindows"
         /// Cap on how many tab rows one browser window expands to (#144).
-        /// `0` = unlimited; otherwise 2…16.
+        /// `0` = unlimited; otherwise 1…16.
         static let browserTabRowLimit = "Switcher.browserTabRowLimit"
         /// Badge each expanded browser-tab row's favicon with the source
         /// browser's app icon (#131). Default off — favicon-only stays the look.
@@ -1979,7 +1979,7 @@ final class Preferences: ObservableObject {
 
     /// At most this many tab rows per expanded browser window — the first N
     /// tabs, slid right just enough to keep the active tab visible (#144).
-    /// `0` (default) shows every tab; otherwise clamped to 2…16.
+    /// `0` (default) shows every tab; otherwise clamped to 1…16.
     @Published var browserTabRowLimit: Int {
         didSet {
             let clamped = Self.clampBrowserTabRowLimit(browserTabRowLimit)
@@ -2657,7 +2657,7 @@ final class Preferences: ObservableObject {
         value.clamped(to: recentlyClosedLimitRange)
     }
 
-    /// `<= 0` normalizes to `0` (unlimited); anything else snaps into 2…16.
+    /// `<= 0` normalizes to `0` (unlimited); anything else snaps into 1…16.
     static func clampBrowserTabRowLimit(_ value: Int) -> Int {
         value <= 0 ? 0 : value.clamped(to: browserTabRowLimitRange)
     }

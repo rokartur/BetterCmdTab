@@ -93,6 +93,15 @@ struct PreferencesMigrationTests {
         #expect(Preferences.legacyPanelScalePercent("unknown") == nil)
     }
 
+    @MainActor
+    @Test("a browser tab limit of 1 keeps only the active tab (#299)")
+    func browserTabLimitOne() {
+        #expect(Preferences.clampBrowserTabRowLimit(1) == 1)
+        #expect(Preferences.clampBrowserTabRowLimit(-3) == 0)
+        #expect(Preferences.clampBrowserTabRowLimit(99) == 16)
+        #expect(SwitcherRow.visibleTabRange(count: 5, activeIndex: 3, limit: 1) == 3..<4)
+    }
+
     @Test("pre-#170 percentages keep their ratio to the default when re-based")
     func panelScaleRebase() {
         // The old default has to land exactly on the new one, or an untouched slider

@@ -24747,49 +24747,49 @@
         }
       }
     },
-    "With tab recency and either recent sort, this limit applies to each browser across its windows. Other modes limit each window and keep its active tab visible. Set to 0 for no limit (otherwise 2–16)." : {
+    "With tab recency and either recent sort, this limit applies to each browser across its windows. Other modes limit each window and keep its active tab visible. Set to 0 for no limit (otherwise 1–16)." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit Tab-Verlauf und einer der beiden Sortierungen nach letzter Nutzung gilt dieses Limit pro Browser über alle Fenster hinweg. Andere Modi begrenzen jedes Fenster und lassen den aktiven Tab sichtbar. 0 bedeutet unbegrenzt (sonst 2–16)."
+            "value" : "Mit Tab-Verlauf und einer der beiden Sortierungen nach letzter Nutzung gilt dieses Limit pro Browser über alle Fenster hinweg. Andere Modi begrenzen jedes Fenster und lassen den aktiven Tab sichtbar. 0 bedeutet unbegrenzt (sonst 1–16)."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Con el seguimiento de pestañas y cualquiera de los dos órdenes por último uso, este límite se aplica a cada navegador entre todas sus ventanas. Los demás modos limitan cada ventana y mantienen visible su pestaña activa. Usa 0 para no limitar (en otro caso, 2–16)."
+            "value" : "Con el seguimiento de pestañas y cualquiera de los dos órdenes por último uso, este límite se aplica a cada navegador entre todas sus ventanas. Los demás modos limitan cada ventana y mantienen visible su pestaña activa. Usa 0 para no limitar (en otro caso, 1–16)."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avec le suivi des onglets et l’un des deux tris par dernière utilisation, cette limite s’applique à chaque navigateur, toutes fenêtres confondues. Les autres modes limitent chaque fenêtre et gardent son onglet actif visible. 0 signifie sans limite (sinon 2–16)."
+            "value" : "Avec le suivi des onglets et l’un des deux tris par dernière utilisation, cette limite s’applique à chaque navigateur, toutes fenêtres confondues. Les autres modes limitent chaque fenêtre et gardent son onglet actif visible. 0 signifie sans limite (sinon 1–16)."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "タブの使用履歴と、いずれかの「最近使った順」が有効な場合、この上限はブラウザごとに全ウインドウを通じて適用されます。他のモードではウインドウごとに制限し、アクティブなタブを表示します。0は無制限、それ以外は2〜16です。"
+            "value" : "タブの使用履歴と、いずれかの「最近使った順」が有効な場合、この上限はブラウザごとに全ウインドウを通じて適用されます。他のモードではウインドウごとに制限し、アクティブなタブを表示します。0は無制限、それ以外は1〜16です。"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przy śledzeniu kart i jednym z dwóch sortowań według ostatniego użycia limit dotyczy każdej przeglądarki łącznie we wszystkich jej oknach. Inne tryby ograniczają każde okno, zachowując widoczną aktywną kartę. 0 oznacza brak limitu (w pozostałych przypadkach 2–16)."
+            "value" : "Przy śledzeniu kart i jednym z dwóch sortowań według ostatniego użycia limit dotyczy każdej przeglądarki łącznie we wszystkich jej oknach. Inne tryby ograniczają każde okno, zachowując widoczną aktywną kartę. 0 oznacza brak limitu (w pozostałych przypadkach 1–16)."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "При отслеживании вкладок и любом из двух порядков по последнему использованию лимит действует на каждый браузер суммарно по всем его окнам. В других режимах лимит действует на каждое окно, а активная вкладка остаётся видимой. 0 — без ограничения (иначе 2–16)."
+            "value" : "При отслеживании вкладок и любом из двух порядков по последнему использованию лимит действует на каждый браузер суммарно по всем его окнам. В других режимах лимит действует на каждое окно, а активная вкладка остаётся видимой. 0 — без ограничения (иначе 1–16)."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启标签页使用顺序跟踪并选择任一种“最近使用”排序时，上限按每个浏览器的所有窗口合计。其他模式按每个窗口限制，并保持活动标签页可见。设为 0 不限制数量，其他值为 2–16。"
+            "value" : "开启标签页使用顺序跟踪并选择任一种“最近使用”排序时，上限按每个浏览器的所有窗口合计。其他模式按每个窗口限制，并保持活动标签页可见。设为 0 不限制数量，其他值为 1–16。"
           }
         }
       }

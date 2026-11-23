@@ -114,7 +114,7 @@
       "type" : "boolean"
     },
     "browserTabRowLimit" : {
-      "description" : "Cap on tab entries. With browserTabMRU and mru or mruWindows, keeps the most recently used tabs per browser across its windows, and a window with none of them stays as one entry; otherwise per window. 0 = unlimited; anything else is taken as 2…16.",
+      "description" : "Cap on tab entries. With browserTabMRU and mru or mruWindows, keeps the most recently used tabs per browser across its windows, and a window with none of them stays as one entry; otherwise per window. 0 = unlimited; anything else is taken as 1…16.",
       "maximum" : 16,
       "minimum" : 0,
       "type" : "integer"
