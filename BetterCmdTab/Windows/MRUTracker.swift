@@ -6,7 +6,7 @@ final class MRUTracker {
     private(set) var order: [pid_t] = []
 
     func start() {
-        guard termObservers.isEmpty else { return }
+        guard observers.isEmpty else { return }
         seedFromCurrent()
         let termObs = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification,
@@ -18,34 +18,33 @@ final class MRUTracker {
             else { return }
             MainActor.assumeIsolated { self?.remove(app.pid) }
         }
-        termObservers.append(termObs)
+        observers.append(termObs)
         // An app that launches without activating never gets bumped and would
-        // list after every app used since launch. Regular apps only: a
-        // windowless helper must not become a quick-switch candidate.
+        // list after every app used since launch.
+        // Regular apps only: a background helper must not push used apps down.
         let launchObs = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didLaunchApplicationNotification,
             object: nil,
             queue: .main
         ) { [weak self] note in
-            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-                  app.activationPolicy == .regular,
-                  UserDefaults.standard.bool(forKey: Preferences.Keys.launchedAppsNearTop)
+            guard UserDefaults.standard.bool(forKey: Preferences.Keys.launchedAppsNearTop),
+                  let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  app.activationPolicy == .regular
             else { return }
-            let pid = app.pid
             MainActor.assumeIsolated {
-                self?.noteLaunch(pid) { NSRunningApplication(processIdentifier: $0)?.activationPolicy == .regular }
+                self?.noteLaunch(app.pid) { NSRunningApplication(processIdentifier: $0)?.activationPolicy == .regular }
             }
         }
-        termObservers.append(launchObs)
+        observers.append(launchObs)
     }
 
     func stop() {
         let center = NSWorkspace.shared.notificationCenter
-        for observer in termObservers { center.removeObserver(observer) }
-        termObservers.removeAll()
+        for observer in observers { center.removeObserver(observer) }
+        observers.removeAll()
     }
 
-    private var termObservers: [NSObjectProtocol] = []
+    private var observers: [NSObjectProtocol] = []
 
     nonisolated deinit {
         tearDownOnMainActor { stop() }

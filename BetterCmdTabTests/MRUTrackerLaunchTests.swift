@@ -1,9 +1,6 @@
 import Testing
 @testable import BetterCmdTab
 
-/// Covers `MRUTracker.noteLaunch`, which ranks an app that launched without
-/// activating behind the current and previous apps instead of last, so a
-/// quick ⌘Tab still returns to the previous app.
 @MainActor
 @Suite("MRUTracker launch placement")
 struct MRUTrackerLaunchTests {
