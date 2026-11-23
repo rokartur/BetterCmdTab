@@ -99,7 +99,7 @@ final class BrowserTabMRUTracker {
     /// those slots are reordered. Ordinary apps retain their window-MRU order.
     func sortRowsWithinApps(_ rows: [SwitcherRow], browserPids: Set<pid_t>, priority: (SwitcherRow) -> Int) -> [SwitcherRow] {
         guard !order.isEmpty, rows.count > 1, !browserPids.isEmpty else { return rows }
-        return Self.appSlotOrder(pids: rows.map(\.pid), priorities: rows.map(priority), rankedIndices: rankedIndices(rows),
+        return Self.appSlotOrder(pids: rows.map(\.pid), priorities: rows.map(priority), rankedIndices: rankedIndices(rows) { $0.pid.map(browserPids.contains) ?? false },
                                  includedPids: browserPids).map { rows[$0] }
     }
 
@@ -123,14 +123,15 @@ final class BrowserTabMRUTracker {
         }
     }
 
-    private func rankedIndices(_ rows: [SwitcherRow]) -> [Int] {
+    private func rankedIndices(_ rows: [SwitcherRow], where include: (SwitcherRow) -> Bool = { _ in true }) -> [Int] {
         let ranking = ranking()
-        let ranks = rows.map { row in
-            Self.key(for: row).flatMap { ranking.rank(for: $0) } ?? Int.max
+        let candidates = rows.indices.filter { include(rows[$0]) }
+        let ranks = candidates.map { index in
+            Self.key(for: rows[index]).flatMap { ranking.rank(for: $0) } ?? Int.max
         }
-        return rows.indices.sorted { lhs, rhs in
+        return candidates.indices.sorted { lhs, rhs in
             ranks[lhs] != ranks[rhs] ? ranks[lhs] < ranks[rhs] : lhs < rhs
-        }
+        }.map { candidates[$0] }
     }
 
     /// A read-only index shared by candidate selection and display sorting. A
