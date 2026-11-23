@@ -97,9 +97,9 @@ final class BrowserTabMRUTracker {
 
     /// App recency keeps the application's slots; only browser entries within
     /// those slots are reordered. Ordinary apps retain their window-MRU order.
-    func sortRowsWithinApps(_ rows: [SwitcherRow], browserPids: Set<pid_t>, priorities: [Int]) -> [SwitcherRow] {
+    func sortRowsWithinApps(_ rows: [SwitcherRow], browserPids: Set<pid_t>, priority: (SwitcherRow) -> Int) -> [SwitcherRow] {
         guard !order.isEmpty, rows.count > 1, !browserPids.isEmpty else { return rows }
-        return Self.appSlotOrder(pids: rows.map(\.pid), priorities: priorities, rankedIndices: rankedIndices(rows),
+        return Self.appSlotOrder(pids: rows.map(\.pid), priorities: rows.map(priority), rankedIndices: rankedIndices(rows),
                                  includedPids: browserPids).map { rows[$0] }
     }
 

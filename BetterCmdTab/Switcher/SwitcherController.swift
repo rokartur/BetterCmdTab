@@ -3790,7 +3790,7 @@ final class SwitcherController: SwitcherViewDelegate {
             let browserPids = Set(rows.compactMap { row -> pid_t? in
                 BrowserTabs.Family.from(bundleID: row.bundleIdentifier) != nil ? row.pid : nil
             })
-            return tabMRU.sortRowsWithinApps(rows, browserPids: browserPids, priorities: rows.map(statusPriority))
+            return tabMRU.sortRowsWithinApps(rows, browserPids: browserPids, priority: statusPriority)
         }
         let ranked = tabMRU.sortRows(rows)
         let priorities = ranked.map(statusPriority)
