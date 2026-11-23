@@ -257,7 +257,7 @@ final class AppCatalogCache {
                 seen.insert(pid)
             }
         }
-        // Apps absent from MRU (launched in the background, never activated):
+        // Apps absent from MRU (launched in the background and never activated, launchedAppsNearTop off):
         // dictionary order is nondeterministic and reshuffles on every cache
         // mutation, so sort by pid — stable and deterministic across refreshes.
         var remainder: [(pid: pid_t, entry: AppCacheEntry)] = []
