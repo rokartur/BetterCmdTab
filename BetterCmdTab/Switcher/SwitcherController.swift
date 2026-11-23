@@ -4779,7 +4779,10 @@ final class SwitcherController: SwitcherViewDelegate {
         quittingPids.removeAll()
         // Drop any focused-window prefetch so it can't survive into the next
         // session and be adopted by a gesture/scoped open that skips the primed
-        // prefetch (those call reveal() directly).
+        // prefetch (those call reveal() directly). The open-session capture goes too:
+        // a later quick tap would otherwise bump that session's stale browser tab.
+        openFocusedWindow = nil
+        openFocusedWindowTitle = ""
         prefetchedFocusedWindow = nil
         prefetchedFocusedWindowTitle = ""
         prefetchedTarget = nil
