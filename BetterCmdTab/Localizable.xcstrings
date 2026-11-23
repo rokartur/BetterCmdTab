@@ -10457,6 +10457,52 @@
         }
       }
     },
+    "Lets the Previews layout show window thumbnails. Without it, tiles show the app icon. Optional." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ermöglicht dem Layout „Vorschauen“, Fenster-Miniaturen anzuzeigen. Ohne diese Berechtigung zeigen Kacheln das App-Symbol. Optional."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite que el diseño Vistas previas muestre miniaturas de las ventanas. Sin este permiso, los mosaicos muestran el icono de la app. Opcional."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet à la disposition Aperçus d’afficher des miniatures des fenêtres. Sans cette autorisation, les vignettes affichent l’icône de l’app. Facultatif."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビューレイアウトでウインドウのサムネールを表示できるようにします。許可がない場合、タイルにはアプリのアイコンが表示されます。任意。"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwala układowi Podglądy pokazywać miniatury okien. Bez tego kafelki pokazują ikonę aplikacji. Opcjonalne."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позволяет макету «Предпросмотры» показывать миниатюры окон. Без него плитки показывают значок приложения. Необязательно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "让“预览”布局显示窗口缩略图。没有此权限时，图块显示应用图标。可选。"
+          }
+        }
+      }
+    },
     "Letter chain timeout" : {
       "localizations" : {
         "de" : {
@@ -16771,6 +16817,52 @@
         }
       }
     },
+    "Safari tabs show site icons only with Full Disk Access, also under Privacy › Permissions." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari-Tabs zeigen Website-Symbole nur mit Festplattenvollzugriff, ebenfalls unter Datenschutz › Berechtigungen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las pestañas de Safari muestran los iconos de los sitios solo con Acceso total al disco, también en Privacidad › Permisos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les onglets Safari n’affichent les icônes des sites qu’avec l’Accès complet au disque, également dans Confidentialité › Autorisations."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safariのタブにサイトのアイコンを表示するには、フルディスクアクセスが必要です（これも「プライバシー › アクセス権」で許可します）。"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karty Safari pokazują ikony stron tylko z Pełnym dostępem do dysku, również w Prywatność › Uprawnienia."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладки Safari показывают значки сайтов только при Полном доступе к диску, он тоже в разделе Конфиденциальность › Разрешения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safari 标签页只有在获得完全磁盘访问权限后才会显示网站图标，同样在“隐私 › 权限”中授予。"
+          }
+        }
+      }
+    },
     "Save all your settings to a file you can back up or move to another Mac." : {
       "localizations" : {
         "de" : {
@@ -16997,6 +17089,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "屏幕共享"
+          }
+        }
+      }
+    },
+    "Screen Recording" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirmaufnahme"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement de l’écran"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面収録"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrywanie ekranu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запись экрана"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录屏"
           }
         }
       }

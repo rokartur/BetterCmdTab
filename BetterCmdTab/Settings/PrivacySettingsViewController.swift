@@ -9,6 +9,8 @@ final class PrivacySettingsViewController: SettingsTabViewController {
 
     private let permissionIcon = NSImageView()
     private let permissionButton = NSButton(title: "", target: nil, action: nil)
+    private let screenRecordingIcon = NSImageView()
+    private let screenRecordingButton = NSButton(title: "", target: nil, action: nil)
     private let fullDiskIcon = NSImageView()
     private let fullDiskButton = NSButton(title: "", target: nil, action: nil)
 
@@ -31,6 +33,14 @@ final class PrivacySettingsViewController: SettingsTabViewController {
             subtitle: String(localized: "Lets BetterCmdTab capture the shortcut and read your open windows. Required to work."),
             accessory: makePermissionAccessory(icon: permissionIcon, button: permissionButton, action: #selector(grantAccess)),
             searchItemID: SearchID.accessibility
+        )
+
+        addRow(
+            to: permissions,
+            title: String(localized: "Screen Recording"),
+            subtitle: String(localized: "Lets the Previews layout show window thumbnails. Without it, tiles show the app icon. Optional."),
+            accessory: makePermissionAccessory(icon: screenRecordingIcon, button: screenRecordingButton, action: #selector(grantScreenRecording)),
+            searchItemID: SearchID.screenRecording
         )
 
         addRow(
@@ -113,6 +123,13 @@ final class PrivacySettingsViewController: SettingsTabViewController {
                 }
             },
             Task { @MainActor [weak self] in
+                for await snapshot in BetterPermissions.changes(.screenRecording) {
+                    guard let self else { return }
+                    self.refreshPermission(icon: self.screenRecordingIcon, button: self.screenRecordingButton,
+                                           isUsable: snapshot.status.isUsable, optional: true)
+                }
+            },
+            Task { @MainActor [weak self] in
                 for await snapshot in BetterPermissions.changes(.fullDiskAccess) {
                     guard let self else { return }
                     self.refreshPermission(icon: self.fullDiskIcon, button: self.fullDiskButton,
@@ -144,6 +161,14 @@ final class PrivacySettingsViewController: SettingsTabViewController {
         Task { @MainActor in
             let outcome = await BetterPermissions.request(.accessibility)
             if outcome.needsSettings { BetterPermissions.openSettings(for: .accessibility) }
+        }
+    }
+
+    // CGRequestScreenCaptureAccess prompts once per install; after a denial only the pane can grant it.
+    @objc private func grantScreenRecording() {
+        Task { @MainActor in
+            let outcome = await BetterPermissions.request(.screenRecording)
+            if outcome.needsSettings { BetterPermissions.openSettings(for: .screenRecording) }
         }
     }
 

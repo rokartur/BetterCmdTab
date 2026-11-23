@@ -95,6 +95,7 @@ enum SearchID {
     static let sound = "general.sound"
     static let hideFromScreenSharing = "privacy.hideFromScreenSharing"
     static let accessibility = "privacy.accessibility"
+    static let screenRecording = "privacy.screenRecording"
     static let fullDiskAccess = "privacy.fullDiskAccess"
     static let restoreShortcuts = "general.restoreShortcuts"
     static let updateInterval = "general.updateInterval"
@@ -622,6 +623,8 @@ enum SettingsCatalog {
         // Privacy · Permissions
         item(SearchID.accessibility, .privacy, SettingsAnchor.permissions, String(localized: "Privacy"), String(localized: "Permissions"),
              String(localized: "Accessibility access"), ["accessibility", "permission", "grant", "trusted"]),
+        item(SearchID.screenRecording, .privacy, SettingsAnchor.permissions, String(localized: "Privacy"), String(localized: "Permissions"),
+             String(localized: "Screen Recording"), ["screen recording", "capture", "permission", "thumbnail", "thumbnails", "previews"]),
         item(SearchID.fullDiskAccess, .privacy, SettingsAnchor.permissions, String(localized: "Privacy"), String(localized: "Permissions"),
              String(localized: "Full Disk Access"), ["full", "disk", "access", "fda", "permission", "safari", "favicon", "favicons"]),
         item(SearchID.tabPermissions, .privacy, SettingsAnchor.permissions, String(localized: "Privacy"), String(localized: "Permissions"),

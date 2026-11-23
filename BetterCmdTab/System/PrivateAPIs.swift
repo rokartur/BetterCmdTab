@@ -170,6 +170,32 @@ enum PrivateAPI {
         return space == 0 ? nil : space
     }
 
+    /// The current Space of the display under the pointer, or nil when the private
+    /// API is unavailable. On macOS 27 `activeSpace()` stays on the focused display until
+    /// a click on another one, so a panel on the cursor's monitor listed the focused monitor's windows (#260).
+    static func spaceUnderCursor() -> UInt64? {
+        guard let mainConnection = mainConnectionFn,
+              let copyDisplays = copyManagedDisplaySpacesFn,
+              let cursor = CGEvent(source: nil)?.location else { return nil }
+        var displayID: CGDirectDisplayID = 0
+        var count: UInt32 = 0
+        guard CGGetDisplaysWithPoint(cursor, 1, &displayID, &count) == .success, count == 1,
+              let uuid = CGDisplayCreateUUIDFromDisplayID(displayID)?.takeRetainedValue(),
+              let cfDisplays = copyDisplays(mainConnection())?.takeRetainedValue() else { return nil }
+        let displays = (cfDisplays as NSArray).compactMap { $0 as? [String: Any] }
+        return currentSpace(ofDisplay: CFUUIDCreateString(nil, uuid) as String, in: displays)
+    }
+
+    /// The "Current Space" of the `CGSCopyManagedDisplaySpaces` entry for a display UUID.
+    /// With "Displays have separate Spaces" off there is one entry, "Main", for every display. Pure.
+    static func currentSpace(ofDisplay uuid: String, in displays: [[String: Any]]) -> UInt64? {
+        let display = displays.count == 1
+            ? displays.first
+            : displays.first { $0["Display Identifier"] as? String == uuid }
+        guard let current = display?["Current Space"] as? [String: Any] else { return nil }
+        return spaceId(current)
+    }
+
     /// The Spaces currently on screen: each display's "Current Space" from
     /// `CGSCopyManagedDisplaySpaces` (#57 — the "visible Spaces" switcher
     /// filter), *plus the Spaces grouped with it* (see `spaceGroup`). A
