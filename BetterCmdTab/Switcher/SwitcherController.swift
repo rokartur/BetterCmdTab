@@ -3781,17 +3781,10 @@ final class SwitcherController: SwitcherViewDelegate {
         guard browserTabMRUActive else { return sinkInactiveBrowserTabs(rows) }
         let sinkHiddenApps = Preferences.shared.sinkHiddenApps
         let sinkMinimized = Preferences.shared.sinkMinimizedWindows
-        return Self.tabRecencyOrder(rows, appGrouped: effective.sortOrder == .mru, tabMRU: tabMRU,
-                                    pinnedBundleIDs: Preferences.shared.pinnedBundleIDs) {
-            AppCatalogCache.statusPriority($0, sinkHiddenApps: sinkHiddenApps, sinkMinimizedWindows: sinkMinimized)
+        let statusPriority = { (row: SwitcherRow) in
+            AppCatalogCache.statusPriority(row, sinkHiddenApps: sinkHiddenApps, sinkMinimizedWindows: sinkMinimized)
         }
-    }
-
-    static func tabRecencyOrder(
-        _ rows: [SwitcherRow], appGrouped: Bool, tabMRU: BrowserTabMRUTracker,
-        pinnedBundleIDs: [String], statusPriority: (SwitcherRow) -> Int
-    ) -> [SwitcherRow] {
-        if appGrouped {
+        if effective.sortOrder == .mru {
             // `.mru` rows arrive bucketed and pinned; reordering only inside each
             // (app, status) slot keeps that, and a second bucketing would not.
             let browserPids = Set(rows.compactMap { row -> pid_t? in
@@ -3804,7 +3797,7 @@ final class SwitcherController: SwitcherViewDelegate {
         let bucketed = ranked.indices
             .sorted { priorities[$0] != priorities[$1] ? priorities[$0] < priorities[$1] : $0 < $1 }
             .map { ranked[$0] }
-        return CatalogFilter.pinnedToFront(bucketed, pinnedBundleIDs)
+        return CatalogFilter.pinnedToFront(bucketed, Preferences.shared.pinnedBundleIDs)
     }
 
     /// Keep only a browser window's ACTIVE tab at the window's window-recency slot

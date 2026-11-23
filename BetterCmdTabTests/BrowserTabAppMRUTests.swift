@@ -25,9 +25,8 @@ struct BrowserTabAppMRUTests {
     func appRecencyKeepsWindowOrder() {
         let minimized = SwitcherRow(app: .current, window: nil, windowTitle: "w2", isMinimized: true, cgWindowID: 2)
         let visible = SwitcherRow(app: .current, window: nil, windowTitle: "w1", isMinimized: false, cgWindowID: 1)
-        let sorted = SwitcherController.tabRecencyOrder(
-            [minimized, visible], appGrouped: true, tabMRU: BrowserTabMRUTracker(), pinnedBundleIDs: []
-        ) { $0.isMinimized ? 1 : 0 }
+        let sorted = BrowserTabMRUTracker().sortRowsWithinApps(
+            [minimized, visible], browserPids: [], priorities: [1, 0])
         #expect(sorted.map(\.cgWindowID) == [2, 1])
     }
 
