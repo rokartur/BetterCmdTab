@@ -3936,6 +3936,7 @@ final class SwitcherController: SwitcherViewDelegate {
     /// React to a focus change without blocking the main thread: resolve the
     /// pid's focused window off-main (the AX query can stall on an unresponsive
     /// app), then bump the window MRU on main. Coalesced per pid.
+    /// An empty resolve for the frontmost app is re-asked on FocusResolveRetry.delays.
     private func handleFocusChange(pid: pid_t, attempt: Int = 0) {
         guard focusSync.begin(pid) else { return }
         nextFocusSyncToken &+= 1
@@ -3957,8 +3958,6 @@ final class SwitcherController: SwitcherViewDelegate {
                 let isCurrent = !self.didShutdown && self.focusSyncTokens[pid] == token
                 if isCurrent {
                     self.focusSyncTokens.removeValue(forKey: pid)
-                    // A busy app can fail the resolve; nothing else re-asks, so
-                    // its window would stay unknown to the window MRU.
                     let isFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
                     let mayBump = FocusResolveRetry.mayBump(attempt: attempt, resolved: wid != 0, isFrontmost: isFrontmost)
                     if mayBump { self.windowMRU.bump(pid: pid, wid: wid) }

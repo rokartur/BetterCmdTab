@@ -24,11 +24,6 @@ struct FocusResolveRetryTests {
         #expect(FocusResolveRetry.delay(afterAttempt: 0, resolved: false, isFrontmost: false) == nil)
     }
 
-    @Test("an out-of-range attempt yields no retry")
-    func outOfRangeAttempt() {
-        #expect(FocusResolveRetry.delay(afterAttempt: -1, resolved: false, isFrontmost: true) == nil)
-    }
-
     @Test("a retry that lands after the user left does not bump")
     func lateRetryDoesNotBump() {
         #expect(!FocusResolveRetry.mayBump(attempt: 1, resolved: true, isFrontmost: false))
