@@ -1925,10 +1925,7 @@ final class SwitcherController: SwitcherViewDelegate {
         browserTabsFetchInFlight.removeAll()
         focusSync = FocusSyncCoalescer()
         focusSyncTokens.removeAll()
-        openFocusedWindow = nil
-        openFocusedWindowTitle = ""
-        prefetchedFocusedWindow = nil
-        prefetchedFocusedWindowTitle = ""
+        clearFocusedWindowCapture()
         openTargetScreen = nil
         prefetchedTarget = nil
         visibleSince = nil
@@ -3232,6 +3229,14 @@ final class SwitcherController: SwitcherViewDelegate {
         case .displayID(let id): return SwitcherPanel.screen(forDisplayID: id)
         case .axBounds(let bounds): return screen(forAXBounds: bounds)
         }
+    }
+
+    /// A stale capture would bump the previous session's browser tab on the next quick tap.
+    private func clearFocusedWindowCapture() {
+        openFocusedWindow = nil
+        openFocusedWindowTitle = ""
+        prefetchedFocusedWindow = nil
+        prefetchedFocusedWindowTitle = ""
     }
 
     /// Resolve the frontmost app's focused window off the main thread during the
@@ -4771,12 +4776,8 @@ final class SwitcherController: SwitcherViewDelegate {
         quittingPids.removeAll()
         // Drop any focused-window prefetch so it can't survive into the next
         // session and be adopted by a gesture/scoped open that skips the primed
-        // prefetch (those call reveal() directly). The open-session capture goes too:
-        // a later quick tap would otherwise bump that session's stale browser tab.
-        openFocusedWindow = nil
-        openFocusedWindowTitle = ""
-        prefetchedFocusedWindow = nil
-        prefetchedFocusedWindowTitle = ""
+        // prefetch (those call reveal() directly).
+        clearFocusedWindowCapture()
         prefetchedTarget = nil
         visibleSince = nil
         // We picked a target — `pendingActivation` activates it, so there's
@@ -4832,10 +4833,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabPrefetchTimer = nil
         resetLetterBuffer()
         resetSearch()
-        openFocusedWindow = nil
-        openFocusedWindowTitle = ""
-        prefetchedFocusedWindow = nil
-        prefetchedFocusedWindowTitle = ""
+        clearFocusedWindowCapture()
         openTargetScreen = nil
         prefetchedTarget = nil
         visibleSince = nil
@@ -5540,11 +5538,7 @@ final class SwitcherController: SwitcherViewDelegate {
         drillWindowRows = []
         tabIndex = 0
         drillWindow = nil
-        // Same reset as commit(): a stale open-session capture would bump the old tab on the next quick tap.
-        openFocusedWindow = nil
-        openFocusedWindowTitle = ""
-        prefetchedFocusedWindow = nil
-        prefetchedFocusedWindowTitle = ""
+        clearFocusedWindowCapture()
         hotkey.setTabDrillActive(false)
         tabPrefetchTimer?.invalidate()
         tabPrefetchTimer = nil
