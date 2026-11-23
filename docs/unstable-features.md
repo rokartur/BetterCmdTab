@@ -20,9 +20,11 @@ A row with no decision after 3 stable releases is reviewed at the next release.
 
 ## Ledger
 
-Every notice but Newly launched apps was added by commit `5ab7653` (2026-11-02), first tagged in
+Every notice was added by commit `5ab7653` (2026-11-02), first tagged in
 `26.8-beta.10`. No stable release contains a notice yet; the count of stable
 releases starts at 26.8. Open issues are as of 2026-11-11.
+
+Exception: Newly launched apps was added by #311.
 
 | Section (file under `BetterCmdTab/Settings/`) | Settings | Open issues | Exit criterion |
 | --- | --- | --- | --- |
