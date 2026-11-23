@@ -57,6 +57,7 @@ const sections: { title: string; keys: string[] }[] = [
       "listWidthPercent",
       "gridMaxColumns",
       "gridSingleRow",
+      "adaptivePreviewWidth",
     ],
   },
   {
@@ -233,6 +234,7 @@ const sectionTranslationKeys: Record<string, SectionKey> = {
  * Swift case name.
  */
 const defaults: Record<string, string> = {
+  adaptivePreviewWidth: "false",
   animationsEnabled: "true",
   applicationsOnly: "false",
   backdropMaterial: '"hud"',

@@ -12,6 +12,7 @@ struct WindowInfo {
     let title: String
     let isMinimized: Bool
     let isFullscreen: Bool
+    let windowSize: CGSize?
     /// In-content `AXTabs` children of this window (the deep tab strip some apps
     /// expose, e.g. via an `AXTabGroup`). Empty for the common case — most apps,
     /// including Finder/Terminal/TextEdit, do NOT expose this. Native window
@@ -38,13 +39,15 @@ struct WindowInfo {
         isFullscreen: Bool = false,
         tabs: [AXUIElement] = [],
         tabWindows: [TabWindowRef] = [],
-        isTabSibling: Bool = false
+        isTabSibling: Bool = false,
+        windowSize: CGSize? = nil
     ) {
         self.ref = ref
         self.cgWindowID = cgWindowID
         self.title = title
         self.isMinimized = isMinimized
         self.isFullscreen = isFullscreen
+        self.windowSize = windowSize
         self.tabs = tabs
         self.tabWindows = tabWindows
         self.isTabSibling = isTabSibling
@@ -474,6 +477,7 @@ enum WindowEnumerator {
             let fullscreen: Bool
             let title: String
             let frame: CGRect?
+            let windowSize: CGSize?
             let fromAXList: Bool
         }
         var raws: [RawWindow] = []
@@ -501,7 +505,8 @@ enum WindowEnumerator {
             // scan) share a frame yet are NOT tabs (macOS never tabs fullscreen
             // windows). Excluding both from frame-grouping prevents collapsing a
             // real off-Space fullscreen window into an unrelated row (issue #10).
-            let frame = (minimized || fullscreen) ? nil : frameFromAttributes(values[5], values[6])
+            let size = sizeFromAttribute(values[6])
+            let frame = (minimized || fullscreen) ? nil : frameFromAttributes(values[5], size: size)
 
             raws.append(RawWindow(
                 element: window,
@@ -511,6 +516,7 @@ enum WindowEnumerator {
                 fullscreen: fullscreen,
                 title: windowTitle,
                 frame: frame,
+                windowSize: size,
                 fromAXList: axListRefs.contains(AXRef(element: window))
             ))
         }
@@ -580,7 +586,8 @@ enum WindowEnumerator {
                 isFullscreen: raw.fullscreen,
                 tabs: raw.tabs.count > 1 ? raw.tabs : [],
                 tabWindows: tabWindows,
-                isTabSibling: resolution.tabSibling[i]
+                isTabSibling: resolution.tabSibling[i],
+                windowSize: raw.windowSize
             ))
         }
 
@@ -757,12 +764,20 @@ enum WindowEnumerator {
     /// attribute is missing or fails to decode — defaults to "keep the window"
     /// rather than collapsing on incomplete data.
     static func frameFromAttributes(_ posValue: AnyObject, _ sizeValue: AnyObject) -> CGRect? {
-        guard CFGetTypeID(posValue) == AXValueGetTypeID(),
-              CFGetTypeID(sizeValue) == AXValueGetTypeID() else { return nil }
-        var origin = CGPoint.zero
+        frameFromAttributes(posValue, size: sizeFromAttribute(sizeValue))
+    }
+
+    private static func sizeFromAttribute(_ value: AnyObject) -> CGSize? {
+        guard CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
         var size = CGSize.zero
-        guard AXValueGetValue(posValue as! AXValue, .cgPoint, &origin),
-              AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) else { return nil }
+        guard AXValueGetValue(value as! AXValue, .cgSize, &size) else { return nil }
+        return size
+    }
+
+    private static func frameFromAttributes(_ posValue: AnyObject, size: CGSize?) -> CGRect? {
+        guard let size, CFGetTypeID(posValue) == AXValueGetTypeID() else { return nil }
+        var origin = CGPoint.zero
+        guard AXValueGetValue(posValue as! AXValue, .cgPoint, &origin) else { return nil }
         return CGRect(
             x: origin.x.rounded(), y: origin.y.rounded(),
             width: size.width.rounded(), height: size.height.rounded()

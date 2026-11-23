@@ -38,6 +38,8 @@ final class AppCatalogCache {
     private var panelVisible = false
     private var pendingRefresh = false
     private var pendingBumps: Set<pid_t> = []
+    /// One re-scan per pid once a live resize settles, not one per resize event.
+    private var resizeBumps: [pid_t: DispatchWorkItem] = [:]
     /// Per-pid serialization for `bumpApps`. `snapshotQueue` is concurrent, so
     /// two bumps for the same pid can race — and since later snapshots can
     /// finish *before* earlier ones, the stale completion overwrites fresh
@@ -98,6 +100,7 @@ final class AppCatalogCache {
         kAXUIElementDestroyedNotification as String,
         kAXWindowMiniaturizedNotification as String,
         kAXWindowDeminiaturizedNotification as String,
+        kAXWindowResizedNotification as String,
         kAXFocusedWindowChangedNotification as String,
         // Native window tabs (Finder/Safari/Terminal/…): switching a tab manually
         // makes that tab's window frontmost. Some apps post only main-window-
@@ -133,6 +136,8 @@ final class AppCatalogCache {
 
         pendingRefresh = false
         pendingBumps.removeAll()
+        for item in resizeBumps.values { item.cancel() }
+        resizeBumps.removeAll()
         pidBumpInFlight.removeAll()
         pidBumpPending.removeAll()
         pendingOneShotCompletions.removeAll()
@@ -585,6 +590,8 @@ final class AppCatalogCache {
         var observer: AXObserver?
         let cb: AXObserverCallback = { _, element, notification, refcon in
             guard let refcon else { return }
+            if CFEqual(notification, kAXWindowResizedNotification as CFString),
+               !UserDefaults.standard.bool(forKey: "Switcher.adaptivePreviewWidth") { return }
             let cache = Unmanaged<AppCatalogCache>.fromOpaque(refcon).takeUnretainedValue()
             var elemPid: pid_t = 0
             AXUIElementGetPid(element, &elemPid)
@@ -598,6 +605,8 @@ final class AppCatalogCache {
                 // Both just reorder existing windows (a native-tab switch makes a
                 // different window frontmost) — a cheap MRU nudge, not a re-scan.
                 kind = .focus
+            } else if CFEqual(notification, kAXWindowResizedNotification as CFString) {
+                kind = .resize
             } else if CFEqual(notification, kAXTitleChangedNotification as CFString) {
                 // Title churn is by far the loudest notification; while the panel
                 // is hidden it changes nothing on screen, so only note the pid for
@@ -656,6 +665,7 @@ final class AppCatalogCache {
         case focus  // reorders windows only
         case title  // changes a window's title only
         case set    // adds/removes/min/hides a window — needs a re-scan
+        case resize // changes a window's size only, for adaptive preview widths
     }
 
     /// Set by `SwitcherController` to handle focus-change notifications without a
@@ -679,6 +689,15 @@ final class AppCatalogCache {
             if panelVisible { onVisibleTitleChanged?() }
         case .set:
             scheduleBumpApp(pid: pid)
+        case .resize:
+            // A drag-resize posts a notification per frame; each re-scan copies the window list.
+            resizeBumps[pid]?.cancel()
+            let item = DispatchWorkItem { [weak self] in
+                self?.resizeBumps[pid] = nil
+                self?.scheduleBumpApp(pid: pid)
+            }
+            resizeBumps[pid] = item
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
         }
     }
 

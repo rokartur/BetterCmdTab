@@ -7,6 +7,10 @@
       "description" : "Location of this schema. Ignored as a setting.",
       "type" : "string"
     },
+    "adaptivePreviewWidth" : {
+      "description" : "Size each preview tile to its window’s aspect ratio within minimum and maximum widths.",
+      "type" : "boolean"
+    },
     "alwaysUseEnglishKeyboard" : {
       "description" : "Use English (US) keys for shortcuts and search in the switcher, regardless of the active input language.",
       "type" : "boolean"

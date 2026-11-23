@@ -993,6 +993,7 @@ final class Preferences: ObservableObject {
         static let fontFace = "Switcher.fontFace"
         static let gridMaxColumns = "Switcher.gridMaxColumns"
         static let gridSingleRow = "Switcher.gridSingleRow"
+        static let adaptivePreviewWidth = "Switcher.adaptivePreviewWidth"
         static let appExceptions = "Switcher.appExceptions"
         static let quickJumpMappings = "Switcher.quickJumpMappings"
         static let letterHintExcludedBundleIDs = "Switcher.letterHintExcludedBundleIDs"
@@ -1315,6 +1316,13 @@ final class Preferences: ObservableObject {
         didSet {
             guard oldValue != gridSingleRow else { return }
             UserDefaults.standard.set(gridSingleRow, forKey: Keys.gridSingleRow)
+        }
+    }
+
+    @Published var adaptivePreviewWidth: Bool {
+        didSet {
+            guard oldValue != adaptivePreviewWidth else { return }
+            UserDefaults.standard.set(adaptivePreviewWidth, forKey: Keys.adaptivePreviewWidth)
         }
     }
 
@@ -2756,6 +2764,7 @@ final class Preferences: ObservableObject {
 
         self.gridMaxColumns = Self.loadClamped(Keys.gridMaxColumns, default: 0, clamp: Self.clampGridColumns, from: defaults)
         self.gridSingleRow = defaults.object(forKey: Keys.gridSingleRow) as? Bool ?? true
+        self.adaptivePreviewWidth = defaults.bool(forKey: Keys.adaptivePreviewWidth)
 
         // Exceptions: honor the new key if present, otherwise build a first-run
         // default — carry over the pre-Exceptions excluded-app list as hide=.always
@@ -2933,6 +2942,7 @@ final class Preferences: ObservableObject {
         fontFace = defaults.string(forKey: Keys.fontFace).flatMap(SwitcherFontFace.init(rawValue:)) ?? .system
         gridMaxColumns = Self.loadClamped(Keys.gridMaxColumns, default: 0, clamp: Self.clampGridColumns, from: defaults)
         gridSingleRow = defaults.object(forKey: Keys.gridSingleRow) as? Bool ?? true
+        adaptivePreviewWidth = defaults.bool(forKey: Keys.adaptivePreviewWidth)
 
         if let stored = defaults.array(forKey: Keys.appExceptions) as? [[String: String]] {
             appExceptions = stored.compactMap(AppException.init(dictionary:))

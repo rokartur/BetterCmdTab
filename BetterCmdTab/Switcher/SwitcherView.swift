@@ -66,6 +66,7 @@ final class SwitcherView: NSView {
     /// one-off row count (hundreds of browser tabs/windows) for process life.
     private static let idleItemPoolLimit = 64
     private var rows: [SwitcherRow] = []
+    private var previewAspectRatios: [CGFloat] = []
     private(set) var labels: [String] = []
     private var selectedIndex: Int = 0
     /// Last `selectedIndex` value handed to the item views, so `applySelection`
@@ -205,25 +206,27 @@ final class SwitcherView: NSView {
         applyPanelAppearance(effective.panelAppearance)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        let columnCapChanged = self.effective.gridMaxColumns != effective.gridMaxColumns
         // Set before `fittedMetrics`/layout below read it (see ivar note).
         self.effective = effective
-        // Item frames depend only on the row count, the metrics, and whether the
-        // search strip is showing — not on row content or selection. When none
-        // of those changed (a reorder, a glyph flip, an audio/badge repaint, a
-        // selection move funnelled through here) the cached layout is still
-        // valid, so skip invalidating it and forcing a full relayout + panel
-        // resize. The item views still reconfigure below and relayout themselves
-        // if their own content changed.
+        // Size from the catalog so late or refreshed thumbnails never move a tile.
+        let ratios = effective.adaptivePreviewWidth && metrics.layoutMode == .windowPreview
+            ? rows.map { Self.previewAspectRatio(for: $0.windowSize) }
+            : []
         let stripActiveNew = (tabStripItems?.isEmpty == false)
         // Shrink the panel to fit the screen for large app/window counts so it
         // stays fully visible instead of overflowing top/bottom. Shadows
         // the incoming `metrics` so every downstream sizing path (layout math and
         // the item views, which read the stored metrics) uses the fitted scale.
-        let metrics = fittedMetrics(metrics, count: rows.count, searchActive: searchActive, tabActive: stripActiveNew)
+        let metrics = fittedMetrics(
+            metrics, count: rows.count, previewAspectRatios: ratios, searchActive: searchActive, tabActive: stripActiveNew
+        )
         let screenFrame = layoutScreenFrame()
         let geometryChanged =
             rows.count != self.rows.count ||
             metrics != self.metrics ||
+            ratios != previewAspectRatios ||
+            (!ratios.isEmpty && columnCapChanged) ||
             searchActive != self.searchActive ||
             stripActiveNew != self.tabStripActive ||
             screenFrame != layoutScreenFrameUsed
@@ -231,6 +234,7 @@ final class SwitcherView: NSView {
         self.tabStripActive = stripActiveNew
         armReflow(incoming: rows, geometryChanged: geometryChanged)
         self.rows = rows
+        previewAspectRatios = ratios
         self.labels = labels
         self.highlightPrefix = highlightPrefix
         self.searchActive = searchActive
@@ -980,7 +984,9 @@ final class SwitcherView: NSView {
     /// Floored so items never get microscopic; counts beyond even the floor's
     /// capacity fall back to the panel's visible-frame clamp in
     /// `SwitcherPanel.present()`.
-    private func fittedMetrics(_ base: SwitcherMetrics, count: Int, searchActive: Bool, tabActive: Bool) -> SwitcherMetrics {
+    private func fittedMetrics(
+        _ base: SwitcherMetrics, count: Int, previewAspectRatios: [CGFloat], searchActive: Bool, tabActive: Bool
+    ) -> SwitcherMetrics {
         let frame = layoutScreenFrame()
         let letterHints = base.tileLetterArea > 0
         let userCap = effective.gridMaxColumns
@@ -992,6 +998,14 @@ final class SwitcherView: NSView {
             let reservedTab = tabActive ? TabStripView.stripHeight + m.outerPadding : 0
             let maxW = frame.width * maxScreenWidthFraction - m.outerPadding * 2
             let maxH = frame.height * maxScreenHeightFraction - m.outerPadding * 2 - reservedSearch - reservedTab
+            if !previewAspectRatios.isEmpty {
+                let fit = Self.fitAdaptivePreviewRows(
+                    previewAspectRatios, thumbnailHeight: m.previewThumbHeight, gap: m.previewGap,
+                    maxWidth: maxW, columnCap: userCap
+                )
+                let itemHeight = m.previewLetterArea + m.previewThumbHeight + m.previewLabelArea
+                return CGFloat(fit.rows.count) * (itemHeight + m.previewGap) - m.previewGap <= maxH
+            }
             if m.layoutMode == .list {
                 // The list wraps into columns on its own, but a wide base row or a
                 // tall row height can still outrun the screen once the columns are
@@ -1300,6 +1314,33 @@ final class SwitcherView: NSView {
         let maxListHeight = screen.height * maxScreenHeightFraction - outerPadding * 2
             - reservedSearchHeight - reservedTabStripHeight
 
+        if !previewAspectRatios.isEmpty {
+            let fit = Self.fitAdaptivePreviewRows(
+                previewAspectRatios, thumbnailHeight: metrics.previewThumbHeight, gap: gap,
+                maxWidth: maxListWidth, columnCap: effective.gridMaxColumns
+            )
+            let listWidth = fit.rows.map(\.width).max() ?? 0
+            let listHeight = CGFloat(fit.rows.count) * (itemH + gap) - gap
+            var frames: [NSRect] = []
+            frames.reserveCapacity(fit.widths.count)
+            for (rowIndex, row) in fit.rows.enumerated() {
+                var x = (listWidth - row.width) / 2
+                let y = listHeight - CGFloat(rowIndex + 1) * itemH - CGFloat(rowIndex) * gap
+                for index in row.indices {
+                    let width = fit.widths[index]
+                    frames.append(NSRect(x: x, y: y, width: width, height: itemH))
+                    x += width + gap
+                }
+            }
+            return ListLayout(
+                frames: frames,
+                listSize: NSSize(width: listWidth, height: listHeight),
+                total: NSSize(width: listWidth + outerPadding * 2, height: listHeight + outerPadding * 2),
+                rowsPerCol: fit.rows.count,
+                cols: fit.rows.map { $0.indices.count }.max() ?? 0
+            )
+        }
+
         // Preview tiles are tall, so width-only wrapping overflows the screen
         // height well before the width. `gridFit` adds columns to keep rows within
         // the visible height; the configure-time fit-scale shrinks the tiles when
@@ -1342,6 +1383,38 @@ final class SwitcherView: NSView {
             rowsPerCol: rowsCount,
             cols: cols
         )
+    }
+
+    nonisolated static func previewAspectRatio(for size: CGSize?) -> CGFloat {
+        let fallback = SwitcherMetrics.basePreviewTileWidth / SwitcherMetrics.basePreviewThumbHeight
+        guard let size, size.width > 0, size.height > 0 else { return fallback }
+        let ratio = size.width / size.height
+        guard ratio.isFinite else { return fallback }
+        // 0.6 keeps a phone-shaped window's title readable; 3.2 fits a 32:10 ultrawide (#318).
+        return ratio.clamped(to: 0.6...3.2)
+    }
+
+    nonisolated static func fitAdaptivePreviewRows(
+        _ ratios: [CGFloat], thumbnailHeight: CGFloat, gap: CGFloat, maxWidth: CGFloat, columnCap: Int
+    ) -> (widths: [CGFloat], rows: [(indices: Range<Int>, width: CGFloat)]) {
+        let widths = ratios.map { min(max(1, maxWidth), ($0 * thumbnailHeight).rounded()) }
+        var rows: [(indices: Range<Int>, width: CGFloat)] = []
+        var start = 0
+        var rowWidth: CGFloat = 0
+        for (index, width) in widths.enumerated() {
+            let nextWidth = rowWidth + gap + width
+            if start == index {
+                rowWidth = width
+            } else if nextWidth > maxWidth || (columnCap > 0 && index - start == columnCap) {
+                rows.append((start..<index, rowWidth))
+                start = index
+                rowWidth = width
+            } else {
+                rowWidth = nextWidth
+            }
+        }
+        if start < widths.count { rows.append((start..<widths.count, rowWidth)) }
+        return (widths, rows)
     }
 }
 

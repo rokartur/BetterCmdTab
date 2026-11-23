@@ -27,6 +27,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
     private let fontSizePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let fontFacePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let gridSingleRowSwitch = PreferenceSwitch(bind: \.gridSingleRow)
+    private let adaptivePreviewWidthSwitch = PreferenceSwitch(bind: \.adaptivePreviewWidth)
     private let movePointerSwitch = PreferenceSwitch(bind: \.movePointerAcrossDisplays)
     private let livePreviewSwitch = PreferenceSwitch(bind: \.livePreviews)
     private let windowTitleSwitch = PreferenceSwitch(bind: \.showWindowTitleLabel)
@@ -118,6 +119,12 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         addRow(to: layout, title: String(localized: "Single row"),
                subtitle: String(localized: "Shrink the icons to keep every window on one line instead of starting a second row."),
                accessory: gridSingleRowSwitch, searchItemID: SearchID.gridSingleRow)
+
+        let previews = addSection(title: String(localized: "Previews"), anchor: SettingsAnchor.appearancePreviewWidth)
+        previews.addUnstableNotice()
+        addRow(to: previews, title: String(localized: "Adaptive preview width"),
+               subtitle: String(localized: "Size each preview tile to fit the shape of its window."),
+               accessory: adaptivePreviewWidthSwitch, searchItemID: SearchID.adaptivePreviewWidth)
 
         // Labels section — the text on each row/tile.
         let labels = addSection(title: String(localized: "Labels"), anchor: SettingsAnchor.appearanceLabels)
@@ -359,6 +366,10 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.gridSingleRowSwitch.sync() }
             .store(in: &cancellables)
+        prefs.$adaptivePreviewWidth
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.adaptivePreviewWidthSwitch.sync() }
+            .store(in: &cancellables)
         prefs.$movePointerAcrossDisplays
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.movePointerSwitch.sync() }
@@ -460,6 +471,7 @@ final class AppearanceSettingsViewController: SettingsTabViewController {
         selectAppearance(prefs.panelAppearance)
         selectGrid(prefs.gridMaxColumns)
         gridSingleRowSwitch.sync()
+        adaptivePreviewWidthSwitch.sync()
         movePointerSwitch.sync()
         livePreviewSwitch.sync()
         Self.applyInteger(prefs.listWidthPercent, slider: listWidthSlider, field: listWidthValueField)

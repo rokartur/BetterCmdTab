@@ -27,6 +27,7 @@ releases starts at 26.8. Open issues are as of 2026-11-11.
 | Section (file under `BetterCmdTab/Settings/`) | Settings | Open issues | Exit criterion |
 | --- | --- | --- | --- |
 | Fade (`AppearanceSettingsViewController.swift`) | `Switcher.fadeInDurationMs`, `Switcher.fadeOutDurationMs` | none | No report of a panel that stays visible or flickers on a fast ⌘Tab for 2 stable releases |
+| Previews (`AppearanceSettingsViewController.swift`) | `Switcher.adaptivePreviewWidth` | none | No report of previews reflowing on thumbnail refresh or selecting the wrong window across rows for 2 stable releases |
 | Trackpad swipe (`TrackpadSettingsViewController.swift`) | `Switcher.experimentalSwipeTrigger`, `Switcher.swipeMode`, `Switcher.swipeFingerCount`, `Switcher.swipeReverseDirection`, `Switcher.swipeCommitOnRelease`, `Switcher.swipeSensitivity` | none | No report of a missed swipe or a swipe taken from Mission Control on macOS 26 for 2 stable releases |
 | Repeat presses (`ShortcutsSettingsViewController.swift`) | `Switcher.directActivationCyclesWindows` | none | No report of a repeat press landing on the wrong window for 2 stable releases |
 | Starting selection (`SwitcherPanesViewController.swift`) | `Switcher.initialSelection` | none | No report of a first ⌘Tab that selects a row other than the chosen setting for 2 stable releases |
