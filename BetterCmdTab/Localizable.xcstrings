@@ -23748,7 +23748,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ostatnio używane (aplikacje) grupuje aplikacje według ostatniego użycia. Przy śledzeniu kart karty przeglądarki są porządkowane wspólnie dla jej okien. Ostatnio używane (okna) miesza pozycje wszystkich aplikacji według użycia. Inne kolejności pozostają stałe podczas przełączania."
+            "value" : "Ostatnio używane (aplikacje) grupuje aplikacje według ostatniego użycia. Przy śledzeniu kart karty przeglądarki ze wszystkich jej okien są ułożone według ostatniego użycia. Ostatnio używane (okna) miesza pozycje wszystkich aplikacji według użycia. Inne kolejności pozostają stałe podczas przełączania."
           }
         },
         "ru" : {
