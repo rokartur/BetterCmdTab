@@ -1928,10 +1928,7 @@ final class SwitcherController: SwitcherViewDelegate {
         browserTabsFetchInFlight.removeAll()
         focusSync = FocusSyncCoalescer()
         focusSyncTokens.removeAll()
-        openFocusedWindow = nil
-        openFocusedWindowTitle = ""
-        prefetchedFocusedWindow = nil
-        prefetchedFocusedWindowTitle = ""
+        clearFocusedWindowCapture()
         openTargetScreen = nil
         prefetchedTarget = nil
         visibleSince = nil
@@ -3254,6 +3251,14 @@ final class SwitcherController: SwitcherViewDelegate {
         }
     }
 
+    /// A stale capture would bump the previous session's browser tab on the next quick tap.
+    private func clearFocusedWindowCapture() {
+        openFocusedWindow = nil
+        openFocusedWindowTitle = ""
+        prefetchedFocusedWindow = nil
+        prefetchedFocusedWindowTitle = ""
+    }
+
     /// Resolve the frontmost app's focused window off the main thread during the
     /// primed phase so the work overlaps the reveal delay instead of stalling
     /// `reveal()`. `openFocusedWindow` is what window-management chords act on
@@ -3511,7 +3516,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // and that row is the one whose tile shows the window's frame.
         syncFocusedBrowserTabIndex()
         let expandedAtReveal = applyBrowserTabMRU(expandBrowserTabs(baseRows))
-        if browserTabMRUActive {
+        if browserTabMRUActive, effective.sortOrder == .mruWindows {
             // Tab-MRU reorders the expanded rows by unified tab+window recency; step
             // from the current tab by `primedStepDelta` exactly like the window sort.
             // Rebuild unconditionally — the order can change
@@ -3520,7 +3525,7 @@ final class SwitcherController: SwitcherViewDelegate {
             rows = baseRows
             labels = baseLabels
             index = primedRecencyIndex(in: rows)
-        } else if expandedAtReveal.count != baseRows.count {
+        } else if Self.rowsDifferVisibly(expandedAtReveal, baseRows) {
             // Window-level mode anchors on the selected *window*; matching by pid
             // would snap a non-first window back to its app's first row. Preserve
             // it by row identity instead. App-grouped modes keep the pid anchor.
@@ -3761,9 +3766,8 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Whether the browser-tab MRU is fully active: the feature on, tabs expanded
-    /// (not collapsed to apps), and the window-recency sort selected (the only sort
-    /// `applyBrowserTabMRU` reorders within). Read live off the main actor like the
-    /// other hot-path pref reads.
+    /// (not collapsed to apps), and either recency sort selected. Read live off
+    /// the main actor like the other hot-path pref reads.
     private var browserTabMRUActive: Bool {
         browserTabMRUEnabled
             // `browserTabMRUEnabled` gates the *feed* on the global pref, but a
@@ -3772,12 +3776,12 @@ final class SwitcherController: SwitcherViewDelegate {
             // consumed (would sort plain window rows by the tab timeline).
             && effective.expandBrowserTabsAsWindows
             && !applicationsCollapseActive
-            && effective.sortOrder == .mruWindows
+            && (effective.sortOrder == .mru || effective.sortOrder == .mruWindows)
     }
 
     /// The feature + tab-expansion are on, so the tab MRU should be *fed* (observer,
     /// focus changes, commits) and the timeline kept warm. Distinct from
-    /// `browserTabMRUActive`, which additionally requires the window-recency sort be
+    /// `browserTabMRUActive`, which additionally requires a recency sort be
     /// selected before that order is *consumed* — feeding under a narrower gate
     /// would leave gaps in the timeline whenever the sort momentarily differs.
     private var browserTabMRUEnabled: Bool {
@@ -3789,27 +3793,35 @@ final class SwitcherController: SwitcherViewDelegate {
         tabFocusObserver.setEnabled(browserTabMRUEnabled)
     }
 
-    /// Re-order already-expanded rows by unified tab+window recency so ⌘Tab steps
-    /// per tab, not per window (#39). A no-op unless `browserTabMRUActive`. Runs
+    /// Re-order expanded browser tabs within apps under `.mru`, or globally
+    /// with ordinary windows under `.mruWindows`. A no-op unless `browserTabMRUActive`. Runs
     /// AFTER `expandBrowserTabs` (unlike `applyWindowMRUSort`, which runs before),
-    /// then re-buckets status and re-pins exactly like the window sort so hidden/
-    /// minimized rows still sink and pinned apps stay at the front.
+    /// then, under `.mruWindows`, re-buckets status and re-pins exactly like the window
+    /// sort so hidden/minimized rows still sink and pinned apps stay at the front.
     ///
     /// When the tab MRU is off, falls back to `sinkInactiveBrowserTabs` so a browser
     /// window's tabs don't flood the front of the window-recency list as one block
     /// (worst with single-window browsers like Arc).
     private func applyBrowserTabMRU(_ rows: [SwitcherRow]) -> [SwitcherRow] {
         guard browserTabMRUActive else { return sinkInactiveBrowserTabs(rows) }
-        let ranked = tabMRU.sortRows(rows)
         let sinkHiddenApps = Preferences.shared.sinkHiddenApps
         let sinkMinimized = Preferences.shared.sinkMinimizedWindows
-        let bucketed = ranked.enumerated()
-            .sorted { lhs, rhs in
-                let lp = AppCatalogCache.statusPriority(lhs.element, sinkHiddenApps: sinkHiddenApps, sinkMinimizedWindows: sinkMinimized)
-                let rp = AppCatalogCache.statusPriority(rhs.element, sinkHiddenApps: sinkHiddenApps, sinkMinimizedWindows: sinkMinimized)
-                return lp != rp ? lp < rp : lhs.offset < rhs.offset
-            }
-            .map(\.element)
+        let statusPriority = { (row: SwitcherRow) in
+            AppCatalogCache.statusPriority(row, sinkHiddenApps: sinkHiddenApps, sinkMinimizedWindows: sinkMinimized)
+        }
+        if effective.sortOrder == .mru {
+            // `.mru` rows arrive bucketed and pinned; reordering only inside each
+            // (app, status) slot keeps that, and a second bucketing would not.
+            let browserPids = Set(rows.compactMap { row -> pid_t? in
+                BrowserTabs.Family.from(bundleID: row.bundleIdentifier) != nil ? row.pid : nil
+            })
+            return tabMRU.sortRowsWithinApps(rows, browserPids: browserPids, priority: statusPriority)
+        }
+        let ranked = tabMRU.sortRows(rows)
+        let priorities = ranked.map(statusPriority)
+        let bucketed = ranked.indices
+            .sorted { priorities[$0] != priorities[$1] ? priorities[$0] < priorities[$1] : $0 < $1 }
+            .map { ranked[$0] }
         return CatalogFilter.pinnedToFront(bucketed, Preferences.shared.pinnedBundleIDs)
     }
 
@@ -4512,7 +4524,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// used catalogued window, or its scoped windowless row under a narrowed
     /// scope. `rows` is the `applyPerAppWindowMRU`-sorted scoped list built by
     /// commit(), so the first windowed row for a pid is the app's window-MRU
-    /// front (#83).
+    /// front (#83); under `.mru` with tab recency a browser gets its most recently
+    /// used tab row.
     ///
     /// While the panel collapses to one row per app, that leading row is not
     /// necessarily the one the panel would show: with `sinkMinimizedWindows` on,
@@ -4536,13 +4549,24 @@ final class SwitcherController: SwitcherViewDelegate {
     private func primedAppTargetRow(in rows: [SwitcherRow], scope: SpaceScope) -> SwitcherRow? {
         guard let app = eligiblePrimedApp(in: rows, scope: scope) else { return nil }
         let pid = app.pid
+        // Choose the application before expanding its tabs: a quick app switch
+        // must still step between applications, never between the current app's
+        // tabs.
+        let candidates: [SwitcherRow]
+        if browserTabMRUActive, effective.sortOrder == .mru,
+           !collapsesApp(bundleID: app.bundleIdentifier),
+           BrowserTabs.Family.from(bundleID: app.bundleIdentifier) != nil {
+            candidates = applyBrowserTabMRU(expandBrowserTabs(rows.filter { $0.pid == pid }))
+        } else {
+            candidates = rows
+        }
         let requiresWindow = scope == .allSpaces
         return Self.primedTargetIndex(
-            count: rows.count,
+            count: candidates.count,
             preferVisible: collapsesApp(bundleID: app.bundleIdentifier) && sinksMinimizedWindows,
-            eligible: { rows[$0].pid == pid && (!requiresWindow || rows[$0].window != nil) },
-            isMinimized: { rows[$0].isMinimized }
-        ).map { rows[$0] }
+            eligible: { candidates[$0].pid == pid && (!requiresWindow || candidates[$0].window != nil) },
+            isMinimized: { candidates[$0].isMinimized }
+        ).map { candidates[$0] }
     }
 
     /// Pure index-level core of `primedAppTargetRow` (split out for unit tests,
@@ -4640,14 +4664,19 @@ final class SwitcherController: SwitcherViewDelegate {
     /// of a window's tab rows share one CGWindowID, so the window MRU would be the
     /// wrong granularity. A Handoff row presses the Dock item, re-activating the
     /// previous app if the press fails; any other row raises its window. Shared by
-    /// the visible and primed commit paths so a fast tap and a held-open panel agree.
+    /// the visible and primed commit paths. With `selectTab` false a tab row only
+    /// raises its window over AX and leaves the tab MRU to the title observer.
     private func activation(
         for row: SwitcherRow,
+        selectTab: Bool,
         instantSpace: Bool,
         completion: @escaping @MainActor @Sendable () -> Void
     ) -> (() -> Void)? {
         if let pid = row.pid { mru.bump(pid) }
         if let bt = row.browserTab, let app = row.app, let window = row.window {
+            guard selectTab else {
+                return { Activator.activate(row, instantSpace: instantSpace, completion: completion) }
+            }
             bumpTabMRUIfPossible(for: row)
             let tabIndex = bt.index
             let parentTitle = bt.parentTitle
@@ -4709,7 +4738,7 @@ final class SwitcherController: SwitcherViewDelegate {
             if rows.indices.contains(index) {
                 // `activation(for:)` handles the browser-tab vs. window split and
                 // bumps the app / window / tab MRU trackers.
-                pendingActivation = activation(for: rows[index], instantSpace: instantSpace, completion: finishDismiss)
+                pendingActivation = activation(for: rows[index], selectTab: true, instantSpace: instantSpace, completion: finishDismiss)
             }
         case .primed:
             if windowsOnlyMode, let pid = windowsOnlyPid {
@@ -4724,11 +4753,12 @@ final class SwitcherController: SwitcherViewDelegate {
                     mru.bump(pid)
                     pendingActivation = { Activator.activateApp(app, completion: finishDismiss) }
                 }
-            } else if browserTabMRUActive, let row = primedBrowserTabMRUTargetRow() {
+            } else if browserTabMRUActive, effective.sortOrder == .mruWindows,
+                      let row = primedBrowserTabMRUTargetRow() {
                 // Tab-level fast tap-release: activate the tab/window the visible
                 // switcher would have selected, stepped by unified tab recency, so a
                 // quick ⌘⇥ returns to the previous *tab* exactly like the panel.
-                pendingActivation = activation(for: row, instantSpace: instantSpace, completion: finishDismiss)
+                pendingActivation = activation(for: row, selectTab: true, instantSpace: instantSpace, completion: finishDismiss)
             } else if effective.sortOrder == .mruWindows,
                       let row = primedWindowMRUTargetRow() {
                 // Window-level fast tap-release: activate the window the visible
@@ -4750,9 +4780,9 @@ final class SwitcherController: SwitcherViewDelegate {
                     // Under a narrowed Space scope the app-level MRU step is
                     // remapped onto apps still represented by scoped rows, so a
                     // tap can't fall back to an app on another Space.
-                    if let pid = row.pid { mru.bump(pid) }
-                    bumpWindowMRUIfPossible(for: row)
-                    pendingActivation = { Activator.activate(row, instantSpace: instantSpace, completion: finishDismiss) }
+                    // A browser tab switches only with tab drill-in on; otherwise its window is raised.
+                    pendingActivation = activation(for: row, selectTab: Preferences.shared.tabDrillEnabled,
+                                                   instantSpace: instantSpace, completion: finishDismiss)
                 } else if scope == .allSpaces || !cache.hasCompletedFullScan,
                           primedApps.indices.contains(primedIndex) {
                     // Raw-MRU fallback: a windowless app under All Spaces, or a
@@ -4797,8 +4827,7 @@ final class SwitcherController: SwitcherViewDelegate {
         // Drop any focused-window prefetch so it can't survive into the next
         // session and be adopted by a gesture/scoped open that skips the primed
         // prefetch (those call reveal() directly).
-        prefetchedFocusedWindow = nil
-        prefetchedFocusedWindowTitle = ""
+        clearFocusedWindowCapture()
         prefetchedTarget = nil
         visibleSince = nil
         // We picked a target — `pendingActivation` activates it, so there's
@@ -4854,10 +4883,7 @@ final class SwitcherController: SwitcherViewDelegate {
         tabPrefetchTimer = nil
         resetLetterBuffer()
         resetSearch()
-        openFocusedWindow = nil
-        openFocusedWindowTitle = ""
-        prefetchedFocusedWindow = nil
-        prefetchedFocusedWindowTitle = ""
+        clearFocusedWindowCapture()
         openTargetScreen = nil
         prefetchedTarget = nil
         visibleSince = nil
@@ -5562,6 +5588,7 @@ final class SwitcherController: SwitcherViewDelegate {
         drillWindowRows = []
         tabIndex = 0
         drillWindow = nil
+        clearFocusedWindowCapture()
         hotkey.setTabDrillActive(false)
         tabPrefetchTimer?.invalidate()
         tabPrefetchTimer = nil

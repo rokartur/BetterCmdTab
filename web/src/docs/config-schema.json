@@ -106,7 +106,7 @@
       "type" : "boolean"
     },
     "browserTabMRU" : {
-      "description" : "With expanded browser tabs and mruWindows, order tabs across windows by last use. History starts at launch; tabs not used since then follow the used ones.",
+      "description" : "With expanded browser tabs and mru or mruWindows, order tabs across windows by last use. mru keeps applications grouped; mruWindows interleaves entries across applications. History starts at launch; tabs not used since then follow the used ones.",
       "type" : "boolean"
     },
     "browserTabPreviews" : {
@@ -114,7 +114,7 @@
       "type" : "boolean"
     },
     "browserTabRowLimit" : {
-      "description" : "Cap on tab entries. With browserTabMRU and mruWindows, keeps the most recently used tabs per browser across its windows, and a window with none of them stays as one entry; otherwise per window. 0 = unlimited; anything else is taken as 2…16.",
+      "description" : "Cap on tab entries. With browserTabMRU and mru or mruWindows, keeps the most recently used tabs per browser across its windows, and a window with none of them stays as one entry; otherwise per window. 0 = unlimited; anything else is taken as 2…16.",
       "maximum" : 16,
       "minimum" : 0,
       "type" : "integer"
@@ -902,7 +902,7 @@
               "dock"
             ],
             "enumDescriptions" : [
-              "Most recent",
+              "Most recent (apps)",
               "Most recent (windows)",
               "Alphabetical",
               "Launch order",
@@ -1039,7 +1039,7 @@
         "dock"
       ],
       "enumDescriptions" : [
-        "Most recent",
+        "Most recent (apps)",
         "Most recent (windows)",
         "Alphabetical",
         "Launch order",
