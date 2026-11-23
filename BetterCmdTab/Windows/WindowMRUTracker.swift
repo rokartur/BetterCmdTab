@@ -81,7 +81,9 @@ final class WindowMRUTracker {
     /// unresponsive, which must never happen on the main run loop.
     nonisolated static func focusedWindowID(pid: pid_t) -> CGWindowID {
         let axApp = AXUIElementCreateApplication(pid)
-        AXUIElementSetMessagingTimeout(axApp, 0.05)
+        // Same budget as `Activator.focusedWindow`. This runs off-main, and
+        // 0.05 s lost to apps that answer in 40-55 ms while they activate.
+        AXUIElementSetMessagingTimeout(axApp, 0.25)
         var focused: AnyObject?
         guard AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &focused) == .success,
               let focusedVal = focused,
