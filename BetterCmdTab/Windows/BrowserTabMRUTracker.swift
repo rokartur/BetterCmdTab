@@ -3,10 +3,11 @@ import CoreGraphics
 
 /// Unified most-recently-used ordering that treats each **browser tab** as a
 /// first-class entry alongside ordinary windows, backing the "browser tab MRU"
-/// mode (#39). The flat `.mruWindows` sort keys every row by its CGWindowID, so
-/// all tabs of one browser window collapse to a single recency slot and ⌘Tab
-/// can only return to the previous *window*, never the previous *tab*. This
-/// tracker distinguishes the two:
+/// mode (#39) and, within each app's slots, the app-grouped `.mru` sort. The
+/// flat `.mruWindows` sort keys every row by its CGWindowID, so all tabs of one
+/// browser window collapse to a single recency slot and ⌘Tab can only return to
+/// the previous *window*, never the previous *tab*. This tracker distinguishes
+/// the two:
 ///
 /// - `.window(wid)` — an ordinary window (or a browser window whose tabs aren't
 ///   expanded), keyed by its CGWindowID, exactly like `WindowMRUTracker`.

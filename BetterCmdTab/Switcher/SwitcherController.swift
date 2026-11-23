@@ -4483,7 +4483,8 @@ final class SwitcherController: SwitcherViewDelegate {
     /// used catalogued window, or its scoped windowless row under a narrowed
     /// scope. `rows` is the `applyPerAppWindowMRU`-sorted scoped list built by
     /// commit(), so the first windowed row for a pid is the app's window-MRU
-    /// front (#83).
+    /// front (#83); under `.mru` with tab recency a browser gets its most recently
+    /// used tab row.
     ///
     /// While the panel collapses to one row per app, that leading row is not
     /// necessarily the one the panel would show: with `sinkMinimizedWindows` on,
@@ -4505,13 +4506,11 @@ final class SwitcherController: SwitcherViewDelegate {
     /// nil — a windowless app under All Spaces, a cold cache, or a narrowed
     /// scope with no eligible app — makes commit() fall back or no-op.
     private func primedAppTargetRow(in rows: [SwitcherRow], scope: SpaceScope) -> SwitcherRow? {
-        let rows = browserTabMRUActive && effective.sortOrder == .mru
-            ? activeScope.map { scopeFiltered(rows, scope: $0) } ?? rows : rows
         guard let app = eligiblePrimedApp(in: rows, scope: scope) else { return nil }
         let pid = app.pid
         // Choose the application before expanding its tabs: a quick app switch
         // must still step between applications, never between the current app's
-        // tabs. Reuse the panel's selection and activation paths for the target.
+        // tabs.
         let candidates: [SwitcherRow]
         if browserTabMRUActive, effective.sortOrder == .mru,
            !collapsesApp(bundleID: app.bundleIdentifier),
