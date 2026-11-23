@@ -4659,8 +4659,9 @@ final class SwitcherController: SwitcherViewDelegate {
     }
 
     /// Build the activation closure for a committed `row`, bumping every MRU
-    /// tracker so the next ⌘Tab returns here. A browser-tab row selects its tab via
-    /// Apple Events (it's not a real window) and bumps only the app + tab MRU — all
+    /// tracker so the next ⌘Tab returns here. A browser-tab row raises its window when
+    /// the tab is already showing, else selects it via Apple Events (it's not a real
+    /// window), and bumps only the app + tab MRU — all
     /// of a window's tab rows share one CGWindowID, so the window MRU would be the
     /// wrong granularity. A Handoff row presses the Dock item, re-activating the
     /// previous app if the press fails; any other row raises its window. Shared by
@@ -4680,9 +4681,27 @@ final class SwitcherController: SwitcherViewDelegate {
             bumpTabMRUIfPossible(for: row)
             let tabIndex = bt.index
             let parentTitle = bt.parentTitle
-            return {
+            let tabs = browserTabsCache[AXRef(element: window)]?.tabs ?? []
+            let selectOverAppleEvents = {
                 BrowserTabs.commitTab(at: tabIndex, in: app, window: window, title: parentTitle)
                 completion()
+            }
+            guard !tabs.isEmpty else { return selectOverAppleEvents }
+            let commitGeneration = revealGeneration
+            return { [weak self] in
+                // `bt.isActive` is as stale as the last tab scan, so read the window's live title.
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let liveTitle = Activator.scanTitle(of: window, timeout: 0.25)
+                    DispatchQueue.main.async {
+                        // A switcher opened during the read owns the focus now.
+                        guard self?.revealGeneration == commitGeneration else { return completion() }
+                        if Self.raisesWindowToShowTab(at: tabIndex, tabs: tabs, liveWindowTitle: liveTitle) {
+                            Activator.activate(row, instantSpace: instantSpace, completion: completion)
+                        } else {
+                            selectOverAppleEvents()
+                        }
+                    }
+                }
             }
         }
         if let suggestion = row.handoff {
@@ -6125,6 +6144,13 @@ final class SwitcherController: SwitcherViewDelegate {
             match = index
         }
         return match
+    }
+
+    /// Whether raising the window over AX shows the tab at `tabIndex`: the live
+    /// window title names that tab and no other. Otherwise `BrowserTabs.commitTab`
+    /// selects it over Apple Events. "" (a failed or timed-out read) never raises. Pure.
+    nonisolated static func raisesWindowToShowTab(at tabIndex: Int, tabs: [BrowserTabInfo], liveWindowTitle: String) -> Bool {
+        activeBrowserTabIndex(tabs: tabs, windowTitle: liveWindowTitle) == tabIndex
     }
 
     /// Recently closed windows/apps to surface for reopening. `forSearchQuery`
