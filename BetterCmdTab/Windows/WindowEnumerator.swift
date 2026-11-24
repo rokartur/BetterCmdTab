@@ -499,14 +499,12 @@ enum WindowEnumerator {
             if windowTitle.isEmpty, pid != getpid() {
                 windowTitle = contentTitle(of: window, timeout: Self.confirmedTimeout)
             }
-            // Minimized windows legitimately share (0, 0); fullscreen windows
-            // each fill the same display bounds, so two separate fullscreen
-            // windows of one app (each on its own Space — recovered by the brute
-            // scan) share a frame yet are NOT tabs (macOS never tabs fullscreen
-            // windows). Excluding both from frame-grouping prevents collapsing a
-            // real off-Space fullscreen window into an unrelated row (issue #10).
+            // Minimized windows legitimately share (0, 0), so they never group.
+            // Fullscreen windows keep their frame: `resolveTabStacks` never folds
+            // one (two fullscreen windows share the display frame, issue #10) but
+            // lets it anchor its spaceless background tabs (#301).
             let size = sizeFromAttribute(values[6])
-            let frame = (minimized || fullscreen) ? nil : frameFromAttributes(values[5], size: size)
+            let frame = minimized ? nil : frameFromAttributes(values[5], size: size)
 
             raws.append(RawWindow(
                 element: window,
@@ -540,6 +538,7 @@ enum WindowEnumerator {
         let frames = raws.map(\.frame)
         let fromAXList = raws.map(\.fromAXList)
         let onscreen = raws.map { onscreenWids.contains($0.cgWindowID) }
+        let fullscreen = raws.map(\.fullscreen)
         // Space membership is one WindowServer IPC per window, so resolve it
         // only for the windows the near-frame tab rule can act on. Empty for
         // apps without a tab-shaped group — the common case pays nothing.
@@ -550,7 +549,7 @@ enum WindowEnumerator {
         let stageManager = isStageManagerEnabled
         let spaceQueryIndices = stageManager
             ? []
-            : tabSpaceQueryIndices(frames: frames, fromAXList: fromAXList, onscreen: onscreen)
+            : tabSpaceQueryIndices(frames: frames, fromAXList: fromAXList, onscreen: onscreen, fullscreen: fullscreen)
         if !spaceQueryIndices.isEmpty {
             let membership = PrivateAPI.spaceMembership(forWindows: spaceQueryIndices.map { raws[$0].cgWindowID })
             for i in spaceQueryIndices {
@@ -562,6 +561,7 @@ enum WindowEnumerator {
             frames: frames,
             fromAXList: fromAXList,
             onscreen: onscreen,
+            fullscreen: fullscreen,
             spaceless: spaceless,
             onSpace: onSpace,
             expand: expand,
@@ -638,12 +638,13 @@ enum WindowEnumerator {
     /// tab is found by its Space (#301). Empty, the common case, means the
     /// caller skips the per-window `CGSCopySpacesForWindows` IPCs entirely.
     /// Pure, so the gate is unit-testable.
-    static func tabSpaceQueryIndices(frames: [CGRect?], fromAXList: [Bool], onscreen: [Bool]) -> [Int] {
+    static func tabSpaceQueryIndices(frames: [CGRect?], fromAXList: [Bool], onscreen: [Bool], fullscreen: [Bool]) -> [Int] {
         let n = frames.count
         // Exact frames of AX-listed windows: a brute-only window at one of these
-        // is folded by the exact rule with no Space data needed.
+        // is folded by the exact rule with no Space data needed. A fullscreen
+        // window anchors only the near-frame rule, so its tabs need their Space.
         var axFrames = Set<String>()
-        for i in 0..<n where fromAXList[i] {
+        for i in 0..<n where fromAXList[i] && !fullscreen[i] {
             if let f = frames[i] { axFrames.insert(frameKey(f)) }
         }
         var indices: [Int] = []
@@ -661,7 +662,9 @@ enum WindowEnumerator {
 
     /// Decide which windows to surface and which are native background tabs.
     /// Pure (no AX/CGS) so it is unit-testable. `frames[i] == nil` means the
-    /// window is unframeable/minimized/fullscreen and is never treated as a tab.
+    /// window is unframeable or minimized and is never treated as a tab.
+    /// A `fullscreen` window is never a tab and anchors only the near-frame rule:
+    /// a zoomed window on the desktop has exactly the fullscreen frame (#301).
     ///
     /// A window is a background tab when either:
     /// - it is brute-only at the *exact* frame of an AX-listed window — AppKit
@@ -700,6 +703,7 @@ enum WindowEnumerator {
         frames: [CGRect?],
         fromAXList: [Bool],
         onscreen: [Bool],
+        fullscreen: [Bool],
         spaceless: [Bool],
         onSpace: [Bool],
         expand: Bool,
@@ -709,7 +713,7 @@ enum WindowEnumerator {
         // Exact-frame front: the ordered-in AX-listed window (the visible front
         // tab) when present, else the first AX-listed one (prior behavior).
         var frontForFrame: [String: Int] = [:]
-        for i in 0..<n where fromAXList[i] {
+        for i in 0..<n where fromAXList[i] && !fullscreen[i] {
             guard let f = frames[i] else { continue }
             let key = frameKey(f)
             if let current = frontForFrame[key] {
@@ -722,7 +726,7 @@ enum WindowEnumerator {
         var isTab = [Bool](repeating: false, count: n)
         var siblings: [Int: [Int]] = [:]
         for i in 0..<n {
-            guard let f = frames[i] else { continue }
+            guard let f = frames[i], !fullscreen[i] else { continue }
             var front: Int?
             if !fromAXList[i], let exact = frontForFrame[frameKey(f)], exact != i {
                 front = exact

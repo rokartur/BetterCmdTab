@@ -28,6 +28,7 @@ struct TabStackResolutionTests {
         onscreen: [Bool]? = nil,
         spaceless: [Bool]? = nil,
         onSpace: [Bool]? = nil,
+        fullscreen: [Bool]? = nil,
         expand: Bool,
         stageManager: Bool = false
     ) -> WindowEnumerator.TabResolution {
@@ -35,10 +36,20 @@ struct TabStackResolutionTests {
             frames: frames,
             fromAXList: fromAXList,
             onscreen: onscreen ?? fromAXList,
+            fullscreen: fullscreen ?? [Bool](repeating: false, count: frames.count),
             spaceless: spaceless ?? [Bool](repeating: false, count: frames.count),
             onSpace: onSpace ?? [Bool](repeating: false, count: frames.count),
             expand: expand,
             stageManager: stageManager
+        )
+    }
+
+    private func query(frames: [CGRect?], fromAXList: [Bool], onscreen: [Bool], fullscreen: [Bool]? = nil) -> [Int] {
+        WindowEnumerator.tabSpaceQueryIndices(
+            frames: frames,
+            fromAXList: fromAXList,
+            onscreen: onscreen,
+            fullscreen: fullscreen ?? [Bool](repeating: false, count: frames.count)
         )
     }
 
@@ -267,6 +278,55 @@ struct TabStackResolutionTests {
         #expect(r.siblingIndices[1] == [0, 2])
     }
 
+    /// Measured on macOS 27.2 with a 4-tab Ghostty window in native full screen and
+    /// its Space active: only the front tab is AX-listed and on screen (#301).
+    @Test("collapse folds the tabs of a full-screen window on its own Space (issue #301)")
+    func collapseFoldsTabsOfFullScreenWindow() {
+        let r = resolve(
+            frames: [F, F, F],
+            fromAXList: [true, false, false],
+            onscreen: [true, false, false],
+            spaceless: [false, true, true],
+            fullscreen: [true, false, false],
+            expand: false
+        )
+        #expect(r.keep == [true, false, false])
+        #expect(r.siblingIndices[0] == [1, 2])
+    }
+
+    /// Same window with the desktop Space active: nothing is AX-listed or on screen,
+    /// only the full-screen front tab resolves to a Space (#301).
+    @Test("collapse folds the tabs of a full-screen window on another Space (issue #301)")
+    func collapseFoldsTabsOfFullScreenWindowOnAnotherSpace() {
+        let r = resolve(
+            frames: [F, F, F],
+            fromAXList: [false, false, false],
+            onscreen: [false, false, false],
+            spaceless: [false, true, true],
+            onSpace: [true, false, false],
+            fullscreen: [true, false, false],
+            expand: false
+        )
+        #expect(r.keep == [true, false, false])
+        #expect(r.siblingIndices[0] == [1, 2])
+    }
+
+    /// A zoomed window on the desktop has exactly the full-screen frame (0,40 3072x1688
+    /// on a 3072x1728 display), so only a spaceless window may fold under a full-screen one.
+    @Test("a window at a full-screen window's exact frame that resolves to a Space is kept")
+    func zoomedWindowAtFullScreenFrameKept() {
+        let r = resolve(
+            frames: [F, F],
+            fromAXList: [true, false],
+            onscreen: [true, false],
+            onSpace: [false, true],
+            fullscreen: [true, false],
+            expand: false
+        )
+        #expect(r.keep == [true, true])
+        #expect(r.siblingIndices.isEmpty)
+    }
+
     @Test("two real windows on another Space are never folded")
     func twoWindowsOnAnotherSpaceKept() {
         let r = resolve(
@@ -345,16 +405,16 @@ struct TabStackResolutionTests {
         #expect(r.siblingIndices.isEmpty)
     }
 
-    @Test("a brute-only nil-frame window (fullscreen) is kept even next to an AX window with a real frame")
-    func fullscreenNilFrameKept() {
-        // The caller maps fullscreen (and minimized) windows to a nil frame,
-        // so two separate fullscreen windows of one app — one AX-listed on the
-        // current Space, one recovered off-Space by the brute scan — are never
-        // folded into one row (issue #10 / off-Space fullscreen vanish). Here the
-        // brute window's nil frame must not collapse despite an AX window present.
+    @Test("a full-screen window is never folded, even at another full-screen window's frame (issue #10)")
+    func fullscreenWindowNeverFolded() {
+        // Two separate full-screen windows of one app share the display frame: one
+        // AX-listed on the current Space, one recovered off-Space by the brute scan.
         let r = resolve(
-            frames: [F, nil],
+            frames: [F, F],
             fromAXList: [true, false],
+            onscreen: [true, false],
+            spaceless: [false, true],
+            fullscreen: [true, true],
             expand: false
         )
         #expect(r.keep == [true, true])
@@ -365,7 +425,7 @@ struct TabStackResolutionTests {
 
     @Test("no Space query for the common shape (brute tabs at the exact group frame)")
     func noQueryForExactBruteTabs() {
-        let indices = WindowEnumerator.tabSpaceQueryIndices(
+        let indices = query(
             frames: [F, F, F],
             fromAXList: [true, false, false],
             onscreen: [true, false, false]
@@ -375,7 +435,7 @@ struct TabStackResolutionTests {
 
     @Test("no Space query when every window is ordered in")
     func noQueryWhenAllOnscreen() {
-        let indices = WindowEnumerator.tabSpaceQueryIndices(
+        let indices = query(
             frames: [F, F],
             fromAXList: [true, true],
             onscreen: [true, true]
@@ -385,7 +445,7 @@ struct TabStackResolutionTests {
 
     @Test("Space query covers stale-frame brute candidates only")
     func queryCoversStaleFrameCandidates() {
-        let indices = WindowEnumerator.tabSpaceQueryIndices(
+        let indices = query(
             frames: [F, Fstale, Fstale, G],
             fromAXList: [true, false, false, true],
             onscreen: [true, false, false, true]
@@ -395,7 +455,7 @@ struct TabStackResolutionTests {
 
     @Test("Space query covers ordered-out AX-listed candidates only")
     func queryCoversAXListedCandidates() {
-        let indices = WindowEnumerator.tabSpaceQueryIndices(
+        let indices = query(
             frames: [F, F, F, G],
             fromAXList: [true, true, true, true],
             onscreen: [true, false, false, true]
@@ -405,7 +465,7 @@ struct TabStackResolutionTests {
 
     @Test("Space query covers a hidden app's tab group")
     func queryCoversHiddenApp() {
-        let indices = WindowEnumerator.tabSpaceQueryIndices(
+        let indices = query(
             frames: [F, F],
             fromAXList: [true, true],
             onscreen: [false, false]
@@ -413,9 +473,20 @@ struct TabStackResolutionTests {
         #expect(indices == [0, 1])
     }
 
+    @Test("Space query covers the tabs of a full-screen window on its own Space (issue #301)")
+    func queryCoversFullScreenTabs() {
+        let indices = query(
+            frames: [F, F, F],
+            fromAXList: [true, false, false],
+            onscreen: [true, false, false],
+            fullscreen: [true, false, false]
+        )
+        #expect(indices == [1, 2])
+    }
+
     @Test("Space query covers a tab group on another Space")
     func queryCoversGroupOnAnotherSpace() {
-        let indices = WindowEnumerator.tabSpaceQueryIndices(
+        let indices = query(
             frames: [F, F, F, G],
             fromAXList: [false, false, false, false],
             onscreen: [false, false, false, false]
@@ -425,7 +496,7 @@ struct TabStackResolutionTests {
 
     @Test("no Space query for an ordered-out window far from any front")
     func noQueryForFarWindow() {
-        let indices = WindowEnumerator.tabSpaceQueryIndices(
+        let indices = query(
             frames: [F, G],
             fromAXList: [true, false],
             onscreen: [true, false]
