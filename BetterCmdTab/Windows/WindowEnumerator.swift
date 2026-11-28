@@ -447,7 +447,7 @@ enum WindowEnumerator {
             kAXStandardWindowSubrole as String,
             kAXDialogSubrole as String,
         ]
-        // Fetch all five per-window attributes in a single AX round-trip rather
+        // Fetch the per-window attributes in a single AX round-trip rather
         // than five sequential ones. The scan is bound by cross-process AX IPC
         // latency, not CPU, so collapsing 5 IPCs → 1 per window is the largest
         // reveal-latency win here (measured ~70% faster end-to-end, byte-
@@ -494,16 +494,25 @@ enum WindowEnumerator {
             let tabs = (values[1] as? [AXUIElement]) ?? []
             let minimized = (values[2] as? Bool) ?? false
             let fullscreen = (values[3] as? Bool) ?? false
-            var windowTitle = (values[4] as? String) ?? ""
+            var windowTitle = values[4] as? String
             // Walking our own AX tree off main re-enters the layout engine (see `isOwnProcess` below).
-            if windowTitle.isEmpty, pid != getpid() {
-                windowTitle = contentTitle(of: window, timeout: Self.confirmedTimeout)
+            if windowTitle?.isEmpty != false, pid != getpid() {
+                let derivedTitle = contentTitle(of: window, timeout: Self.confirmedTimeout)
+                if !derivedTitle.isEmpty { windowTitle = derivedTitle }
+            }
+            let size = sizeFromAttribute(values[6])
+            // macOS TextInputUI advertises its cursor indicator as an AXDialog
+            // alongside the real window. AXSize measures the window itself even
+            // when Stage Manager reports strip-tile bounds to WindowServer.
+            if pid != getpid(), elements.count > 1, !minimized, !fullscreen,
+               isSmallUntitledDialog(subrole: subrole, title: windowTitle, size: size),
+               isAuxiliaryDialog(window) {
+                continue
             }
             // Minimized windows legitimately share (0, 0), so they never group.
             // Fullscreen windows keep their frame: `resolveTabStacks` never folds
             // one (two fullscreen windows share the display frame, issue #10) but
             // lets it anchor its spaceless background tabs (#301).
-            let size = sizeFromAttribute(values[6])
             let frame = minimized ? nil : frameFromAttributes(values[5], size: size)
 
             raws.append(RawWindow(
@@ -512,7 +521,7 @@ enum WindowEnumerator {
                 tabs: tabs,
                 minimized: minimized,
                 fullscreen: fullscreen,
-                title: windowTitle,
+                title: windowTitle ?? "",
                 frame: frame,
                 windowSize: size,
                 fromAXList: axListRefs.contains(AXRef(element: window))
@@ -745,6 +754,24 @@ enum WindowEnumerator {
         var keep = [Bool](repeating: true, count: n)
         for i in 0..<n where isTab[i] { keep[i] = false }
         return TabResolution(keep: keep, siblingIndices: siblings, tabSibling: [Bool](repeating: false, count: n))
+    }
+
+    static func isSmallUntitledDialog(subrole: String, title: String?, size: CGSize?) -> Bool {
+        guard subrole == kAXDialogSubrole as String, title == "", let size else { return false }
+        return size.width > 0 && size.width < 100 && size.height > 0 && size.height < 100
+    }
+
+    /// Only inspect small, untitled dialogs. Keep real dialogs with controls or
+    /// modal/main status, and keep the window if any of these reads fail.
+    private static func isAuxiliaryDialog(_ window: AXUIElement) -> Bool {
+        let attributes = [kAXMainAttribute, kAXModalAttribute, kAXCloseButtonAttribute] as CFArray
+        var valuesRef: CFArray?
+        guard AXUIElementCopyMultipleAttributeValues(window, attributes, AXCopyMultipleAttributeOptions(rawValue: 0), &valuesRef) == .success,
+              let values = valuesRef as? [AnyObject], values.count == 3,
+              (values[0] as? Bool) == false, (values[1] as? Bool) == false,
+              CFGetTypeID(values[2]) == AXValueGetTypeID() else { return false }
+        var closeButtonError = AXError.success
+        return AXValueGetValue(values[2] as! AXValue, .axError, &closeButtonError) && closeButtonError == .noValue
     }
 
     /// Title of a window whose own AXTitle is blank, read from its first child group:
