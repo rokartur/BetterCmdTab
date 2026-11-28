@@ -82,6 +82,23 @@ struct WindowEnumeratorTests {
         #expect(WindowEnumerator.cgWindowBucket(layer: 20, alpha: 1.0, width: 83, height: 103, stageManager: true) == .nonNormalLayer)
     }
 
+    @Test("An 84 × 77 untitled AXDialog is eligible for the auxiliary window check")
+    func textInputIndicatorShape() {
+        #expect(WindowEnumerator.isSmallUntitledDialog(subrole: "AXDialog", title: "", size: CGSize(width: 84, height: 77)))
+    }
+
+    @Test("Titled, standard, larger and unknown windows skip the auxiliary window check")
+    func keepOtherWindowShapes() {
+        let small = CGSize(width: 84, height: 77)
+        #expect(!WindowEnumerator.isSmallUntitledDialog(subrole: "AXDialog", title: "Preview", size: small))
+        #expect(!WindowEnumerator.isSmallUntitledDialog(subrole: "AXStandardWindow", title: "", size: small))
+        #expect(!WindowEnumerator.isSmallUntitledDialog(subrole: "AXDialog", title: "", size: CGSize(width: 83, height: 103)))
+        #expect(!WindowEnumerator.isSmallUntitledDialog(subrole: "AXDialog", title: "", size: CGSize(width: 100, height: 77)))
+        #expect(!WindowEnumerator.isSmallUntitledDialog(subrole: "AXDialog", title: "", size: .zero))
+        #expect(!WindowEnumerator.isSmallUntitledDialog(subrole: "AXDialog", title: "", size: nil))
+        #expect(!WindowEnumerator.isSmallUntitledDialog(subrole: "AXDialog", title: nil, size: small))
+    }
+
     // MARK: - snapshot z-order
 
     private func entry(wid: Int, layer: Int = 0, onscreen: Bool = true) -> NSDictionary {
